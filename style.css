@@ -774,8 +774,133 @@ body {
   margin-bottom: 4px;
   font-family: var(--font-sans);
   font-weight: bold;
-}
+  }
 .deck-group-header:first-of-type {
   padding-top: 0;
 }
+
+/* Tabbed Code Deck Header */
+.code-deck-tabs {
+  display: flex;
+  gap: 1px;
+  background: rgba(255, 255, 255, 0.03);
+  border-top: 1px solid var(--panel-border);
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.code-tab {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.code-tab:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.code-tab.active {
+  color: var(--active-neon);
+  background: rgba(255, 255, 255, 0.05);
+  border-bottom: 2px solid var(--active-neon);
+}
+
+/* Code Pane layout */
+.code-pane {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+}
+
+.code-pane.hidden {
+  display: none !important;
+}
+
+/* Music Button HUD alignment */
+.music-menu-button {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: color 0.2s;
+  outline: none;
+}
+
+.music-menu-button:hover {
+  color: var(--text-primary);
+}
+
+/* Music Dropdown Menu */
+.music-dropdown {
+  position: absolute;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 15px rgba(56, 189, 248, 0.2);
+  z-index: 1000;
+  width: 160px;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  top: 100%;
+  right: 0;
+  margin-top: 5px;
+  opacity: 0;
+  transform: translateY(-10px);
+  pointer-events: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.music-dropdown.show {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.music-dropdown-item {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-family: var(--font-primary);
+  font-size: 0.8rem;
+  text-align: left;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.music-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--active-neon);
+}
+
+.music-dropdown-item.active {
+  background: rgba(56, 189, 248, 0.15);
+  color: var(--neon-cyan);
+  font-weight: bold;
+}
+
+.track-active-indicator {
+  color: var(--neon-green);
+  font-size: 0.65rem;
+  text-shadow: 0 0 5px var(--neon-green);
+}
+
 

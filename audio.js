@@ -191,6 +191,9 @@ class SoundEngine {
     if (this.isMuted || !this.ctx) return;
 
     this.currentBgm = planetId;
+    if (window.updateMusicMenuState) {
+      window.updateMusicMenuState();
+    }
     let step = 0;
 
     // Define different looping notes/patterns based on planets

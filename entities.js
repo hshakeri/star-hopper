@@ -234,9 +234,15 @@ class Player {
       return;
     }
 
+    // Robust key bindings mapping casing variations and older browser names
+    const leftPressed = !!(keys['ArrowLeft'] || keys['arrowleft'] || keys['Left'] || keys['left']);
+    const rightPressed = !!(keys['ArrowRight'] || keys['arrowright'] || keys['Right'] || keys['right']);
+    const jumpPressed = !!(keys['w'] || keys['W'] || keys['ArrowUp'] || keys['arrowup'] || keys['Up'] || keys['up'] || keys[' ']);
+    const downPressed = !!(keys['s'] || keys['S'] || keys['ArrowDown'] || keys['arrowdown'] || keys['Down'] || keys['down']);
+
     // 3. Horizontal movement inputs (Active character only)
     const walkAcceleration = 0.5;
-    if (keys['ArrowLeft']) {
+    if (leftPressed) {
       this.vx -= walkAcceleration;
       if (this.vx < -speedMultiplier) this.vx = -speedMultiplier;
       // Walking dust particles
@@ -248,7 +254,7 @@ class Player {
           10
         );
       }
-    } else if (keys['ArrowRight']) {
+    } else if (rightPressed) {
       this.vx += walkAcceleration;
       if (this.vx > speedMultiplier) this.vx = speedMultiplier;
       if (this.onGround && Math.random() < 0.15) {
@@ -268,7 +274,7 @@ class Player {
       
       // Hopper spiked boots activation (holding S or Down arrow increases friction)
       this.isBraking = false;
-      if (this.charType === 'hopper' && (keys['s'] || keys['ArrowDown'] || this.spikes) && this.onGround) {
+      if (this.charType === 'hopper' && (downPressed || this.spikes) && this.onGround) {
         horizontalFriction = 0.65; // High grip!
         this.isBraking = true;
         // Spark particles under boots
@@ -286,7 +292,7 @@ class Player {
     }
 
     // 4. Jump movement inputs
-    if ((keys['w'] || keys['ArrowUp'] || keys[' ']) && this.onGround) {
+    if (jumpPressed && this.onGround) {
       this.vy = -jumpMultiplier;
       this.onGround = false;
       this.isJumping = true;
@@ -296,37 +302,36 @@ class Player {
 
     // 5. Mid-air special maneuvers
     if (!this.onGround) {
-      const isHoldJump = (keys['w'] || keys['ArrowUp'] || keys[' ']);
+      const isHoldJump = jumpPressed;
 
       if (this.charType === 'star') {
         // Star glide (reduces gravity pull by 60% if holding jump button while falling)
         if (isHoldJump && this.vy > 0) {
           gravityForce *= 0.4;
           // Spawn glide sparkles
-          if (Math.random() < 0.2) {
+          if (Math.random() < 0.25) {
             Particles.spawn(
               this.x + Math.random() * this.w, this.y + this.h, 
               '#38bdf8', 1.5, 
-              0, 0.5 + Math.random() * 0.5, 
-              15, 'glow'
+              (Math.random() - 0.5) * 0.5, 0.5, 
+              20, 'glow'
             );
           }
         }
-      } else {
-        // Hopper Rocket Booster
+      } else if (this.charType === 'hopper') {
+        // Hopper rocket pack (holds space/jump button in mid-air to blast upward)
         if (isHoldJump && this.fuel > 0) {
-          this.vy -= 0.6; // Thrust force
-          if (this.vy < -6) this.vy = -6;
+          this.vy -= (this.rocketPower || 0.45);
+          if (this.vy < -speedMultiplier) this.vy = -speedMultiplier;
           this.fuel -= 1.5;
           // Rocket exhaust particles
-          if (Math.random() < 0.6) {
-            Particles.spawn(
-              this.x + this.w / 2, this.y + this.h, 
-              '#f97316', 3.5, 
-              (Math.random() - 0.5) * 1.5, 3 + Math.random() * 2, 
-              15, 'glow'
-            );
-          }
+          Particles.spawn(
+            this.x + (Math.random() * 6) + 4, this.y + this.h, 
+            '#f97316', 2.5, 
+            (Math.random() - 0.5) * 0.8, 1.5 + Math.random() * 1.5, 
+            15, 'glow'
+          );
+          if (Math.random() < 0.2) SFX.playJump(); // soft thrust hum
         }
       }
     } else {
@@ -336,7 +341,7 @@ class Player {
 
     // 6. Electromagnet active (Hopper holds S / Down arrow in air)
     this.magnetActive = false;
-    if (this.charType === 'hopper' && !this.onGround && (keys['s'] || keys['ArrowDown'])) {
+    if (this.charType === 'hopper' && !this.onGround && downPressed) {
       this.magnetActive = true;
     }
 

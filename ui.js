@@ -312,7 +312,81 @@ function setupUIBindings(game) {
   if (muteBtn) {
     muteBtn.addEventListener("click", () => {
       const isMuted = SFX.toggleMute();
-      muteBtn.innerHTML = isMuted ? '<i class="fas fa-volume-mute">🔇</i>' : '<i class="fas fa-volume-up">🔊</i>';
+      muteBtn.innerHTML = isMuted ? '🔇' : '🔊';
     });
+  }
+
+  // 5. Code deck tabs
+  const tabPhysics = document.getElementById("tab-btn-physics");
+  const tabRules = document.getElementById("tab-btn-rules");
+  const panePhysics = document.getElementById("pane-physics");
+  const paneRules = document.getElementById("pane-rules");
+
+  if (tabPhysics && tabRules && panePhysics && paneRules) {
+    tabPhysics.addEventListener("click", () => {
+      tabPhysics.classList.add("active");
+      tabRules.classList.remove("active");
+      panePhysics.classList.remove("hidden");
+      paneRules.classList.add("hidden");
+      SFX.playType();
+    });
+
+    tabRules.addEventListener("click", () => {
+      tabRules.classList.add("active");
+      tabPhysics.classList.remove("active");
+      paneRules.classList.remove("hidden");
+      panePhysics.classList.add("hidden");
+      SFX.playType();
+    });
+  }
+
+  // 6. Music dropdown menu
+  const musicMenuBtn = document.getElementById("music-menu-btn");
+  const musicDropdown = document.getElementById("music-dropdown");
+  const musicItems = document.querySelectorAll(".music-dropdown-item");
+
+  if (musicMenuBtn && musicDropdown) {
+    musicMenuBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      musicDropdown.classList.toggle("show");
+      SFX.playType();
+    });
+
+    document.addEventListener("click", () => {
+      musicDropdown.classList.remove("show");
+    });
+
+    musicItems.forEach(item => {
+      item.addEventListener("click", () => {
+        const trackId = parseInt(item.getAttribute("data-track"));
+        SFX.startBGM(trackId);
+        
+        const trackNames = ["Earth Base", "Moon Orbit", "Jupiter Core", "Glacies Ice", "Magnet Field"];
+        ui_log_output(`Music set to: ${trackNames[trackId]}`, "success");
+        
+        updateMusicMenuState();
+        musicDropdown.classList.remove("show");
+      });
+    });
+
+    function updateMusicMenuState() {
+      const activeTrack = SFX.currentBgm;
+      musicItems.forEach(item => {
+        const trackId = parseInt(item.getAttribute("data-track"));
+        if (trackId === activeTrack) {
+          item.classList.add("active");
+          const indicator = item.querySelector(".track-active-indicator");
+          if (indicator) indicator.textContent = " ●";
+        } else {
+          item.classList.remove("active");
+          const indicator = item.querySelector(".track-active-indicator");
+          if (indicator) indicator.textContent = "";
+        }
+      });
+    }
+
+    // Export so audio.js can sync state
+    window.updateMusicMenuState = updateMusicMenuState;
+    updateMusicMenuState();
   }
 }

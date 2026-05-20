@@ -163,10 +163,22 @@
         </div>
 
         <!-- Active Character Controller Panel -->
-        <div class="hud-card glass-panel" style="flex: 1.2;">
+        <div class="hud-card glass-panel" style="flex: 1.2; position: relative;">
           <div class="hud-card-title">
             <span>Team Status</span>
-            <button class="mute-button" id="mute-btn" title="Toggle Sound">🔊</button>
+            <div style="display: flex; align-items: center; gap: 8px; position: relative;">
+              <button class="music-menu-button" id="music-menu-btn" title="Change Music">🎵</button>
+              <button class="mute-button" id="mute-btn" title="Toggle Sound">🔊</button>
+              
+              <!-- Music Dropdown List -->
+              <div class="music-dropdown" id="music-dropdown">
+                <button class="music-dropdown-item" data-track="0">🌍 Earth Base <span class="track-active-indicator"></span></button>
+                <button class="music-dropdown-item" data-track="1">🌙 Moon Orbit <span class="track-active-indicator"></span></button>
+                <button class="music-dropdown-item" data-track="2">🪐 Jupiter Core <span class="track-active-indicator"></span></button>
+                <button class="music-dropdown-item" data-track="3">❄️ Glacies Ice <span class="track-active-indicator"></span></button>
+                <button class="music-dropdown-item" data-track="4">🧲 Magnet Field <span class="track-active-indicator"></span></button>
+              </div>
+            </div>
           </div>
           
           <div class="character-hud-cards">
@@ -228,71 +240,75 @@
         </div>
       </div>
 
-      <!-- Click-to-Type Code Cards (Cheat Sheet) -->
-      <div class="code-deck-title">Code Deck (Click-to-Type)</div>
+      <!-- Tabbed Code Deck Header -->
+      <div class="code-deck-tabs">
+        <button class="code-tab active" id="tab-btn-physics">⚡ Physics Constants</button>
+        <button class="code-tab" id="tab-btn-rules">🪄 Logic & Rules</button>
+      </div>
       
       <div class="code-deck">
-        <!-- Section: Physics Constants -->
-        <div class="deck-group-header">⚡ Physics Constants</div>
-        <div class="code-card category-math" data-code="gravity = 0.3" title="Set gravity to low Moon-like floatiness.">
-          <span class="variable">gravity</span> = <span class="keyword">0.3</span>
-        </div>
-        <div class="code-card category-math" data-code="gravity = 1.6" title="Reset gravity to heavy planet-side normal force.">
-          <span class="variable">gravity</span> = <span class="keyword">1.6</span>
-        </div>
-        <div class="code-card category-math" data-code="friction = 0.5" title="Slick ice sliding physics.">
-          <span class="variable">friction</span> = <span class="keyword">0.5</span>
-        </div>
-        <div class="code-card category-math" data-code="friction = 10.0" title="Brake instantly on slippery ground.">
-          <span class="variable">friction</span> = <span class="keyword">10.0</span>
-        </div>
-        <div class="code-card category-math" data-code="player.jump_power = 20" title="Make player jump twice as high.">
-          <span class="variable">player.jump_power</span> = <span class="keyword">20</span>
-        </div>
-        <div class="code-card category-math" data-code="hopper.mass = 0.8" title="Make Hopper lightweight.">
-          <span class="variable">hopper.mass</span> = <span class="keyword">0.8</span>
-        </div>
-
-        <!-- Section: Magic Wand Actions -->
-        <div class="deck-group-header">🪄 Magic Wand Actions</div>
-        <div class="code-card" data-code="spawn_coin()" title="Spawn coin above current coordinates.">
-          <span class="function">spawn_coin</span>()
-        </div>
-        <div class="code-card" data-code="spawn_box()" title="Spawn wooden box above head to step over hazard peaks.">
-          <span class="function">spawn_box</span>()
-        </div>
-        <div class="code-card" data-code="spawn_spring()" title="Spawn bounce launcher pad.">
-          <span class="function">spawn_spring</span>()
-        </div>
-        <div class="code-card" data-code="shrink_enemies()" title="Make bug/spore threats tiny.">
-          <span class="function">shrink_enemies</span>()
-        </div>
-        <div class="code-card" data-code="rave_mode()" title="Toggle rainbow disco mode!">
-          <span class="function">rave_mode</span>()
+        <!-- Tab Pane: Physics -->
+        <div id="pane-physics" class="code-pane">
+          <div class="code-card category-math" data-code="gravity = 0.3" title="Set gravity to low Moon-like floatiness.">
+            <span class="variable">gravity</span> = <span class="keyword">0.3</span>
+          </div>
+          <div class="code-card category-math" data-code="gravity = 1.6" title="Reset gravity to heavy planet-side normal force.">
+            <span class="variable">gravity</span> = <span class="keyword">1.6</span>
+          </div>
+          <div class="code-card category-math" data-code="friction = 0.5" title="Slick ice sliding physics.">
+            <span class="variable">friction</span> = <span class="keyword">0.5</span>
+          </div>
+          <div class="code-card category-math" data-code="friction = 10.0" title="Brake instantly on slippery ground.">
+            <span class="variable">friction</span> = <span class="keyword">10.0</span>
+          </div>
+          <div class="code-card category-math" data-code="player.jump_power = 20" title="Make player jump twice as high.">
+            <span class="variable">player.jump_power</span> = <span class="keyword">20</span>
+          </div>
+          <div class="code-card category-math" data-code="hopper.mass = 0.8" title="Make Hopper lightweight.">
+            <span class="variable">hopper.mass</span> = <span class="keyword">0.8</span>
+          </div>
         </div>
 
-        <!-- Section: Magic Loops -->
-        <div class="deck-group-header">🔄 Magic Loops</div>
-        <div class="code-card category-loop" data-code="repeat 5: spawn_coin()" title="Spawn 5 coins.">
-          <span class="keyword">repeat</span> <span class="number">5</span>: <span class="function">spawn_coin</span>()
-        </div>
-        <div class="code-card category-loop" data-code="for i in range(3): spawn_spring()" title="Spawn 3 stacked springs.">
-          <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(<span class="number">3</span>): <span class="function">spawn_spring</span>()
-        </div>
+        <!-- Tab Pane: Rules -->
+        <div id="pane-rules" class="code-pane hidden">
+          <!-- Magic Wand Actions -->
+          <div class="code-card" data-code="spawn_coin()" title="Spawn coin above current coordinates.">
+            <span class="function">spawn_coin</span>()
+          </div>
+          <div class="code-card" data-code="spawn_box()" title="Spawn wooden box above head to step over hazard peaks.">
+            <span class="function">spawn_box</span>()
+          </div>
+          <div class="code-card" data-code="spawn_spring()" title="Spawn bounce launcher pad.">
+            <span class="function">spawn_spring</span>()
+          </div>
+          <div class="code-card" data-code="shrink_enemies()" title="Make bug/spore threats tiny.">
+            <span class="function">shrink_enemies</span>()
+          </div>
+          <div class="code-card" data-code="rave_mode()" title="Toggle rainbow disco mode!">
+            <span class="function">rave_mode</span>()
+          </div>
 
-        <!-- Section: Event Hook Triggers -->
-        <div class="deck-group-header">🔔 Event Rules</div>
-        <div class="code-card category-if" data-code="when player.lands: gravity = 1.6" title="Restore default gravity instantly on landing.">
-          <span class="keyword">when</span> <span class="variable">player.lands</span>: gravity = <span class="keyword">1.6</span>
-        </div>
-        <div class="code-card category-if" data-code="when player.touching('ice'): player.say('Woohoo!')" title="Active player says something on ice block contact.">
-          <span class="keyword">when</span> <span class="variable">player.touching</span>(<span class="string">'ice'</span>): player.<span class="function">say</span>(<span class="string">'Woohoo!'</span>)
-        </div>
-        <div class="code-card category-if" data-code="when hopper.rocket_on: gravity = 2.5" title="Increase gravity when space is held down to rocket jump.">
-          <span class="keyword">when</span> <span class="variable">hopper.rocket_on</span>: gravity = <span class="keyword">2.5</span>
-        </div>
-        <div class="code-card category-if" data-code="when hit_enemy: bounce_up()" title="Stomping an alien fires a massive bounce impulse.">
-          <span class="keyword">when</span> <span class="variable">hit_enemy</span>: <span class="function">bounce_up</span>()
+          <!-- Magic Loops -->
+          <div class="code-card category-loop" data-code="repeat 5: spawn_coin()" title="Spawn 5 coins.">
+            <span class="keyword">repeat</span> <span class="number">5</span>: <span class="function">spawn_coin</span>()
+          </div>
+          <div class="code-card category-loop" data-code="for i in range(3): spawn_spring()" title="Spawn 3 stacked springs.">
+            <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(<span class="number">3</span>): <span class="function">spawn_spring</span>()
+          </div>
+
+          <!-- Event Hook Triggers -->
+          <div class="code-card category-if" data-code="when player.lands: gravity = 1.6" title="Restore default gravity instantly on landing.">
+            <span class="keyword">when</span> <span class="variable">player.lands</span>: gravity = <span class="keyword">1.6</span>
+          </div>
+          <div class="code-card category-if" data-code="when player.touching('ice'): player.say('Woohoo!')" title="Active player says something on ice block contact.">
+            <span class="keyword">when</span> <span class="variable">player.touching</span>(<span class="string">'ice'</span>): player.<span class="function">say</span>(<span class="string">'Woohoo!'</span>)
+          </div>
+          <div class="code-card category-if" data-code="when hopper.rocket_on: gravity = 2.5" title="Increase gravity when space is held down to rocket jump.">
+            <span class="keyword">when</span> <span class="variable">hopper.rocket_on</span>: gravity = <span class="keyword">2.5</span>
+          </div>
+          <div class="code-card category-if" data-code="when hit_enemy: bounce_up()" title="Stomping an alien fires a massive bounce impulse.">
+            <span class="keyword">when</span> <span class="variable">hit_enemy</span>: <span class="function">bounce_up</span>()
+          </div>
         </div>
       </div>
 
