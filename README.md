@@ -1,6 +1,8 @@
 # 🚀 Star Hopper - Coding & Physics Platformer
 
-[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Donate-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/hshakeri)
+<a href="https://www.buymeacoffee.com/hshakeri" target="_blank">
+  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 42px !important;width: 151px !important;" >
+</a>
 
 Welcome to **Star Hopper**, an interactive, zero-dependency, retro-futuristic 2D physics platformer built to teach kids (and curious adults) programming and physics concepts in an engaging, visual way!
 
@@ -75,4 +77,7 @@ Use the console terminal on the right to edit the environment. You can use direc
 
 ## ☕ Support the Project
 If you enjoyed playing or learning with Star Hopper, consider buying me a coffee!
-[![Donate](https://img.shields.io/badge/Donate-Buy%20Me%20A%20Coffee-orange.svg?style=flat-square)](https://www.buymeacoffee.com/hshakeri)
+
+<a href="https://www.buymeacoffee.com/hshakeri" target="_blank">
+  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 42px !important;width: 151px !important;" >
+</a>
