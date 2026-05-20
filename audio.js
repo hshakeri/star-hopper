@@ -240,20 +240,20 @@ class SoundEngine {
       melody = ["C4", "F#4", "G4", "C#5", "D5", "G#4", "A4", "D#4", "E4", "A4", "B4", "E5", "C4", "C4", "C4", "C4"];
       bass = ["C3", "C3", "F#3", "F#3", "D3", "D3", "G#3", "G#3", "A3", "A3", "A3", "A3", "C3", "C3", "C3", "C3"];
       tempo = 160;
-    } else { // Tears: Ambient, Jazz-inspired
+    } else { // Tears: Ambient Minecraft style (by Amos Roddy)
       melody = [
-        "C#5", "F#5", "E5", "C#5", "B4", "A4", "B4", "C#5",
-        "D5",  "F#5", "E5", "D5", "C#5", "B4", "C#5", "A4",
-        "E5",  "A5", "G#5", "E5", "D5", "C#5", "D5", "E5",
-        "B4",  "E5", "D5", "B4", "A4", "G#4", "A4", "B4"
+        "F#4", "C#4", "A4", "C#4", "C#5", "C#4", "E5", "C#4", // F#m arpeggio
+        "D5",  "A4",  "C#5", "A4",  "B4",  "A4",  "A4", "F#4", // D Major arpeggio
+        "D5",  "A4",  "C#5", "A4",  "B4",  "A4",  "A4", "F4",  // D Minor arpeggio (haunting shift)
+        "C#5", "G#4", "B4",  "G#4", "A4",  "G#4", "G#4", "E4"  // C# sus/resolution
       ];
       bass = [
-        "F#3", "F#3", "F#3", "F#3", "F#3", "F#3", "F#3", "F#3",
-        "D3",  "D3",  "D3",  "D3",  "D3",  "D3",  "D3",  "D3",
-        "A3",  "A3",  "A3",  "A3",  "A3",  "A3",  "A3",  "A3",
-        "C#3", "C#3", "C#3", "C#3", "C#3", "C#3", "C#3", "C#3"
+        "F#2", " ", "F#3", " ", "F#2", " ", "F#3", " ",
+        "D2",  " ", "D3",  " ", "D2",  " ", "D3",  " ",
+        "D2",  " ", "D3",  " ", "D2",  " ", "D3",  " ",
+        "C#2", " ", "C#3", " ", "C#2", " ", "C#3", " "
       ];
-      tempo = 220;
+      tempo = 300; // ~100 BPM eighth notes matching the original 99 BPM
     }
 
     const scheduleNext = () => {
