@@ -277,6 +277,18 @@ const PLANETS = [
   }
 ];
 
+// Map rich missions from missions.js if they exist
+if (typeof PlatformerMissions !== 'undefined') {
+  PLANETS.forEach(planet => {
+    planet.missions = PlatformerMissions.filter(m => m.planetId === planet.id).map(m => ({
+      id: m.id,
+      prompt: m.objective,
+      validate: (game) => m.validate(game, typeof Compiler !== 'undefined' ? Compiler : null),
+      fullMission: m
+    }));
+  });
+}
+
 if (typeof module !== 'undefined') {
   module.exports = { PLANETS, TILE_SIZE };
 }

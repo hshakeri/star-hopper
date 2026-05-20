@@ -147,6 +147,8 @@ function updateHUD(game) {
 
 // Update Mission Checklist UI
 function updateMissionList(game) {
+  updatePedagogicalGuide(game);
+
   const listContainer = document.getElementById("mission-list");
   if (!listContainer) return;
 
@@ -234,6 +236,10 @@ function setupUIBindings(game) {
           if (res.success) {
             ui_log_output(res.msg, "success");
             SFX.playSuccess();
+            if (game.currentMissionSteps) {
+              game.currentMissionSteps.code = true;
+              updatePedagogicalGuide(game);
+            }
           } else {
             ui_log_output(res.msg, "error");
             SFX.playError();
@@ -297,6 +303,10 @@ function setupUIBindings(game) {
         input.value = code;
         input.focus();
         SFX.playType();
+        if (game.currentMissionSteps) {
+          game.currentMissionSteps.code = true;
+          updatePedagogicalGuide(game);
+        }
       }
     });
   });
@@ -388,5 +398,112 @@ function setupUIBindings(game) {
     // Export so audio.js can sync state
     window.updateMusicMenuState = updateMusicMenuState;
     updateMusicMenuState();
+
+    // 6. Observe & Test steps keyboard watcher
+    window.addEventListener("keydown", (e) => {
+      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ', 'a', 'd', 'w', 's'].includes(e.key)) {
+        if (game.currentMissionSteps) {
+          if (!game.currentMissionSteps.observe) {
+            game.currentMissionSteps.observe = true;
+            updatePedagogicalGuide(game);
+          } else if (game.currentMissionSteps.code && !game.currentMissionSteps.test) {
+            game.currentMissionSteps.test = true;
+            updatePedagogicalGuide(game);
+          }
+        }
+      }
+    });
+
+    const responseArea = document.getElementById("notebook-user-response");
+    if (responseArea) {
+      responseArea.addEventListener("focus", () => {
+        if (game.currentMissionSteps && !game.currentMissionSteps.predict) {
+          game.currentMissionSteps.predict = true;
+          updatePedagogicalGuide(game);
+        }
+      });
+    }
   }
+}
+
+// 6-Step Pedagogical Guide renderer
+function updatePedagogicalGuide(game) {
+  const panel = document.getElementById("pedagogical-mission-panel");
+  const stepsContainer = document.getElementById("pedagogical-steps");
+  if (!panel || !stepsContainer) return;
+
+  const currentPlanet = game.currentPlanet;
+  if (!currentPlanet || !currentPlanet.missions) {
+    panel.style.display = "none";
+    return;
+  }
+
+  // Find first uncompleted mission
+  const activeMission = currentPlanet.missions.find(m => !game.completedMissions.has(m.id)) || currentPlanet.missions[0];
+  if (!activeMission || !activeMission.fullMission) {
+    panel.style.display = "none";
+    return;
+  }
+
+  panel.style.display = "block";
+  const titleEl = document.getElementById("pedagogical-mission-title");
+  if (titleEl) titleEl.textContent = activeMission.fullMission.title;
+
+  // Ensure steps state is initialized
+  if (!game.currentMissionSteps || game.currentMissionId !== activeMission.id) {
+    game.currentMissionId = activeMission.id;
+    game.currentMissionSteps = {
+      observe: false,
+      predict: false,
+      code: false,
+      test: false,
+      explain: false,
+      challenge: false
+    };
+  }
+
+  // Auto-complete Challenge if mission validated
+  if (game.completedMissions.has(activeMission.id)) {
+    game.currentMissionSteps.challenge = true;
+    game.currentMissionSteps.observe = true;
+    game.currentMissionSteps.predict = true;
+    game.currentMissionSteps.code = true;
+    game.currentMissionSteps.test = true;
+    game.currentMissionSteps.explain = true;
+  }
+
+  stepsContainer.innerHTML = "";
+  const steps = activeMission.fullMission.steps;
+  
+  // Determine current active step index
+  let activeIndex = 0;
+  const keys = ["observe", "predict", "code", "test", "explain", "challenge"];
+  for (let i = 0; i < keys.length; i++) {
+    if (!game.currentMissionSteps[keys[i]]) {
+      activeIndex = i;
+      break;
+    }
+  }
+  if (game.completedMissions.has(activeMission.id)) {
+    activeIndex = 5; // Challenge
+  }
+
+  steps.forEach((step, index) => {
+    const isDone = game.currentMissionSteps[step.id];
+    const isActive = index === activeIndex;
+
+    const item = document.createElement("div");
+    item.className = `step-checklist-item ${isDone ? 'completed' : ''} ${isActive ? 'active' : ''}`;
+    
+    const icon = isDone ? "✓" : (isActive ? "▶" : "○");
+    
+    item.innerHTML = `
+      <span class="bullet" style="color: ${isDone ? 'var(--neon-green)' : (isActive ? 'var(--neon-cyan)' : 'var(--text-muted)')}; font-weight:bold;">${icon} ${index + 1}.</span>
+      <div style="flex-grow:1;">
+        <span class="step-text" style="color: ${isActive ? 'var(--text-primary)' : 'var(--text-muted)'}; font-weight: ${isActive ? 'bold' : 'normal'};">${step.prompt}</span>
+      </div>
+    `;
+
+    stepsContainer.appendChild(item);
+  });
 }

@@ -209,108 +209,277 @@
     </div>
 
     <!-- RIGHT SIDE: FUTURISTIC SPACE CODING TERMINAL -->
-    <div id="terminal-section" class="glass-panel">
+    <div id="terminal-section" class="glass-panel" style="overflow: hidden; display: flex; flex-direction: column;">
       
-      <!-- Console Header -->
-      <div class="terminal-header">
-        <h2 id="header-planet-title">Earth Base Camp</h2>
-        <div class="blink-dot"></div>
+      <!-- Main Mode Switch Tabs -->
+      <div class="main-mode-tabs">
+        <button class="mode-tab active" id="mode-btn-terminal" onclick="switchMainMode('terminal')">💻 Code</button>
+        <button class="mode-tab" id="mode-btn-notebook" onclick="switchMainMode('notebook')">📓 Notebook</button>
+        <button class="mode-tab" id="mode-btn-navigator" onclick="switchMainMode('navigator')">🚀 Navigator</button>
+        <button class="mode-tab" id="mode-btn-parents" onclick="switchMainMode('parents')">👪 Guides</button>
       </div>
-      <div class="terminal-sub-header" id="header-planet-sub">// Coordinate: Standard Gravity & Trajectories</div>
 
-      <!-- Active Mission Checklist Box -->
-      <div id="mission-panel" class="mission-panel">
-        <div class="mission-panel-title">🪐 ACTIVE PLANETARY OBJECTIVES</div>
-        <div id="mission-list" class="mission-list">
-          <!-- Populated from ui.js -->
+      <!-- Mode Pane 1: Coding Terminal -->
+      <div id="main-content-terminal" class="mode-content active" style="flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto;">
+        <!-- Console Header -->
+        <div class="terminal-header" style="border-bottom: 1px solid var(--panel-border); padding-bottom: 10px;">
+          <h2 id="header-planet-title">Earth Base Camp</h2>
+          <div class="blink-dot"></div>
         </div>
-      </div>
+        <div class="terminal-sub-header" id="header-planet-sub">// Coordinate: Standard Gravity & Trajectories</div>
 
-      <!-- Console logs -->
-      <div class="console-area">
-        <div class="console-history" id="console-history">
-          <div class="console-line info">--- Star Hopper Space Terminal OS v2.0 ---</div>
-          <div class="console-line info">Type commands to change level physics, write loops, and spawn items.</div>
-          <div class="console-line info">Click Code Cards below to auto-type variables and actions!</div>
-        </div>
-
-        <!-- Interactive Typing Row -->
-        <div class="console-input-row">
-          <span class="console-prompt">hopper&gt;</span>
-          <input type="text" id="console-input" class="console-input" placeholder="Type command here..." autofocus autocomplete="off" spellcheck="false">
-          <!-- Autocomplete Suggestions List Overlay -->
-          <div id="autocomplete-box" class="autocomplete-box" style="display: none;"></div>
-        </div>
-      </div>
-
-      <!-- Tabbed Code Deck Header -->
-      <div class="code-deck-tabs">
-        <button class="code-tab active" id="tab-btn-physics">⚡ Physics Constants</button>
-        <button class="code-tab" id="tab-btn-rules">🪄 Logic & Rules</button>
-      </div>
-      
-      <div class="code-deck">
-        <!-- Tab Pane: Physics -->
-        <div id="pane-physics" class="code-pane">
-          <div class="code-card category-math" data-code="gravity = 0.3" title="Set gravity to low Moon-like floatiness.">
-            <span class="variable">gravity</span> = <span class="keyword">0.3</span>
-          </div>
-          <div class="code-card category-math" data-code="gravity = 1.6" title="Reset gravity to heavy planet-side normal force.">
-            <span class="variable">gravity</span> = <span class="keyword">1.6</span>
-          </div>
-          <div class="code-card category-math" data-code="friction = 0.5" title="Slick ice sliding physics.">
-            <span class="variable">friction</span> = <span class="keyword">0.5</span>
-          </div>
-          <div class="code-card category-math" data-code="friction = 10.0" title="Brake instantly on slippery ground.">
-            <span class="variable">friction</span> = <span class="keyword">10.0</span>
-          </div>
-          <div class="code-card category-math" data-code="player.jump_power = 20" title="Make player jump twice as high.">
-            <span class="variable">player.jump_power</span> = <span class="keyword">20</span>
-          </div>
-          <div class="code-card category-math" data-code="hopper.mass = 0.8" title="Make Hopper lightweight.">
-            <span class="variable">hopper.mass</span> = <span class="keyword">0.8</span>
+        <!-- Active Mission Checklist Box -->
+        <div id="mission-panel" class="mission-panel">
+          <div class="mission-panel-title">🪐 ACTIVE PLANETARY OBJECTIVES</div>
+          <div id="mission-list" class="mission-list">
+            <!-- Populated from ui.js -->
           </div>
         </div>
 
-        <!-- Tab Pane: Rules -->
-        <div id="pane-rules" class="code-pane hidden">
-          <!-- Magic Wand Actions -->
-          <div class="code-card" data-code="spawn_coin()" title="Spawn coin above current coordinates.">
-            <span class="function">spawn_coin</span>()
+        <!-- 6-Step Pedagogical checklist details -->
+        <div id="pedagogical-mission-panel" class="mission-panel" style="margin-top: 10px; display: none;">
+          <div class="mission-panel-title">💡 MISSION GUIDE: <span id="pedagogical-mission-title">The Gravity Dial</span></div>
+          <div id="pedagogical-steps" class="step-checklist">
+            <!-- Dynamically populated from ui.js -->
           </div>
-          <div class="code-card" data-code="spawn_box()" title="Spawn wooden box above head to step over hazard peaks.">
-            <span class="function">spawn_box</span>()
-          </div>
-          <div class="code-card" data-code="spawn_spring()" title="Spawn bounce launcher pad.">
-            <span class="function">spawn_spring</span>()
-          </div>
-          <div class="code-card" data-code="shrink_enemies()" title="Make bug/spore threats tiny.">
-            <span class="function">shrink_enemies</span>()
-          </div>
-          <div class="code-card" data-code="rave_mode()" title="Toggle rainbow disco mode!">
-            <span class="function">rave_mode</span>()
+        </div>
+
+        <!-- Console logs -->
+        <div class="console-area" style="flex-grow: 1; display: flex; flex-direction: column; min-height: 120px; margin-top: 10px;">
+          <div class="console-history" id="console-history" style="flex-grow: 1; overflow-y: auto;">
+            <div class="console-line info">--- Star Hopper Space Terminal OS v2.0 ---</div>
+            <div class="console-line info">Type commands to change level physics, write loops, and spawn items.</div>
+            <div class="console-line info">Click Code Cards below to auto-type variables and actions!</div>
           </div>
 
-          <!-- Magic Loops -->
-          <div class="code-card category-loop" data-code="repeat 5: spawn_coin()" title="Spawn 5 coins.">
-            <span class="keyword">repeat</span> <span class="number">5</span>: <span class="function">spawn_coin</span>()
+          <!-- Interactive Typing Row -->
+          <div class="console-input-row">
+            <span class="console-prompt">hopper&gt;</span>
+            <input type="text" id="console-input" class="console-input" placeholder="Type command here..." autofocus autocomplete="off" spellcheck="false">
+            <!-- Autocomplete Suggestions List Overlay -->
+            <div id="autocomplete-box" class="autocomplete-box" style="display: none;"></div>
           </div>
-          <div class="code-card category-loop" data-code="for i in range(3): spawn_spring()" title="Spawn 3 stacked springs.">
-            <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(<span class="number">3</span>): <span class="function">spawn_spring</span>()
+        </div>
+
+        <!-- Tabbed Code Deck Header -->
+        <div class="code-deck-tabs" style="margin-top: 10px;">
+          <button class="code-tab active" id="tab-btn-physics">⚡ Physics Constants</button>
+          <button class="code-tab" id="tab-btn-rules">🪄 Logic & Rules</button>
+        </div>
+        
+        <div class="code-deck">
+          <!-- Tab Pane: Physics -->
+          <div id="pane-physics" class="code-pane">
+            <div class="code-card category-math" data-code="gravity = 0.3" title="Set gravity to low Moon-like floatiness.">
+              <span class="variable">gravity</span> = <span class="keyword">0.3</span>
+            </div>
+            <div class="code-card category-math" data-code="gravity = 1.6" title="Reset gravity to heavy planet-side normal force.">
+              <span class="variable">gravity</span> = <span class="keyword">1.6</span>
+            </div>
+            <div class="code-card category-math" data-code="friction = 0.5" title="Slick ice sliding physics.">
+              <span class="variable">friction</span> = <span class="keyword">0.5</span>
+            </div>
+            <div class="code-card category-math" data-code="friction = 10.0" title="Brake instantly on slippery ground.">
+              <span class="variable">friction</span> = <span class="keyword">10.0</span>
+            </div>
+            <div class="code-card category-math" data-code="player.jump_power = 20" title="Make player jump twice as high.">
+              <span class="variable">player.jump_power</span> = <span class="keyword">20</span>
+            </div>
+            <div class="code-card category-math" data-code="hopper.mass = 0.8" title="Make Hopper lightweight.">
+              <span class="variable">hopper.mass</span> = <span class="keyword">0.8</span>
+            </div>
           </div>
 
-          <!-- Event Hook Triggers -->
-          <div class="code-card category-if" data-code="when player.lands: gravity = 1.6" title="Restore default gravity instantly on landing.">
-            <span class="keyword">when</span> <span class="variable">player.lands</span>: gravity = <span class="keyword">1.6</span>
+          <!-- Tab Pane: Rules -->
+          <div id="pane-rules" class="code-pane hidden">
+            <!-- Magic Wand Actions -->
+            <div class="code-card" data-code="spawn_coin()" title="Spawn coin above current coordinates.">
+              <span class="function">spawn_coin</span>()
+            </div>
+            <div class="code-card" data-code="spawn_box()" title="Spawn wooden box above head to step over hazard peaks.">
+              <span class="function">spawn_box</span>()
+            </div>
+            <div class="code-card" data-code="spawn_spring()" title="Spawn bounce launcher pad.">
+              <span class="function">spawn_spring</span>()
+            </div>
+            <div class="code-card" data-code="shrink_enemies()" title="Make bug/spore threats tiny.">
+              <span class="function">shrink_enemies</span>()
+            </div>
+            <div class="code-card" data-code="rave_mode()" title="Toggle rainbow disco mode!">
+              <span class="function">rave_mode</span>()
+            </div>
+
+            <!-- Magic Loops -->
+            <div class="code-card category-loop" data-code="repeat 5: spawn_coin()" title="Spawn 5 coins.">
+              <span class="keyword">repeat</span> <span class="number">5</span>: <span class="function">spawn_coin</span>()
+            </div>
+            <div class="code-card category-loop" data-code="for i in range(3): spawn_spring()" title="Spawn 3 stacked springs.">
+              <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(<span class="number">3</span>): <span class="function">spawn_spring</span>()
+            </div>
+
+            <!-- Event Hook Triggers -->
+            <div class="code-card category-if" data-code="when player.lands: gravity = 1.6" title="Restore default gravity instantly on landing.">
+              <span class="keyword">when</span> <span class="variable">player.lands</span>: gravity = <span class="keyword">1.6</span>
+            </div>
+            <div class="code-card category-if" data-code="when player.touching('ice'): player.say('Woohoo!')" title="Active player says something on ice block contact.">
+              <span class="keyword">when</span> <span class="variable">player.touching</span>(<span class="string">'ice'</span>): player.<span class="function">say</span>(<span class="string">'Woohoo!'</span>)
+            </div>
+            <div class="code-card category-if" data-code="when hopper.rocket_on: gravity = 2.5" title="Increase gravity when space is held down to rocket jump.">
+              <span class="keyword">when</span> <span class="variable">hopper.rocket_on</span>: gravity = <span class="keyword">2.5</span>
+            </div>
+            <div class="code-card category-if" data-code="when hit_enemy: bounce_up()" title="Stomping an alien fires a massive bounce impulse.">
+              <span class="keyword">when</span> <span class="variable">hit_enemy</span>: <span class="function">bounce_up</span>()
+            </div>
           </div>
-          <div class="code-card category-if" data-code="when player.touching('ice'): player.say('Woohoo!')" title="Active player says something on ice block contact.">
-            <span class="keyword">when</span> <span class="variable">player.touching</span>(<span class="string">'ice'</span>): player.<span class="function">say</span>(<span class="string">'Woohoo!'</span>)
+        </div>
+      </div>
+
+      <!-- Mode Pane 2: Science Notebook -->
+      <div id="main-content-notebook" class="mode-content">
+        <div class="notebook-container">
+          <div class="notebook-header">
+            <span>📓</span>
+            <h2>Space Scientist Journal</h2>
           </div>
-          <div class="code-card category-if" data-code="when hopper.rocket_on: gravity = 2.5" title="Increase gravity when space is held down to rocket jump.">
-            <span class="keyword">when</span> <span class="variable">hopper.rocket_on</span>: gravity = <span class="keyword">2.5</span>
+
+          <!-- Telemetry data cards -->
+          <div class="notebook-stats-grid">
+            <div class="notebook-stat-card">
+              <span class="label">Flight Time</span>
+              <span id="notebook-stat-time" class="value">0.0s</span>
+            </div>
+            <div class="notebook-stat-card">
+              <span class="label">Max Altitude</span>
+              <span id="notebook-stat-height" class="value">0px</span>
+            </div>
+            <div class="notebook-stat-card">
+              <span class="label">Max Speed</span>
+              <span id="notebook-stat-speed" class="value">0.0 px/f</span>
+            </div>
+            <div class="notebook-stat-card">
+              <span class="label">Gravity Constant</span>
+              <span id="notebook-stat-gravity" class="value">0.60</span>
+            </div>
           </div>
-          <div class="code-card category-if" data-code="when hit_enemy: bounce_up()" title="Stomping an alien fires a massive bounce impulse.">
-            <span class="keyword">when</span> <span class="variable">hit_enemy</span>: <span class="function">bounce_up</span>()
+
+          <!-- Real-time Energy Equation Telemetry -->
+          <div class="notebook-prompt-box" style="background: rgba(56, 189, 248, 0.05); border-color: rgba(56, 189, 248, 0.2);">
+            <div class="notebook-prompt-title" style="color: var(--neon-cyan);">⚡ Mechanical Energy Telemetry</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono); line-height: 1.4; margin-bottom: 5px;">
+              KE = 1/2 * m * v² | PE = m * g * h | TE = KE + PE
+            </div>
+            <div class="notebook-energy-plot">
+              <div class="energy-bar-mini" style="background: var(--neon-green); height: 50%;" id="mini-ke-bar">
+                <span id="mini-ke-val">50J</span>
+              </div>
+              <div class="energy-bar-mini" style="background: var(--neon-cyan); height: 30%;" id="mini-pe-bar">
+                <span id="mini-pe-val">30J</span>
+              </div>
+              <div class="energy-bar-mini" style="background: var(--neon-pink); height: 80%;" id="mini-te-bar">
+                <span id="mini-te-val">80J</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Interactive prediction/reflection box -->
+          <div class="notebook-prompt-box" id="notebook-prompt-reflection">
+            <div class="notebook-prompt-title">✍️ Post-Mission reflection</div>
+            <div id="notebook-prompt-question" style="font-size: 0.8rem; margin-bottom: 5px; color: var(--text-primary);">What happens when you reduce gravity? Did you observe your trajectory extend?</div>
+            <textarea id="notebook-user-response" class="notebook-textarea" placeholder="I think Star travels in a wider curve because..."></textarea>
+            <button class="notebook-btn" onclick="saveNotebookReflection()">Save Entry</button>
+          </div>
+
+          <!-- History log of completed missions -->
+          <div class="notebook-history" id="notebook-history">
+            <!-- Dynamically populated from notebook.js -->
+            <div class="no-missions" style="text-align: center; color: var(--text-muted); font-size: 0.8rem;">No journal entries yet. Complete a mission objective to log data.</div>
+          </div>
+
+          <!-- Print button -->
+          <button class="notebook-btn" style="background: var(--neon-cyan); color: #030712; width: 100%; font-size: 0.8rem; height: 36px; margin-top: 10px;" onclick="printNotebook()">🖨️ Print Space Scientist Certificate</button>
+        </div>
+      </div>
+
+      <!-- Mode Pane 3: Spaceship Navigator -->
+      <div id="main-content-navigator" class="mode-content">
+        <div class="notebook-container">
+          <div class="notebook-header">
+            <span>🚀</span>
+            <h2>Orbital Navigation</h2>
+          </div>
+
+          <!-- Objective -->
+          <div class="notebook-prompt-box" style="background: rgba(249, 115, 22, 0.05); border-color: rgba(249, 115, 22, 0.2);">
+            <div class="notebook-prompt-title" style="color: var(--neon-orange);">Active Orbit Coordinate</div>
+            <div id="navigator-mission-objective" style="font-size: 0.8rem; color: var(--text-primary);">Select a mission below to begin circular gravity training.</div>
+          </div>
+
+          <!-- Navigator Mission List -->
+          <div class="notebook-history" id="navigator-mission-list" style="margin-top: 5px; max-height: 120px; overflow-y: auto;">
+            <!-- Populated dynamically -->
+          </div>
+
+          <!-- Command History and Input for Ship -->
+          <div class="console-area" style="flex-grow: 1; display: flex; flex-direction: column; min-height: 150px; margin-top: 5px;">
+            <div class="console-history" id="navigator-console-history" style="flex-grow: 1; overflow-y: auto;">
+              <div class="console-line info">--- Orbit Command Deck OS v1.0 ---</div>
+              <div class="console-line info">Commands: point_at('earth'), thrust(power, sec), wait(sec)</div>
+              <div class="console-line info">Press 'Enter' to execute orbital commands.</div>
+            </div>
+            
+            <div class="console-input-row">
+              <span class="console-prompt" style="color: var(--neon-orange);">orbit-ship&gt;</span>
+              <input type="text" id="navigator-console-input" class="console-input" placeholder="Type orbital commands..." autocomplete="off" spellcheck="false">
+            </div>
+          </div>
+          
+          <!-- Code cards shortcuts -->
+          <div style="display: flex; gap: 5px; flex-wrap: wrap; margin-top: 5px;">
+            <button class="notebook-btn" style="background: rgba(249,115,22,0.15); border: 1px solid rgba(249,115,22,0.3); color: var(--neon-orange); padding: 4px 8px; font-size: 0.7rem;" onclick="addNavigatorConsole('point_at(\'earth\')')">point_at('earth')</button>
+            <button class="notebook-btn" style="background: rgba(249,115,22,0.15); border: 1px solid rgba(249,115,22,0.3); color: var(--neon-orange); padding: 4px 8px; font-size: 0.7rem;" onclick="addNavigatorConsole('thrust(power=5, seconds=2)')">thrust(5, 2)</button>
+            <button class="notebook-btn" style="background: rgba(249,115,22,0.15); border: 1px solid rgba(249,115,22,0.3); color: var(--neon-orange); padding: 4px 8px; font-size: 0.7rem;" onclick="addNavigatorConsole('wait(3)')">wait(3)</button>
+            <button class="notebook-btn" style="background: rgba(249,115,22,0.15); border: 1px solid rgba(249,115,22,0.3); color: var(--neon-orange); padding: 4px 8px; font-size: 0.7rem;" onclick="addNavigatorConsole('warp(5)')">time warp</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mode Pane 4: Guides -->
+      <div id="main-content-parents" class="mode-content">
+        <div class="guide-container">
+          <div class="notebook-header">
+            <span>👪</span>
+            <h2>Parent & Teacher Hub</h2>
+          </div>
+
+          <div class="guide-section-title">🧬 Learning Objectives</div>
+          <div class="guide-card">
+            <span class="guide-card-title">Physics Core:</span>
+            <p>Accelerative gravity fields, kinetic & potential energy conservation, frictional resistance, magnetism vectors, and stable Keplerian orbital calculations.</p>
+          </div>
+          <div class="guide-card">
+            <span class="guide-card-title">Coding Foundations:</span>
+            <p>Variable assignment and state parameters, nested iteration loops, logic branching, event listener hooks, and syntax debugging.</p>
+          </div>
+
+          <div class="guide-section-title">📚 Standards Mapping</div>
+          <div class="guide-card">
+            <p><strong>NGSS (Science):</strong> Emphasizes forces, motion, and gravity modeling (MS-PS2-2) using computational simulations to predict trajectories.</p>
+            <p style="margin-top: 4px;"><strong>CSTA (Computing):</strong> Maps to computational artifact generation, loop iteration, conditional statements, event listeners, and code refinement/debugging.</p>
+          </div>
+
+          <div class="guide-section-title">👨‍👩‍👦 15-Minute Coaching Routine</div>
+          <div class="guide-card" style="background: rgba(167, 139, 250, 0.04); border-color: rgba(167, 139, 250, 0.2);">
+            <p>1. <strong>Observe:</strong> "What is happening before writing any code?"</p>
+            <p>2. <strong>Predict:</strong> "If we make gravity 0.1, what will change in the green lines?"</p>
+            <p>3. <strong>Code:</strong> "Type the command and see if the syntax is correct."</p>
+            <p>4. <strong>Reflect:</strong> "Why did Star stay in the air so long?"</p>
+          </div>
+
+          <div class="guide-section-title">🔒 Safety & Privacy Guarantee</div>
+          <div class="guide-card">
+            <p>✓ 100% offline-ready client-side sandboxed codebase.</p>
+            <p>✓ Zero data tracking, cookies, ads, or account requirements.</p>
+            <p>✓ KidCode compiler has strict loop thresholds and safety boundaries preventing system calls or crash loops.</p>
           </div>
         </div>
       </div>
@@ -320,6 +489,7 @@
   </div>
 
   <!-- Import JS Modules sequentially -->
+  <script src="missions.js"></script>
   <script src="planets.js"></script>
   <script src="audio.js"></script>
   <script src="interpreter.js"></script>
@@ -327,6 +497,30 @@
   <script src="physics.js"></script>
   <script src="ui.js"></script>
   <script src="game.js"></script>
+  <script src="notebook.js"></script>
+  <script src="navigator.js"></script>
+
+  <!-- Space Scientist Printable Certificate (Only displayed on print trigger) -->
+  <div id="print-area-certificate">
+    <div class="cert-title">🎖️ SPACE SCIENCE CADET CERTIFICATE</div>
+    <div class="cert-sub">This is proudly presented to</div>
+    <div class="cert-name" id="cert-student-name">Space Scientist</div>
+    <div class="cert-body">
+      For successfully completing physics simulation missions, demonstrating command of gravity constants, energy conservation, force vector modeling, and sandboxed computing logic in the Star Hopper Space Laboratory.
+    </div>
+    <div class="cert-footer">
+      <div>
+        <p>VECTOR OS</p>
+        <div class="cert-signature-line"></div>
+        <p style="font-size: 0.8rem; margin-top: 4px;">Flight Control Robot</p>
+      </div>
+      <div>
+        <p>DATE</p>
+        <div class="cert-signature-line"></div>
+        <p style="font-size: 0.8rem; margin-top: 4px;" id="cert-print-date">Stardate 2026.05</p>
+      </div>
+    </div>
+  </div>
 
 </body>
 </html>

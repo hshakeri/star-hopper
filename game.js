@@ -305,6 +305,13 @@ class StarHopperGame {
   }
 
   update() {
+    if (window.navigatorModeActive) {
+      if (typeof updateNavigator === 'function') {
+        updateNavigator(this);
+      }
+      return;
+    }
+
     // 1. Process active conditional code triggers first
     Compiler.updateRules(this);
 
@@ -390,6 +397,9 @@ class StarHopperGame {
 
     // 12. Redraw HUD sidebar charts & variables
     updateHUD(this);
+    if (typeof updateNotebook === 'function') {
+      updateNotebook(this);
+    }
 
     // 13. Check tutorial spatial triggers
     if (this.player.x > 320 && this.player.x < 420) {
@@ -423,6 +433,13 @@ class StarHopperGame {
   }
 
   draw() {
+    if (window.navigatorModeActive) {
+      if (typeof drawNavigator === 'function') {
+        drawNavigator(this);
+      }
+      return;
+    }
+
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     // 1. Draw Parallax Space Background
