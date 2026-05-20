@@ -158,6 +158,7 @@ function saveNotebookReflection() {
 
   textEl.value = "";
   renderNotebookHistory();
+  if (typeof triggerCloudSave === 'function') triggerCloudSave();
   if (typeof Game !== 'undefined' && Game.currentMissionSteps) {
     Game.currentMissionSteps.explain = true;
     if (typeof updatePedagogicalGuide === 'function') {

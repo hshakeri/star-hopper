@@ -9,6 +9,7 @@ Star Hopper is fully compliant with the **Children's Online Privacy Protection A
 * **Zero Personal Information Collected**: We do not ask for, store, or transmit names, email addresses, phone numbers, or physical locations.
 * **No Account Creation**: There are no login pages, user accounts, or profile builders.
 * **No Social Features**: There is no chat room, public comment area, or direct messaging, preventing any contact with unverified third parties.
+* **Optional Client-Side Cloud Sync**: Students can optionally connect their personal GitHub account to backup progress. The token is stored entirely within the client's browser local storage, and all data exchanges occur directly with the official GitHub API. No third-party servers are involved.
 
 ---
 

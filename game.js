@@ -166,7 +166,7 @@ class StarHopperGame {
     
     this.cameraX = 0;
     this.coinsCollected = 0;
-    this.completedMissions = new Set();
+    // Keep global completed missions across planet switches
     Particles.clear();
 
     // Set variable accent colors in UI
@@ -283,6 +283,7 @@ class StarHopperGame {
     }
     if (anyCompletedThisFrame) {
       updateMissionList(this);
+      if (typeof triggerCloudSave === 'function') triggerCloudSave();
     }
   }
 

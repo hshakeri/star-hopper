@@ -342,6 +342,38 @@
             <h2>Space Scientist Journal</h2>
           </div>
 
+          <!-- GitHub Gist Cloud Sync -->
+          <div class="notebook-prompt-box" id="gist-sync-card" style="background: rgba(167, 139, 250, 0.05); border-color: rgba(167, 139, 250, 0.2); margin-bottom: 12px; padding: 10px; border-radius: 8px;">
+            <div class="notebook-prompt-title" style="color: var(--neon-purple); display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span>☁️ GitHub Cloud Sync</span>
+              <span id="sync-status-badge" class="badge-disconnected" style="font-size: 0.65rem; padding: 2px 6px; border-radius: 4px;">Disconnected</span>
+            </div>
+            
+            <div id="sync-logged-out" style="display: flex; flex-direction: column; gap: 6px; margin-top: 5px;">
+              <p style="font-size: 0.72rem; color: var(--text-muted); line-height: 1.3; margin: 0;">
+                Sync your mission achievements and notebook reflections to a secure, private GitHub Gist for free.
+              </p>
+              <div style="display: flex; gap: 6px;">
+                <input type="password" id="github-pat-input" placeholder="Paste GitHub Personal Access Token (PAT)..." style="flex-grow: 1; height: 28px; padding: 0 8px; font-size: 0.72rem; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--panel-border); border-radius: 4px; color: var(--text-primary); font-family: monospace;" />
+                <button class="notebook-btn" style="height: 28px; margin-top: 0; font-size: 0.72rem; width: 65px; background: var(--neon-purple); color: #030712; border: 1px solid rgba(167, 139, 250, 0.3);" onclick="connectGitHubSync()">Connect</button>
+              </div>
+              <p style="font-size: 0.62rem; color: var(--text-muted); margin: 0;">
+                💡 Create a token at <a href="https://github.com/settings/tokens" target="_blank" style="color: var(--neon-cyan); text-decoration: underline;">github.com/settings/tokens</a> with only <code>gist</code> permissions.
+              </p>
+            </div>
+
+            <div id="sync-logged-in" style="display: none; align-items: center; justify-content: space-between; margin-top: 5px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <img id="sync-user-avatar" src="" style="width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--neon-purple);" />
+                <span id="sync-username" style="font-size: 0.75rem; font-weight: bold; color: var(--text-primary);">username</span>
+              </div>
+              <div style="display: flex; gap: 6px;">
+                <button class="notebook-btn" style="height: 24px; padding: 0 8px; margin-top: 0; font-size: 0.65rem; background: rgba(56, 189, 248, 0.15); color: var(--neon-cyan); border-color: rgba(56, 189, 248, 0.3);" onclick="syncGistData()">Sync Now</button>
+                <button class="notebook-btn" style="height: 24px; padding: 0 8px; margin-top: 0; font-size: 0.65rem; background: rgba(239, 68, 68, 0.15); color: var(--neon-pink); border-color: rgba(239, 68, 68, 0.3);" onclick="disconnectGitHubSync()">Disconnect</button>
+              </div>
+            </div>
+          </div>
+
           <!-- Telemetry data cards -->
           <div class="notebook-stats-grid">
             <div class="notebook-stat-card">
@@ -499,6 +531,7 @@
   <script src="game.js"></script>
   <script src="notebook.js"></script>
   <script src="navigator.js"></script>
+  <script src="github-sync.js"></script>
 
   <!-- Space Scientist Printable Certificate (Only displayed on print trigger) -->
   <div id="print-area-certificate">
