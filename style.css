@@ -842,6 +842,26 @@ body {
   color: var(--text-primary);
 }
 
+/* Buy Me a Coffee Button style */
+.coffee-button {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: color 0.2s, text-shadow 0.2s;
+  outline: none;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.coffee-button:hover {
+  color: #ffdd00;
+  text-shadow: 0 0 8px rgba(255, 221, 0, 0.8);
+}
+
 /* Music Dropdown Menu */
 .music-dropdown {
   position: absolute;
