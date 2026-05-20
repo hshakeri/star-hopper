@@ -361,7 +361,7 @@ function setupUIBindings(game) {
         const trackId = parseInt(item.getAttribute("data-track"));
         SFX.startBGM(trackId);
         
-        const trackNames = ["Earth Base", "Moon Orbit", "Jupiter Core", "Glacies Ice", "Magnet Field"];
+        const trackNames = ["Earth Base", "Moon Orbit", "Jupiter Core", "Glacies Ice", "Magnet Field", "Tears (Jazz)"];
         ui_log_output(`Music set to: ${trackNames[trackId]}`, "success");
         
         updateMusicMenuState();

@@ -21,6 +21,26 @@ class SoundEngine {
     }
   }
 
+  getNoteFreq(noteName) {
+    if (!noteName || noteName === " " || noteName === "-") return 0;
+    if (this.notes[noteName]) return this.notes[noteName];
+    
+    const notesMap = {
+      "C": 0, "C#": 1, "D": 2, "D#": 3, "E": 4, "F": 5, "F#": 6, "G": 7, "G#": 8, "A": 9, "A#": 10, "B": 11
+    };
+    
+    const match = noteName.trim().match(/^([A-G]#?)(-?\d+)$/);
+    if (!match) return 0;
+    
+    const note = match[1];
+    const octave = parseInt(match[2]);
+    const semitones = notesMap[note] + (octave - 4) * 12 - 9;
+    const freq = 440 * Math.pow(2, semitones / 12);
+    
+    this.notes[noteName] = freq;
+    return freq;
+  }
+
   resume() {
     this.init();
     if (this.ctx && this.ctx.state === 'suspended') {
@@ -216,24 +236,38 @@ class SoundEngine {
       melody = ["C5", "G5", "E5", "C5", "A5", "E5", "C5", "A4", "G4", "D5", "B4", "G4", "C5", "E5", "G5", "C5"];
       bass = ["C3", "C3", "G3", "G3", "A3", "A3", "F3", "F3", "G3", "G3", "D3", "D3", "C3", "C3", "C3", "C3"];
       tempo = 200;
-    } else { // Mag-Net: Sci-fi, chromatic, eerie
+    } else if (planetId === 4) { // Mag-Net: Sci-fi, chromatic, eerie
       melody = ["C4", "F#4", "G4", "C#5", "D5", "G#4", "A4", "D#4", "E4", "A4", "B4", "E5", "C4", "C4", "C4", "C4"];
       bass = ["C3", "C3", "F#3", "F#3", "D3", "D3", "G#3", "G#3", "A3", "A3", "A3", "A3", "C3", "C3", "C3", "C3"];
       tempo = 160;
+    } else { // Tears: Ambient, Jazz-inspired
+      melody = [
+        "C#5", "F#5", "E5", "C#5", "B4", "A4", "B4", "C#5",
+        "D5",  "F#5", "E5", "D5", "C#5", "B4", "C#5", "A4",
+        "E5",  "A5", "G#5", "E5", "D5", "C#5", "D5", "E5",
+        "B4",  "E5", "D5", "B4", "A4", "G#4", "A4", "B4"
+      ];
+      bass = [
+        "F#3", "F#3", "F#3", "F#3", "F#3", "F#3", "F#3", "F#3",
+        "D3",  "D3",  "D3",  "D3",  "D3",  "D3",  "D3",  "D3",
+        "A3",  "A3",  "A3",  "A3",  "A3",  "A3",  "A3",  "A3",
+        "C#3", "C#3", "C#3", "C#3", "C#3", "C#3", "C#3", "C#3"
+      ];
+      tempo = 220;
     }
 
     const scheduleNext = () => {
       if (!this.ctx || this.isMuted) return;
       const now = this.ctx.currentTime;
       
-      // Melody note (sine wave, soft volume)
+      // Melody note (sine/triangle wave, soft volume)
       if (melody[step] && melody[step] !== " ") {
         const oscMel = this.ctx.createOscillator();
         const gainMel = this.ctx.createGain();
         oscMel.connect(gainMel);
         gainMel.connect(this.ctx.destination);
-        oscMel.type = (planetId === 3) ? 'sine' : 'triangle'; // sine for crystal glacies
-        oscMel.frequency.setValueAtTime(this.notes[melody[step]], now);
+        oscMel.type = (planetId === 3) ? 'sine' : 'triangle';
+        oscMel.frequency.setValueAtTime(this.getNoteFreq(melody[step]), now);
         gainMel.gain.setValueAtTime(0.015, now);
         gainMel.gain.linearRampToValueAtTime(0.001, now + (tempo / 1000) * 0.95);
         oscMel.start(now);
@@ -247,7 +281,7 @@ class SoundEngine {
         oscBass.connect(gainBass);
         gainBass.connect(this.ctx.destination);
         oscBass.type = 'triangle';
-        oscBass.frequency.setValueAtTime(this.notes[bass[step]], now);
+        oscBass.frequency.setValueAtTime(this.getNoteFreq(bass[step]), now);
         gainBass.gain.setValueAtTime(0.03, now);
         gainBass.gain.linearRampToValueAtTime(0.001, now + (tempo / 1000) * 1.9);
         oscBass.start(now);

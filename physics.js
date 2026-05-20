@@ -84,23 +84,40 @@ class PhysicsEngine {
     } else {
       entity.touchingGroundType = 'none';
     }
+
+    // Safety clamp to keep player within world boundaries and prevent getting stuck out of bounds
+    const maxWorldX = (tilemap[0].length * TILE_SIZE) - entity.w;
+    if (entity.x < 0) {
+      entity.x = 0;
+      entity.vx = 0;
+    } else if (entity.x > maxWorldX) {
+      entity.x = maxWorldX;
+      entity.vx = 0;
+    }
+    if (entity.y < 0) {
+      entity.y = 0;
+      entity.vy = 0;
+    }
   }
 
   // Get list of matching tile coordinates the entity is overlapping
   getTileCollisions(entity, tilemap) {
     const collisions = [];
+    const epsilon = 0.01;
     const colLeft = Math.floor(entity.x / TILE_SIZE);
-    const colRight = Math.floor((entity.x + entity.w) / TILE_SIZE);
+    const colRight = Math.floor((entity.x + entity.w - epsilon) / TILE_SIZE);
     const rowTop = Math.floor(entity.y / TILE_SIZE);
-    const rowBottom = Math.floor((entity.y + entity.h) / TILE_SIZE);
+    const rowBottom = Math.floor((entity.y + entity.h - epsilon) / TILE_SIZE);
 
-    if (colLeft < 0 || colRight >= tilemap[0].length || rowTop < 0 || rowBottom >= tilemap.length) {
-      return collisions;
-    }
+    const mapHeight = tilemap.length;
+    const mapWidth = tilemap[0].length;
 
     for (let r = rowTop; r <= rowBottom; r++) {
       for (let c = colLeft; c <= colRight; c++) {
-        if (tilemap[r][c] === 1) { // 1 = solid block
+        // Treat out of bounds as solid blocks to prevent clipping through screen boundaries
+        if (r < 0 || r >= mapHeight || c < 0 || c >= mapWidth) {
+          collisions.push({ r, c });
+        } else if (tilemap[r][c] === 1) { // 1 = solid block
           collisions.push({ r, c });
         }
       }

@@ -673,13 +673,13 @@ const runtimeContext = {
     },
     music: {
       get: (game) => {
-        const names = ["earth", "moon", "jupiter", "glacies", "magnet"];
+        const names = ["earth", "moon", "jupiter", "glacies", "magnet", "tears"];
         return names[SFX.currentBgm] || "silence";
       },
       set: (game, val) => {
         let id = 0;
         if (typeof val === 'number') {
-          id = Math.max(0, Math.min(4, Math.floor(val)));
+          id = Math.max(0, Math.min(5, Math.floor(val)));
         } else if (typeof val === 'string') {
           const lower = val.toLowerCase();
           if (lower === 'earth') id = 0;
@@ -687,6 +687,7 @@ const runtimeContext = {
           else if (lower === 'jupiter') id = 2;
           else if (lower === 'glacies' || lower === 'ice') id = 3;
           else if (lower === 'magnet' || lower === 'space') id = 4;
+          else if (lower === 'tears' || lower === 'sad' || lower === 'jazz') id = 5;
         }
         SFX.startBGM(id);
       }
@@ -740,7 +741,7 @@ const runtimeContext = {
     play_music: (game, name) => {
       let id = 0;
       if (typeof name === 'number') {
-        id = Math.max(0, Math.min(4, Math.floor(name)));
+        id = Math.max(0, Math.min(5, Math.floor(name)));
       } else if (typeof name === 'string') {
         const lower = name.toLowerCase();
         if (lower === 'earth') id = 0;
@@ -748,7 +749,8 @@ const runtimeContext = {
         else if (lower === 'jupiter') id = 2;
         else if (lower === 'glacies' || lower === 'ice') id = 3;
         else if (lower === 'magnet' || lower === 'space') id = 4;
-        else return `Unknown track: "${name}". Try: earth, moon, jupiter, glacies, magnet.`;
+        else if (lower === 'tears' || lower === 'sad' || lower === 'jazz') id = 5;
+        else return `Unknown track: "${name}". Try: earth, moon, jupiter, glacies, magnet, tears.`;
       } else {
         return "Please specify a music name or number, e.g. play_music('moon') or play_music(2).";
       }
