@@ -217,9 +217,13 @@ class StarHopperGame {
     
     // Trigger dialogue helper robot text
     this.triggerTutorialDialogue("start");
-    
     // Draw initial mission list
     updateMissionList(this);
+
+    // Start Guided tutorial check if Earth index 0 loaded
+    if (typeof checkStartGuidedMode === 'function') {
+      checkStartGuidedMode(index);
+    }
   }
 
   triggerTutorialDialogue(trigger) {
@@ -283,6 +287,7 @@ class StarHopperGame {
     }
     if (anyCompletedThisFrame) {
       updateMissionList(this);
+      if (typeof handleGuidedClearHook === 'function') handleGuidedClearHook();
       if (typeof triggerCloudSave === 'function') triggerCloudSave();
     }
   }

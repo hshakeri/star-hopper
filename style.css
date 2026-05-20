@@ -1264,20 +1264,33 @@ body {
   text-shadow: 0 0 4px var(--neon-cyan);
 }
 
-/* Certificate Print Area Hidden during Normal screen */
-#print-area-certificate {
+/* Certificate & Guide Print Area Hidden during Normal screen */
+#print-area-certificate, #print-area-parent, #print-area-teacher, #print-area-student {
   display: none;
 }
 
 /* Print Overrides styles */
 @media print {
-  body * {
+  body {
+    background: white !important;
+    color: black !important;
+    font-family: 'Helvetica Neue', Arial, sans-serif !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  /* Hide all application elements */
+  #app-container, .star, #dialogue-bubble, #guided-mode-hud, #hud-row, canvas {
     display: none !important;
   }
-  #print-area-certificate, #print-area-certificate * {
-    display: block !important;
+  
+  /* Hide all print areas by default */
+  #print-area-certificate, #print-area-parent, #print-area-teacher, #print-area-student {
+    display: none !important;
   }
-  #print-area-certificate {
+  
+  /* Certificate template formatting */
+  body.print-certificate #print-area-certificate {
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
@@ -1293,41 +1306,138 @@ body {
     border: 10px double #0ea5e9 !important;
     text-align: center !important;
   }
-  .cert-title {
-    font-size: 3rem !important;
-    color: #0ea5e9 !important;
+  
+  body.print-certificate .cert-title {
+    font-size: 2.8rem !important;
+    color: #0c4a6e !important;
     margin-bottom: 20px !important;
     font-weight: bold !important;
   }
-  .cert-sub {
-    font-size: 1.5rem !important;
-    margin-bottom: 40px !important;
+  body.print-certificate .cert-sub {
+    font-size: 1.4rem !important;
+    margin-bottom: 30px !important;
   }
-  .cert-name {
-    font-size: 2.5rem !important;
+  body.print-certificate .cert-name {
+    font-size: 2.4rem !important;
     border-bottom: 2px solid #000 !important;
     display: inline-block !important;
-    padding: 10px 40px !important;
-    margin-bottom: 40px !important;
+    padding: 5px 30px !important;
+    margin-bottom: 30px !important;
     font-weight: bold !important;
   }
-  .cert-body {
-    font-size: 1.25rem !important;
-    line-height: 1.6 !important;
+  body.print-certificate .cert-body {
+    font-size: 1.15rem !important;
+    line-height: 1.5 !important;
     max-width: 600px !important;
-    margin: 0 auto 50px auto !important;
+    margin: 0 auto 40px auto !important;
   }
-  .cert-footer {
+  body.print-certificate .cert-footer {
     display: flex !important;
     justify-content: space-around !important;
     width: 100% !important;
-    margin-top: 50px !important;
-    font-size: 1.1rem !important;
+    margin-top: 40px !important;
+    font-size: 1.0rem !important;
   }
-  .cert-signature-line {
+  body.print-certificate .cert-signature-line {
     border-top: 1px solid #000 !important;
-    width: 200px !important;
-    margin-top: 10px !important;
+    width: 180px !important;
+    margin-top: 5px !important;
+  }
+
+  /* Common Card / Lab sheet prints */
+  body.print-parent #print-area-parent,
+  body.print-teacher #print-area-teacher,
+  body.print-student #print-area-student {
+    display: block !important;
+    background: white !important;
+    color: black !important;
+    padding: 40px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .print-card-header {
+    font-size: 1.8rem !important;
+    font-weight: bold !important;
+    color: #0f172a !important;
+    border-bottom: 3px solid #0f172a !important;
+    padding-bottom: 10px !important;
+    margin-bottom: 20px !important;
+    text-transform: uppercase !important;
+  }
+
+  .print-section-title {
+    font-size: 1.2rem !important;
+    font-weight: bold !important;
+    color: #0f172a !important;
+    margin-top: 20px !important;
+    margin-bottom: 10px !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+    padding-bottom: 4px !important;
+  }
+
+  .print-text {
+    font-size: 1.0rem !important;
+    line-height: 1.5 !important;
+    color: #334155 !important;
+    margin-bottom: 12px !important;
+  }
+
+  .print-list {
+    margin: 10px 0 !important;
+    padding-left: 20px !important;
+  }
+
+  .print-list li {
+    font-size: 0.95rem !important;
+    line-height: 1.6 !important;
+    margin-bottom: 8px !important;
+    color: #334155 !important;
+    display: list-item !important;
+  }
+
+  .print-box {
+    border: 1px solid #cbd5e1 !important;
+    background: #f8fafc !important;
+    padding: 15px !important;
+    border-radius: 6px !important;
+    margin: 15px 0 !important;
+  }
+
+  .print-box p {
+    margin-bottom: 8px !important;
+    font-size: 0.95rem !important;
+    line-height: 1.4 !important;
+  }
+
+  .print-inquiry-box {
+    border: 2px dashed #94a3b8 !important;
+    padding: 15px !important;
+    margin-bottom: 20px !important;
+    background: #fafafa !important;
+  }
+
+  .print-inquiry-box p {
+    margin-bottom: 12px !important;
+    font-size: 0.95rem !important;
+    line-height: 1.5 !important;
+  }
+
+  .print-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin: 15px 0 !important;
+  }
+
+  .print-table td {
+    border: 1px solid #cbd5e1 !important;
+    padding: 10px !important;
+    font-size: 0.95rem !important;
+    vertical-align: top !important;
+  }
+
+  .print-table tr:nth-child(even) {
+    background: #f8fafc !important;
   }
 }
 

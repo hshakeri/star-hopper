@@ -1,8 +1,8 @@
-// github-sync.js - Handles client-side GitHub Gist save/load sync operations
+// github-sync.js - Handles client-side GitHub Gist save/load sync operations (Session token only)
 
 // Central state cache
 let gitHubSync = {
-  token: localStorage.getItem('github_sync_token') || '',
+  token: sessionStorage.getItem('github_sync_token') || '',
   gistId: localStorage.getItem('github_sync_gist_id') || '',
   username: localStorage.getItem('github_sync_username') || '',
   avatarUrl: localStorage.getItem('github_sync_avatar') || '',
@@ -65,7 +65,83 @@ function saveLocalProgress() {
   }
 }
 
-// Auto-connect on startup if token exists
+// Export progress to a local JSON file
+function exportLocalSave() {
+  const completedList = typeof Game !== 'undefined' ? Array.from(Game.completedMissions) : [];
+  const payload = {
+    completedMissions: completedList,
+    notebookEntries: typeof notebookEntries !== 'undefined' ? notebookEntries : {}
+  };
+  
+  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
+  const downloadAnchor = document.createElement('a');
+  downloadAnchor.setAttribute("href", dataStr);
+  downloadAnchor.setAttribute("download", "star_hopper_save.json");
+  document.body.appendChild(downloadAnchor);
+  downloadAnchor.click();
+  downloadAnchor.remove();
+  
+  if (typeof SFX !== 'undefined' && typeof SFX.playSuccess === 'function') {
+    SFX.playSuccess();
+  }
+}
+
+// Import progress from a local JSON file
+function importLocalSave() {
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = '.json';
+  fileInput.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const importedData = JSON.parse(evt.target.result);
+        
+        if (!importedData.completedMissions && !importedData.notebookEntries) {
+          throw new Error("Invalid save file structure");
+        }
+        
+        // Merge data
+        if (typeof Game !== 'undefined' && importedData.completedMissions) {
+          let localCompleted = Array.from(Game.completedMissions);
+          let mergedCompleted = Array.from(new Set([...localCompleted, ...importedData.completedMissions]));
+          Game.completedMissions = new Set(mergedCompleted);
+        }
+        
+        if (importedData.notebookEntries && typeof notebookEntries !== 'undefined') {
+          Object.assign(notebookEntries, importedData.notebookEntries);
+        }
+        
+        // Save to local storage and update UI
+        saveLocalProgress();
+        
+        if (typeof renderNotebookHistory === 'function') {
+          renderNotebookHistory();
+        }
+        if (typeof Game !== 'undefined' && typeof updateMissionList === 'function') {
+          updateMissionList(Game);
+        }
+        
+        alert("Successfully imported progress!");
+        if (typeof SFX !== 'undefined' && typeof SFX.playSuccess === 'function') {
+          SFX.playSuccess();
+        }
+      } catch (err) {
+        alert("Failed to parse save file. Please make sure it is a valid star_hopper_save.json.");
+        if (typeof SFX !== 'undefined' && typeof SFX.playError === 'function') {
+          SFX.playError();
+        }
+      }
+    };
+    reader.readAsText(file);
+  };
+  fileInput.click();
+}
+
+// Auto-connect on startup if token exists in session
 async function autoConnectSync() {
   const badge = document.getElementById('sync-status-badge');
   if (badge) {
@@ -86,7 +162,7 @@ async function autoConnectSync() {
     }
   } catch (e) {
     console.error("Failed to auto-connect cloud sync:", e);
-    // Offline or network error: keep token but set UI to disconnected offline
+    // Offline or network error: keep token in session but set UI to disconnected offline
     gitHubSync.status = 'disconnected';
     updateSyncUI();
     const badgeEl = document.getElementById('sync-status-badge');
@@ -118,7 +194,7 @@ async function verifyTokenAndUser(token) {
     }
     return false;
   } catch (e) {
-    throw e; // Rethrow to let auto-connect know it's a network issue
+    throw e;
   }
 }
 
@@ -143,7 +219,7 @@ async function connectGitHubSync() {
     const isValid = await verifyTokenAndUser(token);
     if (isValid) {
       gitHubSync.token = token;
-      localStorage.setItem('github_sync_token', token);
+      sessionStorage.setItem('github_sync_token', token);
       gitHubSync.status = 'connected';
       
       // Look for Gist or create one
@@ -172,7 +248,7 @@ function disconnectGitHubSync() {
   gitHubSync.avatarUrl = '';
   gitHubSync.status = 'disconnected';
   
-  localStorage.removeItem('github_sync_token');
+  sessionStorage.removeItem('github_sync_token');
   localStorage.removeItem('github_sync_gist_id');
   localStorage.removeItem('github_sync_username');
   localStorage.removeItem('github_sync_avatar');
@@ -322,7 +398,6 @@ async function loadGistData() {
         // Merge notebookEntries
         let cloudNotebook = cloudData.notebookEntries || {};
         if (typeof notebookEntries !== 'undefined') {
-          // Merge objects
           Object.keys(cloudNotebook).forEach(key => {
             if (!notebookEntries[key] || (cloudNotebook[key].answer && cloudNotebook[key].answer.length > (notebookEntries[key].answer || '').length)) {
               notebookEntries[key] = cloudNotebook[key];

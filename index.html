@@ -37,6 +37,27 @@
           <button class="dialogue-close" id="dialogue-close-btn">✖ CLOSE</button>
         </div>
 
+        <!-- Floating Guided Mode HUD Overlay -->
+        <div id="guided-mode-hud" class="hidden">
+          <div class="guided-header">
+            <span id="guided-step-label">🚀 MISSION PILOT GUIDE</span>
+            <button id="guided-close-btn" class="guided-close" onclick="skipGuidedMode()">✖ EXIT TUTORIAL</button>
+          </div>
+          <div class="guided-step-body">
+            <p id="guided-step-desc" class="guided-text">Hold tight, flight controller is booting...</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 8px;">
+              <div class="guided-progress-dots" id="guided-dots">
+                <span class="dot active"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+              </div>
+              <button id="guided-next-btn" class="notebook-btn" style="height: 24px; margin-top: 0; font-size: 0.65rem; padding: 0 8px; background: var(--neon-cyan); color: #030712; border: none; font-weight: bold; border-radius: 4px; display: none;" onclick="nextGuidedStep()">Next</button>
+            </div>
+          </div>
+        </div>
+
         <canvas id="game-canvas" width="720" height="448"></canvas>
 
         <!-- Start / Planet Selection Screen -->
@@ -170,7 +191,7 @@
             <div style="display: flex; align-items: center; gap: 8px; position: relative;">
               <button class="music-menu-button" id="music-menu-btn" title="Change Music">🎵</button>
               <button class="mute-button" id="mute-btn" title="Toggle Sound">🔊</button>
-              <a href="https://www.buymeacoffee.com/hshakeri" target="_blank" class="coffee-button" title="Buy Me a Coffee">☕</a>
+              <a href="https://www.buymeacoffee.com/hshakeri" target="_blank" class="coffee-button" title="Sponsor Open STEM Missions">❤️</a>
               
               <!-- Music Dropdown List -->
               <div class="music-dropdown" id="music-dropdown">
@@ -345,20 +366,20 @@
           <!-- GitHub Gist Cloud Sync -->
           <div class="notebook-prompt-box" id="gist-sync-card" style="background: rgba(167, 139, 250, 0.05); border-color: rgba(167, 139, 250, 0.2); margin-bottom: 12px; padding: 10px; border-radius: 8px;">
             <div class="notebook-prompt-title" style="color: var(--neon-purple); display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <span>☁️ GitHub Cloud Sync</span>
+              <span>☁️ Cloud & Local Save Manager</span>
               <span id="sync-status-badge" class="badge-disconnected" style="font-size: 0.65rem; padding: 2px 6px; border-radius: 4px;">Disconnected</span>
             </div>
             
             <div id="sync-logged-out" style="display: flex; flex-direction: column; gap: 6px; margin-top: 5px;">
               <p style="font-size: 0.72rem; color: var(--text-muted); line-height: 1.3; margin: 0;">
-                Sync your mission achievements and notebook reflections to a secure, private GitHub Gist for free.
+                Connect GitHub (Ages 13+) to sync reflections and stars automatically. Tokens are stored in secure session memory.
               </p>
               <div style="display: flex; gap: 6px;">
                 <input type="password" id="github-pat-input" placeholder="Paste GitHub Personal Access Token (PAT)..." style="flex-grow: 1; height: 28px; padding: 0 8px; font-size: 0.72rem; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--panel-border); border-radius: 4px; color: var(--text-primary); font-family: monospace;" />
                 <button class="notebook-btn" style="height: 28px; margin-top: 0; font-size: 0.72rem; width: 65px; background: var(--neon-purple); color: #030712; border: 1px solid rgba(167, 139, 250, 0.3);" onclick="connectGitHubSync()">Connect</button>
               </div>
               <p style="font-size: 0.62rem; color: var(--text-muted); margin: 0;">
-                💡 Create a token at <a href="https://github.com/settings/tokens" target="_blank" style="color: var(--neon-cyan); text-decoration: underline;">github.com/settings/tokens</a> with only <code>gist</code> permissions.
+                💡 Create a token at <a href="https://github.com/settings/tokens" target="_blank" style="color: var(--neon-cyan); text-decoration: underline;">github.com/settings/tokens</a> with <code>gist</code> permissions.
               </p>
             </div>
 
@@ -371,6 +392,12 @@
                 <button class="notebook-btn" style="height: 24px; padding: 0 8px; margin-top: 0; font-size: 0.65rem; background: rgba(56, 189, 248, 0.15); color: var(--neon-cyan); border-color: rgba(56, 189, 248, 0.3);" onclick="syncGistData()">Sync Now</button>
                 <button class="notebook-btn" style="height: 24px; padding: 0 8px; margin-top: 0; font-size: 0.65rem; background: rgba(239, 68, 68, 0.15); color: var(--neon-pink); border-color: rgba(239, 68, 68, 0.3);" onclick="disconnectGitHubSync()">Disconnect</button>
               </div>
+            </div>
+            
+            <!-- Local JSON Save/Load Tools -->
+            <div style="display: flex; gap: 6px; margin-top: 8px; border-top: 1px solid rgba(167, 139, 250, 0.15); padding-top: 8px;">
+              <button class="notebook-btn" style="flex: 1; height: 24px; margin-top: 0; font-size: 0.65rem; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: var(--text-primary);" onclick="exportLocalSave()">📤 Export JSON Save</button>
+              <button class="notebook-btn" style="flex: 1; height: 24px; margin-top: 0; font-size: 0.65rem; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: var(--text-primary);" onclick="importLocalSave()">📥 Import JSON Save</button>
             </div>
           </div>
 
@@ -483,6 +510,13 @@
             <h2>Parent & Teacher Hub</h2>
           </div>
 
+          <!-- Printable guide selectors -->
+          <div style="display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap;">
+            <button class="notebook-btn" style="flex: 1; height: 32px; background: rgba(34,211,238,0.15); border: 1px solid rgba(34,211,238,0.4); color: var(--neon-cyan); font-size: 0.72rem; font-weight: bold; border-radius: 4px; cursor: pointer;" onclick="printArtifact('parent')">👪 Print Parent Card</button>
+            <button class="notebook-btn" style="flex: 1; height: 32px; background: rgba(249,115,22,0.15); border: 1px solid rgba(249,115,22,0.4); color: var(--neon-orange); font-size: 0.72rem; font-weight: bold; border-radius: 4px; cursor: pointer;" onclick="printArtifact('teacher')">🏫 Print Teacher Plan</button>
+            <button class="notebook-btn" style="flex: 1; height: 32px; background: rgba(74,222,128,0.15); border: 1px solid rgba(74,222,128,0.4); color: var(--neon-green); font-size: 0.72rem; font-weight: bold; border-radius: 4px; cursor: pointer;" onclick="printArtifact('student')">📝 Print Lab Sheet</button>
+          </div>
+
           <div class="guide-section-title">🧬 Learning Objectives</div>
           <div class="guide-card">
             <span class="guide-card-title">Physics Core:</span>
@@ -513,6 +547,14 @@
             <p>✓ Zero data tracking, cookies, ads, or account requirements.</p>
             <p>✓ KidCode compiler has strict loop thresholds and safety boundaries preventing system calls or crash loops.</p>
           </div>
+
+          <div class="guide-section-title">💖 Sponsor our Open STEM Missions</div>
+          <div class="guide-card" style="background: rgba(244, 63, 94, 0.04); border-color: rgba(244, 63, 94, 0.2);">
+            <p>Star Hopper is 100% free, open-source, and privacy-first. We do not sell user data or show ads. If you believe in this project, help us sponsor new features like orbital mechanics, electrical simulations, and educational curricula.</p>
+            <p style="margin-top: 8px; font-weight: bold; text-align: center; font-size: 0.8rem;">
+              <a href="https://www.buymeacoffee.com/hshakeri" target="_blank" style="color: var(--neon-pink); text-decoration: underline;">Sponsor Star Hopper Roadmap →</a>
+            </p>
+          </div>
         </div>
       </div>
 
@@ -532,6 +574,7 @@
   <script src="notebook.js"></script>
   <script src="navigator.js"></script>
   <script src="github-sync.js"></script>
+  <script src="guided-mode.js"></script>
 
   <!-- Space Scientist Printable Certificate (Only displayed on print trigger) -->
   <div id="print-area-certificate">
@@ -552,6 +595,79 @@
         <div class="cert-signature-line"></div>
         <p style="font-size: 0.8rem; margin-top: 4px;" id="cert-print-date">Stardate 2026.05</p>
       </div>
+    </div>
+  </div>
+
+  <!-- Parent Guide Print Container -->
+  <div id="print-area-parent">
+    <div class="print-card-header">🚀 STAR HOPPER PARENT LAB CARD</div>
+    <div class="print-section-title">🔬 Key Vocabulary</div>
+    <ul class="print-list">
+      <li><strong>Gravity (g):</strong> The pull force between objects. Lower gravity lets you jump higher and fall slower.</li>
+      <li><strong>Friction (&mu;):</strong> Resistance against sliding. Slippery ice has low friction; sticky ground has high friction.</li>
+      <li><strong>Kinetic Energy (KE):</strong> Energy of motion. Fast speeds produce high KE.</li>
+      <li><strong>Potential Energy (PE):</strong> Stored height energy. High platforms have high PE.</li>
+    </ul>
+    <div class="print-section-title">💬 The 15-Minute Coaching Routine</div>
+    <div class="print-box">
+      <p><strong>1. Observe:</strong> "What is blocking Star/Hopper right now? Why can't they jump that high?"</p>
+      <p><strong>2. Predict:</strong> "If we cut gravity in half, what do you think will happen to our jumps?"</p>
+      <p><strong>3. Code:</strong> "Type the command. Did you spell 'gravity' right?"</p>
+      <p><strong>4. Reflect:</strong> "Look at the telemetry. Did the jump match your prediction?"</p>
+    </div>
+    <div class="print-section-title">💻 Try These KidCode Commands Together</div>
+    <ul class="print-list">
+      <li><code>gravity = 0.15</code> (Float like an astronaut)</li>
+      <li><code>friction = 10</code> (Immediate stops on slippery ice)</li>
+      <li><code>repeat 3: spawn_spring()</code> (Bounce high across canyons)</li>
+    </ul>
+  </div>
+
+  <!-- Teacher Guide Print Container -->
+  <div id="print-area-teacher">
+    <div class="print-card-header">🏫 STAR HOPPER CLASSROOM LESSON PLAN</div>
+    <div class="print-section-title">🎯 Lesson Objectives</div>
+    <p class="print-text">Students will design and run simulations to demonstrate gravity and mass relationships (NGSS MS-PS2-2), describe potential/kinetic energy conservation loops (NGSS MS-PS3-1/2), and build algorithmic structures (loops, events, conditionals) in a sandboxed terminal (CSTA 1B-AP-10/11).</p>
+    
+    <div class="print-section-title">⏱️ 45-Minute Lab Agenda</div>
+    <table class="print-table">
+      <tr><td><strong>00m - 10m</strong></td><td><strong>Intro:</strong> Define gravity, friction, potential/kinetic energy. Demo writing <code>gravity = 0.2</code>.</td></tr>
+      <tr><td><strong>10m - 30m</strong></td><td><strong>Exploration:</strong> Students complete Earth, Moon, Jupiter, and Glacies levels, recording reflections.</td></tr>
+      <tr><td><strong>30m - 40m</strong></td><td><strong>Orbit Challenge:</strong> Navigate a circular trajectory around Earth using thrust vectors.</td></tr>
+      <tr><td><strong>40m - 45m</strong></td><td><strong>Wrap-up:</strong> Students export logs, print certificates, and submit reflections.</td></tr>
+    </table>
+
+    <div class="print-section-title">📝 Assessment Questions</div>
+    <ol class="print-list">
+      <li>Where in the jump is Potential Energy (PE) highest? Where is Kinetic Energy (KE) highest?</li>
+      <li>Why does the heavy character Hopper require more force than Star to jump the same height?</li>
+      <li>What happens to a sliding crate if friction is set to zero?</li>
+    </ol>
+  </div>
+
+  <!-- Student Lab Sheet Print Container -->
+  <div id="print-area-student">
+    <div class="print-card-header">🔬 STUDENT INQUIRY LAB SHEET</div>
+    <p class="print-text">Name: ______________________ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date: ______________________</p>
+    
+    <div class="print-section-title">🌍 Mission 1: Earth Gravity Wall</div>
+    <div class="print-inquiry-box">
+      <p><strong>1. Prediction:</strong> If I lower gravity from 0.6 to 0.2, the jump height will: [ ] Increase &nbsp;&nbsp; [ ] Decrease &nbsp;&nbsp; [ ] Stay Same</p>
+      <p><strong>2. Code Command Used:</strong> <code>____________________________________________________</code></p>
+      <p><strong>3. Telemetry Results:</strong> Jump Peak X velocity = ________ px/s &nbsp;&nbsp; Y velocity = ________ px/s</p>
+      <p><strong>4. Conclusion:</strong> Why does gravity affect the flight time? ___________________________________________</p>
+    </div>
+
+    <div class="print-section-title">🌕 Mission 2: Luna Loop Springs</div>
+    <div class="print-inquiry-box">
+      <p><strong>1. Code Command (Loop):</strong> <code>____________________________________________________</code></p>
+      <p><strong>2. Telemetry Results:</strong> Maximum Kinetic Energy observed: ____________ Joules</p>
+    </div>
+
+    <div class="print-section-title">🪐 Mission 3: Jupiter Gravity Trench</div>
+    <div class="print-inquiry-box">
+      <p><strong>1. Prediction:</strong> Why does the heavy Hopper character need rocket boosters to jump? _________________________</p>
+      <p><strong>2. Code Command (Conditional):</strong> <code>____________________________________________________</code></p>
     </div>
   </div>
 

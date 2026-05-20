@@ -4,12 +4,12 @@ Star Hopper is designed from the ground up to provide a safe, secure, and distra
 
 ---
 
-## 🛡️ Child Safety & COPPA Compliance
-Star Hopper is fully compliant with the **Children's Online Privacy Protection Act (COPPA)**:
-* **Zero Personal Information Collected**: We do not ask for, store, or transmit names, email addresses, phone numbers, or physical locations.
-* **No Account Creation**: There are no login pages, user accounts, or profile builders.
-* **No Social Features**: There is no chat room, public comment area, or direct messaging, preventing any contact with unverified third parties.
-* **Optional Client-Side Cloud Sync**: Students can optionally connect their personal GitHub account to backup progress. The token is stored entirely within the client's browser local storage, and all data exchanges occur directly with the official GitHub API. No third-party servers are involved.
+## 🛡️ Privacy-Preserving by Design
+Star Hopper is engineered from the ground up to protect children's online safety and ensure complete data privacy:
+*   **Zero Personal Information Collected:** We do not ask for, store, or transmit names, email addresses, phone numbers, or physical locations.
+*   **No Accounts Required:** Progress is saved locally in your browser cache.
+*   **No Social Features:** No chat rooms, comments, or direct messaging.
+*   **Optional Parent/Teacher Cloud Sync (Ages 13+):** Students can optionally connect their personal GitHub account to backup progress. To protect credentials, Personal Access Tokens are stored in temporary memory (`sessionStorage`) and wiped automatically when the browser tab is closed. All connections occur directly with the official GitHub API; no third-party servers receive your credentials.
 
 ---
 

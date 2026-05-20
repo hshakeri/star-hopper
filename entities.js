@@ -298,6 +298,11 @@ class Player {
       this.isJumping = true;
       SFX.playJump();
       Particles.spawnBurst(this.x + this.w / 2, this.y + this.h, 'rgba(255,255,255,0.6)', 8, 1.5, 2);
+      
+      // Guided tutorial hook
+      if (typeof handleGuidedJumpHook === 'function') {
+        handleGuidedJumpHook();
+      }
     }
 
     // 5. Mid-air special maneuvers

@@ -236,6 +236,9 @@ function setupUIBindings(game) {
           if (res.success) {
             ui_log_output(res.msg, "success");
             SFX.playSuccess();
+            if (typeof handleGuidedCodeHook === 'function') {
+              handleGuidedCodeHook(val);
+            }
             if (game.currentMissionSteps) {
               game.currentMissionSteps.code = true;
               updatePedagogicalGuide(game);

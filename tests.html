@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Star Hopper - Integration & Unit Tests</title>
+  <style>
+    body {
+      background: #090d16;
+      color: #f3f4f6;
+      font-family: system-ui, -apple-system, sans-serif;
+      padding: 40px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #0ea5e9;
+      border-bottom: 2px solid #1e293b;
+      padding-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .test-suite {
+      margin-bottom: 30px;
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .suite-header {
+      background: #1f2937;
+      padding: 12px 20px;
+      font-weight: bold;
+      font-size: 1.1rem;
+      border-bottom: 1px solid #374151;
+      display: flex;
+      justify-content: space-between;
+    }
+    .test-row {
+      padding: 12px 20px;
+      border-bottom: 1px solid #1f2937;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .test-row:last-child {
+      border-bottom: none;
+    }
+    .test-name {
+      font-family: monospace;
+      color: #93c5fd;
+    }
+    .status-pass {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: bold;
+    }
+    .status-fail {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: bold;
+    }
+    .error-details {
+      margin-top: 5px;
+      color: #fca5a5;
+      font-family: monospace;
+      font-size: 0.8rem;
+      background: #271c1c;
+      padding: 8px;
+      border-radius: 4px;
+      display: none;
+    }
+    .summary-box {
+      background: #1e293b;
+      padding: 15px 20px;
+      border-radius: 6px;
+      display: flex;
+      gap: 30px;
+      font-weight: bold;
+    }
+    .nav-btn {
+      background: #0ea5e9;
+      color: #000;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-weight: bold;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .nav-btn:hover {
+      background: #38bdf8;
+    }
+  </style>
+  <!-- Sequentially Mock dependencies for game instances -->
+  <script>
+    // Audio/SFX Mocks
+    const SFX = {
+      playJump: () => {},
+      playSuccess: () => {},
+      playError: () => {},
+      playCoin: () => {},
+      startBGM: () => {},
+      stopBGM: () => {}
+    };
+    // Particles Mock
+    const Particles = {
+      spawnBurst: () => {},
+      clear: () => {}
+    };
+    // UI Log mock
+    function ui_log_output(msg, type) {
+      console.log(`[MOCK UI LOG - ${type}]: ${msg}`);
+    }
+    function ui_log_input(msg) {
+      console.log(`[MOCK UI INPUT]: ${msg}`);
+    }
+    function updateMissionList() {}
+    function renderNotebookHistory() {}
+    let notebookEntries = {};
+  </script>
+  <!-- Load compiler and engine modules -->
+  <script src="interpreter.js"></script>
+  <script src="planets.js"></script>
+  <script src="entities.js"></script>
+</head>
+<body>
+
+  <h1>
+    <span>Star Hopper - Test Automation Runner</span>
+    <a href="index.html" class="nav-btn">← Back to Space Laboratory</a>
+  </h1>
+
+  <div class="summary-box">
+    <div style="color: #38bdf8;">Total Tests: <span id="total-count">0</span></div>
+    <div style="color: #34d399;">Passed: <span id="passed-count">0</span></div>
+    <div style="color: #f87171;">Failed: <span id="failed-count">0</span></div>
+  </div>
+  
+  <br />
+
+  <div class="test-suite">
+    <div class="suite-header">
+      <span>1. Compiler Parser & Interpreter Tests</span>
+      <span style="color: #a78bfa;">Unit Tests</span>
+    </div>
+    <div id="compiler-suite"></div>
+  </div>
+
+  <div class="test-suite">
+    <div class="suite-header">
+      <span>2. Infinite Loop & Crash Safety Limits</span>
+      <span style="color: #a78bfa;">Safety Bounds</span>
+    </div>
+    <div id="safety-suite"></div>
+  </div>
+
+  <div class="test-suite">
+    <div class="suite-header">
+      <span>3. Mock Game Engine State Integration Tests</span>
+      <span style="color: #a78bfa;">Simulation Tests</span>
+    </div>
+    <div id="engine-suite"></div>
+  </div>
+
+  <!-- Run the tests -->
+  <script src="test-runner.js"></script>
+</body>
+</html>

@@ -158,6 +158,7 @@ function saveNotebookReflection() {
 
   textEl.value = "";
   renderNotebookHistory();
+  if (typeof handleGuidedSaveHook === 'function') handleGuidedSaveHook();
   if (typeof triggerCloudSave === 'function') triggerCloudSave();
   if (typeof Game !== 'undefined' && Game.currentMissionSteps) {
     Game.currentMissionSteps.explain = true;
@@ -215,8 +216,26 @@ function printNotebook() {
     dateEl.textContent = new Date().toLocaleDateString(undefined, options);
   }
 
-  window.print();
+  printArtifact('certificate');
+  
+  // Show polite sponsorship reminder after print dialog completes
+  setTimeout(() => {
+    alert("🚀 Cadet Academy runs on community contributions!\n\nIf Star Hopper helped you learn physics today, please consider sponsoring our next open STEM mission at:\nhttps://www.buymeacoffee.com/hshakeri");
+  }, 1000);
 }
+
+// Print specific student/parent/teacher sheets selectively
+function printArtifact(type) {
+  document.body.className = '';
+  document.body.classList.add('print-' + type);
+  setTimeout(() => {
+    window.print();
+  }, 100);
+}
+
+window.onafterprint = () => {
+  document.body.className = '';
+};
 
 function switchMainMode(mode) {
   // Hide all contents

@@ -1,83 +1,61 @@
-# 🚀 Star Hopper - Coding & Physics Platformer
+# 🚀 Star Hopper - Programmable Physics Lab & Coding Playground
 
-<a href="https://www.buymeacoffee.com/hshakeri" target="_blank">
-  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 42px !important;width: 151px !important;" >
-</a>
+> **Star Hopper is an open-source physics-and-coding playground where kids learn by rewriting the laws of a tiny universe.**
 
-Welcome to **Star Hopper**, an interactive, zero-dependency, retro-futuristic 2D physics platformer built to teach kids (and curious adults) programming and physics concepts in an engaging, visual way!
-
-Run around, jump across space stations, and type lines of code in the **KidCode terminal** to rewrite the laws of physics, change constants like gravity, spawn items, or make silly custom rules!
+Star Hopper is a zero-dependency, retro-futuristic 2D physics simulation laboratory disguised as a space platformer. It is designed to teach students, parents, and educators computational thinking and physics modeling through active experimentation.
 
 ---
 
 ## 🎮 Play Online (GitHub Pages)
-The game is hosted live on GitHub Pages! Click below to start hopping across planets:
-👉 **[Play Star Hopper Live!](https://hshakeri.github.io/star-hopper/)**
+The space laboratory is live and hosted on GitHub Pages:
+👉 **[Launch Star Hopper Space Lab Live!](https://hshakeri.github.io/star-hopper/)**
 
 ---
 
-## 🪐 Features
-
-- **5 Planets, 5 Physics Settings**: Travel from the cozy fields of Earth to the floaty Moon, the crushing gravity of Jupiter, the icy slips of Glacies, and the magnetic pulls of Mag-Net.
-- **Real-Time Force Vectors**: See gravity, velocity, friction, and electromagnets displayed as live neon arrows on your character.
-- **Dynamic Energy Telemetry**: Interactive graphs show Kinetic Energy (KE), Potential Energy (PE), and Total Mechanical Energy in real time.
-- **Programmable Game Loop ("KidCode")**: Write commands to change gravity, friction, jump power, or execute loops and custom event triggers.
-- **Procedural Synthesizer Audio**: In-game Web Audio API synth plays jumping sweeps, typewriter clicks, and loopable chiptune tracks (including an ambient chiptune adaptation of Amos Roddy's *"Tears"*).
-
----
-
-## 🕹️ Controls
-
-- **Move**: `Arrow Left` / `Arrow Right`
-- **Jump**: `Arrow Up`, `W`, or `Space`
-- **Swap Character**: `C` or `Shift` (Swap between Star & Hopper)
-- **Star (Lightweight / Agile)**:
-  - Hold `Space` in mid-air to **Glide/Float** using high drag coefficients.
-- **Hopper (Heavyweight / Tech)**:
-  - Hold `Space` in mid-air to fire **Rocket Boosters**.
-  - Hold `Arrow Down` or `S` on the ground to deploy **Spiked Boots** (extreme friction).
-  - Hold `Arrow Down` or `S` in mid-air to engage **Electromagnets** (attracts/repels glowing magnet blocks).
+## 🔭 The Learning Loop: Observe, Predict, Code, Test, Explain
+Star Hopper is built around an evidence-based pedagogical loop:
+1. **Observe:** Telemetry graphs and real-time neon force vectors (gravity, velocity, electromagnets) visualize invisible forces.
+2. **Predict:** Students observe physics obstacles and predict how changing environment constants affects motion.
+3. **Code:** The sandboxed **KidCode** console allows students to reprogram the universe using python-like syntax.
+4. **Test:** Run, jump, glide, and slide to test predictions in real-time.
+5. **Explain:** Log reflections in the **Science Notebook** and print a custom cadet graduation certificate.
 
 ---
 
-## 🪄 KidCode Programming Reference
+## 🪐 Core Features
 
-Use the console terminal on the right to edit the environment. You can use direct assignments, loops, or events!
-
-### 1. Variables
-* `gravity` (Default `1.0`): Change the planet's vertical acceleration.
-* `friction` (Default `0.1`): Change slide slipperiness.
-* `jump_power` (Default `12`): Set how high you jump.
-* `music`: Set the background track (`"earth"`, `"moon"`, `"jupiter"`, `"glacies"`, `"magnet"`, `"tears"`, or `"none"`).
-
-### 2. Actions & Spawning
-* `spawn_box()`: Spawn a physics-enabled crate.
-* `spawn_spring()`: Spawn a bouncy spring launcher.
-* `spawn_coin()`: Spawn a gold coin.
-* `say("message")`: Make your active character say something.
-* `play_music("track")`: Play a specific chiptune melody.
-
-### 3. Logic & Loops
-* **Loops**:
-  ```python
-  repeat 5: spawn_coin()
-  ```
-  ```python
-  for i in range(3): spawn_box()
-  ```
-* **Event Triggers (when Hooks)**:
-  ```python
-  when player.lands: say("Boing!")
-  ```
-  ```python
-  when player.swaps: play_music("tears")
-  ```
+- **5 Interactive Worlds**: Explore custom tilemaps on Earth (Base Camp), the Moon (Low Gravity Canyons), Jupiter (Crushing Trenches), Glacies (Zero Friction Slides), and Mag-Net (Electromagnetic Pulls).
+- **KidCode Sandboxed Compiler**: A custom-built lexical tokenizer, parser, and runtime interpreter supporting variable assignment, repeat loops, conditional event hooks (`when player.lands: repeat 3: spawn_coin()`), and safety-critical thresholds to prevent infinite loops.
+- **Spaceship Orbital Navigator**: Switch to the spaceship control panel to model circular, elliptical, and hyperbolic trajectories around planetary gravity wells using Velocity Verlet orbital integrations.
+- **Telemetry gauges**: Live chart displays plotting Potential Energy ($PE$), Kinetic Energy ($KE$), and Total Mechanical Energy ($TE$).
+- **Procedural Synthesizer**: Implements Web Audio API audio synthesis, generating chiptunes, jump sweeps, and warning beeps dynamically without external asset loads.
 
 ---
 
-## ☕ Support the Project
-If you enjoyed playing or learning with Star Hopper, consider buying me a coffee!
+## 🏫 Parent & Teacher Resources
+We provide printable, curriculum-aligned lesson templates under the **Guides** tab:
+*   **Parent Lab Card ([docs/parent-card.md](file:///Users/hs9hd/.gemini/antigravity/scratch/star-hopper/docs/parent-card.md)):** Quick vocabulary check and a 15-minute conversation coaching routine.
+*   **Classroom Lesson Plan ([docs/teacher-card.md](file:///Users/hs9hd/.gemini/antigravity/scratch/star-hopper/docs/teacher-card.md)):** NGSS MS-PS2-2 & CSTA 1B-AP-10 standards alignment, 45-minute lesson agenda, and assessment keys.
+*   **Student Inquiry Worksheet ([docs/student-lab-sheet.md](file:///Users/hs9hd/.gemini/antigravity/scratch/star-hopper/docs/student-lab-sheet.md)):** Guided worksheet to record hypothesis, code constants, and telemetry results.
 
-<a href="https://www.buymeacoffee.com/hshakeri" target="_blank">
-  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 42px !important;width: 151px !important;" >
-</a>
+*You can print these materials directly from the in-game Guides tab by clicking the Print buttons (optimized with custom `@media print` CSS templates).*
+
+---
+
+## 🔒 Privacy-Preserving by Design
+*   **No Accounts & No Ads:** No registration, tracking pixels, ads, or cookies.
+*   **Session-Only Token Storage:** Optional Cloud Gist sync stores GitHub Personal Access Tokens (PATs) in temporary session memory (`sessionStorage`) only. Credentials are never written to disk or sent to third-party databases.
+*   **Local Save Export/Import:** Students can export a secure local `.json` file of their achievements and notebook reflections, allowing offline backup and recovery.
+
+---
+
+## 🧪 Integration & Unit Tests
+To verify compiler safety limits, event registrations, and velocity calculations, open the automated test dashboard:
+👉 **[Run Automated Regression Tests](file:///Users/hs9hd/.gemini/antigravity/scratch/star-hopper/tests.html)** (or open `tests.html` in your browser).
+
+---
+
+## 💖 Support the STEM Roadmap
+Star Hopper is free software developed to support open science education. If this tool brought a smile to your face or helped a student in your classroom, please consider sponsoring our next mission roadmap:
+
+👉 **[Sponsor the Next Mission Roadmap](https://www.buymeacoffee.com/hshakeri)**
