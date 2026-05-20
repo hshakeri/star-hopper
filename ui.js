@@ -1,0 +1,318 @@
+// ui.js - Orchestrates HUD telemetry, energy bars, Space Terminal logs, Code Deck clicks, and Robot chat
+
+// Logging utility to print user input
+function ui_log_input(cmd) {
+  const history = document.getElementById("console-history");
+  if (!history) return;
+
+  const line = document.createElement("div");
+  line.className = "console-line input-echo";
+  line.textContent = `hopper> ${cmd}`;
+  history.appendChild(line);
+  scrollToBottom(history);
+}
+
+// Logging utility to print compile/eval results
+function ui_log_output(msg, type = "info") {
+  const history = document.getElementById("console-history");
+  if (!history) return;
+
+  const line = document.createElement("div");
+  line.className = `console-line ${type}`;
+  
+  if (type === "success") {
+    line.textContent = `${msg}`;
+  } else if (type === "error") {
+    line.textContent = `${msg}`;
+  } else {
+    line.textContent = `i: ${msg}`;
+  }
+
+  history.appendChild(line);
+  scrollToBottom(history);
+}
+
+function scrollToBottom(el) {
+  el.scrollTop = el.scrollHeight;
+}
+
+// Telemetry visual updates (runs every frame)
+function updateHUD(game) {
+  const player = game.player;
+  const planet = game.currentPlanet;
+
+  // 1. Gravity Gauge
+  const gravityElement = document.getElementById("hud-gravity");
+  if (gravityElement) {
+    const isCustomG = Compiler.env.gravity !== null;
+    const currentG = isCustomG ? Compiler.env.gravity : planet.physics.gravity;
+    
+    // Scale visual gravity: standard Earth 0.6 matches 9.8 m/s2
+    const realWorldG = (currentG / 0.6) * 9.8;
+    gravityElement.textContent = `${realWorldG.toFixed(1)} m/s²`;
+    
+    if (isCustomG) {
+      gravityElement.style.color = "var(--neon-purple)";
+      const card = document.getElementById("card-gravity");
+      if (card) card.style.borderColor = "rgba(167, 139, 250, 0.4)";
+    } else {
+      gravityElement.style.color = "var(--active-neon)";
+      const card = document.getElementById("card-gravity");
+      if (card) card.style.borderColor = "var(--panel-border)";
+    }
+  }
+
+  // 2. Velocity Telemetries
+  const speedElement = document.getElementById("hud-velocity");
+  if (speedElement) {
+    const vxVal = player.vx.toFixed(1);
+    const vyVal = player.vy.toFixed(1);
+    speedElement.textContent = `X: ${vxVal} | Y: ${vyVal}`;
+  }
+
+  // 3. Friction Index
+  const frictionElement = document.getElementById("hud-friction");
+  if (frictionElement) {
+    const isCustomF = Compiler.env.friction !== null;
+    let visualFriction = 0;
+    if (isCustomF) {
+      visualFriction = Compiler.env.friction;
+    } else {
+      visualFriction = (10 - ((planet.physics.friction - 0.7) / 0.299) * 10);
+    }
+    
+    frictionElement.textContent = `${Math.max(0, Math.min(10, visualFriction)).toFixed(1)}`;
+    if (isCustomF) {
+      frictionElement.style.color = "var(--neon-purple)";
+      const card = document.getElementById("card-friction");
+      if (card) card.style.borderColor = "rgba(167, 139, 250, 0.4)";
+    } else {
+      frictionElement.style.color = "var(--active-neon)";
+      const card = document.getElementById("card-friction");
+      if (card) card.style.borderColor = "var(--panel-border)";
+    }
+  }
+
+  // 4. Energy Chart calculations
+  const mass = player.charType === 'star' ? 1.0 : 2.5;
+  const velocitySq = (player.vx * player.vx) + (player.vy * player.vy);
+  
+  // Kinetic Energy = 0.5 * m * v^2
+  let ke = 0.5 * mass * velocitySq;
+  
+  // Height: distance from floor level (floor is around row 12 = 384px)
+  const floorY = 384;
+  const heightVal = Math.max(0, floorY - (player.y + player.h));
+  
+  // Gravity constant (custom or default)
+  const currentG = Compiler.env.gravity !== null ? Compiler.env.gravity : planet.physics.gravity;
+  
+  // Potential Energy = m * g * h
+  let pe = mass * Math.abs(currentG) * heightVal * 0.05; // 0.05 scaling factor
+  if (pe < 0) pe = 0;
+  
+  // Total Energy = KE + PE
+  const te = ke + pe;
+
+  const maxKE = 100;
+  const maxPE = 150;
+  const maxTE = 200;
+
+  const kePercent = Math.min(100, (ke / maxKE) * 100);
+  const pePercent = Math.min(100, (pe / maxPE) * 100);
+  const tePercent = Math.min(100, (te / maxTE) * 100);
+
+  const kBar = document.getElementById("bar-kinetic");
+  const pBar = document.getElementById("bar-potential");
+  const tBar = document.getElementById("bar-total");
+
+  if (kBar) kBar.style.height = `${kePercent}%`;
+  if (pBar) pBar.style.height = `${pePercent}%`;
+  if (tBar) tBar.style.height = `${tePercent}%`;
+
+  // 5. Active Character Indicators
+  const starCard = document.getElementById("char-card-star");
+  const hopperCard = document.getElementById("char-card-hopper");
+  
+  if (starCard && hopperCard) {
+    if (player.charType === 'star') {
+      starCard.classList.add("active");
+      hopperCard.classList.remove("active");
+    } else {
+      starCard.classList.remove("active");
+      hopperCard.classList.add("active");
+    }
+  }
+}
+
+// Update Mission Checklist UI
+function updateMissionList(game) {
+  const listContainer = document.getElementById("mission-list");
+  if (!listContainer) return;
+
+  const currentPlanet = game.currentPlanet;
+  if (!currentPlanet || !currentPlanet.missions) {
+    listContainer.innerHTML = '<div class="no-missions">No active missions. Reach the goal portal!</div>';
+    return;
+  }
+
+  listContainer.innerHTML = "";
+  currentPlanet.missions.forEach(mission => {
+    const isCompleted = game.completedMissions.has(mission.id);
+    
+    const item = document.createElement("div");
+    item.className = `mission-item ${isCompleted ? 'completed' : ''}`;
+    
+    const checkbox = document.createElement("span");
+    checkbox.className = "mission-checkbox";
+    checkbox.textContent = isCompleted ? "✓" : "○";
+    
+    const label = document.createElement("span");
+    label.className = "mission-label";
+    label.textContent = mission.prompt;
+    
+    item.appendChild(checkbox);
+    item.appendChild(label);
+    listContainer.appendChild(item);
+  });
+}
+
+// Typing effect helper for robot dialogues
+let currentDialogueTimer = null;
+
+function showDialogue(text, trigger = "start") {
+  const bubble = document.getElementById("dialogue-bubble");
+  const textContainer = document.getElementById("dialogue-text");
+  if (!bubble || !textContainer) return;
+
+  bubble.style.display = "flex";
+  bubble.style.borderColor = trigger === "start" ? "var(--active-neon)" : "var(--neon-pink)";
+  
+  // Clear previous typing intervals
+  if (currentDialogueTimer) {
+    clearInterval(currentDialogueTimer);
+  }
+
+  textContainer.textContent = "";
+  let i = 0;
+  
+  currentDialogueTimer = setInterval(() => {
+    if (i < text.length) {
+      textContainer.textContent += text.charAt(i);
+      i++;
+      if (Math.random() < 0.25) SFX.playType(); // ticking sound
+    } else {
+      clearInterval(currentDialogueTimer);
+      currentDialogueTimer = null;
+    }
+  }, 25);
+}
+
+function closeDialogue() {
+  const bubble = document.getElementById("dialogue-bubble");
+  if (bubble) bubble.style.display = "none";
+  if (currentDialogueTimer) {
+    clearInterval(currentDialogueTimer);
+    currentDialogueTimer = null;
+  }
+}
+
+// Binds UI controls, terminal input, and cards
+function setupUIBindings(game) {
+  const input = document.getElementById("console-input");
+  const suggestBox = document.getElementById("autocomplete-box");
+  
+  // 1. Code editor input submission
+  if (input) {
+    input.addEventListener("keydown", (e) => {
+      // Allow enter to submit
+      if (e.key === "Enter") {
+        const val = input.value;
+        if (val) {
+          ui_log_input(val);
+          const res = Compiler.runCommand(val, game);
+          if (res.success) {
+            ui_log_output(res.msg, "success");
+            SFX.playSuccess();
+          } else {
+            ui_log_output(res.msg, "error");
+            SFX.playError();
+          }
+          input.value = "";
+          if (suggestBox) suggestBox.style.display = "none";
+          
+          // Re-validate missions immediately on run
+          game.checkMissions();
+        }
+      }
+    });
+
+    // Autocomplete dynamic input watcher
+    if (suggestBox) {
+      input.addEventListener("input", () => {
+        const text = input.value;
+        
+        // Find trailing word/segment matching identifiers
+        const lastWordMatch = text.match(/[\w\.]+$/);
+        const prefix = lastWordMatch ? lastWordMatch[0] : "";
+        
+        const suggestions = Compiler.autocomplete.suggest(prefix);
+        
+        if (suggestions.length > 0) {
+          suggestBox.innerHTML = "";
+          suggestBox.style.display = "flex";
+          
+          suggestions.forEach(s => {
+            const opt = document.createElement("div");
+            opt.className = "autocomplete-item";
+            opt.textContent = s;
+            opt.addEventListener("mousedown", (ev) => {
+              const index = text.lastIndexOf(prefix);
+              input.value = text.slice(0, index) + s;
+              input.focus();
+              suggestBox.style.display = "none";
+              ev.preventDefault();
+            });
+            suggestBox.appendChild(opt);
+          });
+        } else {
+          suggestBox.style.display = "none";
+        }
+      });
+
+      input.addEventListener("blur", () => {
+        setTimeout(() => {
+          suggestBox.style.display = "none";
+        }, 150);
+      });
+    }
+  }
+
+  // 2. Click-to-Type cards binding
+  const cards = document.querySelectorAll(".code-card");
+  cards.forEach(card => {
+    card.addEventListener("click", () => {
+      const code = card.getAttribute("data-code");
+      if (input && code) {
+        input.value = code;
+        input.focus();
+        SFX.playType();
+      }
+    });
+  });
+
+  // 3. Dialogue close
+  const closeBtn = document.getElementById("dialogue-close-btn");
+  if (closeBtn) {
+    closeBtn.addEventListener("click", closeDialogue);
+  }
+  
+  // 4. Mute toggle
+  const muteBtn = document.getElementById("mute-btn");
+  if (muteBtn) {
+    muteBtn.addEventListener("click", () => {
+      const isMuted = SFX.toggleMute();
+      muteBtn.innerHTML = isMuted ? '<i class="fas fa-volume-mute">🔇</i>' : '<i class="fas fa-volume-up">🔊</i>';
+    });
+  }
+}

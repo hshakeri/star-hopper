@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Star Hopper - Physics & Coding Game</title>
+  <meta name="description" content="A 2D platformer physics sandbox game for kids to learn programming constructs (loops, conditionals, assignments) and physics forces (gravity, friction, magnetism) by coding the level rules in real-time.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Dynamic Animated Starfield Background -->
+  <div class="space-bg">
+    <div class="star" style="top: 10%; left: 15%; width: 2px; height: 2px; animation-delay: 0.5s;"></div>
+    <div class="star" style="top: 25%; left: 40%; width: 1.5px; height: 1.5px; animation-delay: 1.2s;"></div>
+    <div class="star" style="top: 50%; left: 80%; width: 2px; height: 2px; animation-delay: 0.1s;"></div>
+    <div class="star" style="top: 70%; left: 30%; width: 1px; height: 1px; animation-delay: 2.3s;"></div>
+    <div class="star" style="top: 85%; left: 65%; width: 2.5px; height: 2.5px; animation-delay: 0.8s;"></div>
+    <div class="star" style="top: 15%; left: 85%; width: 1.5px; height: 1.5px; animation-delay: 1.7s;"></div>
+    <div class="star" style="top: 60%; left: 10%; width: 2px; height: 2px; animation-delay: 0.4s;"></div>
+    <div class="star" style="top: 40%; left: 90%; width: 1px; height: 1px; animation-delay: 2.9s;"></div>
+  </div>
+
+  <div id="app-container">
+    
+    <!-- LEFT SIDE: GAME ENGINE VIEWPORT & HUD -->
+    <div id="game-section">
+      
+      <!-- Canvas Wrapper containing canvas and overlay menus -->
+      <div id="canvas-wrapper">
+        
+        <!-- Helper Robot Dialogue Bubble (Vector) -->
+        <div id="dialogue-bubble" style="display: none;">
+          <div class="robot-face">🤖</div>
+          <div class="dialogue-text" id="dialogue-text">Initializing boot sequences...</div>
+          <button class="dialogue-close" id="dialogue-close-btn">✖ CLOSE</button>
+        </div>
+
+        <canvas id="game-canvas" width="720" height="448"></canvas>
+
+        <!-- Start / Planet Selection Screen -->
+        <div id="start-screen" class="canvas-overlay">
+          <h1>STAR HOPPER</h1>
+          <p style="color: var(--text-muted); font-size: 0.95rem; margin-top:-10px;">A Physics & Coding Space Platformer</p>
+          <div class="level-grid">
+            <button class="level-button active-hover" data-level="0" style="--btn-color: var(--neon-green)">
+              <span class="level-num">01</span>
+              <span class="level-name">Earth</span>
+            </button>
+            <button class="level-button active-hover" data-level="1" style="--btn-color: var(--neon-cyan)">
+              <span class="level-num">02</span>
+              <span class="level-name">Moon</span>
+            </button>
+            <button class="level-button active-hover" data-level="2" style="--btn-color: var(--neon-orange)">
+              <span class="level-num">03</span>
+              <span class="level-name">Jupiter</span>
+            </button>
+            <button class="level-button active-hover" data-level="3" style="--btn-color: var(--neon-purple)">
+              <span class="level-num">04</span>
+              <span class="level-name">Glacies</span>
+            </button>
+            <button class="level-button active-hover" data-level="4" style="--btn-color: var(--neon-pink)">
+              <span class="level-num">05</span>
+              <span class="level-name">Mag-Net</span>
+            </button>
+          </div>
+          <button class="start-action-btn" onclick="Game.startLevel(0)">LAUNCH BASE MISSION</button>
+        </div>
+
+        <!-- Level Cleared Screen -->
+        <div id="clear-screen" class="canvas-overlay hidden">
+          <div class="overlay-title">MISSION COMPLETED! 🚀</div>
+          <div class="overlay-subtitle">Planet coordinates secured. Physics calibration successful.</div>
+          <div style="display: flex; gap: 15px;">
+            <button class="overlay-btn" id="btn-next-level">NEXT PLANET</button>
+            <button class="overlay-btn" onclick="Game.startLevel(Game.currentPlanetIndex)">REPLAY</button>
+          </div>
+        </div>
+
+        <!-- Game Over Rescue Screen -->
+        <div id="gameover-screen" class="canvas-overlay hidden">
+          <div class="overlay-title" style="color: var(--neon-pink); text-shadow: 0 0 15px var(--neon-pink);">CRITICAL FAILURE! 💥</div>
+          <div class="overlay-subtitle" style="text-align: center; max-width: 500px;">Star Hopper damage taken! Adjust physics constants (like lowering gravity or adding friction) to clear the obstacles.</div>
+          <button class="overlay-btn" id="btn-restart">DEPLOY RESCUE POD</button>
+        </div>
+
+      </div>
+
+      <!-- Real-Time Telemetry HUD -->
+      <div id="hud-row">
+        
+        <!-- Gravity Gauge -->
+        <div class="hud-card glass-panel" id="card-gravity">
+          <div class="hud-card-title">
+            <span>Gravity Pull</span>
+            <span style="font-family: var(--font-mono); font-size: 0.65rem;">(g)</span>
+          </div>
+          <div class="hud-card-value" id="hud-gravity">9.8 m/s²</div>
+          <div class="vector-legend">
+            <div class="legend-item">
+              <div class="legend-color" style="background-color: var(--neon-green);"></div>
+              <span>Gravity Force Vector</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Velocity Card -->
+        <div class="hud-card glass-panel">
+          <div class="hud-card-title">
+            <span>Velocity telemetry</span>
+            <span style="font-family: var(--font-mono); font-size: 0.65rem;">(v)</span>
+          </div>
+          <div class="hud-card-value" id="hud-velocity" style="font-size: 1.15rem; color: var(--neon-cyan);">X: 0.0 | Y: 0.0</div>
+          <div class="vector-legend">
+            <div class="legend-item">
+              <div class="legend-color" style="background-color: var(--neon-cyan);"></div>
+              <span>Velocity Speed Vector</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Friction Card -->
+        <div class="hud-card glass-panel" id="card-friction">
+          <div class="hud-card-title">
+            <span>Boot Friction</span>
+            <span style="font-family: var(--font-mono); font-size: 0.65rem;">(μ)</span>
+          </div>
+          <div class="hud-card-value" id="hud-friction">1.5</div>
+          <div class="vector-legend">
+            <div class="legend-item">
+              <div class="legend-color" style="background-color: var(--neon-pink);"></div>
+              <span>Magnet Force (Hopper)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Energy Conversion Chart -->
+        <div class="hud-card glass-panel">
+          <div class="hud-card-title">
+            <span>Energy Trades</span>
+            <span style="font-family: var(--font-mono); font-size: 0.65rem;">(Joules)</span>
+          </div>
+          <div class="energy-chart-container">
+            <div class="energy-bar-wrapper">
+              <div class="energy-bar-slot">
+                <div class="energy-bar-fill kinetic" id="bar-kinetic"></div>
+              </div>
+              <span class="energy-label">KE</span>
+            </div>
+            <div class="energy-bar-wrapper">
+              <div class="energy-bar-slot">
+                <div class="energy-bar-fill potential" id="bar-potential"></div>
+              </div>
+              <span class="energy-label">PE</span>
+            </div>
+            <div class="energy-bar-wrapper">
+              <div class="energy-bar-slot">
+                <div class="energy-bar-fill total" id="bar-total"></div>
+              </div>
+              <span class="energy-label">TOTAL</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active Character Controller Panel -->
+        <div class="hud-card glass-panel" style="flex: 1.2;">
+          <div class="hud-card-title">
+            <span>Team Status</span>
+            <button class="mute-button" id="mute-btn" title="Toggle Sound">🔊</button>
+          </div>
+          
+          <div class="character-hud-cards">
+            <!-- Star Card -->
+            <div class="char-hud-card active" id="char-card-star">
+              <div class="char-avatar star-avatar">S</div>
+              <div class="char-hud-info">
+                <span class="char-name" style="color: var(--neon-cyan);">Star</span>
+                <span class="char-status">Light, Glide</span>
+              </div>
+            </div>
+            <!-- Hopper Card -->
+            <div class="char-hud-card" id="char-card-hopper">
+              <div class="char-avatar hopper-avatar">H</div>
+              <div class="char-hud-info">
+                <span class="char-name" style="color: var(--neon-orange);">Hopper</span>
+                <span class="char-status">Heavy, Rocket</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- RIGHT SIDE: FUTURISTIC SPACE CODING TERMINAL -->
+    <div id="terminal-section" class="glass-panel">
+      
+      <!-- Console Header -->
+      <div class="terminal-header">
+        <h2 id="header-planet-title">Earth Base Camp</h2>
+        <div class="blink-dot"></div>
+      </div>
+      <div class="terminal-sub-header" id="header-planet-sub">// Coordinate: Standard Gravity & Trajectories</div>
+
+      <!-- Active Mission Checklist Box -->
+      <div id="mission-panel" class="mission-panel">
+        <div class="mission-panel-title">🪐 ACTIVE PLANETARY OBJECTIVES</div>
+        <div id="mission-list" class="mission-list">
+          <!-- Populated from ui.js -->
+        </div>
+      </div>
+
+      <!-- Console logs -->
+      <div class="console-area">
+        <div class="console-history" id="console-history">
+          <div class="console-line info">--- Star Hopper Space Terminal OS v2.0 ---</div>
+          <div class="console-line info">Type commands to change level physics, write loops, and spawn items.</div>
+          <div class="console-line info">Click Code Cards below to auto-type variables and actions!</div>
+        </div>
+
+        <!-- Interactive Typing Row -->
+        <div class="console-input-row">
+          <span class="console-prompt">hopper&gt;</span>
+          <input type="text" id="console-input" class="console-input" placeholder="Type command here..." autofocus autocomplete="off" spellcheck="false">
+          <!-- Autocomplete Suggestions List Overlay -->
+          <div id="autocomplete-box" class="autocomplete-box" style="display: none;"></div>
+        </div>
+      </div>
+
+      <!-- Click-to-Type Code Cards (Cheat Sheet) -->
+      <div class="code-deck-title">Code Deck (Click-to-Type)</div>
+      
+      <div class="code-deck">
+        <!-- Section: Physics Constants -->
+        <div class="deck-group-header">⚡ Physics Constants</div>
+        <div class="code-card category-math" data-code="gravity = 0.3" title="Set gravity to low Moon-like floatiness.">
+          <span class="variable">gravity</span> = <span class="keyword">0.3</span>
+        </div>
+        <div class="code-card category-math" data-code="gravity = 1.6" title="Reset gravity to heavy planet-side normal force.">
+          <span class="variable">gravity</span> = <span class="keyword">1.6</span>
+        </div>
+        <div class="code-card category-math" data-code="friction = 0.5" title="Slick ice sliding physics.">
+          <span class="variable">friction</span> = <span class="keyword">0.5</span>
+        </div>
+        <div class="code-card category-math" data-code="friction = 10.0" title="Brake instantly on slippery ground.">
+          <span class="variable">friction</span> = <span class="keyword">10.0</span>
+        </div>
+        <div class="code-card category-math" data-code="player.jump_power = 20" title="Make player jump twice as high.">
+          <span class="variable">player.jump_power</span> = <span class="keyword">20</span>
+        </div>
+        <div class="code-card category-math" data-code="hopper.mass = 0.8" title="Make Hopper lightweight.">
+          <span class="variable">hopper.mass</span> = <span class="keyword">0.8</span>
+        </div>
+
+        <!-- Section: Magic Wand Actions -->
+        <div class="deck-group-header">🪄 Magic Wand Actions</div>
+        <div class="code-card" data-code="spawn_coin()" title="Spawn coin above current coordinates.">
+          <span class="function">spawn_coin</span>()
+        </div>
+        <div class="code-card" data-code="spawn_box()" title="Spawn wooden box above head to step over hazard peaks.">
+          <span class="function">spawn_box</span>()
+        </div>
+        <div class="code-card" data-code="spawn_spring()" title="Spawn bounce launcher pad.">
+          <span class="function">spawn_spring</span>()
+        </div>
+        <div class="code-card" data-code="shrink_enemies()" title="Make bug/spore threats tiny.">
+          <span class="function">shrink_enemies</span>()
+        </div>
+        <div class="code-card" data-code="rave_mode()" title="Toggle rainbow disco mode!">
+          <span class="function">rave_mode</span>()
+        </div>
+
+        <!-- Section: Magic Loops -->
+        <div class="deck-group-header">🔄 Magic Loops</div>
+        <div class="code-card category-loop" data-code="repeat 5: spawn_coin()" title="Spawn 5 coins.">
+          <span class="keyword">repeat</span> <span class="number">5</span>: <span class="function">spawn_coin</span>()
+        </div>
+        <div class="code-card category-loop" data-code="for i in range(3): spawn_spring()" title="Spawn 3 stacked springs.">
+          <span class="keyword">for</span> i <span class="keyword">in</span> <span class="function">range</span>(<span class="number">3</span>): <span class="function">spawn_spring</span>()
+        </div>
+
+        <!-- Section: Event Hook Triggers -->
+        <div class="deck-group-header">🔔 Event Rules</div>
+        <div class="code-card category-if" data-code="when player.lands: gravity = 1.6" title="Restore default gravity instantly on landing.">
+          <span class="keyword">when</span> <span class="variable">player.lands</span>: gravity = <span class="keyword">1.6</span>
+        </div>
+        <div class="code-card category-if" data-code="when player.touching('ice'): player.say('Woohoo!')" title="Active player says something on ice block contact.">
+          <span class="keyword">when</span> <span class="variable">player.touching</span>(<span class="string">'ice'</span>): player.<span class="function">say</span>(<span class="string">'Woohoo!'</span>)
+        </div>
+        <div class="code-card category-if" data-code="when hopper.rocket_on: gravity = 2.5" title="Increase gravity when space is held down to rocket jump.">
+          <span class="keyword">when</span> <span class="variable">hopper.rocket_on</span>: gravity = <span class="keyword">2.5</span>
+        </div>
+        <div class="code-card category-if" data-code="when hit_enemy: bounce_up()" title="Stomping an alien fires a massive bounce impulse.">
+          <span class="keyword">when</span> <span class="variable">hit_enemy</span>: <span class="function">bounce_up</span>()
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Import JS Modules sequentially -->
+  <script src="planets.js"></script>
+  <script src="audio.js"></script>
+  <script src="interpreter.js"></script>
+  <script src="entities.js"></script>
+  <script src="physics.js"></script>
+  <script src="ui.js"></script>
+  <script src="game.js"></script>
+
+</body>
+</html>
