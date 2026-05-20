@@ -253,7 +253,7 @@ class SoundEngine {
         "D2",  " ", "D3",  " ", "D2",  " ", "D3",  " ",
         "C#2", " ", "C#3", " ", "C#2", " ", "C#3", " "
       ];
-      tempo = 300; // ~100 BPM eighth notes matching the original 99 BPM
+      tempo = 400; // Slower, floatier ambient pace
     }
 
     const scheduleNext = () => {
