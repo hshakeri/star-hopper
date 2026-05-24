@@ -16,14 +16,14 @@ python3 -m http.server 8000
 Then visit `http://localhost:8000` in your web browser.
 
 ### 2. Code Architecture Guide
-* [index.html](file:///Users/hs9hd/.gemini/antigravity/scratch/star-hopper/index.html): Document structure, tabbed mode container layout.
-* [style.css](file:///Users/hs9hd/.gemini/antigravity/scratch/star-hopper/style.css): Custom CSS styles, glassmorphism UI, typography, and print-media overrides.
-* [game.js](file:///Users/hs9hd/.gemini/antigravity/scratch/star-hopper/game.js): Orchestrates the primary game loop, entity positions, and portal collisions.
-* [physics.js](file:///Users/hs9hd/.gemini/antigravity/scratch/star-hopper/physics.js): Calculates coordinate collisions, magnetic forces, and restitution.
-* [interpreter.js](file:///Users/hs9hd/.gemini/antigravity/scratch/star-hopper/interpreter.js): Parses and executes KidCode sandbox scripts.
-* [missions.js](file:///Users/hs9hd/.gemini/antigravity/scratch/star-hopper/missions.js): Stores curriculum mission validation functions and inquiry reflections.
-* [notebook.js](file:///Users/hs9hd/.gemini/antigravity/scratch/star-hopper/notebook.js): Logs telemetry variables, journal responses, and print triggers.
-* [navigator.js](file:///Users/hs9hd/.gemini/antigravity/scratch/star-hopper/navigator.js): Computes Newtonian orbital simulations using Velocity Verlet integration.
+* [index.html](index.html): Document structure, tabbed mode container layout.
+* [style.css](style.css): Custom CSS styles, glassmorphism UI, typography, and print-media overrides.
+* [game.js](game.js): Orchestrates the primary game loop, entity positions, and portal collisions.
+* [physics.js](physics.js): Calculates coordinate collisions, magnetic forces, and restitution.
+* [interpreter.js](interpreter.js): Parses and executes KidCode sandbox scripts.
+* [missions.js](missions.js): Stores curriculum mission validation functions and inquiry reflections.
+* [notebook.js](notebook.js): Logs telemetry variables, journal responses, and print triggers.
+* [navigator.js](navigator.js): Computes Newtonian orbital simulations using Velocity Verlet integration.
 
 ---
 

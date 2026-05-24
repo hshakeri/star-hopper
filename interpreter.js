@@ -42,6 +42,7 @@ class Tokenizer {
       [/^}/, 'RBRACE'],
       [/^\+|^-\b|^\*|^\//, 'OPERATOR'],
       [/^,/, 'COMMA'],
+      [/^;/, 'SEMICOLON'],
       [/^\n/, 'NEWLINE']
     ];
 
@@ -101,8 +102,8 @@ class Parser {
   parse() {
     const statements = [];
     while (this.pos < this.tokens.length) {
-      // Ignore trailing newlines
-      if (this.peek().type === 'NEWLINE') {
+      // Ignore trailing newlines or semicolons
+      if (this.peek().type === 'NEWLINE' || this.peek().type === 'SEMICOLON') {
         this.next();
         continue;
       }
@@ -651,13 +652,29 @@ const runtimeContext = {
       get: (game) => game.player.speed,
       set: (game, val) => { game.player.speed = val; }
     },
+    speed: {
+      get: (game) => Compiler.env.speed !== null ? Compiler.env.speed : game.currentPlanet.physics.speed,
+      set: (game, val) => { Compiler.env.speed = val; }
+    },
     "star.mass": {
-      get: (game) => 1.0,
-      set: (game, val) => {}
+      get: (game) => game.starMass !== undefined ? game.starMass : 1.0,
+      set: (game, val) => {
+        const clamped = Math.max(0.2, Math.min(10.0, Number(val) || 1.0));
+        game.starMass = clamped;
+        if (game.player && game.player.charType === 'star') {
+          game.player.mass = clamped;
+        }
+      }
     },
     "hopper.mass": {
-      get: (game) => 2.5,
-      set: (game, val) => {}
+      get: (game) => game.hopperMass !== undefined ? game.hopperMass : 2.5,
+      set: (game, val) => {
+        const clamped = Math.max(0.2, Math.min(10.0, Number(val) || 2.5));
+        game.hopperMass = clamped;
+        if (game.player && game.player.charType === 'hopper') {
+          game.player.mass = clamped;
+        }
+      }
     },
     "hopper.rocket_power": {
       get: (game) => game.player.rocketPower || 40,
@@ -796,6 +813,7 @@ class CompilerSingleton {
     this.env = {
       gravity: null,
       friction: null,
+      speed: null,
       magnetStrength: null,
       magnetPole: 'north',
       raveMode: false
@@ -807,10 +825,22 @@ class CompilerSingleton {
     this.autocomplete = new AutocompleteEngine();
   }
 
+  get events() {
+    const evs = {};
+    this.activeRules.forEach(rule => {
+      evs[rule.target] = (game) => {
+        const interpreter = new KidCodeInterpreter(game || window.Game || {});
+        interpreter.evaluate(rule.body);
+      };
+    });
+    return evs;
+  }
+
   reset() {
     this.env = {
       gravity: null,
       friction: null,
+      speed: null,
       magnetStrength: null,
       magnetPole: 'north',
       raveMode: false

@@ -466,9 +466,15 @@
       <!-- Mode Pane 3: Spaceship Navigator -->
       <div id="main-content-navigator" class="mode-content">
         <div class="notebook-container">
-          <div class="notebook-header">
-            <span>🚀</span>
-            <h2>Orbital Navigation</h2>
+          <div class="notebook-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span>🚀</span>
+              <h2>Orbital Navigation</h2>
+            </div>
+            <select id="navigator-mode-select" onchange="switchNavigatorMode(this.value)" style="background: var(--panel-bg); color: var(--text-primary); border: 1px solid var(--panel-border); border-radius: 6px; padding: 4px 8px; font-size: 0.75rem; font-family: var(--font-main); cursor: pointer; outline: none; margin-right: 5px;">
+              <option value="classic">Classic Trainer</option>
+              <option value="solar" selected>Solar Simulator</option>
+            </select>
           </div>
 
           <!-- Objective -->
@@ -576,6 +582,14 @@
   <script src="ui.js"></script>
   <script src="game.js"></script>
   <script src="notebook.js"></script>
+  <script src="navigator-classic.js"></script>
+  <script src="nav-core.js"></script>
+  <script src="nav-bodies.js"></script>
+  <script src="nav-physics.js"></script>
+  <script src="nav-ship.js"></script>
+  <script src="nav-transfer.js"></script>
+  <script src="nav-renderer.js"></script>
+  <script src="nav-missions.js"></script>
   <script src="navigator.js"></script>
   <script src="github-sync.js"></script>
   <script src="guided-mode.js"></script>

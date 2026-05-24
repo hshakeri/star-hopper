@@ -1,79 +1,91 @@
 // physics.js - 2D physics engine handling AABB collisions, trajectory paths, vector telemetry, and magnetism
 
 class PhysicsEngine {
-  constructor() {}
+  constructor() {
+    this.maxCollisionStep = TILE_SIZE / 2;
+  }
 
   // Resolves collisions against tilemaps and interactive objects (like crates)
   resolveWorldCollisions(entity, tilemap, spawnedBoxes, game) {
     let onGround = false;
     let touchingType = 'earth';
+    const boxes = spawnedBoxes || [];
+    const totalVx = entity.vx;
+    const totalVy = entity.vy;
+    const stepCount = Math.max(1, Math.ceil(Math.max(Math.abs(totalVx), Math.abs(totalVy)) / this.maxCollisionStep));
 
-    // --- 1. Move Horizontally & Resolve ---
-    entity.x += entity.vx;
-    
-    // Tilemap check X
-    let collisionsX = this.getTileCollisions(entity, tilemap);
-    for (const t of collisionsX) {
-      if (entity.vx > 0) {
-        entity.x = t.c * TILE_SIZE - entity.w;
-        entity.vx = 0;
-      } else if (entity.vx < 0) {
-        entity.x = (t.c + 1) * TILE_SIZE;
-        entity.vx = 0;
-      }
-    }
+    for (let step = 0; step < stepCount; step++) {
+      // --- 1. Move Horizontally & Resolve ---
+      if (entity.vx !== 0) {
+        entity.x += totalVx / stepCount;
 
-    // Spawned Crate boxes check X
-    for (const box of spawnedBoxes) {
-      if (box.collected) continue;
-      if (this.isOverlapping(entity, box)) {
-        if (entity.vx > 0) {
-          entity.x = box.x - entity.w;
-          entity.vx = 0;
-        } else if (entity.vx < 0) {
-          entity.x = box.x + box.w;
-          entity.vx = 0;
+        // Tilemap check X
+        let collisionsX = this.getTileCollisions(entity, tilemap, { solidBottomOutOfBounds: false });
+        for (const t of collisionsX) {
+          if (totalVx > 0) {
+            entity.x = t.c * TILE_SIZE - entity.w;
+            entity.vx = 0;
+          } else if (totalVx < 0) {
+            entity.x = (t.c + 1) * TILE_SIZE;
+            entity.vx = 0;
+          }
+        }
+
+        // Spawned Crate boxes check X
+        for (const box of boxes) {
+          if (box.collected) continue;
+          if (this.isOverlapping(entity, box)) {
+            if (totalVx > 0) {
+              entity.x = box.x - entity.w;
+              entity.vx = 0;
+            } else if (totalVx < 0) {
+              entity.x = box.x + box.w;
+              entity.vx = 0;
+            }
+          }
         }
       }
-    }
 
-    // --- 2. Move Vertically & Resolve ---
-    entity.y += entity.vy;
+      // --- 2. Move Vertically & Resolve ---
+      if (entity.vy !== 0) {
+        entity.y += totalVy / stepCount;
 
-    // Tilemap check Y
-    let collisionsY = this.getTileCollisions(entity, tilemap);
-    for (const t of collisionsY) {
-      if (entity.vy > 0) {
-        entity.y = t.r * TILE_SIZE - entity.h;
-        entity.vy = 0;
-        onGround = true;
-        entity.isJumping = false;
-        
-        // Ground type check
-        if (game && game.currentPlanetIndex === 3) {
-          touchingType = 'ice';
-        } else {
-          touchingType = 'earth';
+        // Tilemap check Y
+        let collisionsY = this.getTileCollisions(entity, tilemap, { solidBottomOutOfBounds: false });
+        for (const t of collisionsY) {
+          if (totalVy > 0) {
+            entity.y = t.r * TILE_SIZE - entity.h;
+            entity.vy = 0;
+            onGround = true;
+            entity.isJumping = false;
+
+            // Ground type check
+            if (game && game.currentPlanetIndex === 3) {
+              touchingType = 'ice';
+            } else {
+              touchingType = 'earth';
+            }
+          } else if (totalVy < 0) {
+            entity.y = (t.r + 1) * TILE_SIZE;
+            entity.vy = 0;
+          }
         }
-      } else if (entity.vy < 0) {
-        entity.y = (t.r + 1) * TILE_SIZE;
-        entity.vy = 0;
-      }
-    }
 
-    // Spawned Crate boxes check Y
-    for (const box of spawnedBoxes) {
-      if (box.collected) continue;
-      if (this.isOverlapping(entity, box)) {
-        if (entity.vy > 0) {
-          entity.y = box.y - entity.h;
-          entity.vy = 0;
-          onGround = true;
-          entity.isJumping = false;
-          touchingType = 'wood';
-        } else if (entity.vy < 0) {
-          entity.y = box.y + box.h;
-          entity.vy = 0;
+        // Spawned Crate boxes check Y
+        for (const box of boxes) {
+          if (box.collected) continue;
+          if (this.isOverlapping(entity, box)) {
+            if (totalVy > 0) {
+              entity.y = box.y - entity.h;
+              entity.vy = 0;
+              onGround = true;
+              entity.isJumping = false;
+              touchingType = 'wood';
+            } else if (totalVy < 0) {
+              entity.y = box.y + box.h;
+              entity.vy = 0;
+            }
+          }
         }
       }
     }
@@ -101,9 +113,11 @@ class PhysicsEngine {
   }
 
   // Get list of matching tile coordinates the entity is overlapping
-  getTileCollisions(entity, tilemap) {
+  getTileCollisions(entity, tilemap, options = {}) {
     const collisions = [];
     const epsilon = 0.01;
+    const solidBottomOutOfBounds = options.solidBottomOutOfBounds !== false;
+    const tileValues = options.tileValues || [1];
     const colLeft = Math.floor(entity.x / TILE_SIZE);
     const colRight = Math.floor((entity.x + entity.w - epsilon) / TILE_SIZE);
     const rowTop = Math.floor(entity.y / TILE_SIZE);
@@ -114,15 +128,26 @@ class PhysicsEngine {
 
     for (let r = rowTop; r <= rowBottom; r++) {
       for (let c = colLeft; c <= colRight; c++) {
-        // Treat out of bounds as solid blocks to prevent clipping through screen boundaries
+        // Side and ceiling bounds are solid; falling below the map is allowed so death zones work.
+        if (r >= mapHeight && !solidBottomOutOfBounds) {
+          continue;
+        }
+
         if (r < 0 || r >= mapHeight || c < 0 || c >= mapWidth) {
           collisions.push({ r, c });
-        } else if (tilemap[r][c] === 1) { // 1 = solid block
+        } else if (tileValues.includes(tilemap[r][c])) {
           collisions.push({ r, c });
         }
       }
     }
     return collisions;
+  }
+
+  getHazardCollisions(entity, tilemap) {
+    return this.getTileCollisions(entity, tilemap, {
+      solidBottomOutOfBounds: false,
+      tileValues: [2]
+    });
   }
 
   // Check overlap of two objects
@@ -137,7 +162,8 @@ class PhysicsEngine {
   applyMagnetism(player, interactiveObjects, currentPlanet) {
     if (player.charType !== 'hopper' || !player.magnetActive) return;
 
-    const baseMagnetStrength = Compiler.env.magnetStrength !== undefined ? Compiler.env.magnetStrength : (currentPlanet.physics.magnetStrength || 1.2);
+    const hasMagnetOverride = Compiler.env.magnetStrength !== null && Compiler.env.magnetStrength !== undefined;
+    const baseMagnetStrength = hasMagnetOverride ? Compiler.env.magnetStrength : (currentPlanet.physics.magnetStrength || 1.2);
     
     // Read the magnet environment setting, fallback to active state
     let polarity = Compiler.env.magnet;
@@ -151,7 +177,7 @@ class PhysicsEngine {
       const dy = (obj.y + obj.h/2) - (player.y + player.h/2);
       const dist = Math.sqrt(dx * dx + dy * dy);
 
-      if (dist < 180) {
+      if (dist > 0.001 && dist < 180) {
         // Evaluate attraction:
         // 'positive', '+', or 'north' polarity attracts to 'neg_node' (-) and repels from 'pos_node' (+)
         // 'negative', '-', or 'south' polarity attracts to 'pos_node' (+) and repels from 'neg_node' (-)

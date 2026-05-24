@@ -11,6 +11,8 @@ class StarHopperGame {
     this.star = null;
     this.hopper = null;
     this.player = null; // Reference to active character
+    this.starMass = 1.0;
+    this.hopperMass = 2.5;
     
     this.enemies = [];
     this.interactiveObjects = [];
@@ -40,6 +42,13 @@ class StarHopperGame {
 
     // Completed missions list
     this.completedMissions = new Set();
+
+    // Fixed-step simulation keeps movement stable across 60Hz, 120Hz, and throttled tabs.
+    this.lastFrameTime = 0;
+    this.physicsAccumulator = 0;
+    this.fixedStepMs = 1000 / 60;
+    this.maxAccumulatedFrameMs = 1000 / 15;
+    this.maxPhysicsSteps = 5;
   }
 
   init() {
@@ -150,6 +159,8 @@ class StarHopperGame {
     
     // Clear terminal overrides
     Compiler.reset();
+    this.starMass = 1.0;
+    this.hopperMass = 2.5;
     
     // Instantiate single character in place
     this.player = new Player(this.startX, this.startY);
@@ -303,9 +314,30 @@ class StarHopperGame {
 
   // Core Game Loop
   loop(timestamp) {
-    if (this.state === 'playing') {
-      this.update();
+    if (this.state === 'playing' || window.navigatorModeActive) {
+      if (!this.lastFrameTime) {
+        this.lastFrameTime = timestamp;
+      }
+
+      const frameMs = Math.min(timestamp - this.lastFrameTime, this.maxAccumulatedFrameMs);
+      this.lastFrameTime = timestamp;
+      this.physicsAccumulator += frameMs;
+
+      let steps = 0;
+      while (this.physicsAccumulator >= this.fixedStepMs && steps < this.maxPhysicsSteps) {
+        this.update();
+        this.physicsAccumulator -= this.fixedStepMs;
+        steps++;
+      }
+
+      if (steps === this.maxPhysicsSteps) {
+        this.physicsAccumulator = 0;
+      }
+
       this.draw();
+    } else {
+      this.lastFrameTime = timestamp;
+      this.physicsAccumulator = 0;
     }
     requestAnimationFrame((t) => this.loop(t));
   }
@@ -333,19 +365,25 @@ class StarHopperGame {
     // 5. Resolve rigid body collisions
     Physics.resolveWorldCollisions(this.player, this.currentPlanet.map, this.spawnedBoxes, this);
 
-    // 6. Check if player fell out of bounds (dead)
+    // 6. Terrain hazards use separate collision from solid ground so spikes remain dangerous.
+    if (Physics.getHazardCollisions(this.player, this.currentPlanet.map).length > 0) {
+      this.killPlayer("contact with terrain hazard!");
+      return;
+    }
+
+    // 7. Check if player fell out of bounds (dead)
     if (this.player.y > 450) {
       this.killPlayer("fell out of bounds!");
       return;
     }
 
-    // 7. Update camera positioning (lerp horizontal viewport centering)
+    // 8. Update camera positioning (lerp horizontal viewport centering)
     const targetCamX = this.player.x - this.canvas.width / 2;
     const maxCamX = (this.currentPlanet.map[0].length * TILE_SIZE) - this.canvas.width;
     this.cameraX += (targetCamX - this.cameraX) * 0.1;
     this.cameraX = Math.max(0, Math.min(maxCamX, this.cameraX));
 
-    // 8. Update active level entities
+    // 9. Update active level entities
     for (const enemy of this.enemies) {
       enemy.update(this.currentPlanet.map, this.player);
       
@@ -365,7 +403,7 @@ class StarHopperGame {
       }
     }
 
-    // 9. Update objects and check collisions
+    // 10. Update objects and check collisions
     for (const obj of this.interactiveObjects) {
       obj.update();
       if (obj.collected) continue;
@@ -393,21 +431,21 @@ class StarHopperGame {
       }
     }
 
-    // 10. Update spawned box boxes (AABB block pushes)
+    // 11. Update spawned box boxes (AABB block pushes)
     for (const box of this.spawnedBoxes) {
       box.update();
     }
 
-    // 11. Update particle systems
+    // 12. Update particle systems
     Particles.update();
 
-    // 12. Redraw HUD sidebar charts & variables
+    // 13. Redraw HUD sidebar charts & variables
     updateHUD(this);
     if (typeof updateNotebook === 'function') {
       updateNotebook(this);
     }
 
-    // 13. Check tutorial spatial triggers
+    // 14. Check tutorial spatial triggers
     if (this.player.x > 320 && this.player.x < 420) {
       if (this.currentPlanetIndex === 0) this.triggerTutorialDialogue("wall");
       else if (this.currentPlanetIndex === 1) this.triggerTutorialDialogue("gap");

@@ -16,7 +16,7 @@ Star Hopper is engineered from the ground up to protect children's online safety
 ## 💻 Sandboxed Execution & System Security
 The KidCode compiler built into Star Hopper is engineered for complete system safety:
 1. **No `eval()` Usage**: The terminal does not run arbitrary JavaScript strings on the user's browser. It uses a custom lexical tokenizer and parser that only allows safe, pre-approved commands (`gravity`, `friction`, `jump`, `spawn_box`, `loop`, `if`, etc.).
-2. **Infinite Loop Safeguards**: KidCode checks all loop and repetition blocks. If a loop attempts to run more than **50 times** or spawn more than **10 objects**, the interpreter halts execution immediately and prints a friendly warning. This prevents browser freeze-ups and system crashes.
+2. **Infinite Loop Safeguards**: KidCode checks all loop and repetition blocks. If a loop attempts to run more than **30 times** or spawn more than **20 objects**, the interpreter halts execution immediately and prints a friendly warning. This prevents browser freeze-ups and system crashes.
 3. **No Network Access**: The game logic is 100% client-side. The compiler cannot make API calls, fetch resources, or leak terminal inputs.
 
 ---

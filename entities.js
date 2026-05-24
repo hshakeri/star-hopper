@@ -173,12 +173,12 @@ class Player {
       this.charType = 'hopper';
       this.w = 24;
       this.h = 32;
-      this.mass = 2.5;
+      this.mass = game.hopperMass !== undefined ? game.hopperMass : 2.5;
     } else {
       this.charType = 'star';
       this.w = 20;
       this.h = 32;
-      this.mass = 1.0;
+      this.mass = game.starMass !== undefined ? game.starMass : 1.0;
     }
     
     // Visual pop on swap
@@ -188,13 +188,21 @@ class Player {
   }
 
   update(keys, currentPlanet, game) {
+    if (game) {
+      if (this.charType === 'star') {
+        this.mass = game.starMass !== undefined ? game.starMass : 1.0;
+      } else {
+        this.mass = game.hopperMass !== undefined ? game.hopperMass : 2.5;
+      }
+    }
     // 1. Fetch parameters from Compiler variables, falling back to planet physics defaults
     const isCustomG = Compiler.env.gravity !== null;
     const baseGravity = isCustomG ? Compiler.env.gravity : currentPlanet.physics.gravity;
     const isCustomF = Compiler.env.friction !== null;
     const baseFriction = isCustomF ? Compiler.env.friction : currentPlanet.physics.friction;
+    const airResistance = currentPlanet.physics.airResistance ?? 0.99;
     
-    const speedMultiplier = Compiler.env.speed !== null ? Compiler.env.speed : currentPlanet.physics.speed;
+    const speedMultiplier = Compiler.env.speed ?? currentPlanet.physics.speed;
     const jumpMultiplier = this.jumpPower;
 
     // Apply scale changes dynamically
@@ -218,7 +226,7 @@ class Player {
       // Inactive Companion logic: follow active character or stay put
       if (this.isStationary) {
         // Just apply standard gravity/friction
-        this.vx *= horizontalFriction;
+        this.vx *= this.onGround ? horizontalFriction : airResistance;
         this.vy += gravityForce;
         if (this.vy > 12) this.vy = 12;
       } else {
@@ -239,6 +247,8 @@ class Player {
     const rightPressed = !!(keys['ArrowRight'] || keys['arrowright'] || keys['Right'] || keys['right']);
     const jumpPressed = !!(keys['w'] || keys['W'] || keys['ArrowUp'] || keys['arrowup'] || keys['Up'] || keys['up'] || keys[' ']);
     const downPressed = !!(keys['s'] || keys['S'] || keys['ArrowDown'] || keys['arrowdown'] || keys['Down'] || keys['down']);
+    let appliedHorizontalDamping = false;
+    this.isBraking = false;
 
     // 3. Horizontal movement inputs (Active character only)
     const walkAcceleration = 0.5;
@@ -267,13 +277,12 @@ class Player {
       }
     } else {
       // Apply friction/drag when keys are released
-      if (Compiler.env.friction !== null) {
+      if (Compiler.env.friction !== null && this.onGround) {
         const visualFriction = Compiler.env.friction; // 0 to 10
         horizontalFriction = 0.999 - (visualFriction / 10) * 0.299;
       }
       
       // Hopper spiked boots activation (holding S or Down arrow increases friction)
-      this.isBraking = false;
       if (this.charType === 'hopper' && (downPressed || this.spikes) && this.onGround) {
         horizontalFriction = 0.65; // High grip!
         this.isBraking = true;
@@ -288,7 +297,12 @@ class Player {
         }
       }
 
-      this.vx *= horizontalFriction;
+      this.vx *= this.onGround ? horizontalFriction : airResistance;
+      appliedHorizontalDamping = true;
+    }
+
+    if (!this.onGround && !appliedHorizontalDamping) {
+      this.vx *= airResistance;
     }
 
     // 4. Jump movement inputs

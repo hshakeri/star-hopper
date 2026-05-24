@@ -238,6 +238,11 @@ window.onafterprint = () => {
 };
 
 function switchMainMode(mode) {
+  // Hide dialogue bubble if switching away from terminal
+  if (mode !== 'terminal' && typeof closeDialogue === 'function') {
+    closeDialogue();
+  }
+
   // Hide all contents
   document.querySelectorAll('.mode-content').forEach(el => {
     el.classList.remove('active');
@@ -261,10 +266,37 @@ function switchMainMode(mode) {
 
   // Handle special mode transitions
   if (mode === 'navigator') {
+    // Hide all canvas overlays
+    const startScr = document.getElementById("start-screen");
+    const clearScr = document.getElementById("clear-screen");
+    const goScr = document.getElementById("gameover-screen");
+    if (startScr) startScr.classList.add("hidden");
+    if (clearScr) clearScr.classList.add("hidden");
+    if (goScr) goScr.classList.add("hidden");
+
     if (typeof initNavigatorMode === 'function') {
       initNavigatorMode();
     }
   } else {
+    // Restore canvas overlays based on game state
+    if (window.Game) {
+      const startScr = document.getElementById("start-screen");
+      const clearScr = document.getElementById("clear-screen");
+      const goScr = document.getElementById("gameover-screen");
+      
+      if (startScr) startScr.classList.add("hidden");
+      if (clearScr) clearScr.classList.add("hidden");
+      if (goScr) goScr.classList.add("hidden");
+
+      if (window.Game.state === 'start' && startScr) {
+        startScr.classList.remove("hidden");
+      } else if (window.Game.state === 'clear' && clearScr) {
+        clearScr.classList.remove("hidden");
+      } else if (window.Game.state === 'gameover' && goScr) {
+        goScr.classList.remove("hidden");
+      }
+    }
+
     if (typeof stopNavigatorMode === 'function') {
       stopNavigatorMode();
     }

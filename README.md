@@ -34,9 +34,9 @@ Star Hopper is built around an evidence-based pedagogical loop:
 
 ## 🏫 Parent & Teacher Resources
 We provide printable, curriculum-aligned lesson templates under the **Guides** tab:
-*   **Parent Lab Card ([docs/parent-card.md](file:///Users/hs9hd/.gemini/antigravity/scratch/star-hopper/docs/parent-card.md)):** Quick vocabulary check and a 15-minute conversation coaching routine.
-*   **Classroom Lesson Plan ([docs/teacher-card.md](file:///Users/hs9hd/.gemini/antigravity/scratch/star-hopper/docs/teacher-card.md)):** NGSS MS-PS2-2 & CSTA 1B-AP-10 standards alignment, 45-minute lesson agenda, and assessment keys.
-*   **Student Inquiry Worksheet ([docs/student-lab-sheet.md](file:///Users/hs9hd/.gemini/antigravity/scratch/star-hopper/docs/student-lab-sheet.md)):** Guided worksheet to record hypothesis, code constants, and telemetry results.
+*   **Parent Lab Card ([docs/parent-card.md](docs/parent-card.md)):** Quick vocabulary check and a 15-minute conversation coaching routine.
+*   **Classroom Lesson Plan ([docs/teacher-card.md](docs/teacher-card.md)):** NGSS MS-PS2-2 & CSTA 1B-AP-10 standards alignment, 45-minute lesson agenda, and assessment keys.
+*   **Student Inquiry Worksheet ([docs/student-lab-sheet.md](docs/student-lab-sheet.md)):** Guided worksheet to record hypothesis, code constants, and telemetry results.
 
 *You can print these materials directly from the in-game Guides tab by clicking the Print buttons (optimized with custom `@media print` CSS templates).*
 
@@ -51,7 +51,7 @@ We provide printable, curriculum-aligned lesson templates under the **Guides** t
 
 ## 🧪 Integration & Unit Tests
 To verify compiler safety limits, event registrations, and velocity calculations, open the automated test dashboard:
-👉 **[Run Automated Regression Tests](file:///Users/hs9hd/.gemini/antigravity/scratch/star-hopper/tests.html)** (or open `tests.html` in your browser).
+👉 **[Run Automated Regression Tests](tests.html)** (or open `tests.html` in your browser).
 
 ---
 
