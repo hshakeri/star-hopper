@@ -181,7 +181,7 @@ function updateNavigator(game) {
     // Only update physics and time if there are commands in the queue or an action is currently executing
     if (window.Nav.commandQueue.length > 0 || window.Nav.currentAction) {
       // Calculate timestep size dt
-      const dt = 0.005 * window.Nav.timeWarpFactor;
+      const dt = 0.1 * window.Nav.timeWarpFactor;
 
       // Execute flight instruction queue
       window.Nav.processFlightQueue(dt, window.Nav.ship.timeElapsed);
@@ -231,7 +231,7 @@ function drawNavigator(game) {
   }
 }
 
-// Hook Keyboard console inputs
+// Hook Keyboard console inputs and zoom wheel
 document.addEventListener("DOMContentLoaded", () => {
   const navInput = document.getElementById("navigator-console-input");
   if (navInput) {
@@ -241,5 +241,17 @@ document.addEventListener("DOMContentLoaded", () => {
         runNavigatorCommands(val);
       }
     });
+  }
+
+  // Scroll wheel zoom for Solar Simulator canvas
+  const canvas = document.getElementById("game-canvas");
+  if (canvas) {
+    canvas.addEventListener("wheel", (e) => {
+      if (window.navigatorModeActive && window.navigatorMode === 'solar') {
+        e.preventDefault();
+        const zoomFactor = e.deltaY < 0 ? 1.05 : 0.95;
+        window.Nav.SU_TO_PX = Math.max(50, Math.min(300, window.Nav.SU_TO_PX * zoomFactor));
+      }
+    }, { passive: false });
   }
 });

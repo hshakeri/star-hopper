@@ -87,7 +87,7 @@ window.Nav = window.Nav || {};
       if (currentAction) {
         if (currentAction.type === 'thrust' && fuelMass > 0) {
           thrustActive = true;
-          const thrustPower = currentAction.power * 0.15;
+          const thrustPower = (currentAction.power * 0.15) / 592.26;
           const shipMass = dryMass + fuelMass;
           const thrustAcc = thrustPower / shipMass;
           ax_thrust = Math.cos(shipAngle) * thrustAcc;

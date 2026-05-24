@@ -191,7 +191,7 @@ window.Nav = window.Nav || {};
           Nav.currentAction = null;
         } else {
           Nav.ship.thrustActive = true;
-          Nav.ship.thrustPower = Nav.currentAction.power * 0.15; // Scaled for playable forces
+          Nav.ship.thrustPower = (Nav.currentAction.power * 0.15) / 592.26; // Scaled for new physical year scale
           Nav.actionTimeRemaining = Nav.currentAction.duration;
           Nav.logConsole(`Thrust burn engaged: power=${Nav.currentAction.power}, duration=${Nav.currentAction.duration} days`, "info");
         }

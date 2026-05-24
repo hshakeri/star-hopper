@@ -12,7 +12,7 @@ window.Nav = window.Nav || {};
   // - 1 Time Unit (TU) = 1 mission day in simulation time
   
   Nav.SU_TO_PX = 150; // pixels per Space Unit
-  Nav.G = 0.8;        // Gravitational constant G in Toy Units (SU^3 / (EMU * TU^2))
+  Nav.G = 0.8 / 350877; // Gravitational constant G scaled for 240-day year (was 0.8)
   
   // Convert SU to Pixels (for rendering)
   Nav.suToPx = function(su) {
