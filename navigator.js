@@ -159,6 +159,10 @@ function runNavigatorCommands(commandString) {
       runNavigatorCommandsClassic(commandString);
     }
   } else {
+    const activeMission = window.Nav.Missions[window.Nav.activeMissionIndex];
+    if (activeMission) {
+      activeMission.setup();
+    }
     window.Nav.runCommands(commandString);
   }
 }
@@ -175,7 +179,7 @@ function updateNavigator(game) {
     if (!window.Nav.ship) return;
 
     // Calculate timestep size dt
-    const dt = 0.1 * window.Nav.timeWarpFactor;
+    const dt = 0.005 * window.Nav.timeWarpFactor;
 
     // Execute flight instruction queue
     window.Nav.processFlightQueue(dt, window.Nav.ship.timeElapsed);
