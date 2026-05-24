@@ -6,34 +6,124 @@ window.Nav = window.Nav || {};
 (function(Nav) {
   
   // Predicts path under gravity (N-body) for showing the pilot a preview line
-  function getPredictedTrajectory(stepsCount = 300) {
+  function getPredictedTrajectory() {
     if (!Nav.ship) return [];
 
     let px = Nav.ship.x;
     let py = Nav.ship.y;
     let pvx = Nav.ship.vx;
     let pvy = Nav.ship.vy;
+    let shipAngle = Nav.ship.angle;
+    let fuelMass = Nav.ship.fuelMass;
+    let dryMass = Nav.ship.dryMass;
+    let burnRate = Nav.ship.burnRate;
 
+    // Check if simulation is currently idle (paused at Earth)
+    const isIdle = !(window.Nav.commandQueue.length > 0 || window.Nav.currentAction);
+    let actions = [];
+    let currentAction = null;
+    let actionTimeRemaining = 0;
+
+    if (isIdle) {
+      const inputEl = document.getElementById("navigator-console-input");
+      const codeText = inputEl ? inputEl.value : "";
+      actions = Nav.parseCommands ? Nav.parseCommands(codeText) : [];
+    } else {
+      actions = window.Nav.commandQueue.map(a => ({...a}));
+      if (window.Nav.currentAction) {
+        currentAction = {...window.Nav.currentAction};
+        actionTimeRemaining = window.Nav.actionTimeRemaining;
+      }
+    }
+
+    let totalDuration = 0;
+    if (isIdle) {
+      actions.forEach(a => {
+        if (a.duration) totalDuration += a.duration;
+      });
+    } else {
+      if (currentAction && actionTimeRemaining > 0) {
+        totalDuration += actionTimeRemaining;
+      }
+      actions.forEach(a => {
+        if (a.duration) totalDuration += a.duration;
+      });
+    }
+
+    if (totalDuration === 0) totalDuration = 100; // default to 100 days of drift if empty
+
+    const simDt = 0.25; // Integration step size (days) for preview path
+    const maxPredDuration = Math.min(300, totalDuration);
+    const maxSteps = Math.ceil(maxPredDuration / simDt);
     const points = [];
-    const simDt = 0.5; // Prediction substep
-    const shipMass = Nav.ship.dryMass + Nav.ship.fuelMass;
 
-    for (let i = 0; i < stepsCount; i++) {
-      const t = Nav.ship.timeElapsed + i * simDt;
+    for (let step = 0; step < maxSteps; step++) {
+      const currentT = Nav.ship.timeElapsed + step * simDt;
 
-      // Calculate gravitational forces at predicted state
-      const grav = Nav.getGravityAcceleration({ x: px, y: py }, t);
-      let ax = grav.x;
-      let ay = grav.y;
+      // Process actions
+      if (!currentAction && actions.length > 0) {
+        currentAction = actions.shift();
+        if (currentAction.type === 'rotate') {
+          const targetName = currentAction.target.toUpperCase();
+          const targetBody = Nav.BODIES[targetName];
+          if (targetBody) {
+            const bState = Nav.bodyStateAt(targetBody, currentT);
+            shipAngle = Math.atan2(bState.y - py, bState.x - px);
+          }
+          currentAction = null; // Rotate is instantaneous
+        } else if (currentAction.type === 'thrust') {
+          actionTimeRemaining = currentAction.duration;
+        } else if (currentAction.type === 'wait') {
+          actionTimeRemaining = currentAction.duration;
+        } else if (currentAction.type === 'warp') {
+          currentAction = null; // Warp does not change path
+        }
+      }
+
+      let ax_thrust = 0;
+      let ay_thrust = 0;
+      let thrustActive = false;
+
+      if (currentAction) {
+        if (currentAction.type === 'thrust' && fuelMass > 0) {
+          thrustActive = true;
+          const thrustPower = currentAction.power * 0.15;
+          const shipMass = dryMass + fuelMass;
+          const thrustAcc = thrustPower / shipMass;
+          ax_thrust = Math.cos(shipAngle) * thrustAcc;
+          ay_thrust = Math.sin(shipAngle) * thrustAcc;
+
+          // Consume fuel
+          const fuelBurn = burnRate * simDt;
+          fuelMass = Math.max(0, fuelMass - fuelBurn);
+        }
+        
+        actionTimeRemaining -= simDt;
+        if (actionTimeRemaining <= 0) {
+          currentAction = null;
+        }
+      }
+
+      // Gravity acceleration at predicted state
+      const grav = Nav.getGravityAcceleration({ x: px, y: py }, currentT);
+      let ax = grav.x + ax_thrust;
+      let ay = grav.y + ay_thrust;
 
       // Position update (Verlet step)
       const nextX = px + pvx * simDt + 0.5 * ax * simDt * simDt;
       const nextY = py + pvy * simDt + 0.5 * ay * simDt * simDt;
 
       // Next acceleration
-      const nextGrav = Nav.getGravityAcceleration({ x: nextX, y: nextY }, t + simDt);
-      const nextAx = nextGrav.x;
-      const nextAy = nextGrav.y;
+      let nextAx_thrust = ax_thrust;
+      let nextAy_thrust = ay_thrust;
+      if (!thrustActive || fuelMass <= 0) {
+        nextAx_thrust = 0;
+        nextAy_thrust = 0;
+      }
+      
+      const nextGrav = Nav.getGravityAcceleration({ x: nextX, y: nextY }, currentT + simDt);
+      const nextAx = nextGrav.x + nextAx_thrust;
+      const nextAy = nextGrav.y + nextAy_thrust;
 
       pvx += 0.5 * (ax + nextAx) * simDt;
       pvy += 0.5 * (ay + nextAy) * simDt;
@@ -41,15 +131,14 @@ window.Nav = window.Nav || {};
       px = nextX;
       py = nextY;
 
-      if (i % 2 === 0) {
-        points.push({ x: px, y: py });
-      }
+      // Add path point
+      points.push({ x: px, y: py });
 
       // Check if predicted position collides with Sun or planets
       let hit = false;
       for (const key in Nav.BODIES) {
         const body = Nav.BODIES[key];
-        const bState = Nav.bodyStateAt(body, t);
+        const bState = Nav.bodyStateAt(body, currentT);
         const dist = Math.sqrt((px - bState.x) * (px - bState.x) + (py - bState.y) * (py - bState.y));
         if (dist < body.radius) {
           hit = true;

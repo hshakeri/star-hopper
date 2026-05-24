@@ -44,6 +44,60 @@ window.Nav = window.Nav || {};
   };
 
   /**
+   * Helper parser that reads command strings and converts them to flight queue actions.
+   * Does not modify actual ship state or log output.
+   */
+  Nav.parseCommands = function(commandString) {
+    if (!commandString || !commandString.trim()) return [];
+
+    const queue = [];
+    const statements = commandString.split(";");
+
+    statements.forEach(statement => {
+      const cmd = statement.trim();
+      if (!cmd) return;
+
+      try {
+        if (cmd.startsWith("point_at")) {
+          const match = cmd.match(/point_at\(['"]?(\w+)['"]?\)/);
+          const target = match ? match[1].toLowerCase() : 'sun';
+          queue.push({ type: 'rotate', target });
+        } else if (cmd.startsWith("thrust")) {
+          let power = 2.0;
+          let duration = 5.0;
+          
+          const namedPower = cmd.match(/power=([0-9.]+)/);
+          const namedDuration = cmd.match(/seconds=([0-9.]+)/) || cmd.match(/duration=([0-9.]+)/);
+          
+          if (namedPower || namedDuration) {
+            if (namedPower) power = parseFloat(namedPower[1]);
+            if (namedDuration) duration = parseFloat(namedDuration[1]);
+          } else {
+            const params = cmd.match(/thrust\(([0-9.]+)(?:,\s*([0-9.]+))?\)/);
+            if (params) {
+              power = parseFloat(params[1]);
+              if (params[2]) duration = parseFloat(params[2]);
+            }
+          }
+          queue.push({ type: 'thrust', power, duration });
+        } else if (cmd.startsWith("wait")) {
+          const match = cmd.match(/wait\(([0-9.]+)\)/);
+          const duration = match ? parseFloat(match[1]) : 10.0;
+          queue.push({ type: 'wait', duration });
+        } else if (cmd.startsWith("warp")) {
+          const match = cmd.match(/warp\(([0-9.]+)\)/);
+          const factor = match ? parseFloat(match[1]) : 5.0;
+          queue.push({ type: 'warp', factor });
+        }
+      } catch (e) {
+        // ignore parsing errors during typing
+      }
+    });
+
+    return queue;
+  };
+
+  /**
    * Parses commands entered in the Pilot Console and builds the commandQueue.
    * Format supports commands split by Semicolon:
    * - point_at('body')
