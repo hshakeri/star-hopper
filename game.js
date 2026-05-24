@@ -33,11 +33,13 @@ class StarHopperGame {
     // Background starfield coordinates
     this.bgStars = [];
 
-    // Coin collection tally
+    // Gem collection tally
     this.coinsCollected = 0;
     this.requiredCollectiblesTotal = 0;
     this.requiredCollectiblesCollected = 0;
     this.portalLockNoticeCooldown = 0;
+    this.gemGateNoticeCooldown = 0;
+    this.lastGemGateNoticeId = null;
 
     // Track level checkpoint
     this.startX = 64;
@@ -45,6 +47,8 @@ class StarHopperGame {
 
     // Completed missions list
     this.completedMissions = new Set();
+    this.pendingNavigationTargetIndex = null;
+    this.navigationReturnTimer = null;
 
     // Fixed-step simulation keeps movement stable across 60Hz, 120Hz, and throttled tabs.
     this.lastFrameTime = 0;
@@ -53,6 +57,140 @@ class StarHopperGame {
     this.maxAccumulatedFrameMs = 1000 / 15;
     this.maxPhysicsSteps = 5;
     this.isPaused = false;
+  }
+
+  getGemConfig(index = this.currentPlanetIndex) {
+    const gems = [
+      { id: "earth", name: "Emerald Core", shortName: "Emerald", color: "#4ade80", glow: "rgba(74, 222, 128, 0.72)" },
+      { id: "moon", name: "Moon Quartz", shortName: "Quartz", color: "#93c5fd", glow: "rgba(147, 197, 253, 0.72)" },
+      { id: "jupiter", name: "Amber Storm", shortName: "Amber", color: "#fb923c", glow: "rgba(251, 146, 60, 0.72)" },
+      { id: "glacies", name: "Violet Ice", shortName: "Violet", color: "#a78bfa", glow: "rgba(167, 139, 250, 0.72)" },
+      { id: "magnet", name: "Magenta Flux", shortName: "Flux", color: "#ec4899", glow: "rgba(236, 72, 153, 0.72)" }
+    ];
+    return gems[index] || gems[0];
+  }
+
+  getCurrentGravity() {
+    if (typeof Compiler !== 'undefined' && Compiler.env && Compiler.env.gravity !== null) {
+      return Compiler.env.gravity;
+    }
+    return this.currentPlanet && this.currentPlanet.physics ? this.currentPlanet.physics.gravity : 0;
+  }
+
+  getCurrentSpeed() {
+    if (typeof Compiler !== 'undefined' && Compiler.env && Compiler.env.speed !== null) {
+      return Compiler.env.speed;
+    }
+    return this.currentPlanet && this.currentPlanet.physics ? this.currentPlanet.physics.speed : 0;
+  }
+
+  getCurrentFriction() {
+    if (typeof Compiler !== 'undefined' && Compiler.env && Compiler.env.friction !== null) {
+      return Compiler.env.friction;
+    }
+    return this.currentPlanet && this.currentPlanet.physics ? this.currentPlanet.physics.friction : 0;
+  }
+
+  hasActiveRule(check) {
+    if (typeof Compiler === 'undefined' || !Array.isArray(Compiler.activeRules)) return false;
+    return Compiler.activeRules.some(check);
+  }
+
+  isEarthHopperEngineered() {
+    return this.player
+      && this.player.charType === 'hopper'
+      && this.getCurrentGravity() <= 0.35
+      && this.player.jumpPower >= 17
+      && this.hopperMass <= 1.2
+      && this.getCurrentSpeed() >= 4.8;
+  }
+
+  isJupiterHopperEngineered() {
+    return this.player
+      && this.player.charType === 'hopper'
+      && this.player.rocketPower >= 70
+      && this.hopperMass <= 1.4
+      && this.getCurrentSpeed() >= 4.5;
+  }
+
+  hasIceTouchRule() {
+    return this.hasActiveRule(rule => rule.target === 'player.touching'
+      && rule.eventArgs
+      && rule.eventArgs[0]
+      && rule.eventArgs[0].value === 'ice');
+  }
+
+  hasPlayerTouchingRule() {
+    return this.hasActiveRule(rule => rule.target === 'player.touching');
+  }
+
+  hasRocketEventRule() {
+    return this.hasActiveRule(rule => rule.target === 'hopper.rocket_on');
+  }
+
+  getGemGateForCollectible(planetIndex, row, col) {
+    if (planetIndex === 0) {
+      if (row >= 6) {
+        return {
+          id: "earth-gravity-gems",
+          label: "lower gravity to 0.35 or below",
+          validate: (game) => game.getCurrentGravity() <= 0.35
+        };
+      }
+      return {
+        id: "earth-hopper-engineering-gems",
+        label: "use Hopper with gravity <= 0.35, jump_power >= 17, hopper.mass <= 1.2, and speed >= 4.8",
+        validate: (game) => game.isEarthHopperEngineered()
+      };
+    }
+
+    if (planetIndex === 1) {
+      if (row >= 5) {
+        return {
+          id: "moon-arithmetic-gems",
+          label: "boost jump_power to 18 or more with arithmetic",
+          validate: (game) => game.player && game.player.jumpPower >= 18
+        };
+      }
+      return {
+        id: "moon-loop-spring-gems",
+        label: "boost jump_power to 18 and spawn 3 springs with a repeat loop",
+        validate: (game) => game.player && game.player.jumpPower >= 18 && game.spawnedSprings.length >= 3
+      };
+    }
+
+    if (planetIndex === 2) {
+      return {
+        id: "jupiter-engineering-loop-gems",
+        label: "engineer Hopper for high gravity and spawn 3 crate blocks with a loop",
+        validate: (game) => game.isJupiterHopperEngineered() && game.spawnedBoxes.length >= 3
+      };
+    }
+
+    if (planetIndex === 3) {
+      if (row >= 5) {
+        return {
+          id: "glacies-friction-gems",
+          label: "raise friction to 5 or enable Hopper spikes",
+          validate: (game) => game.getCurrentFriction() >= 5 || (game.player && game.player.spikes)
+        };
+      }
+      return {
+        id: "glacies-ice-rule-gems",
+        label: "raise friction or spikes, then add a when player.touching('ice') rule",
+        validate: (game) => (game.getCurrentFriction() >= 5 || (game.player && game.player.spikes)) && game.hasIceTouchRule()
+      };
+    }
+
+    if (planetIndex === 4) {
+      return {
+        id: "magnet-event-gems",
+        label: "combine a hopper.rocket_on rule with a player.touching rule",
+        validate: (game) => game.hasRocketEventRule() && game.hasPlayerTouchingRule()
+      };
+    }
+
+    return null;
   }
 
   init() {
@@ -125,7 +263,7 @@ class StarHopperGame {
     const nextBtn = document.getElementById("btn-next-level");
     if (nextBtn) {
       nextBtn.addEventListener("click", () => {
-        this.nextPlanet();
+        this.beginNextPlanetNavigation();
       });
     }
 
@@ -204,6 +342,10 @@ class StarHopperGame {
         if (val === 3) {
           const collectible = new InteractiveObject(tx, ty, 'coin');
           collectible.requiredCollectible = true;
+          collectible.gem = this.getGemConfig(index);
+          collectible.mapRow = r;
+          collectible.mapCol = c;
+          collectible.gemGate = this.getGemGateForCollectible(index, r, c);
           this.requiredCollectiblesTotal++;
           this.interactiveObjects.push(collectible);
         } else if (val === 4) {
@@ -245,6 +387,9 @@ class StarHopperGame {
     }
     // Draw initial mission list
     updateMissionList(this);
+    if (typeof updateHUD === 'function') {
+      updateHUD(this);
+    }
 
     // Start Guided tutorial check if Earth index 0 loaded
     if (this.state === 'playing' && typeof checkStartGuidedMode === 'function') {
@@ -265,11 +410,12 @@ class StarHopperGame {
     const px = this.player.x;
     const py = this.player.y - 48; // Spawn 48px above helmet
 
-    if (type === 'coin') {
+    if (type === 'coin' || type === 'gem') {
       const coin = new InteractiveObject(px, py, 'coin');
       coin.requiredCollectible = false;
+      coin.gem = this.getGemConfig();
       this.interactiveObjects.push(coin);
-      Particles.spawnBurst(px + 10, py + 10, '#facc15', 8, 2, 2, 'glow');
+      Particles.spawnBurst(px + 10, py + 10, coin.gem.color, 8, 2, 2, 'glow');
     } else if (type === 'box') {
       const box = new InteractiveObject(px, py, 'box');
       this.spawnedBoxes.push(box);
@@ -337,6 +483,38 @@ class StarHopperGame {
     };
   }
 
+  canCollectGem(obj) {
+    if (!obj || !obj.requiredCollectible || !obj.gemGate) return true;
+    try {
+      return !!obj.gemGate.validate(this);
+    } catch (err) {
+      console.error("Gem gate validation failed:", err);
+      return false;
+    }
+  }
+
+  getLockedRequiredCollectibleCount() {
+    return this.interactiveObjects.filter(obj =>
+      obj.type === 'coin'
+      && obj.requiredCollectible
+      && !obj.collected
+      && !this.canCollectGem(obj)
+    ).length;
+  }
+
+  showGemGateHint(obj) {
+    if (!obj || !obj.gemGate) return;
+    const gateId = obj.gemGate.id || "gem-gate";
+    if (this.gemGateNoticeCooldown > 0 && this.lastGemGateNoticeId === gateId) return;
+
+    const gem = obj.gem || this.getGemConfig();
+    ui_log_output(`Locked ${gem.shortName} gem: ${obj.gemGate.label}.`, "error");
+    SFX.playError();
+    this.gemGateNoticeCooldown = 90;
+    this.lastGemGateNoticeId = gateId;
+    updateMissionList(this);
+  }
+
   formatObjectiveLockMessage(status = this.getLevelObjectiveStatus()) {
     const missing = [];
     const missionsLeft = status.missionsTotal - status.missionsComplete;
@@ -346,7 +524,7 @@ class StarHopperGame {
       missing.push(`${missionsLeft} task${missionsLeft === 1 ? "" : "s"}`);
     }
     if (collectiblesLeft > 0) {
-      missing.push(`${collectiblesLeft} mission star${collectiblesLeft === 1 ? "" : "s"}`);
+      missing.push(`${collectiblesLeft} mission gem${collectiblesLeft === 1 ? "" : "s"}`);
     }
 
     return missing.length > 0 ? missing.join(" and ") : "final checks";
@@ -372,6 +550,58 @@ class StarHopperGame {
   nextPlanet() {
     this.currentPlanetIndex = (this.currentPlanetIndex + 1) % PLANETS.length;
     this.startLevel(this.currentPlanetIndex);
+  }
+
+  getNextPlanetIndex() {
+    if (!PLANETS || this.currentPlanetIndex >= PLANETS.length - 1) return null;
+    return this.currentPlanetIndex + 1;
+  }
+
+  beginNextPlanetNavigation() {
+    const targetIndex = this.getNextPlanetIndex();
+    if (targetIndex === null) {
+      if (typeof switchMainMode === 'function') {
+        switchMainMode('notebook');
+      }
+      return;
+    }
+
+    this.pendingNavigationTargetIndex = targetIndex;
+
+    const originName = this.currentPlanet ? this.currentPlanet.name : "current planet";
+    const targetName = PLANETS[targetIndex] ? PLANETS[targetIndex].name : "next planet";
+    ui_log_output(`✓ Rover docked with spacecraft above ${originName}.`, "success");
+    ui_log_output(`Navigation required: plot a course to ${targetName}.`, "info");
+
+    if (typeof switchMainMode === 'function') {
+      switchMainMode('navigator');
+    }
+    if (window.Nav && typeof window.Nav.loadRouteToPlanet === 'function') {
+      window.Nav.loadRouteToPlanet(this.currentPlanetIndex, targetIndex);
+    }
+  }
+
+  completeNavigationToNextPlanet(mission) {
+    if (this.pendingNavigationTargetIndex === null) return;
+    if (!mission || mission.targetPlanetIndex !== this.pendingNavigationTargetIndex) return;
+
+    const targetIndex = this.pendingNavigationTargetIndex;
+    const targetName = PLANETS[targetIndex] ? PLANETS[targetIndex].name : "next planet";
+    this.pendingNavigationTargetIndex = null;
+
+    if (this.navigationReturnTimer) {
+      clearTimeout(this.navigationReturnTimer);
+    }
+
+    ui_log_output(`✓ Spacecraft arrived at ${targetName}. Rover deployment ready.`, "success");
+
+    this.navigationReturnTimer = setTimeout(() => {
+      this.navigationReturnTimer = null;
+      this.startLevel(targetIndex);
+      if (typeof switchMainMode === 'function') {
+        switchMainMode('terminal');
+      }
+    }, 1200);
   }
 
   resetLevel() {
@@ -425,6 +655,9 @@ class StarHopperGame {
     Compiler.updateRules(this);
     if (this.portalLockNoticeCooldown > 0) {
       this.portalLockNoticeCooldown--;
+    }
+    if (this.gemGateNoticeCooldown > 0) {
+      this.gemGateNoticeCooldown--;
     }
 
     // 2. Run real-time mission completion validator
@@ -484,18 +717,23 @@ class StarHopperGame {
 
       if (Physics.isOverlapping(this.player, obj)) {
         if (obj.type === 'coin') {
+          if (!this.canCollectGem(obj)) {
+            this.showGemGateHint(obj);
+            continue;
+          }
           obj.collected = true;
           this.coinsCollected++;
           if (obj.requiredCollectible) {
             this.requiredCollectiblesCollected++;
           }
           SFX.playCoin();
-          Particles.spawnBurst(obj.x + 8, obj.y + 8, '#facc15', 10, 2, 2.5, 'glow');
+          const gem = obj.gem || this.getGemConfig();
+          Particles.spawnBurst(obj.x + 8, obj.y + 8, gem.color, 10, 2, 2.5, 'glow');
           if (obj.requiredCollectible) {
-            ui_log_output(`✓ Mission star collected: ${this.requiredCollectiblesCollected}/${this.requiredCollectiblesTotal}`, "success");
+            ui_log_output(`◆ ${gem.name} gem collected: ${this.requiredCollectiblesCollected}/${this.requiredCollectiblesTotal}`, "success");
             updateMissionList(this);
           } else {
-            ui_log_output(`✓ Bonus coin collected! Total: ${this.coinsCollected}`, "success");
+            ui_log_output(`◆ Bonus ${gem.shortName} gem collected! Total: ${this.coinsCollected}`, "success");
           }
         } else if (obj.type === 'trampoline' || obj.type === 'spring') {
           const isTopBounce = (this.player.vy > 0.1 && this.player.y + this.player.h - this.player.vy <= obj.y + 6);
@@ -555,7 +793,22 @@ class StarHopperGame {
     SFX.stopBGM();
     const clearScr = document.getElementById("clear-screen");
     if (clearScr) clearScr.classList.remove("hidden");
+    const clearTitle = document.getElementById("clear-title");
+    const clearSubtitle = document.getElementById("clear-subtitle");
+    const nextBtn = document.getElementById("btn-next-level");
+    const nextIndex = this.getNextPlanetIndex();
+    if (nextIndex === null) {
+      if (clearTitle) clearTitle.textContent = "EXPEDITION COMPLETE! 🚀";
+      if (clearSubtitle) clearSubtitle.textContent = "All rover discoveries are logged. Open the Log to print the Scientist Certificate.";
+      if (nextBtn) nextBtn.textContent = "OPEN LOG";
+    } else {
+      const targetName = PLANETS[nextIndex] ? PLANETS[nextIndex].name : "next planet";
+      if (clearTitle) clearTitle.textContent = "ROVER DISCOVERY COMPLETE! 🚀";
+      if (clearSubtitle) clearSubtitle.textContent = `Rover has returned to the spacecraft. Plot the transfer route to ${targetName} before the next surface mission.`;
+      if (nextBtn) nextBtn.textContent = "PLOT NEXT ORBIT";
+    }
     ui_log_output(`✓ Level cleared! Target coordinates secured.`, "success");
+    ui_log_output(`Rover returning to spacecraft docking bay...`, "info");
     if (typeof updateCertificateState === 'function') updateCertificateState();
   }
 
@@ -577,10 +830,10 @@ class StarHopperGame {
 
     // 3. Draw interactive objects
     for (const obj of this.interactiveObjects) {
-      obj.draw(this.ctx, this.cameraX);
+      obj.draw(this.ctx, this.cameraX, this);
     }
     for (const box of this.spawnedBoxes) {
-      box.draw(this.ctx, this.cameraX);
+      box.draw(this.ctx, this.cameraX, this);
     }
 
     // 4. Draw enemies
@@ -605,15 +858,41 @@ class StarHopperGame {
   }
 
   drawSpaceBackground() {
-    this.ctx.fillStyle = this.currentPlanet.skyColor;
+    const skyAccent = ["#14532d", "#0e7490", "#7c2d12", "#4c1d95", "#831843"][this.currentPlanetIndex] || "#0f172a";
+    const skyGradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+    skyGradient.addColorStop(0, skyAccent);
+    skyGradient.addColorStop(0.55, this.currentPlanet.skyColor);
+    skyGradient.addColorStop(1, "#020617");
+    this.ctx.fillStyle = skyGradient;
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
+    this.ctx.save();
+    this.ctx.globalAlpha = 0.2;
+    this.ctx.fillStyle = ["#86efac", "#67e8f9", "#fdba74", "#c4b5fd", "#f9a8d4"][this.currentPlanetIndex] || "#93c5fd";
+    this.ctx.beginPath();
+    this.ctx.ellipse(
+      this.canvas.width * 0.78 - (this.cameraX * 0.035 % 90),
+      this.canvas.height * 0.18,
+      86,
+      26,
+      -0.18,
+      0,
+      Math.PI * 2
+    );
+    this.ctx.fill();
+    this.ctx.globalAlpha = 0.12;
+    this.ctx.beginPath();
+    this.ctx.ellipse(this.canvas.width * 0.2 - (this.cameraX * 0.02 % 70), this.canvas.height * 0.26, 52, 18, 0.28, 0, Math.PI * 2);
+    this.ctx.fill();
+    this.ctx.restore();
+
     // Parallax stars
-    this.ctx.fillStyle = "#ffffff";
     for (const star of this.bgStars) {
       let sx = (star.x - this.cameraX * star.speed) % this.canvas.width;
       if (sx < 0) sx += this.canvas.width;
-      
+
+      const shimmer = 0.45 + Math.abs(Math.sin(Date.now() / 900 + star.x)) * 0.55;
+      this.ctx.fillStyle = `rgba(255, 255, 255, ${shimmer.toFixed(2)})`;
       this.ctx.beginPath();
       this.ctx.arc(sx, star.y, star.size, 0, Math.PI * 2);
       this.ctx.fill();
@@ -623,6 +902,13 @@ class StarHopperGame {
   drawTilemap() {
     const map = this.currentPlanet.map;
     const planetId = this.currentPlanetIndex;
+    const palettes = [
+      { top: "#5eea7f", body: "#a16207", shade: "#78350f", detail: "#bbf7d0" },
+      { top: "#94a3b8", body: "#475569", shade: "#334155", detail: "#e2e8f0" },
+      { top: "#fb923c", body: "#c2410c", shade: "#7c2d12", detail: "#fed7aa" },
+      { top: "#a78bfa", body: "#5b21b6", shade: "#312e81", detail: "#e9d5ff" },
+      { top: "#f472b6", body: "#1e293b", shade: "#0f172a", detail: "#fbcfe8" }
+    ];
 
     for (let r = 0; r < map.length; r++) {
       for (let c = 0; c < map[r].length; c++) {
@@ -637,43 +923,39 @@ class StarHopperGame {
         this.ctx.save();
 
         if (val === 1) {
-          if (planetId === 0) {
-            const isTop = (r > 0 && map[r-1][c] !== 1);
-            this.ctx.fillStyle = isTop ? "#22c55e" : "#78350f";
-            this.ctx.fillRect(tx, ty, TILE_SIZE, TILE_SIZE);
-            if (isTop) {
-              this.ctx.fillStyle = "#15803d";
-              this.ctx.fillRect(tx, ty + TILE_SIZE - 4, TILE_SIZE, 4);
-            }
-          } else if (planetId === 1) {
-            this.ctx.fillStyle = "#475569";
-            this.ctx.fillRect(tx, ty, TILE_SIZE, TILE_SIZE);
-            this.ctx.fillStyle = "#334155";
-            this.ctx.beginPath();
-            this.ctx.arc(tx + 16, ty + 16, 8, 0, Math.PI*2);
-            this.ctx.fill();
-          } else if (planetId === 2) {
-            this.ctx.fillStyle = "#ea580c";
-            this.ctx.fillRect(tx, ty, TILE_SIZE, TILE_SIZE);
-            this.ctx.strokeStyle = "#9a3412";
-            this.ctx.lineWidth = 2;
-            this.ctx.strokeRect(tx + 2, ty + 2, TILE_SIZE - 4, TILE_SIZE - 4);
-          } else if (planetId === 3) {
-            this.ctx.fillStyle = "rgba(139, 92, 246, 0.4)";
-            this.ctx.fillRect(tx, ty, TILE_SIZE, TILE_SIZE);
-            this.ctx.strokeStyle = "#a78bfa";
-            this.ctx.lineWidth = 1.5;
-            this.ctx.strokeRect(tx, ty, TILE_SIZE, TILE_SIZE);
+          const palette = palettes[planetId] || palettes[0];
+          const isTop = (r > 0 && map[r - 1][c] !== 1);
+          const tileGradient = this.ctx.createLinearGradient(tx, ty, tx, ty + TILE_SIZE);
+          tileGradient.addColorStop(0, isTop ? palette.top : palette.body);
+          tileGradient.addColorStop(1, palette.shade);
+          this.ctx.fillStyle = tileGradient;
+          this.ctx.fillRect(tx, ty, TILE_SIZE, TILE_SIZE);
+
+          if (isTop) {
+            this.ctx.fillStyle = palette.top;
+            this.ctx.fillRect(tx, ty, TILE_SIZE, 7);
+            this.ctx.fillStyle = "rgba(255, 255, 255, 0.28)";
+            this.ctx.fillRect(tx, ty, TILE_SIZE, 2);
+            this.ctx.fillStyle = palette.detail;
+            if ((c + r) % 3 === 0) this.ctx.fillRect(tx + 5, ty + 4, 5, 2);
+            if ((c + r) % 4 === 0) this.ctx.fillRect(tx + 20, ty + 3, 4, 2);
           } else {
-            this.ctx.fillStyle = "#0f172a";
-            this.ctx.fillRect(tx, ty, TILE_SIZE, TILE_SIZE);
-            this.ctx.strokeStyle = "#ec4899";
-            this.ctx.lineWidth = 2;
-            this.ctx.strokeRect(tx + 4, ty + 4, TILE_SIZE - 8, TILE_SIZE - 8);
+            this.ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
+            if ((c * 17 + r * 11) % 5 === 0) {
+              this.ctx.beginPath();
+              this.ctx.arc(tx + 10, ty + 12, 2, 0, Math.PI * 2);
+              this.ctx.fill();
+            }
           }
+
+          this.ctx.strokeStyle = "rgba(15, 23, 42, 0.22)";
+          this.ctx.lineWidth = 1;
+          this.ctx.strokeRect(tx + 0.5, ty + 0.5, TILE_SIZE - 1, TILE_SIZE - 1);
         } else if (val === 2) {
-          this.ctx.fillStyle = "#cbd5e1";
-          this.ctx.strokeStyle = "#94a3b8";
+          this.ctx.fillStyle = "#fb7185";
+          this.ctx.strokeStyle = "#ffe4e6";
+          this.ctx.shadowBlur = 6;
+          this.ctx.shadowColor = "#fb7185";
           this.ctx.beginPath();
           this.ctx.moveTo(tx, ty + TILE_SIZE);
           this.ctx.lineTo(tx + TILE_SIZE/2, ty);

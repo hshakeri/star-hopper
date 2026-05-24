@@ -1,5 +1,5 @@
 // nav-physics.js - N-body gravity integration and state update rules
-// Simulates the spaceship flight under the gravitational influence of the Sun, Earth, Mars, and Jupiter.
+// Simulates spacecraft flight under solar-system and mission-world gravity.
 
 window.Nav = window.Nav || {};
 
@@ -7,8 +7,11 @@ window.Nav = window.Nav || {};
   // Define Sphere of Influence (SOI) boundaries in SU
   Nav.SOI_RADII = {
     earth: 0.28,
+    moon: 0.16,
     mars: 0.18,
-    jupiter: 0.50
+    jupiter: 0.50,
+    glacies: 0.22,
+    magnet: 0.24
   };
 
   /**

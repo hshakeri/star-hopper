@@ -179,7 +179,7 @@ function updateHUD(game) {
   if (speedElement) {
     const vxVal = player.vx.toFixed(1);
     const vyVal = player.vy.toFixed(1);
-    speedElement.textContent = `X: ${vxVal} | Y: ${vyVal}`;
+    speedElement.textContent = `↔ ${vxVal}  ↕ ${vyVal}`;
   }
 
   // 3. Friction Index
@@ -244,14 +244,29 @@ function updateHUD(game) {
 
   const energySummary = document.getElementById("hud-energy-summary");
   if (energySummary) {
-    energySummary.textContent = `KE ${Math.round(ke)} | PE ${Math.round(pe)}`;
+    energySummary.textContent = `K ${Math.round(ke)} | P ${Math.round(pe)}`;
   }
 
   const objectiveSummary = document.getElementById("hud-objectives");
   if (objectiveSummary && typeof game.getLevelObjectiveStatus === 'function') {
     const status = game.getLevelObjectiveStatus();
-    objectiveSummary.textContent = `Tasks ${status.missionsComplete}/${status.missionsTotal} | Stars ${status.collectiblesCollected}/${status.collectiblesTotal}`;
+    objectiveSummary.textContent = `✓ ${status.missionsComplete}/${status.missionsTotal} | ◆ ${status.collectiblesCollected}/${status.collectiblesTotal}`;
     objectiveSummary.style.color = status.readyForPortal ? "var(--neon-green)" : "var(--neon-yellow)";
+  }
+
+  const gemBar = document.getElementById("hud-gem-bar");
+  if (gemBar && typeof game.getLevelObjectiveStatus === 'function') {
+    const status = game.getLevelObjectiveStatus();
+    const gem = typeof game.getGemConfig === 'function' ? game.getGemConfig() : { color: "var(--neon-yellow)", glow: "rgba(250, 204, 21, 0.65)" };
+    gemBar.innerHTML = "";
+    for (let i = 0; i < status.collectiblesTotal; i++) {
+      const slot = document.createElement("span");
+      slot.className = `gem-slot ${i < status.collectiblesCollected ? "filled" : ""}`;
+      slot.style.setProperty("--gem-color", gem.color);
+      slot.style.setProperty("--gem-glow", gem.glow);
+      slot.title = `${gem.name || "Mission gem"} ${i + 1}`;
+      gemBar.appendChild(slot);
+    }
   }
 
   const musicTrack = document.getElementById("hud-music-track");
@@ -284,7 +299,7 @@ function updateMissionList(game) {
 
   const currentPlanet = game.currentPlanet;
   if (!currentPlanet || !currentPlanet.missions) {
-    listContainer.innerHTML = '<div class="no-missions">No active missions. Collect required stars, then reach the portal.</div>';
+    listContainer.innerHTML = '<div class="no-missions">No active missions. Collect required gems, then reach the portal.</div>';
     return;
   }
 
@@ -319,7 +334,10 @@ function updateMissionList(game) {
 
     const collectibleLabel = document.createElement("span");
     collectibleLabel.className = "mission-label";
-    collectibleLabel.textContent = `Collect mission stars: ${status.collectiblesCollected}/${status.collectiblesTotal}`;
+    const gem = typeof game.getGemConfig === 'function' ? game.getGemConfig() : { name: "mission gems" };
+    const lockedGemCount = typeof game.getLockedRequiredCollectibleCount === 'function' ? game.getLockedRequiredCollectibleCount() : 0;
+    const lockedCopy = lockedGemCount > 0 ? ` (${lockedGemCount} locked by code)` : "";
+    collectibleLabel.textContent = `Collect ${gem.name} gems: ${status.collectiblesCollected}/${status.collectiblesTotal}${lockedCopy}`;
 
     collectibleItem.appendChild(collectibleCheckbox);
     collectibleItem.appendChild(collectibleLabel);

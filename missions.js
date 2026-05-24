@@ -9,19 +9,19 @@ const PlatformerMissions = [
     concept: "Gravity, mass, jump impulse, and run speed combine to shape a jump arc.",
     codingConcept: "Variable assignment and parameter tuning",
     starterCode: "gravity = 0.35\nplayer.jump_power = 17\nhopper.mass = 1.2\nplayer.speed = 4.8",
-    objective: "Engineer Hopper to clear the giant vertical wall in Base Camp.",
+    objective: "Engineer Hopper with gravity, mass, jump power, and speed to unlock every Emerald Core gem and clear the wall.",
     steps: [
       { id: "observe", prompt: "Observe: Hopper is too heavy to clear the high metal wall with default settings.", done: false },
       { id: "predict", prompt: "Predict: Which change matters most: lower gravity, higher jump power, lower mass, or higher speed?", done: false },
       { id: "code", prompt: "Code: Tune at least three parameters, for example gravity, player.jump_power, hopper.mass, and player.speed.", done: false },
-      { id: "test", prompt: "Test: Swap to Hopper, jump, and watch the green trajectory path.", done: false },
+      { id: "test", prompt: "Test: Swap to Hopper, collect the locked ridge gems, and watch the green trajectory path.", done: false },
       { id: "explain", prompt: "Explain: Why did the tuned Hopper arc clear the wall?", done: false },
       { id: "challenge", prompt: "Challenge: Clear the wall as Hopper with gravity <= 0.35, player.jump_power >= 17, hopper.mass <= 1.2, and player.speed >= 4.8.", done: false }
     ],
     hints: [
       "The Code panel gives starter values; edit the numbers to reach the target.",
       "Hopper needs less mass and more horizontal speed than the default suit.",
-      "Watch the velocity vector after each tuned jump."
+      "Low Emerald gems unlock after gravity is tuned; high ridge gems need the full Hopper build."
     ],
     validate: (game, Compiler) => {
       const currentG = Compiler.env.gravity !== null ? Compiler.env.gravity : game.currentPlanet.physics.gravity;
@@ -48,19 +48,19 @@ const PlatformerMissions = [
     concept: "Spring elastic force stores kinetic energy to launch objects.",
     codingConcept: "Repeat loops",
     starterCode: "repeat 3: spawn_spring()",
-    objective: "Use loops to place 3 springs and cross the lunar canyon.",
+    objective: "Use arithmetic jump tuning and repeat loops to collect Moon Quartz gems and cross the lunar canyon.",
     steps: [
       { id: "observe", prompt: "Observe: Walking off the edge makes you fall into the canyon.", done: false },
       { id: "predict", prompt: "Predict: Can 3 springs carry you all the way across?", done: false },
       { id: "code", prompt: "Code: Type: repeat 3: spawn_spring()", done: false },
-      { id: "test", prompt: "Test: Run over the springs to trigger the elastic bounce.", done: false },
+      { id: "test", prompt: "Test: Run over the springs to trigger the elastic bounce and reach the high Quartz gems.", done: false },
       { id: "explain", prompt: "Explain: How does a spring conserve and return energy?", done: false },
       { id: "challenge", prompt: "Challenge: Spawn 5 springs in a row and reach the top platform.", done: false }
     ],
     hints: [
       "Loops allow you to run the same command multiple times.",
       "Springs launch you upwards when you step on them.",
-      "Make sure you run the loop code before trying to jump the canyon."
+      "Lower Quartz gems use jump arithmetic; high Quartz gems unlock after the spring loop."
     ],
     validate: (game, Compiler) => {
       return game.spawnedSprings.length >= 3 && game.player.x > 1200;
@@ -79,19 +79,19 @@ const PlatformerMissions = [
     concept: "Mass resists acceleration: heavy objects require more force.",
     codingConcept: "Multi-parameter Hopper engineering",
     starterCode: "hopper.mass = 1.2\nhopper.rocket_power = 75\nplayer.speed = 5.0",
-    objective: "Escape the gravity trench as the heavy character Hopper.",
+    objective: "Engineer Hopper and loop crate blocks to collect Amber Storm gems while escaping the gravity trench.",
     steps: [
       { id: "observe", prompt: "Observe: Swap to Hopper: notice he is heavy and jumps poorly.", done: false },
       { id: "predict", prompt: "Predict: Will Hopper need more rocket force on Jupiter than Earth?", done: false },
       { id: "code", prompt: "Code: Engineer Hopper with lower mass, stronger rocket_power, and higher player.speed.", done: false },
-      { id: "test", prompt: "Test: Trigger your jump and hold Space to rocket boost.", done: false },
+      { id: "test", prompt: "Test: Trigger your jump, hold Space to rocket boost, and collect the Amber Storm gems.", done: false },
       { id: "explain", prompt: "Explain: Why does mass require larger forces to accelerate?", done: false },
       { id: "challenge", prompt: "Challenge: Escape with default Jupiter gravity using hopper.rocket_power >= 70, hopper.mass <= 1.4, and player.speed >= 4.5.", done: false }
     ],
     hints: [
       "Jupiter's gravity is extremely strong (g = 2.0).",
       "Hopper has rocket boosters activated by holding Space in mid-air.",
-      "The Code panel values are starter settings; tune the numbers before launch."
+      "Amber Storm gems unlock after the Hopper build and crate-loop lesson are both active."
     ],
     validate: (game, Compiler) => {
       const currentG = Compiler.env.gravity !== null ? Compiler.env.gravity : game.currentPlanet.physics.gravity;
@@ -119,19 +119,19 @@ const PlatformerMissions = [
     concept: "Friction is a resistive force that slows sliding motion.",
     codingConcept: "Friction tuning and conditionals",
     starterCode: "friction = 8",
-    objective: "Climb the ice slopes by tuning friction or using spikes.",
+    objective: "Tune friction or spikes, then use an ice-touch rule to collect Violet Ice gems and climb the slopes.",
     steps: [
       { id: "observe", prompt: "Observe: Rover slides backwards down the slopes due to zero friction.", done: false },
       { id: "predict", prompt: "Predict: What will happen to sliding if friction is 8?", done: false },
       { id: "code", prompt: "Code: Type: friction = 8", done: false },
       { id: "test", prompt: "Test: Walk up the slopes without sliding back.", done: false },
       { id: "explain", prompt: "Explain: How does friction oppose the direction of relative movement?", done: false },
-      { id: "challenge", prompt: "Challenge: Reach the goal with friction = 0 by writing: when player.touching('ice'): jump_power = 20", done: false }
+      { id: "challenge", prompt: "Challenge: Unlock the high Violet Ice gems by writing: when player.touching('ice'): jump_power = 20", done: false }
     ],
     hints: [
       "Low friction makes it hard to stop or climb.",
       "Hopper can deploy spikes by holding Down Arrow on the ground.",
-      "You can override global friction variables directly from the console."
+      "Low Violet gems need friction or spikes; high Violet gems add an ice-touch rule."
     ],
     validate: (game, Compiler) => {
       const currentF = Compiler.env.friction !== null ? Compiler.env.friction : 0.02;
@@ -151,19 +151,19 @@ const PlatformerMissions = [
     concept: "Magnetic poles attract or repel based on polarity.",
     codingConcept: "Event hooks (When)",
     starterCode: "when hopper.magnet_on:\n    gravity = 0.1",
-    objective: "Activate the electromagnet and hover across the magnetic field gap.",
+    objective: "Combine rocket and touching event rules to collect Magenta Flux gems and cross the magnetic field gap.",
     steps: [
       { id: "observe", prompt: "Observe: Falling into the electric field instantly resets you.", done: false },
       { id: "predict", prompt: "Predict: Can electromagnet poles counteract gravity?", done: false },
       { id: "code", prompt: "Code: Type: when hopper.magnet_on:\n    gravity = 0.1", done: false },
-      { id: "test", prompt: "Test: Hold Down/S in mid-air to engage magnets and float.", done: false },
+      { id: "test", prompt: "Test: Hold Down/S in mid-air to engage magnets, float, and collect Magenta Flux gems.", done: false },
       { id: "explain", prompt: "Explain: How do magnetic fields apply force at a distance?", done: false },
       { id: "challenge", prompt: "Challenge: Clear the level by launching a crate box onto the goal trigger.", done: false }
     ],
     hints: [
       "Magnetic blocks pull Hopper if his electromagnet is on.",
       "Event rules (`when`) trigger actions automatically when a condition is met.",
-      "You can hover smoothly by holding S in mid-air while magnet_on is active."
+      "Magenta Flux gems unlock only after both event-rule ideas are in the program."
     ],
     validate: (game, Compiler) => {
       return Compiler.activeRules.some(r => r.target.includes('magnet_on') || r.target.includes('player.touching')) && game.player.x > 1200;

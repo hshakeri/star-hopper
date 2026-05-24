@@ -123,6 +123,7 @@ class Player {
 
     // Split/Co-op coordinates control
     this.isStationary = false;
+    this.facing = 1;
   }
 
   say(text) {
@@ -253,6 +254,7 @@ class Player {
     // 3. Horizontal movement inputs (Active character only)
     const walkAcceleration = 0.5;
     if (leftPressed) {
+      this.facing = -1;
       this.vx -= walkAcceleration;
       if (this.vx < -speedMultiplier) this.vx = -speedMultiplier;
       // Walking dust particles
@@ -265,6 +267,7 @@ class Player {
         );
       }
     } else if (rightPressed) {
+      this.facing = 1;
       this.vx += walkAcceleration;
       if (this.vx > speedMultiplier) this.vx = speedMultiplier;
       if (this.onGround && Math.random() < 0.15) {
@@ -374,26 +377,30 @@ class Player {
 
   draw(ctx, cameraX, game) {
     const isActive = (game && game.player === this);
+    const cx = this.x + this.w / 2 - cameraX;
+    const footY = this.y + this.h;
+    const bob = Math.sin(Date.now() / 170 + this.x * 0.03) * (this.onGround ? 0.7 : 0.25);
     
     ctx.save();
-    
-    // Draw character specific glow
-    ctx.shadowBlur = 8;
-    ctx.shadowColor = (this.charType === 'star') ? var_css('--neon-cyan') : var_css('--neon-orange');
 
     // Make inactive companion slightly translucent
     if (!isActive) {
       ctx.globalAlpha = 0.6;
-      ctx.shadowBlur = 3;
     }
 
     // Active pointer visual ring below active player's feet
     if (isActive) {
-      ctx.strokeStyle = (this.charType === 'star') ? '#38bdf8' : '#f97316';
-      ctx.lineWidth = 1.5;
+      const ringColor = (this.charType === 'star') ? '#38bdf8' : '#f97316';
+      ctx.fillStyle = (this.charType === 'star') ? 'rgba(56, 189, 248, 0.16)' : 'rgba(249, 115, 22, 0.16)';
+      ctx.strokeStyle = ringColor;
+      ctx.lineWidth = 2;
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = ringColor;
       ctx.beginPath();
-      ctx.ellipse(this.x + this.w/2 - cameraX, this.y + this.h, this.w * 0.7, 4, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx, footY + 2, this.w * 0.78, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
       ctx.stroke();
+      ctx.shadowBlur = 0;
     }
 
     // Rave mode colors
@@ -405,48 +412,167 @@ class Player {
       visorColor = `hsl(${(hue + 180) % 360}, 90%, 60%)`;
     }
 
-    // Draw Spacesuit Body
-    ctx.fillStyle = primaryColor;
-    ctx.beginPath();
-    ctx.roundRect(this.x - cameraX, this.y, this.w, this.h, 6 * this.scale);
-    ctx.fill();
+    const x = this.x - cameraX;
+    const y = this.y + bob;
+    const s = this.scale;
+    const midX = x + this.w / 2;
 
-    // Helmet Visor
-    ctx.fillStyle = visorColor;
-    ctx.beginPath();
-    ctx.roundRect(this.x + (3 * this.scale) - cameraX, this.y + (4 * this.scale), this.w - (6 * this.scale), 10 * this.scale, 4 * this.scale);
-    ctx.fill();
+    ctx.shadowBlur = 9;
+    ctx.shadowColor = primaryColor;
 
-    // Visor shine
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-    ctx.beginPath();
-    ctx.arc(this.x + (6 * this.scale) - cameraX, this.y + (6 * this.scale), 2 * this.scale, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Star Symbol
     if (this.charType === 'star') {
-      ctx.fillStyle = '#ffffff';
+      // Rover body: a small explorer bot with wheels, antenna, and a friendly face.
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.35)';
       ctx.beginPath();
-      ctx.arc(this.x + this.w/2 - cameraX, this.y + (20 * this.scale), 2.5 * this.scale, 0, Math.PI*2);
+      ctx.ellipse(midX, y + this.h - 1, this.w * 0.72, 3.5 * s, 0, 0, Math.PI * 2);
       ctx.fill();
+
+      ctx.strokeStyle = '#bae6fd';
+      ctx.lineWidth = 1.5 * s;
+      ctx.beginPath();
+      ctx.moveTo(midX + 1 * s, y + 3 * s);
+      ctx.lineTo(midX + 5 * s, y - 5 * s);
+      ctx.stroke();
+      ctx.fillStyle = '#facc15';
+      ctx.beginPath();
+      ctx.arc(midX + 6 * s, y - 6 * s, 2.5 * s, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = primaryColor;
+      ctx.beginPath();
+      ctx.roundRect(x + 2 * s, y + 11 * s, this.w - 4 * s, 15 * s, 6 * s);
+      ctx.fill();
+
+      ctx.fillStyle = '#0e7490';
+      ctx.beginPath();
+      ctx.roundRect(x + 4 * s, y + 18 * s, this.w - 8 * s, 8 * s, 3 * s);
+      ctx.fill();
+
+      const dome = ctx.createLinearGradient(x, y, x, y + 15 * s);
+      dome.addColorStop(0, 'rgba(224, 242, 254, 0.95)');
+      dome.addColorStop(1, visorColor);
+      ctx.fillStyle = dome;
+      ctx.beginPath();
+      ctx.roundRect(x + 3 * s, y + 2 * s, this.w - 6 * s, 13 * s, 7 * s);
+      ctx.fill();
+
+      ctx.fillStyle = '#082f49';
+      ctx.beginPath();
+      ctx.arc(midX - 4 * s, y + 8 * s, 1.7 * s, 0, Math.PI * 2);
+      ctx.arc(midX + 4 * s, y + 8 * s, 1.7 * s, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(8, 47, 73, 0.72)';
+      ctx.lineWidth = 1 * s;
+      ctx.beginPath();
+      ctx.arc(midX, y + 9.5 * s, 3.2 * s, 0.18 * Math.PI, 0.82 * Math.PI);
+      ctx.stroke();
+
+      ctx.shadowBlur = 0;
+      for (const wheelX of [x + 5 * s, x + this.w - 5 * s]) {
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.arc(wheelX, y + 27 * s, 4 * s, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#67e8f9';
+        ctx.lineWidth = 1.5 * s;
+        ctx.stroke();
+        ctx.fillStyle = '#e0f2fe';
+        ctx.beginPath();
+        ctx.arc(wheelX, y + 27 * s, 1.2 * s, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      if (!this.onGround || Math.abs(this.vx) > 1.2) {
+        ctx.globalAlpha *= 0.88;
+        ctx.fillStyle = 'rgba(125, 211, 252, 0.28)';
+        ctx.beginPath();
+        ctx.ellipse(x - 1 * s, y + 18 * s, 5 * s, 2 * s, -0.4, 0, Math.PI * 2);
+        ctx.ellipse(x + this.w + 1 * s, y + 18 * s, 5 * s, 2 * s, 0.4, 0, Math.PI * 2);
+        ctx.fill();
+      }
     } else {
-      // Rocket Thruster Pack
-      ctx.fillStyle = '#475569';
-      ctx.fillRect(this.x - (4 * this.scale) - cameraX, this.y + (8 * this.scale), 4 * this.scale, 16 * this.scale);
+      // Hopper body: a compact rocket engineer suit with a visible pack and boots.
+      const flameActive = !this.onGround && this.fuel < this.maxFuel;
+
+      ctx.fillStyle = '#334155';
+      ctx.beginPath();
+      ctx.roundRect(x - 5 * s, y + 8 * s, 7 * s, 18 * s, 3 * s);
+      ctx.fill();
+
+      if (flameActive) {
+        ctx.shadowBlur = 14;
+        ctx.shadowColor = '#f97316';
+        ctx.fillStyle = '#f97316';
+        ctx.beginPath();
+        ctx.moveTo(x - 2 * s, y + 25 * s);
+        ctx.lineTo(x + 2 * s, y + 25 * s);
+        ctx.lineTo(x, y + 36 * s + Math.sin(Date.now() / 45) * 2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#facc15';
+        ctx.beginPath();
+        ctx.moveTo(x - 1 * s, y + 25 * s);
+        ctx.lineTo(x + 1.5 * s, y + 25 * s);
+        ctx.lineTo(x + 0.5 * s, y + 31 * s);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      ctx.shadowBlur = 9;
+      ctx.shadowColor = primaryColor;
+      ctx.fillStyle = primaryColor;
+      ctx.beginPath();
+      ctx.roundRect(x + 2 * s, y + 8 * s, this.w - 4 * s, 19 * s, 7 * s);
+      ctx.fill();
+
+      ctx.fillStyle = '#fed7aa';
+      ctx.beginPath();
+      ctx.roundRect(x + 4 * s, y + 2 * s, this.w - 8 * s, 12 * s, 6 * s);
+      ctx.fill();
+
+      ctx.fillStyle = visorColor;
+      ctx.beginPath();
+      ctx.roundRect(x + 6 * s, y + 5 * s, this.w - 12 * s, 6 * s, 3 * s);
+      ctx.fill();
+
+      ctx.fillStyle = '#7c2d12';
+      ctx.fillRect(x + 7 * s, y + 16 * s, this.w - 14 * s, 3 * s);
+      ctx.fillStyle = '#fff7ed';
+      ctx.beginPath();
+      ctx.arc(midX, y + 21 * s, 2.2 * s, 0, Math.PI * 2);
+      ctx.fill();
       
       // Spiked boots spikes
       if (this.isBraking) {
         ctx.fillStyle = '#e2e8f0';
-        ctx.fillRect(this.x - cameraX, this.y + this.h - 2, this.w, 3);
+        for (let i = 0; i < 3; i++) {
+          const spikeX = x + 4 * s + i * 6 * s;
+          ctx.beginPath();
+          ctx.moveTo(spikeX, y + this.h - 1);
+          ctx.lineTo(spikeX + 2.5 * s, y + this.h - 5 * s);
+          ctx.lineTo(spikeX + 5 * s, y + this.h - 1);
+          ctx.closePath();
+          ctx.fill();
+        }
       }
+
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.roundRect(x + 3 * s, y + this.h - 5 * s, 7 * s, 4 * s, 2 * s);
+      ctx.roundRect(x + this.w - 10 * s, y + this.h - 5 * s, 7 * s, 4 * s, 2 * s);
+      ctx.fill();
       
       // Fuel gauge
       if (isActive) {
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = 'rgba(0,0,0,0.5)';
-        ctx.fillRect(this.x - cameraX, this.y - 8, this.w, 3);
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.68)';
+        ctx.beginPath();
+        ctx.roundRect(x, y - 8, this.w, 4, 2);
+        ctx.fill();
         ctx.fillStyle = '#f97316';
-        ctx.fillRect(this.x - cameraX, this.y - 8, this.w * (this.fuel / this.maxFuel), 3);
+        ctx.beginPath();
+        ctx.roundRect(x, y - 8, this.w * (this.fuel / this.maxFuel), 4, 2);
+        ctx.fill();
       }
     }
 
@@ -692,62 +818,189 @@ class InteractiveObject {
     }
   }
 
-  draw(ctx, cameraX) {
+  draw(ctx, cameraX, game) {
     if (this.collected) return;
     
     ctx.save();
     ctx.shadowBlur = 6;
 
     if (this.type === 'coin') {
-      ctx.fillStyle = '#facc15';
-      ctx.shadowColor = '#facc15';
-      ctx.beginPath();
-      ctx.ellipse(this.x + this.w/2 - cameraX, this.y + this.h/2, this.w/2 * Math.abs(Math.sin(this.angle)), this.h/2, 0, 0, Math.PI * 2);
+      const cx = this.x + this.w / 2 - cameraX;
+      const cy = this.y + this.h / 2;
+      const pulse = 1 + Math.sin(this.angle * 2) * 0.08;
+      const gem = this.gem || (game && typeof game.getGemConfig === 'function' ? game.getGemConfig() : null);
+      const color = gem ? gem.color : (this.requiredCollectible ? '#facc15' : '#fde68a');
+      const glow = gem ? gem.glow : color;
+      const locked = this.requiredCollectible
+        && this.gemGate
+        && game
+        && typeof game.canCollectGem === 'function'
+        && !game.canCollectGem(this);
+
+      ctx.translate(cx, cy);
+      ctx.rotate(Math.sin(this.angle) * 0.24);
+      ctx.scale(pulse, pulse);
+      ctx.globalAlpha = locked ? 0.42 : 1;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 14;
+      ctx.fillStyle = color;
+      drawGemShape(ctx, 0, 0, 9, 12);
       ctx.fill();
-    } else if (this.type === 'trampoline' || this.type === 'spring') {
-      ctx.fillStyle = '#64748b';
-      ctx.shadowColor = '#475569';
-      ctx.fillRect(this.x - cameraX, this.y + this.h - 4, this.w, 4); // base
-      
-      ctx.fillStyle = '#f87171';
-      if (this.bounceTimer > 0) {
-        ctx.fillRect(this.x + 2 - cameraX, this.y + this.h - 8, this.w - 4, 4);
-      } else {
-        ctx.fillRect(this.x + 2 - cameraX, this.y, this.w - 4, 6);
+
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.beginPath();
+      ctx.moveTo(-5, -2);
+      ctx.lineTo(0, 6);
+      ctx.lineTo(5, -2);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.beginPath();
+      ctx.moveTo(-3.5, -4);
+      ctx.lineTo(-1, -6.5);
+      ctx.lineTo(1.5, -4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.shadowColor = glow;
+
+      if (locked) {
+        ctx.globalAlpha = 0.95;
+        ctx.shadowBlur = 0;
+        ctx.lineWidth = 1.4;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.92)';
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+        ctx.beginPath();
+        ctx.arc(0, -2, 4, Math.PI, 0);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.roundRect(-5, -1, 10, 8, 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+        ctx.beginPath();
+        ctx.arc(0, 3, 1.1, 0, Math.PI * 2);
+        ctx.fill();
       }
+    } else if (this.type === 'trampoline' || this.type === 'spring') {
+      const compression = this.bounceTimer > 0 ? 5 : 0;
+      const x = this.x - cameraX;
+      const y = this.y + compression;
+
+      ctx.shadowColor = '#fb7185';
+      ctx.fillStyle = '#334155';
+      ctx.beginPath();
+      ctx.roundRect(x, this.y + this.h - 4, this.w, 4, 2);
+      ctx.fill();
+      
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(x + 8, this.y + this.h - 4);
+      ctx.lineTo(x + 14, y + 8);
+      ctx.lineTo(x + 20, this.y + this.h - 4);
+      ctx.lineTo(x + 26, y + 8);
+      ctx.stroke();
+
+      ctx.fillStyle = '#fb7185';
+      ctx.beginPath();
+      ctx.roundRect(x + 2, y, this.w - 4, 7, 4);
+      ctx.fill();
     } else if (this.type === 'box') {
-      ctx.fillStyle = '#ea580c';
-      ctx.shadowColor = '#c2410c';
-      ctx.fillRect(this.x - cameraX, this.y, this.w, this.h);
-      ctx.strokeStyle = '#f97316';
-      ctx.strokeRect(this.x + 2 - cameraX, this.y + 2, this.w - 4, this.h - 4);
+      const x = this.x - cameraX;
+      ctx.fillStyle = '#d97706';
+      ctx.shadowColor = '#f59e0b';
+      ctx.beginPath();
+      ctx.roundRect(x, this.y, this.w, this.h, 4);
+      ctx.fill();
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x + 3, this.y + 3, this.w - 6, this.h - 6);
+      ctx.beginPath();
+      ctx.moveTo(x + 4, this.y + 4);
+      ctx.lineTo(x + this.w - 4, this.y + this.h - 4);
+      ctx.moveTo(x + this.w - 4, this.y + 4);
+      ctx.lineTo(x + 4, this.y + this.h - 4);
+      ctx.stroke();
     } else if (this.type === 'pos_node') {
+      const x = this.x - cameraX;
       ctx.fillStyle = '#ef4444';
       ctx.shadowColor = '#ef4444';
-      ctx.fillRect(this.x - cameraX, this.y, this.w, this.h);
+      ctx.beginPath();
+      ctx.roundRect(x, this.y, this.w, this.h, 8);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.stroke();
       ctx.fillStyle = '#ffffff';
       ctx.font = '20px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('+', this.x + this.w/2 - cameraX, this.y + 24);
     } else if (this.type === 'neg_node') {
+      const x = this.x - cameraX;
       ctx.fillStyle = '#3b82f6';
       ctx.shadowColor = '#3b82f6';
-      ctx.fillRect(this.x - cameraX, this.y, this.w, this.h);
+      ctx.beginPath();
+      ctx.roundRect(x, this.y, this.w, this.h, 8);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.stroke();
       ctx.fillStyle = '#ffffff';
       ctx.font = '20px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('-', this.x + this.w/2 - cameraX, this.y + 22);
     } else if (this.type === 'portal') {
-      ctx.fillStyle = '#22c55e';
-      ctx.shadowColor = '#22c55e';
-      ctx.shadowBlur = 12;
+      const status = game && typeof game.getLevelObjectiveStatus === 'function' ? game.getLevelObjectiveStatus() : { readyForPortal: true };
+      const ready = status.readyForPortal;
+      const cx = this.x + this.w / 2 - cameraX;
+      const cy = this.y + this.h / 2;
+      const pulse = 1 + Math.sin(Date.now() / 180) * 0.08;
+      const coreColor = ready ? '#4ade80' : '#94a3b8';
+
+      ctx.globalAlpha = ready ? 1 : 0.72;
+      ctx.strokeStyle = ready ? '#bbf7d0' : '#cbd5e1';
+      ctx.fillStyle = ready ? 'rgba(34, 197, 94, 0.22)' : 'rgba(100, 116, 139, 0.18)';
+      ctx.shadowColor = coreColor;
+      ctx.shadowBlur = ready ? 16 : 8;
+      ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.ellipse(this.x + this.w/2 - cameraX, this.y + this.h/2, this.w/2, this.h/2, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx, cy, this.w / 2 * pulse, this.h / 2 * pulse, 0, 0, Math.PI * 2);
       ctx.fill();
+      ctx.stroke();
+
+      ctx.lineWidth = 1.4;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, this.w / 2 + 5, this.h / 2 + 5, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      if (!ready) {
+        ctx.setLineDash([]);
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = '13px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('🔒', cx, cy + 5);
+      }
     }
 
     ctx.restore();
   }
+}
+
+function drawGemShape(ctx, x, y, halfWidth, height) {
+  const topY = y - height / 2;
+  const midY = y - height * 0.15;
+  const bottomY = y + height / 2;
+
+  ctx.beginPath();
+  ctx.moveTo(x, topY);
+  ctx.lineTo(x + halfWidth, midY);
+  ctx.lineTo(x + halfWidth * 0.55, bottomY);
+  ctx.lineTo(x - halfWidth * 0.55, bottomY);
+  ctx.lineTo(x - halfWidth, midY);
+  ctx.closePath();
 }
 
 // Helper to pull active styles in context

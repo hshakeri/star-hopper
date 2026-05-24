@@ -207,7 +207,7 @@ function renderNotebookHistory() {
 // Print notebook certificate
 function printNotebook() {
   if (!isScientistCertificateUnlocked()) {
-    alert("Complete a Code mission or a Navigator mission to unlock the Scientist Certificate.");
+    alert("Complete a Play mission or a spacecraft route to unlock the Scientist Certificate.");
     return;
   }
 
@@ -282,7 +282,8 @@ function switchMainMode(mode) {
     activeContent.classList.add('active');
     activeContent.style.display = 'flex';
   }
-  const activeTab = document.getElementById(`mode-btn-${mode}`);
+  const activeTabId = mode === 'navigator' ? 'mode-btn-terminal' : `mode-btn-${mode}`;
+  const activeTab = document.getElementById(activeTabId);
   if (activeTab) {
     activeTab.classList.add('active');
   }

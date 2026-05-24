@@ -725,12 +725,17 @@ const runtimeContext = {
   },
   functions: {
     spawn: (game, type, kwargs) => {
+      if (type === 'gem') type = 'coin';
       game.spawnItemAbovePlayer(type);
-      return `Spawned ${type}!`;
+      return `Spawned ${type === 'coin' ? 'gem' : type}!`;
     },
     spawn_coin: (game) => {
       game.spawnItemAbovePlayer('coin');
-      return "Spawned coin!";
+      return "Spawned gem!";
+    },
+    spawn_gem: (game) => {
+      game.spawnItemAbovePlayer('coin');
+      return "Spawned gem!";
     },
     spawn_box: (game) => {
       game.spawnItemAbovePlayer('box');
@@ -800,7 +805,7 @@ class AutocompleteEngine {
       "player.jump_power", "player.mass", "player.speed", "player.say()", "player.touching()",
       "star.mass",
       "hopper.mass", "hopper.rocket_power", "hopper.spikes", "hopper.pole",
-      "spawn()", "spawn_coin()", "spawn_box()", "spawn_spring()",
+      "spawn()", "spawn_gem()", "spawn_box()", "spawn_spring()",
       "invert_gravity()", "rave_mode()", "shrink_enemies()", "bounce_up()", "reset()",
       "play_music()", "music"
     ];

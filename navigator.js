@@ -218,6 +218,9 @@ function updateNavigator(game) {
           if (typeof SFX !== 'undefined' && typeof SFX.playSuccess === 'function') {
             SFX.playSuccess();
           }
+          if (window.Game && typeof window.Game.completeNavigationToNextPlanet === 'function') {
+            window.Game.completeNavigationToNextPlanet(activeMission);
+          }
         }
       }
 

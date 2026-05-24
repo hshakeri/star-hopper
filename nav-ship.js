@@ -10,6 +10,7 @@ window.Nav = window.Nav || {};
   Nav.currentAction = null;
   Nav.actionTimeRemaining = 0;
   Nav.timeWarpFactor = 1.0;
+  Nav.lastCommandString = "";
   
   // Particles for exhaust flame
   Nav.exhaustParticles = [];
@@ -41,6 +42,7 @@ window.Nav = window.Nav || {};
     Nav.currentAction = null;
     Nav.actionTimeRemaining = 0;
     Nav.timeWarpFactor = 1.0;
+    Nav.lastCommandString = "";
     Nav.exhaustParticles = [];
   };
 
@@ -110,6 +112,7 @@ window.Nav = window.Nav || {};
     if (!commandString.trim()) return;
 
     Nav.logConsole(`Executing flight instructions: ${commandString}`, "info");
+    Nav.lastCommandString = commandString;
 
     const statements = commandString.split(";");
     Nav.commandQueue = [];

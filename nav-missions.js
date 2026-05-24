@@ -23,7 +23,110 @@ window.Nav = window.Nav || {};
     };
   }
 
+  function commandPlanTargetsDestination(destinationId) {
+    const commandText = (Nav.lastCommandString || "").toLowerCase();
+    return commandText.includes(destinationId) &&
+      commandText.includes("thrust") &&
+      commandText.includes("wait");
+  }
+
+  function makeRouteMission(config) {
+    return {
+      id: config.id,
+      title: config.title,
+      concept: config.concept,
+      objective: config.objective,
+      originId: config.originId,
+      destinationId: config.destinationId,
+      targetPlanetIndex: config.targetPlanetIndex,
+      starterCode: config.starterCode,
+      setup: function() {
+        const origin = Nav.BODIES[config.originId.toUpperCase()];
+        const launch = getLaunchStateNearBody(origin, 0.12, 0.12);
+
+        Nav.initShip(
+          launch.x,
+          launch.y,
+          launch.vx,
+          launch.vy,
+          Math.atan2(launch.vy, launch.vx),
+          1.0,
+          config.fuelMass || 2.2,
+          config.burnRate || 0.045
+        );
+        Nav.ship.routeOriginId = config.originId;
+        Nav.ship.routeTargetId = config.destinationId;
+        Nav.ship.routeMinimumTime = config.minimumTime || 20;
+      },
+      validate: function(ship, t) {
+        const destination = Nav.BODIES[config.destinationId.toUpperCase()];
+        const dState = Nav.bodyStateAt(destination, t);
+        const dist = Nav.Vector.distance(ship, dState);
+        const soi = Nav.SOI_RADII[destination.id] || 0.22;
+
+        if (dist < soi) {
+          ship.enteredDestinationSOI = true;
+        }
+
+        const commandFinished = Nav.commandQueue.length === 0 && !Nav.currentAction;
+        const routePlanComplete = commandPlanTargetsDestination(config.destinationId);
+        const flightLongEnough = t >= (config.minimumTime || 20);
+
+        return commandFinished && routePlanComplete && flightLongEnough &&
+          (ship.enteredDestinationSOI || dist < soi * 2.5 || config.planCertificationOnly);
+      }
+    };
+  }
+
   Nav.Missions = [
+    makeRouteMission({
+      id: "route-earth-moon",
+      title: "Earth to Moon Transfer",
+      concept: "Return to orbit, steer toward Moon, burn, and coast",
+      objective: "After Earth rover discovery, dock Rover inside the spacecraft and run a transfer plan to reach Moon orbit.",
+      originId: "earth",
+      destinationId: "moon",
+      targetPlanetIndex: 1,
+      minimumTime: 18,
+      planCertificationOnly: true,
+      starterCode: "point_at('moon'); thrust(4.0, 4.0); wait(24);"
+    }),
+    makeRouteMission({
+      id: "route-moon-jupiter",
+      title: "Moon to Jupiter Transfer",
+      concept: "Long coast planning, time warp, and deep-space burn",
+      objective: "Leave Moon orbit and guide the spacecraft to Jupiter before Rover deploys for the rocket escape challenge.",
+      originId: "moon",
+      destinationId: "jupiter",
+      targetPlanetIndex: 2,
+      minimumTime: 45,
+      planCertificationOnly: true,
+      starterCode: "point_at('jupiter'); thrust(5.0, 7.0); warp(5); wait(60);"
+    }),
+    makeRouteMission({
+      id: "route-jupiter-glacies",
+      title: "Jupiter to Glacies Transfer",
+      concept: "Outer-orbit cruise with controlled thrust",
+      objective: "Exit Jupiter's gravity neighborhood and navigate to the icy Glacies survey zone.",
+      originId: "jupiter",
+      destinationId: "glacies",
+      targetPlanetIndex: 3,
+      minimumTime: 55,
+      planCertificationOnly: true,
+      starterCode: "point_at('glacies'); thrust(4.5, 6.0); warp(5); wait(70);"
+    }),
+    makeRouteMission({
+      id: "route-glacies-magnet",
+      title: "Glacies to Mag-Net Transfer",
+      concept: "Final approach to a magnetic nebula field",
+      objective: "Plot the final spacecraft route to Mag-Net, then deploy Rover for magnetic field experiments.",
+      originId: "glacies",
+      destinationId: "magnet",
+      targetPlanetIndex: 4,
+      minimumTime: 45,
+      planCertificationOnly: true,
+      starterCode: "point_at('magnet'); thrust(3.8, 5.0); warp(5); wait(55);"
+    }),
     {
       id: "sol-hohmann-mars",
       title: "Hohmann Transfer to Mars",
@@ -98,5 +201,27 @@ window.Nav = window.Nav || {};
       }
     }
   ];
+
+  Nav.RouteMissionByTargetPlanet = {};
+  Nav.Missions.forEach((mission, index) => {
+    if (typeof mission.targetPlanetIndex === "number") {
+      Nav.RouteMissionByTargetPlanet[mission.targetPlanetIndex] = index;
+    }
+  });
+
+  Nav.loadRouteToPlanet = function(originPlanetIndex, targetPlanetIndex) {
+    const missionIndex = Nav.RouteMissionByTargetPlanet[targetPlanetIndex];
+    if (typeof missionIndex !== "number") return false;
+
+    Nav.activeMissionIndex = missionIndex;
+    if (typeof loadNavigatorMissionSolar === "function") {
+      loadNavigatorMissionSolar(missionIndex);
+    }
+
+    const mission = Nav.Missions[missionIndex];
+    Nav.logConsole(`Rover secured. Navigation handoff: planet ${originPlanetIndex + 1} → planet ${targetPlanetIndex + 1}.`, "info");
+    Nav.logConsole(`Run or edit the flight plan to reach ${Nav.BODIES[mission.destinationId.toUpperCase()].name}.`, "info");
+    return true;
+  };
 
 })(window.Nav);

@@ -1,5 +1,5 @@
 // nav-bodies.js - Deterministic circular orbits for Solar System bodies
-// Contains the Sun, Earth, Mars, and Jupiter positions and velocities at any time t.
+// Contains the Sun, Earth, Moon, Mars, Jupiter, and fictional mission worlds.
 
 window.Nav = window.Nav || {};
 
@@ -26,6 +26,16 @@ window.Nav = window.Nav || {};
       period: 240.0,     // 240 mission days (TU) for a full orbit
       initialAngle: 0.0  // Start at positive x-axis
     },
+    MOON: {
+      name: "Moon",
+      id: "moon",
+      mass: 0.25,
+      radius: 0.055,
+      color: "#94a3b8",
+      orbitRadius: 1.35,
+      period: 315.0,
+      initialAngle: 0.55
+    },
     MARS: {
       name: "Mars",
       id: "mars",
@@ -45,6 +55,26 @@ window.Nav = window.Nav || {};
       orbitRadius: 2.5,  // SU
       period: 900.0,     // 900 mission days (TU)
       initialAngle: 2.2  // Starts far away
+    },
+    GLACIES: {
+      name: "Glacies",
+      id: "glacies",
+      mass: 0.7,
+      radius: 0.065,
+      color: "#a78bfa",
+      orbitRadius: 3.05,
+      period: 1180.0,
+      initialAngle: 3.1
+    },
+    MAGNET: {
+      name: "Mag-Net",
+      id: "magnet",
+      mass: 0.9,
+      radius: 0.07,
+      color: "#ec4899",
+      orbitRadius: 3.55,
+      period: 1460.0,
+      initialAngle: 4.0
     }
   };
 

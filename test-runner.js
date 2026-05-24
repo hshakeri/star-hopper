@@ -338,22 +338,50 @@ function runEngineTests() {
     game.requiredCollectiblesCollected = 2;
 
     let status = game.getLevelObjectiveStatus();
-    assertEquals(false, status.readyForPortal, "Portal should stay locked while tasks or stars remain");
+    assertEquals(false, status.readyForPortal, "Portal should stay locked while tasks or gems remain");
 
     game.completedMissions.add("collect");
     game.requiredCollectiblesCollected = 3;
     status = game.getLevelObjectiveStatus();
 
-    assertEquals(true, status.readyForPortal, "Portal should unlock only after tasks and stars are complete");
-    renderTestResult("engine-suite", "Objectives: portal requires tasks plus mission stars", true);
+    assertEquals(true, status.readyForPortal, "Portal should unlock only after tasks and gems are complete");
+    renderTestResult("engine-suite", "Objectives: portal requires tasks plus mission gems", true);
   } catch (err) {
-    renderTestResult("engine-suite", "Objectives: portal requires tasks plus mission stars", false, err.message);
+    renderTestResult("engine-suite", "Objectives: portal requires tasks plus mission gems", false, err.message);
+  }
+
+  // Test 17: Required Earth gems are locked behind the intended engineering concepts
+  try {
+    Compiler.reset();
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[0];
+    game.player = { charType: 'star', jumpPower: 99, rocketPower: 40, spikes: false };
+    game.hopperMass = 2.5;
+    game.spawnedSprings = [];
+    game.spawnedBoxes = [];
+
+    const lowGem = { type: 'coin', requiredCollectible: true, collected: false, gemGate: game.getGemGateForCollectible(0, 6, 5) };
+    const highGem = { type: 'coin', requiredCollectible: true, collected: false, gemGate: game.getGemGateForCollectible(0, 3, 34) };
+
+    assertEquals(false, game.canCollectGem(lowGem), "Jump power alone should not unlock low Earth gems");
+    Compiler.env.gravity = 0.35;
+    assertEquals(true, game.canCollectGem(lowGem), "Low Earth gems should unlock after gravity tuning");
+
+    assertEquals(false, game.canCollectGem(highGem), "High Earth gems should still need full Hopper engineering");
+    game.player.charType = 'hopper';
+    game.player.jumpPower = 17;
+    game.hopperMass = 1.2;
+    Compiler.env.speed = 4.8;
+    assertEquals(true, game.canCollectGem(highGem), "High Earth gems should unlock with the full Hopper build");
+    renderTestResult("engine-suite", "Objectives: Earth gems require progressive engineering gates", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Objectives: Earth gems require progressive engineering gates", false, err.message);
   }
 }
 
 // Suite 4: Solar Interplanetary Flight Simulator Tests
 function runSolarTests() {
-  // Test 17: Vector Math Addition and Scaling
+  // Test 18: Vector Math Addition and Scaling
   try {
     const v1 = { x: 1.5, y: -2.0 };
     const v2 = { x: 2.5, y: 5.0 };
@@ -369,7 +397,7 @@ function runSolarTests() {
     renderTestResult("solar-suite", "Vector Math: 2D addition & scaling correctness", false, err.message);
   }
 
-  // Test 18: Deterministic circular orbit position lookup
+  // Test 19: Deterministic circular orbit position lookup
   try {
     const earth = Nav.BODIES.EARTH;
     const state = Nav.bodyStateAt(earth, 0); // t=0
@@ -382,7 +410,7 @@ function runSolarTests() {
     renderTestResult("solar-suite", "Planetary Coordinates: deterministic state lookup at t=0", false, err.message);
   }
 
-  // Test 19: Hohmann Transfer math validation
+  // Test 20: Hohmann Transfer math validation
   try {
     const earth = Nav.BODIES.EARTH;
     const mars = Nav.BODIES.MARS;
@@ -396,7 +424,7 @@ function runSolarTests() {
     renderTestResult("solar-suite", "Analytical Hohmann: transfer requirements calculations", false, err.message);
   }
 
-  // Test 20: Spacecraft console command queue parser
+  // Test 21: Spacecraft console command queue parser
   try {
     Nav.initShip(0, 0, 0, 0);
     // Queue up statements
@@ -411,7 +439,7 @@ function runSolarTests() {
     renderTestResult("solar-suite", "Console Command Queue parser and sequence scheduler", false, err.message);
   }
 
-  // Test 21: Solar mission starts in a stable local Earth parking orbit
+  // Test 22: Solar mission starts in a stable local Earth parking orbit
   try {
     Nav.Missions[0].setup();
     const earthState = Nav.bodyStateAt(Nav.BODIES.EARTH, 0);
@@ -428,7 +456,7 @@ function runSolarTests() {
     renderTestResult("solar-suite", "Solar setup: Earth parking orbit uses scaled velocity", false, err.message);
   }
 
-  // Test 22: Navigator zoom preserves the world point under the cursor
+  // Test 23: Navigator zoom preserves the world point under the cursor
   try {
     const canvas = { width: 800, height: 500 };
     const anchor = { x: 300, y: 190 };
