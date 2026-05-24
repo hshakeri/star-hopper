@@ -649,12 +649,22 @@ const runtimeContext = {
       set: (game, val) => { game.player.mass = val; }
     },
     "player.speed": {
-      get: (game) => game.player.speed,
-      set: (game, val) => { game.player.speed = val; }
+      get: (game) => Compiler.env.speed !== null ? Compiler.env.speed : game.currentPlanet.physics.speed,
+      set: (game, val) => {
+        const numeric = Number(val);
+        const fallback = game.currentPlanet.physics.speed;
+        const tunedSpeed = Math.max(1, Math.min(8, Number.isFinite(numeric) ? numeric : fallback));
+        Compiler.env.speed = tunedSpeed;
+      }
     },
     speed: {
       get: (game) => Compiler.env.speed !== null ? Compiler.env.speed : game.currentPlanet.physics.speed,
-      set: (game, val) => { Compiler.env.speed = val; }
+      set: (game, val) => {
+        const numeric = Number(val);
+        const fallback = game.currentPlanet.physics.speed;
+        const tunedSpeed = Math.max(1, Math.min(8, Number.isFinite(numeric) ? numeric : fallback));
+        Compiler.env.speed = tunedSpeed;
+      }
     },
     "star.mass": {
       get: (game) => game.starMass !== undefined ? game.starMass : 1.0,
@@ -677,8 +687,11 @@ const runtimeContext = {
       }
     },
     "hopper.rocket_power": {
-      get: (game) => game.player.rocketPower || 40,
-      set: (game, val) => { game.player.rocketPower = val; }
+      get: (game) => Number.isFinite(game.player.rocketPower) ? game.player.rocketPower : 40,
+      set: (game, val) => {
+        const numeric = Number(val);
+        game.player.rocketPower = Math.max(0, Math.min(120, Number.isFinite(numeric) ? numeric : 40));
+      }
     },
     "hopper.spikes": {
       get: (game) => game.player.spikes || false,

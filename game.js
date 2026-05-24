@@ -35,6 +35,9 @@ class StarHopperGame {
 
     // Coin collection tally
     this.coinsCollected = 0;
+    this.requiredCollectiblesTotal = 0;
+    this.requiredCollectiblesCollected = 0;
+    this.portalLockNoticeCooldown = 0;
 
     // Track level checkpoint
     this.startX = 64;
@@ -168,6 +171,7 @@ class StarHopperGame {
     // Instantiate single character in place
     this.player = new Player(this.startX, this.startY);
     this.player.charType = 'star'; // default start active character style
+    this.player.jumpPower = this.currentPlanet.physics.jumpPower ?? this.player.jumpPower;
     
     // Set up aliases for backwards compatibility with missions and rules references
     this.star = this.player;
@@ -180,6 +184,9 @@ class StarHopperGame {
     
     this.cameraX = 0;
     this.coinsCollected = 0;
+    this.requiredCollectiblesTotal = 0;
+    this.requiredCollectiblesCollected = 0;
+    this.portalLockNoticeCooldown = 0;
     // Keep global completed missions across planet switches
     Particles.clear();
 
@@ -195,7 +202,10 @@ class StarHopperGame {
         const ty = r * TILE_SIZE;
 
         if (val === 3) {
-          this.interactiveObjects.push(new InteractiveObject(tx, ty, 'coin'));
+          const collectible = new InteractiveObject(tx, ty, 'coin');
+          collectible.requiredCollectible = true;
+          this.requiredCollectiblesTotal++;
+          this.interactiveObjects.push(collectible);
         } else if (val === 4) {
           this.interactiveObjects.push(new InteractiveObject(tx, ty, 'trampoline'));
         } else if (val === 5) {
@@ -229,13 +239,15 @@ class StarHopperGame {
     ui_log_output(`--- Entering orbit of ${this.currentPlanet.name} ---`, "info");
     ui_log_output(`Gravity defaults: g = ${(this.currentPlanet.physics.gravity/0.6*9.8).toFixed(1)} m/s²`, "info");
     
-    // Trigger dialogue helper robot text
-    this.triggerTutorialDialogue("start");
+    // Trigger dialogue helper robot text only after the player launches a mission.
+    if (this.state === 'playing') {
+      this.triggerTutorialDialogue("start");
+    }
     // Draw initial mission list
     updateMissionList(this);
 
     // Start Guided tutorial check if Earth index 0 loaded
-    if (typeof checkStartGuidedMode === 'function') {
+    if (this.state === 'playing' && typeof checkStartGuidedMode === 'function') {
       checkStartGuidedMode(index);
     }
   }
@@ -254,7 +266,9 @@ class StarHopperGame {
     const py = this.player.y - 48; // Spawn 48px above helmet
 
     if (type === 'coin') {
-      this.interactiveObjects.push(new InteractiveObject(px, py, 'coin'));
+      const coin = new InteractiveObject(px, py, 'coin');
+      coin.requiredCollectible = false;
+      this.interactiveObjects.push(coin);
       Particles.spawnBurst(px + 10, py + 10, '#facc15', 8, 2, 2, 'glow');
     } else if (type === 'box') {
       const box = new InteractiveObject(px, py, 'box');
@@ -303,6 +317,55 @@ class StarHopperGame {
       updateMissionList(this);
       if (typeof handleGuidedClearHook === 'function') handleGuidedClearHook();
       if (typeof triggerCloudSave === 'function') triggerCloudSave();
+    }
+  }
+
+  getLevelObjectiveStatus() {
+    const missions = this.currentPlanet && this.currentPlanet.missions ? this.currentPlanet.missions : [];
+    const completedMissionCount = missions.filter(mission => this.completedMissions.has(mission.id)).length;
+    const allMissionsComplete = completedMissionCount >= missions.length;
+    const allCollectiblesCollected = this.requiredCollectiblesCollected >= this.requiredCollectiblesTotal;
+
+    return {
+      missionsTotal: missions.length,
+      missionsComplete: completedMissionCount,
+      collectiblesTotal: this.requiredCollectiblesTotal,
+      collectiblesCollected: this.requiredCollectiblesCollected,
+      allMissionsComplete,
+      allCollectiblesCollected,
+      readyForPortal: allMissionsComplete && allCollectiblesCollected
+    };
+  }
+
+  formatObjectiveLockMessage(status = this.getLevelObjectiveStatus()) {
+    const missing = [];
+    const missionsLeft = status.missionsTotal - status.missionsComplete;
+    const collectiblesLeft = status.collectiblesTotal - status.collectiblesCollected;
+
+    if (missionsLeft > 0) {
+      missing.push(`${missionsLeft} task${missionsLeft === 1 ? "" : "s"}`);
+    }
+    if (collectiblesLeft > 0) {
+      missing.push(`${collectiblesLeft} mission star${collectiblesLeft === 1 ? "" : "s"}`);
+    }
+
+    return missing.length > 0 ? missing.join(" and ") : "final checks";
+  }
+
+  attemptPortalClear() {
+    this.checkMissions();
+    const status = this.getLevelObjectiveStatus();
+    if (status.readyForPortal) {
+      this.clearLevel();
+      return;
+    }
+
+    if (this.portalLockNoticeCooldown <= 0) {
+      const remaining = this.formatObjectiveLockMessage(status);
+      ui_log_output(`Portal locked: complete ${remaining} before extraction.`, "error");
+      SFX.playError();
+      this.portalLockNoticeCooldown = 90;
+      updateMissionList(this);
     }
   }
 
@@ -360,6 +423,9 @@ class StarHopperGame {
 
     // 1. Process active conditional code triggers first
     Compiler.updateRules(this);
+    if (this.portalLockNoticeCooldown > 0) {
+      this.portalLockNoticeCooldown--;
+    }
 
     // 2. Run real-time mission completion validator
     this.checkMissions();
@@ -420,9 +486,17 @@ class StarHopperGame {
         if (obj.type === 'coin') {
           obj.collected = true;
           this.coinsCollected++;
+          if (obj.requiredCollectible) {
+            this.requiredCollectiblesCollected++;
+          }
           SFX.playCoin();
           Particles.spawnBurst(obj.x + 8, obj.y + 8, '#facc15', 10, 2, 2.5, 'glow');
-          ui_log_output(`✓ Coin Collected! Total: ${this.coinsCollected}`, "success");
+          if (obj.requiredCollectible) {
+            ui_log_output(`✓ Mission star collected: ${this.requiredCollectiblesCollected}/${this.requiredCollectiblesTotal}`, "success");
+            updateMissionList(this);
+          } else {
+            ui_log_output(`✓ Bonus coin collected! Total: ${this.coinsCollected}`, "success");
+          }
         } else if (obj.type === 'trampoline' || obj.type === 'spring') {
           const isTopBounce = (this.player.vy > 0.1 && this.player.y + this.player.h - this.player.vy <= obj.y + 6);
           if (isTopBounce) {
@@ -433,7 +507,7 @@ class StarHopperGame {
             Particles.spawnBurst(obj.x + 16, obj.y, '#f87171', 8, 2, 2);
           }
         } else if (obj.type === 'portal') {
-          this.clearLevel();
+          this.attemptPortalClear();
           return;
         }
       }
@@ -482,6 +556,7 @@ class StarHopperGame {
     const clearScr = document.getElementById("clear-screen");
     if (clearScr) clearScr.classList.remove("hidden");
     ui_log_output(`✓ Level cleared! Target coordinates secured.`, "success");
+    if (typeof updateCertificateState === 'function') updateCertificateState();
   }
 
   draw() {
@@ -675,6 +750,7 @@ class StarHopperGame {
 // Global Game Engine instance
 let Game;
 window.addEventListener("load", () => {
+  if (!document.getElementById("game-canvas")) return;
   Game = new StarHopperGame();
   window.Game = Game;
   Game.init();

@@ -4,32 +4,39 @@ const PlatformerMissions = [
   {
     id: "earth-gravity-wall",
     planetId: 0, // Earth
-    title: "The Gravity Dial",
+    title: "Hopper Engineering Shakedown",
     ageRange: "8-12",
-    concept: "Gravity determines the downward pull on all objects.",
-    codingConcept: "Variable assignment",
-    starterCode: "gravity = 0.2\njump_power = 22",
-    objective: "Clear the giant vertical wall in Base Camp.",
+    concept: "Gravity, mass, jump impulse, and run speed combine to shape a jump arc.",
+    codingConcept: "Variable assignment and parameter tuning",
+    starterCode: "gravity = 0.35\nplayer.jump_power = 17\nhopper.mass = 1.2\nplayer.speed = 4.8",
+    objective: "Engineer Hopper to clear the giant vertical wall in Base Camp.",
     steps: [
-      { id: "observe", prompt: "Observe: Jump normal: you cannot clear the high metal wall.", done: false },
-      { id: "predict", prompt: "Predict: If we set gravity = 0.2, will Star fall faster or slower?", done: false },
-      { id: "code", prompt: "Code: Open the terminal and type: gravity = 0.2", done: false },
-      { id: "test", prompt: "Test: Jump and watch the green trajectory path.", done: false },
-      { id: "explain", prompt: "Explain: Why did lowering gravity let you jump higher?", done: false },
-      { id: "challenge", prompt: "Challenge: Clear the wall with gravity = 0.3 and jump_power = 15.", done: false }
+      { id: "observe", prompt: "Observe: Hopper is too heavy to clear the high metal wall with default settings.", done: false },
+      { id: "predict", prompt: "Predict: Which change matters most: lower gravity, higher jump power, lower mass, or higher speed?", done: false },
+      { id: "code", prompt: "Code: Tune at least three parameters, for example gravity, player.jump_power, hopper.mass, and player.speed.", done: false },
+      { id: "test", prompt: "Test: Swap to Hopper, jump, and watch the green trajectory path.", done: false },
+      { id: "explain", prompt: "Explain: Why did the tuned Hopper arc clear the wall?", done: false },
+      { id: "challenge", prompt: "Challenge: Clear the wall as Hopper with gravity <= 0.35, player.jump_power >= 17, hopper.mass <= 1.2, and player.speed >= 4.8.", done: false }
     ],
     hints: [
-      "Smaller gravity means slower falling.",
-      "Try changing one number at a time.",
-      "Watch the velocity vector after each jump."
+      "The Code panel gives starter values; edit the numbers to reach the target.",
+      "Hopper needs less mass and more horizontal speed than the default suit.",
+      "Watch the velocity vector after each tuned jump."
     ],
     validate: (game, Compiler) => {
-      const currentG = Compiler.env.gravity !== null ? Compiler.env.gravity : 0.6;
-      return currentG <= 0.25 && game.player.x > 1100;
+      const currentG = Compiler.env.gravity !== null ? Compiler.env.gravity : game.currentPlanet.physics.gravity;
+      const currentSpeed = Compiler.env.speed !== null ? Compiler.env.speed : game.currentPlanet.physics.speed;
+      const hopperMass = game.hopperMass !== undefined ? game.hopperMass : 2.5;
+      return game.player.charType === 'hopper'
+        && currentG <= 0.35
+        && game.player.jumpPower >= 17
+        && hopperMass <= 1.2
+        && currentSpeed >= 4.8
+        && game.player.x > 1100;
     },
     reflection: [
-      "What changed when gravity got smaller?",
-      "Did you need more or less jump power?",
+      "Which parameter changed the arc the most?",
+      "Did Hopper need more force or less mass?",
       "Where was the velocity vector largest?"
     ]
   },
@@ -70,27 +77,36 @@ const PlatformerMissions = [
     title: "Escape Velocity",
     ageRange: "8-12",
     concept: "Mass resists acceleration: heavy objects require more force.",
-    codingConcept: "Conditionals (If Statements)",
-    starterCode: "if gravity > 1:\n    jump_power = 25",
+    codingConcept: "Multi-parameter Hopper engineering",
+    starterCode: "hopper.mass = 1.2\nhopper.rocket_power = 75\nplayer.speed = 5.0",
     objective: "Escape the gravity trench as the heavy character Hopper.",
     steps: [
       { id: "observe", prompt: "Observe: Swap to Hopper: notice he is heavy and jumps poorly.", done: false },
       { id: "predict", prompt: "Predict: Will Hopper need more rocket force on Jupiter than Earth?", done: false },
-      { id: "code", prompt: "Code: Type: if gravity > 1:\n    jump_power = 25", done: false },
+      { id: "code", prompt: "Code: Engineer Hopper with lower mass, stronger rocket_power, and higher player.speed.", done: false },
       { id: "test", prompt: "Test: Trigger your jump and hold Space to rocket boost.", done: false },
       { id: "explain", prompt: "Explain: Why does mass require larger forces to accelerate?", done: false },
-      { id: "challenge", prompt: "Challenge: Escape with gravity set to 2.5 using rocket boots.", done: false }
+      { id: "challenge", prompt: "Challenge: Escape with default Jupiter gravity using hopper.rocket_power >= 70, hopper.mass <= 1.4, and player.speed >= 4.5.", done: false }
     ],
     hints: [
       "Jupiter's gravity is extremely strong (g = 2.0).",
       "Hopper has rocket boosters activated by holding Space in mid-air.",
-      "Conditionals (if) allow rules to run only under specific situations."
+      "The Code panel values are starter settings; tune the numbers before launch."
     ],
     validate: (game, Compiler) => {
-      return game.player.charType === 'hopper' && game.player.jumpPower >= 20 && game.player.y < 200 && game.player.x > 800;
+      const currentG = Compiler.env.gravity !== null ? Compiler.env.gravity : game.currentPlanet.physics.gravity;
+      const currentSpeed = Compiler.env.speed !== null ? Compiler.env.speed : game.currentPlanet.physics.speed;
+      const hopperMass = game.hopperMass !== undefined ? game.hopperMass : 2.5;
+      return game.player.charType === 'hopper'
+        && currentG >= game.currentPlanet.physics.gravity
+        && currentSpeed >= 4.5
+        && hopperMass <= 1.4
+        && game.player.rocketPower >= 70
+        && game.player.y < 220
+        && game.player.x > 800;
     },
     reflection: [
-      "How did Hopper feel compared to Star under Jupiter's gravity?",
+      "How did Hopper feel compared to Rover under Jupiter's gravity?",
       "What happens to acceleration when force increases but mass stays constant?",
       "Why did the rocket thrusters deplete your fuel bar?"
     ]
@@ -105,7 +121,7 @@ const PlatformerMissions = [
     starterCode: "friction = 8",
     objective: "Climb the ice slopes by tuning friction or using spikes.",
     steps: [
-      { id: "observe", prompt: "Observe: Star slides backwards down the slopes due to zero friction.", done: false },
+      { id: "observe", prompt: "Observe: Rover slides backwards down the slopes due to zero friction.", done: false },
       { id: "predict", prompt: "Predict: What will happen to sliding if friction is 8?", done: false },
       { id: "code", prompt: "Code: Type: friction = 8", done: false },
       { id: "test", prompt: "Test: Walk up the slopes without sliding back.", done: false },

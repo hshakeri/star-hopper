@@ -54,7 +54,7 @@ function updateGuidedUI() {
       break;
     case 2:
       labelEl.textContent = "Step 2 of 5: Predict (Journal)";
-      descEl.textContent = "Click the 'Notebook' tab at the top right, write your hypothesis in the journal, and click Save Entry.";
+      descEl.textContent = "Click the 'Log' tab at the top right, write your hypothesis in the journal, and click Save Entry.";
       nextBtn.style.display = 'none';
       highlightElement('mode-btn-notebook');
       break;
@@ -66,13 +66,13 @@ function updateGuidedUI() {
       break;
     case 4:
       labelEl.textContent = "Step 4 of 5: Experiment (Leap)";
-      descEl.textContent = "Try jumping again! With lower gravity, Star can soar over the wall. Reach the green portal on the right.";
+      descEl.textContent = "Try jumping again! With lower gravity, Rover can soar over the wall. Reach the green portal on the right.";
       nextBtn.style.display = 'none';
       highlightElement('game-canvas');
       break;
     case 5:
       labelEl.textContent = "Step 5 of 5: Explain (Graduation)";
-      descEl.textContent = "Awesome! Switch to 'Notebook' tab and print your Space Science Cadet Certificate!";
+      descEl.textContent = "Awesome! Switch to the 'Log' tab and print your Space Science Cadet Certificate!";
       nextBtn.style.display = 'block';
       nextBtn.textContent = "Complete Tutorial ✔";
       highlightElement('mode-btn-notebook');

@@ -340,8 +340,11 @@ class Player {
       } else if (this.charType === 'hopper') {
         // Hopper rocket pack (holds space/jump button in mid-air to blast upward)
         if (isHoldJump && this.fuel > 0) {
-          this.vy -= (this.rocketPower || 0.45);
-          if (this.vy < -speedMultiplier) this.vy = -speedMultiplier;
+          const tunedRocketPower = Number.isFinite(this.rocketPower) ? Math.max(0, this.rocketPower) : 40;
+          const rocketAcceleration = tunedRocketPower / 35;
+          const rocketRiseLimit = Math.max(speedMultiplier, tunedRocketPower / 12);
+          this.vy -= rocketAcceleration;
+          if (this.vy < -rocketRiseLimit) this.vy = -rocketRiseLimit;
           this.fuel -= 1.5;
           // Rocket exhaust particles
           Particles.spawn(

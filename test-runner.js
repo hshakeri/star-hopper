@@ -282,11 +282,78 @@ function runEngineTests() {
   } catch (err) {
     renderTestResult("engine-suite", "Physics: spike hazard tiles are detected", false, err.message);
   }
+
+  // Test 14: player.speed command updates the movement speed override used by physics
+  try {
+    Compiler.reset();
+    const mockGame = {
+      currentPlanet: { physics: { speed: 3.2 } },
+      player: {}
+    };
+
+    const res = Compiler.runCommand("player.speed = 5.5", mockGame);
+
+    assertEquals(true, res.success);
+    assertEquals(5.5, Compiler.env.speed, "player.speed should write to the runtime speed override");
+    renderTestResult("engine-suite", "Compiler: player.speed tunes active movement speed", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Compiler: player.speed tunes active movement speed", false, err.message);
+  }
+
+  // Test 15: Hopper rocket power produces tunable lift instead of a single clamped value
+  try {
+    Compiler.reset();
+    const planet = { physics: { gravity: 0, friction: 0.9, airResistance: 1, speed: 4 } };
+    const lowPower = new Player(0, 0);
+    lowPower.charType = 'hopper';
+    lowPower.onGround = false;
+    lowPower.rocketPower = 30;
+    lowPower.update({ " ": true }, planet, { player: lowPower, hopperMass: 1.0 });
+
+    const highPower = new Player(0, 0);
+    highPower.charType = 'hopper';
+    highPower.onGround = false;
+    highPower.rocketPower = 90;
+    highPower.update({ " ": true }, planet, { player: highPower, hopperMass: 1.0 });
+
+    assertEquals(true, highPower.vy < lowPower.vy, "Higher rocket power should create stronger upward velocity");
+    assertClose(-30 / 35, lowPower.vy, 0.0001, "30 rocket power should map to scaled lift per frame");
+    assertClose(-90 / 35, highPower.vy, 0.0001, "90 rocket power should map to scaled lift per frame");
+    renderTestResult("engine-suite", "Physics: Hopper rocket power scales lift", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Physics: Hopper rocket power scales lift", false, err.message);
+  }
+
+  // Test 16: Portal readiness requires all mission tasks and required collectibles
+  try {
+    const game = new StarHopperGame();
+    game.currentPlanet = {
+      missions: [
+        { id: "build" },
+        { id: "collect" }
+      ]
+    };
+    game.completedMissions = new Set(["build"]);
+    game.requiredCollectiblesTotal = 3;
+    game.requiredCollectiblesCollected = 2;
+
+    let status = game.getLevelObjectiveStatus();
+    assertEquals(false, status.readyForPortal, "Portal should stay locked while tasks or stars remain");
+
+    game.completedMissions.add("collect");
+    game.requiredCollectiblesCollected = 3;
+    status = game.getLevelObjectiveStatus();
+
+    assertEquals(true, status.readyForPortal, "Portal should unlock only after tasks and stars are complete");
+    renderTestResult("engine-suite", "Objectives: portal requires tasks plus mission stars", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Objectives: portal requires tasks plus mission stars", false, err.message);
+  }
 }
 
 // Suite 4: Solar Interplanetary Flight Simulator Tests
 function runSolarTests() {
-  // Test 14: Vector Math Addition and Scaling
+  // Test 17: Vector Math Addition and Scaling
   try {
     const v1 = { x: 1.5, y: -2.0 };
     const v2 = { x: 2.5, y: 5.0 };
@@ -302,7 +369,7 @@ function runSolarTests() {
     renderTestResult("solar-suite", "Vector Math: 2D addition & scaling correctness", false, err.message);
   }
 
-  // Test 15: Deterministic circular orbit position lookup
+  // Test 18: Deterministic circular orbit position lookup
   try {
     const earth = Nav.BODIES.EARTH;
     const state = Nav.bodyStateAt(earth, 0); // t=0
@@ -315,7 +382,7 @@ function runSolarTests() {
     renderTestResult("solar-suite", "Planetary Coordinates: deterministic state lookup at t=0", false, err.message);
   }
 
-  // Test 16: Hohmann Transfer math validation
+  // Test 19: Hohmann Transfer math validation
   try {
     const earth = Nav.BODIES.EARTH;
     const mars = Nav.BODIES.MARS;
@@ -329,7 +396,7 @@ function runSolarTests() {
     renderTestResult("solar-suite", "Analytical Hohmann: transfer requirements calculations", false, err.message);
   }
 
-  // Test 17: Spacecraft console command queue parser
+  // Test 20: Spacecraft console command queue parser
   try {
     Nav.initShip(0, 0, 0, 0);
     // Queue up statements
@@ -344,7 +411,7 @@ function runSolarTests() {
     renderTestResult("solar-suite", "Console Command Queue parser and sequence scheduler", false, err.message);
   }
 
-  // Test 18: Solar mission starts in a stable local Earth parking orbit
+  // Test 21: Solar mission starts in a stable local Earth parking orbit
   try {
     Nav.Missions[0].setup();
     const earthState = Nav.bodyStateAt(Nav.BODIES.EARTH, 0);
@@ -361,7 +428,7 @@ function runSolarTests() {
     renderTestResult("solar-suite", "Solar setup: Earth parking orbit uses scaled velocity", false, err.message);
   }
 
-  // Test 19: Navigator zoom preserves the world point under the cursor
+  // Test 22: Navigator zoom preserves the world point under the cursor
   try {
     const canvas = { width: 800, height: 500 };
     const anchor = { x: 300, y: 190 };

@@ -76,6 +76,7 @@ global.renderTestResult = (suiteId, name, success, errorMsg = "") => {
 // Files to load in order
 const files = [
   'interpreter.js',
+  'missions.js',
   'planets.js',
   'entities.js',
   'physics.js',
@@ -87,6 +88,7 @@ const files = [
   'nav-renderer.js',
   'nav-missions.js',
   'navigator.js',
+  'game.js',
   'test-runner.js'
 ];
 

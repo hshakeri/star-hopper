@@ -94,6 +94,8 @@ function updateNotebook(game) {
     if (miniTeVal) miniTeVal.textContent = `${Math.round(te)}J`;
   }
 
+  updateCertificateState();
+
   // Periodically refresh current question based on active mission
   updateActiveQuestion(game);
 }
@@ -113,7 +115,7 @@ function updateActiveQuestion(game) {
 
   const currentPlanet = game.currentPlanet;
   if (!currentPlanet || !currentPlanet.missions) {
-    qEl.textContent = "Take data observations of Star's movements!";
+    qEl.textContent = "Take data observations of Rover's movements!";
     return;
   }
 
@@ -204,6 +206,11 @@ function renderNotebookHistory() {
 
 // Print notebook certificate
 function printNotebook() {
+  if (!isScientistCertificateUnlocked()) {
+    alert("Complete a Code mission or a Navigator mission to unlock the Scientist Certificate.");
+    return;
+  }
+
   const name = prompt("Enter student name for Space Academy Certificate:", "Space Cadet");
   if (!name) return;
 
@@ -222,6 +229,22 @@ function printNotebook() {
   setTimeout(() => {
     alert("🚀 Cadet Academy runs on community contributions!\n\nIf Star Hopper helped you learn physics today, please consider sponsoring our next open STEM mission at:\nhttps://www.buymeacoffee.com/hshakeri");
   }, 1000);
+}
+
+function isScientistCertificateUnlocked() {
+  const codeComplete = !!(window.Game && window.Game.state === 'clear');
+  const navComplete = !!(window.Nav && window.Nav.orbitalMissionsCompleted && window.Nav.orbitalMissionsCompleted.size > 0);
+  return codeComplete || navComplete;
+}
+
+function updateCertificateState() {
+  const btn = document.getElementById("certificate-btn");
+  if (!btn) return;
+
+  const unlocked = isScientistCertificateUnlocked();
+  btn.disabled = !unlocked;
+  btn.classList.toggle("certificate-locked", !unlocked);
+  btn.textContent = unlocked ? "🖨️ Print Scientist Certificate" : "🔒 Scientist Certificate Locked";
 }
 
 // Print specific student/parent/teacher sheets selectively
@@ -262,6 +285,10 @@ function switchMainMode(mode) {
   const activeTab = document.getElementById(`mode-btn-${mode}`);
   if (activeTab) {
     activeTab.classList.add('active');
+  }
+
+  if (typeof updateCertificateState === 'function') {
+    updateCertificateState();
   }
 
   // Handle special mode transitions

@@ -7,7 +7,7 @@ function ui_log_input(cmd) {
 
   const line = document.createElement("div");
   line.className = "console-line input-echo";
-  line.textContent = `hopper> ${cmd}`;
+  line.textContent = `cadet@star-hopper:~$ ${cmd}`;
   history.appendChild(line);
   scrollToBottom(history);
 }
@@ -238,9 +238,27 @@ function updateHUD(game) {
   const pBar = document.getElementById("bar-potential");
   const tBar = document.getElementById("bar-total");
 
-  if (kBar) kBar.style.height = `${kePercent}%`;
-  if (pBar) pBar.style.height = `${pePercent}%`;
-  if (tBar) tBar.style.height = `${tePercent}%`;
+  if (kBar) kBar.style.width = `${kePercent}%`;
+  if (pBar) pBar.style.width = `${pePercent}%`;
+  if (tBar) tBar.style.width = `${tePercent}%`;
+
+  const energySummary = document.getElementById("hud-energy-summary");
+  if (energySummary) {
+    energySummary.textContent = `KE ${Math.round(ke)} | PE ${Math.round(pe)}`;
+  }
+
+  const objectiveSummary = document.getElementById("hud-objectives");
+  if (objectiveSummary && typeof game.getLevelObjectiveStatus === 'function') {
+    const status = game.getLevelObjectiveStatus();
+    objectiveSummary.textContent = `Tasks ${status.missionsComplete}/${status.missionsTotal} | Stars ${status.collectiblesCollected}/${status.collectiblesTotal}`;
+    objectiveSummary.style.color = status.readyForPortal ? "var(--neon-green)" : "var(--neon-yellow)";
+  }
+
+  const musicTrack = document.getElementById("hud-music-track");
+  if (musicTrack) {
+    const trackNames = ["Earth Base", "Moon Orbit", "Jupiter Core", "Glacies Ice", "Mag Field", "Tears"];
+    musicTrack.textContent = SFX.isMuted ? "Muted" : (trackNames[SFX.currentBgm] || "No Music");
+  }
 
   // 5. Active Character Indicators
   const starCard = document.getElementById("char-card-star");
@@ -266,7 +284,7 @@ function updateMissionList(game) {
 
   const currentPlanet = game.currentPlanet;
   if (!currentPlanet || !currentPlanet.missions) {
-    listContainer.innerHTML = '<div class="no-missions">No active missions. Reach the goal portal!</div>';
+    listContainer.innerHTML = '<div class="no-missions">No active missions. Collect required stars, then reach the portal.</div>';
     return;
   }
 
@@ -289,6 +307,39 @@ function updateMissionList(game) {
     item.appendChild(label);
     listContainer.appendChild(item);
   });
+
+  if (typeof game.getLevelObjectiveStatus === 'function') {
+    const status = game.getLevelObjectiveStatus();
+    const collectibleItem = document.createElement("div");
+    collectibleItem.className = `mission-item ${status.allCollectiblesCollected ? 'completed' : ''}`;
+
+    const collectibleCheckbox = document.createElement("span");
+    collectibleCheckbox.className = "mission-checkbox";
+    collectibleCheckbox.textContent = status.allCollectiblesCollected ? "✓" : "○";
+
+    const collectibleLabel = document.createElement("span");
+    collectibleLabel.className = "mission-label";
+    collectibleLabel.textContent = `Collect mission stars: ${status.collectiblesCollected}/${status.collectiblesTotal}`;
+
+    collectibleItem.appendChild(collectibleCheckbox);
+    collectibleItem.appendChild(collectibleLabel);
+    listContainer.appendChild(collectibleItem);
+
+    const portalItem = document.createElement("div");
+    portalItem.className = `mission-item ${status.readyForPortal ? 'completed' : ''}`;
+
+    const portalCheckbox = document.createElement("span");
+    portalCheckbox.className = "mission-checkbox";
+    portalCheckbox.textContent = status.readyForPortal ? "✓" : "○";
+
+    const portalLabel = document.createElement("span");
+    portalLabel.className = "mission-label";
+    portalLabel.textContent = status.readyForPortal ? "Portal unlocked" : `Portal locked: ${game.formatObjectiveLockMessage(status)} remaining`;
+
+    portalItem.appendChild(portalCheckbox);
+    portalItem.appendChild(portalLabel);
+    listContainer.appendChild(portalItem);
+  }
 }
 
 // Typing effect helper for robot dialogues

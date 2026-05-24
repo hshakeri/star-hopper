@@ -211,6 +211,28 @@ body.resizing-panes * {
   padding: 0 20px;
 }
 
+.mode-save-row {
+  display: flex;
+  gap: 6px;
+  padding: 8px 20px 0;
+  flex-wrap: wrap;
+}
+
+.navigator-save-row {
+  padding: 0 0 8px;
+}
+
+.mini-save-btn {
+  width: auto;
+  height: 24px;
+  margin-top: 0;
+  padding: 0 8px;
+  font-size: 0.65rem;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
 /* Terminal Console logs & typing prompt */
 .console-area {
   flex: 1;
@@ -222,6 +244,67 @@ body.resizing-panes * {
   overflow-y: auto;
   gap: 10px;
   min-height: 200px;
+}
+
+.bash-shell {
+  padding: 0;
+  gap: 0;
+  border: 1px solid rgba(56, 189, 248, 0.16);
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(2, 6, 23, 0.58);
+  box-shadow: inset 0 0 18px rgba(56, 189, 248, 0.05);
+}
+
+.bash-shell-bar {
+  height: 28px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  background: rgba(15, 23, 42, 0.88);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.bash-window-dots {
+  display: flex;
+  gap: 5px;
+  flex: 0 0 auto;
+}
+
+.bash-window-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--neon-pink);
+  opacity: 0.85;
+}
+
+.bash-window-dots span:nth-child(2) {
+  background: var(--neon-yellow);
+}
+
+.bash-window-dots span:nth-child(3) {
+  background: var(--neon-green);
+}
+
+.bash-shell-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.2px;
+}
+
+.bash-shell .console-history {
+  padding: 10px 12px 8px;
+}
+
+.bash-shell .console-input-row {
+  margin: 0 12px 10px;
 }
 
 .console-history {
@@ -272,6 +355,7 @@ body.resizing-panes * {
 .console-prompt {
   color: var(--active-neon);
   font-weight: bold;
+  white-space: nowrap;
 }
 
 .console-input {
@@ -345,59 +429,116 @@ body.resizing-panes * {
 
 /* HUD Overlay Panels on Left Section */
 #hud-row {
-  display: flex;
-  gap: 15px;
-  height: 140px;
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  height: auto;
+  z-index: 75;
+  pointer-events: none;
+}
+
+.minimal-dashboard {
+  display: grid;
+  grid-template-columns: 0.78fr 1fr 0.68fr 1.22fr 1.85fr 1.12fr;
+  gap: 6px;
+  align-items: stretch;
+  max-width: 760px;
+  padding: 0;
+  overflow: visible;
+  border-radius: 0;
+}
+
+#canvas-wrapper:has(#start-screen:not(.hidden)) #hud-row,
+#canvas-wrapper:has(#clear-screen:not(.hidden)) #hud-row,
+#canvas-wrapper:has(#gameover-screen:not(.hidden)) #hud-row {
+  display: none;
 }
 
 /* Physics Variables Visual Gauges */
 .hud-card {
-  flex: 1;
-  padding: 15px;
+  min-width: 0;
+  padding: 7px 8px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(2, 6, 23, 0.32);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 0 14px rgba(0, 0, 0, 0.18);
 }
 
 .hud-card-title {
-  font-size: 0.75rem;
+  font-size: 0.58rem;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.7px;
   font-weight: bold;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
+  white-space: nowrap;
 }
 
 .hud-card-value {
   font-family: var(--font-mono);
-  font-size: 1.5rem;
+  font-size: 0.86rem;
   font-weight: bold;
   color: var(--active-neon);
-  margin: 5px 0;
+  margin: 0;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compact-metric,
+.compact-objectives {
+  border-radius: 8px;
+}
+
+.compact-objectives .hud-card-value {
+  color: var(--neon-yellow);
+  font-size: 0.74rem;
+  line-height: 1.15;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+#hud-energy-summary {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  color: var(--text-primary);
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 /* Dynamic Energy Bar Charts */
 .energy-chart-container {
   display: flex;
-  gap: 15px;
-  height: 60px;
-  align-items: flex-end;
-  padding-bottom: 5px;
+  gap: 6px;
+  height: 26px;
+  align-items: center;
+  padding-bottom: 0;
 }
 
 .energy-bar-wrapper {
   flex: 1;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  height: 100%;
+  height: 18px;
+  gap: 4px;
 }
 
 .energy-bar-slot {
-  width: 16px;
-  height: 40px;
+  flex: 1;
+  min-width: 26px;
+  height: 8px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 4px;
@@ -406,12 +547,12 @@ body.resizing-panes * {
 }
 
 .energy-bar-fill {
-  width: 100%;
-  height: 0%;
+  width: 0%;
+  height: 100%;
   position: absolute;
-  bottom: 0;
+  top: 0;
   left: 0;
-  transition: height 0.08s linear;
+  transition: width 0.08s linear;
 }
 
 .energy-bar-fill.kinetic { background-color: var(--neon-cyan); box-shadow: 0 0 8px var(--neon-cyan); }
@@ -420,27 +561,29 @@ body.resizing-panes * {
 
 .energy-label {
   font-family: var(--font-mono);
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   color: var(--text-muted);
-  margin-top: 4px;
+  margin-top: 0;
 }
 
 /* Character Swap HUD Indicators */
 .character-hud-cards {
   display: flex;
-  gap: 10px;
-  height: 60px;
+  gap: 5px;
+  height: 30px;
+  min-width: 112px;
 }
 
 .char-hud-card {
   flex: 1;
-  border-radius: 10px;
+  min-width: 0;
+  border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.03);
   display: flex;
   align-items: center;
-  padding: 10px;
-  gap: 8px;
+  padding: 4px;
+  gap: 5px;
   opacity: 0.4;
   transition: all 0.3s ease;
 }
@@ -453,13 +596,14 @@ body.resizing-panes * {
 }
 
 .char-avatar {
-  width: 32px;
-  height: 32px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: 0.68rem;
+  flex: 0 0 auto;
 }
 
 .char-avatar.star-avatar { background-color: var(--neon-cyan); color: #000; font-weight: bold; }
@@ -468,16 +612,60 @@ body.resizing-panes * {
 .char-hud-info {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .char-name {
-  font-size: 0.8rem;
+  font-size: 0.66rem;
   font-weight: bold;
+  white-space: nowrap;
 }
 
 .char-status {
-  font-size: 0.65rem;
+  font-size: 0.58rem;
   color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.compact-controls {
+  position: relative;
+  gap: 5px;
+  border-right: none;
+}
+
+.dashboard-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
+.music-track-label {
+  min-width: 0;
+  max-width: 82px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-muted);
+  font-size: 0.64rem;
+  font-family: var(--font-mono);
+}
+
+.game-top-controls {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 130;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(2, 6, 23, 0.42);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 /* Vector Arrow details */
@@ -571,13 +759,17 @@ body.resizing-panes * {
   pointer-events: none;
 }
 
+#guided-mode-hud.hidden {
+  display: none !important;
+}
+
 /* START SCREEN */
 #start-screen h1 {
   font-family: var(--font-retro);
-  font-size: 2.2rem;
+  font-size: 1.55rem;
   text-shadow: 0 0 20px var(--neon-cyan);
   color: var(--text-primary);
-  margin-bottom: 20px;
+  margin-bottom: 8px;
   letter-spacing: 2px;
   text-align: center;
   animation: bounce-title 2s infinite ease-in-out;
@@ -597,6 +789,42 @@ body.resizing-panes * {
   max-width: 750px;
 }
 
+.planet-map {
+  position: relative;
+  width: 92%;
+  max-width: 820px;
+  min-height: 230px;
+  display: block;
+  margin-top: 12px;
+  padding: 0;
+}
+
+.galaxy-map {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 18% 52%, rgba(74, 222, 128, 0.16), transparent 18%),
+    radial-gradient(circle at 50% 58%, rgba(249, 115, 22, 0.16), transparent 17%),
+    radial-gradient(circle at 78% 40%, rgba(236, 72, 153, 0.14), transparent 18%),
+    radial-gradient(circle at 35% 18%, rgba(56, 189, 248, 0.08), transparent 22%),
+    rgba(2, 6, 23, 0.34);
+  overflow: hidden;
+}
+
+.planet-route {
+  position: absolute;
+  inset: 16px;
+  height: auto;
+  background:
+    linear-gradient(152deg, transparent 11%, rgba(74, 222, 128, 0.28) 12%, transparent 13%),
+    linear-gradient(28deg, transparent 27%, rgba(56, 189, 248, 0.22) 28%, transparent 29%),
+    linear-gradient(143deg, transparent 48%, rgba(249, 115, 22, 0.24) 49%, transparent 50%),
+    linear-gradient(35deg, transparent 65%, rgba(167, 139, 250, 0.22) 66%, transparent 67%);
+  opacity: 0.8;
+  box-shadow: none;
+  pointer-events: none;
+}
+
 .level-button {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -611,9 +839,57 @@ body.resizing-panes * {
   color: var(--text-primary);
 }
 
+.planet-node {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  width: 102px;
+  min-height: 82px;
+  justify-content: center;
+  border-radius: 8px;
+  padding: 8px 6px;
+  gap: 4px;
+}
+
+.planet-node::before {
+  content: "";
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--btn-color);
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.45), transparent 28%),
+    color-mix(in srgb, var(--btn-color) 35%, rgba(15, 23, 42, 0.95));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--btn-color) 55%, transparent);
+}
+
+.planet-node[data-level="4"]::before {
+  width: 42px;
+  height: 26px;
+  border: 0;
+  border-radius: 18px 8px 20px 10px;
+  background:
+    radial-gradient(circle at 24% 42%, rgba(255, 255, 255, 0.9) 0 2px, transparent 3px),
+    radial-gradient(circle at 70% 32%, rgba(248, 187, 255, 0.95) 0 2px, transparent 3px),
+    radial-gradient(ellipse at 42% 52%, rgba(236, 72, 153, 0.86), transparent 54%),
+    radial-gradient(ellipse at 68% 48%, rgba(56, 189, 248, 0.62), transparent 48%),
+    linear-gradient(115deg, rgba(236, 72, 153, 0.22), rgba(167, 139, 250, 0.7), rgba(56, 189, 248, 0.2));
+  box-shadow:
+    0 0 18px rgba(236, 72, 153, 0.65),
+    0 0 28px rgba(56, 189, 248, 0.28);
+  clip-path: polygon(5% 48%, 18% 22%, 43% 6%, 68% 14%, 94% 38%, 86% 68%, 56% 92%, 24% 80%);
+  transform: rotate(-11deg);
+}
+
 .level-button:hover {
   background: rgba(255, 255, 255, 0.12);
   transform: scale(1.05);
+}
+
+.galaxy-map .level-button:hover {
+  transform: translate(-50%, -50%) scale(1.05);
 }
 
 .level-button.active-hover:hover {
@@ -621,22 +897,64 @@ body.resizing-panes * {
   box-shadow: 0 0 15px var(--btn-color);
 }
 
+.galaxy-map .planet-node.locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: grayscale(0.9);
+}
+
+.galaxy-map .planet-node.locked::before {
+  border-color: rgba(148, 163, 184, 0.45);
+  background:
+    radial-gradient(circle at 36% 30%, rgba(255, 255, 255, 0.24), transparent 28%),
+    rgba(51, 65, 85, 0.72);
+  box-shadow: 0 0 10px rgba(148, 163, 184, 0.18);
+}
+
+.galaxy-map .planet-node.locked::after {
+  content: "LOCKED";
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  color: var(--text-muted);
+  letter-spacing: 0.4px;
+}
+
+.galaxy-map .planet-node.locked:hover {
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: none;
+}
+
 .level-num {
   font-family: var(--font-retro);
-  font-size: 0.9rem;
+  font-size: 0.66rem;
 }
 
 .level-name {
-  font-size: 0.75rem;
+  font-size: 0.66rem;
   font-weight: bold;
   text-align: center;
 }
 
+.mission-name {
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text-primary);
+}
+
+.mission-meta {
+  font-size: 0.52rem;
+  line-height: 1.1;
+  text-align: center;
+  color: var(--text-muted);
+}
+
 .start-action-btn {
-  margin-top: 30px;
-  padding: 12px 30px;
+  margin-top: 10px;
+  padding: 8px 24px;
   font-family: var(--font-mono);
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   border-radius: 8px;
   border: 2px solid var(--neon-green);
   background: transparent;
@@ -1279,6 +1597,14 @@ body.resizing-panes * {
 .notebook-btn:hover {
   filter: brightness(1.1);
   box-shadow: 0 0 10px rgba(236, 72, 153, 0.3);
+}
+
+.notebook-btn.certificate-locked,
+.notebook-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  filter: none;
+  box-shadow: none;
 }
 
 .notebook-history {

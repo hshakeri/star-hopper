@@ -212,6 +212,9 @@ function updateNavigator(game) {
           window.Nav.orbitalMissionsCompleted.add(activeMission.id);
           window.Nav.logConsole(`MISSION ACCOMPLISHED: ${activeMission.title}!`, "success");
           renderNavigatorMissionsSolar();
+          if (typeof updateCertificateState === 'function') {
+            updateCertificateState();
+          }
           if (typeof SFX !== 'undefined' && typeof SFX.playSuccess === 'function') {
             SFX.playSuccess();
           }

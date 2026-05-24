@@ -6,7 +6,7 @@
   <title>Star Hopper - Physics & Coding Game</title>
   <meta name="description" content="A 2D platformer physics sandbox game for kids to learn programming constructs (loops, conditionals, assignments) and physics forces (gravity, friction, magnetism) by coding the level rules in real-time.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%2338bdf8'/%3E%3Cstop offset='100%25' stop-color='%23a855f7'/%3E%3C/linearGradient%3E%3Cfilter id='glow'%3E%3CfeGaussianBlur stdDeviation='1' result='blur'/%3E%3CfeMerge%3E%3CfeMergeNode in='blur'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='%230f172a'/%3E%3Cpath d='M 6,26 Q 16,22 18,14' stroke='%23e11d48' stroke-width='2' stroke-linecap='round' fill='none' opacity='0.8'/%3E%3Cpath d='M 8,24 Q 14,20 16,16' stroke='%23fb923c' stroke-width='1.5' stroke-linecap='round' fill='none' opacity='0.8'/%3E%3Cpath d='M 22,6 L 24,11 L 29,12 L 25,16 L 26,21 L 22,18 L 18,21 L 19,16 L 15,12 L 20,11 Z' fill='url(%23grad)' filter='url(%23glow)'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="style.css?v=dashboard-pause-resize-2">
+  <link rel="stylesheet" href="style.css?v=galaxy-overlay-log-2">
 </head>
 <body>
 
@@ -60,7 +60,84 @@
 
         <canvas id="game-canvas" width="720" height="448"></canvas>
 
-        <button id="canvas-pause-btn" class="canvas-pause-button" title="Pause simulation" onclick="toggleGamePause()">⏸</button>
+        <div id="game-top-controls" class="game-top-controls">
+          <span class="music-track-label" id="hud-music-track">Earth Base</span>
+          <button class="music-menu-button" id="music-menu-btn" title="Change Music">🎵</button>
+          <button class="mute-button" id="mute-btn" title="Toggle Sound">🔊</button>
+          <button class="pause-button" id="pause-btn" title="Pause simulation" onclick="toggleGamePause()">⏸</button>
+          <a href="https://www.buymeacoffee.com/hshakeri" target="_blank" class="coffee-button" title="Sponsor Open STEM Missions">❤️</a>
+          <div class="music-dropdown" id="music-dropdown">
+            <button class="music-dropdown-item" data-track="0">🌍 Earth Base <span class="track-active-indicator"></span></button>
+            <button class="music-dropdown-item" data-track="1">🌙 Moon Orbit <span class="track-active-indicator"></span></button>
+            <button class="music-dropdown-item" data-track="2">🪐 Jupiter Core <span class="track-active-indicator"></span></button>
+            <button class="music-dropdown-item" data-track="3">❄️ Glacies Ice <span class="track-active-indicator"></span></button>
+            <button class="music-dropdown-item" data-track="4">🧲 Mag Field <span class="track-active-indicator"></span></button>
+            <button class="music-dropdown-item" data-track="5">💧 Tears <span class="track-active-indicator"></span></button>
+          </div>
+        </div>
+
+        <div id="hud-row" class="minimal-dashboard">
+          <div class="hud-card compact-metric" id="card-gravity">
+            <span class="hud-card-title">Gravity</span>
+            <span class="hud-card-value" id="hud-gravity">9.8 m/s²</span>
+          </div>
+          <div class="hud-card compact-metric">
+            <span class="hud-card-title">Telemetry</span>
+            <span class="hud-card-value" id="hud-velocity">X: 0.0 | Y: 0.0</span>
+          </div>
+          <div class="hud-card compact-metric" id="card-friction">
+            <span class="hud-card-title">Friction</span>
+            <span class="hud-card-value" id="hud-friction">1.5</span>
+          </div>
+          <div class="hud-card compact-energy">
+            <div class="hud-card-title">
+              <span>Energy</span>
+              <span id="hud-energy-summary">KE 0 | PE 0</span>
+            </div>
+            <div class="energy-chart-container">
+              <div class="energy-bar-wrapper">
+                <span class="energy-label">KE</span>
+                <div class="energy-bar-slot">
+                  <div class="energy-bar-fill kinetic" id="bar-kinetic"></div>
+                </div>
+              </div>
+              <div class="energy-bar-wrapper">
+                <span class="energy-label">PE</span>
+                <div class="energy-bar-slot">
+                  <div class="energy-bar-fill potential" id="bar-potential"></div>
+                </div>
+              </div>
+              <div class="energy-bar-wrapper">
+                <span class="energy-label">TE</span>
+                <div class="energy-bar-slot">
+                  <div class="energy-bar-fill total" id="bar-total"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="hud-card compact-objectives">
+            <span class="hud-card-title">Objectives</span>
+            <span class="hud-card-value" id="hud-objectives">Tasks 0/0 | Stars 0/0</span>
+          </div>
+          <div class="hud-card compact-controls">
+            <div class="character-hud-cards">
+              <div class="char-hud-card active" id="char-card-star" title="Rover active">
+                <div class="char-avatar star-avatar">R</div>
+                <div class="char-hud-info">
+                  <span class="char-name">Rover</span>
+                  <span class="char-status">Glide</span>
+                </div>
+              </div>
+              <div class="char-hud-card" id="char-card-hopper" title="Hopper active">
+                <div class="char-avatar hopper-avatar">H</div>
+                <div class="char-hud-info">
+                  <span class="char-name">Hopper</span>
+                  <span class="char-status">Rocket</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <div id="pause-overlay" class="pause-overlay hidden">
           <div class="pause-title">PAUSED</div>
@@ -77,26 +154,52 @@
         <div id="start-screen" class="canvas-overlay">
           <h1>STAR HOPPER</h1>
           <p style="color: var(--text-muted); font-size: 0.95rem; margin-top:-10px;">A Physics & Coding Space Platformer</p>
-          <div class="level-grid">
-            <button class="level-button active-hover" data-level="0" style="--btn-color: var(--neon-green)">
+          <div class="planet-map galaxy-map" aria-label="Galaxy mission map">
+            <div class="planet-route" aria-hidden="true"></div>
+            <button class="level-button planet-node active-hover" data-level="0" style="--btn-color: var(--neon-green); --x: 13%; --y: 56%;">
               <span class="level-num">01</span>
               <span class="level-name">Earth</span>
+              <span class="mission-name">Hopper Build</span>
+              <span class="mission-meta">Tune + collect</span>
             </button>
-            <button class="level-button active-hover" data-level="1" style="--btn-color: var(--neon-cyan)">
+            <button class="level-button planet-node active-hover" data-level="1" style="--btn-color: var(--neon-cyan); --x: 31%; --y: 30%;">
               <span class="level-num">02</span>
               <span class="level-name">Moon</span>
+              <span class="mission-name">Spring Chain</span>
+              <span class="mission-meta">Loop + collect</span>
             </button>
-            <button class="level-button active-hover" data-level="2" style="--btn-color: var(--neon-orange)">
+            <button class="level-button planet-node active-hover" data-level="2" style="--btn-color: var(--neon-orange); --x: 49%; --y: 58%;">
               <span class="level-num">03</span>
               <span class="level-name">Jupiter</span>
+              <span class="mission-name">Rocket Escape</span>
+              <span class="mission-meta">Engineer + collect</span>
             </button>
-            <button class="level-button active-hover" data-level="3" style="--btn-color: var(--neon-purple)">
+            <button class="level-button planet-node active-hover" data-level="3" style="--btn-color: var(--neon-purple); --x: 66%; --y: 34%;">
               <span class="level-num">04</span>
               <span class="level-name">Glacies</span>
+              <span class="mission-name">Ice Grip</span>
+              <span class="mission-meta">Friction + collect</span>
             </button>
-            <button class="level-button active-hover" data-level="4" style="--btn-color: var(--neon-pink)">
+            <button class="level-button planet-node active-hover" data-level="4" style="--btn-color: var(--neon-pink); --x: 83%; --y: 56%;">
               <span class="level-num">05</span>
               <span class="level-name">Mag-Net</span>
+              <span class="mission-name">Mag Field</span>
+              <span class="mission-meta">Events + collect</span>
+            </button>
+            <button class="level-button planet-node locked" disabled style="--btn-color: #64748b; --x: 22%; --y: 82%;">
+              <span class="level-num">06</span>
+              <span class="level-name">Asteroid Forge</span>
+              <span class="mission-name">Locked</span>
+            </button>
+            <button class="level-button planet-node locked" disabled style="--btn-color: #64748b; --x: 56%; --y: 84%;">
+              <span class="level-num">07</span>
+              <span class="level-name">Dark Matter Lab</span>
+              <span class="mission-name">Locked</span>
+            </button>
+            <button class="level-button planet-node locked" disabled style="--btn-color: #64748b; --x: 75%; --y: 82%;">
+              <span class="level-num">08</span>
+              <span class="level-name">Quantum Gate</span>
+              <span class="mission-name">Locked</span>
             </button>
           </div>
           <button class="start-action-btn" onclick="Game.startLevel(0)">LAUNCH BASE MISSION</button>
@@ -115,7 +218,7 @@
         <!-- Game Over Rescue Screen -->
         <div id="gameover-screen" class="canvas-overlay hidden">
           <div class="overlay-title" style="color: var(--neon-pink); text-shadow: 0 0 15px var(--neon-pink);">CRITICAL FAILURE! 💥</div>
-          <div class="overlay-subtitle" style="text-align: center; max-width: 500px;">Star Hopper damage taken! Adjust physics constants (like lowering gravity or adding friction) to clear the obstacles.</div>
+          <div class="overlay-subtitle" style="text-align: center; max-width: 500px;">Rover/Hopper damage taken! Adjust physics constants (like lowering gravity or adding friction) to clear the obstacles.</div>
           <button class="overlay-btn" id="btn-restart">DEPLOY RESCUE POD</button>
         </div>
 
@@ -134,8 +237,9 @@
         <div class="code-deck">
           <!-- Tab Pane: Physics -->
           <div id="pane-physics" class="code-pane">
-            <div class="code-card category-math" data-code="gravity = 0.3" title="Set gravity to low Moon-like floatiness.">
-              <span class="variable">gravity</span> = <span class="keyword">0.3</span>
+            <div class="deck-group-header">Environment</div>
+            <div class="code-card category-math" data-code="gravity = 0.45" title="Starter gravity setting. Edit lower when a wall needs longer hang time.">
+              <span class="variable">gravity</span> = <span class="keyword">0.45</span>
             </div>
             <div class="code-card category-math" data-code="gravity = 1.6" title="Reset gravity to heavy planet-side normal force.">
               <span class="variable">gravity</span> = <span class="keyword">1.6</span>
@@ -146,11 +250,22 @@
             <div class="code-card category-math" data-code="friction = 10.0" title="Brake instantly on slippery ground.">
               <span class="variable">friction</span> = <span class="keyword">10.0</span>
             </div>
-            <div class="code-card category-math" data-code="player.jump_power = 20" title="Make player jump twice as high.">
-              <span class="variable">player.jump_power</span> = <span class="keyword">20</span>
+            <div class="deck-group-header">Mobility</div>
+            <div class="code-card category-math" data-code="player.jump_power = 14" title="Starter jump impulse. Edit the number upward for taller arcs.">
+              <span class="variable">player.jump_power</span> = <span class="keyword">14</span>
             </div>
-            <div class="code-card category-math" data-code="hopper.mass = 0.8" title="Make Hopper lightweight.">
-              <span class="variable">hopper.mass</span> = <span class="keyword">0.8</span>
+            <div class="code-card category-math" data-code="player.speed = 4.4" title="Starter run speed. Edit the number for longer horizontal reach.">
+              <span class="variable">player.speed</span> = <span class="keyword">4.4</span>
+            </div>
+            <div class="deck-group-header">Hopper Upgrades</div>
+            <div class="code-card category-math" data-code="hopper.mass = 1.6" title="Starter Hopper mass. Edit lower to reduce gravity load.">
+              <span class="variable">hopper.mass</span> = <span class="keyword">1.6</span>
+            </div>
+            <div class="code-card category-math" data-code="hopper.rocket_power = 55" title="Starter rocket thrust. Edit higher for Jupiter escapes.">
+              <span class="variable">hopper.rocket_power</span> = <span class="keyword">55</span>
+            </div>
+            <div class="code-card category-math" data-code="hopper.spikes = 1" title="Deploy Hopper grip spikes for icy terrain.">
+              <span class="variable">hopper.spikes</span> = <span class="keyword">1</span>
             </div>
           </div>
 
@@ -198,126 +313,6 @@
         </div>
       </div>
 
-      <!-- Real-Time Telemetry HUD -->
-      <div id="hud-row">
-        
-        <!-- Gravity Gauge -->
-        <div class="hud-card glass-panel" id="card-gravity">
-          <div class="hud-card-title">
-            <span>Gravity Pull</span>
-            <span style="font-family: var(--font-mono); font-size: 0.65rem;">(g)</span>
-          </div>
-          <div class="hud-card-value" id="hud-gravity">9.8 m/s²</div>
-          <div class="vector-legend">
-            <div class="legend-item">
-              <div class="legend-color" style="background-color: var(--neon-green);"></div>
-              <span>Gravity Force Vector</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Velocity Card -->
-        <div class="hud-card glass-panel">
-          <div class="hud-card-title">
-            <span>Velocity telemetry</span>
-            <span style="font-family: var(--font-mono); font-size: 0.65rem;">(v)</span>
-          </div>
-          <div class="hud-card-value" id="hud-velocity" style="font-size: 1.15rem; color: var(--neon-cyan);">X: 0.0 | Y: 0.0</div>
-          <div class="vector-legend">
-            <div class="legend-item">
-              <div class="legend-color" style="background-color: var(--neon-cyan);"></div>
-              <span>Velocity Speed Vector</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Friction Card -->
-        <div class="hud-card glass-panel" id="card-friction">
-          <div class="hud-card-title">
-            <span>Boot Friction</span>
-            <span style="font-family: var(--font-mono); font-size: 0.65rem;">(μ)</span>
-          </div>
-          <div class="hud-card-value" id="hud-friction">1.5</div>
-          <div class="vector-legend">
-            <div class="legend-item">
-              <div class="legend-color" style="background-color: var(--neon-pink);"></div>
-              <span>Magnet Force (Hopper)</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Energy Conversion Chart -->
-        <div class="hud-card glass-panel">
-          <div class="hud-card-title">
-            <span>Energy Trades</span>
-            <span style="font-family: var(--font-mono); font-size: 0.65rem;">(Joules)</span>
-          </div>
-          <div class="energy-chart-container">
-            <div class="energy-bar-wrapper">
-              <div class="energy-bar-slot">
-                <div class="energy-bar-fill kinetic" id="bar-kinetic"></div>
-              </div>
-              <span class="energy-label">KE</span>
-            </div>
-            <div class="energy-bar-wrapper">
-              <div class="energy-bar-slot">
-                <div class="energy-bar-fill potential" id="bar-potential"></div>
-              </div>
-              <span class="energy-label">PE</span>
-            </div>
-            <div class="energy-bar-wrapper">
-              <div class="energy-bar-slot">
-                <div class="energy-bar-fill total" id="bar-total"></div>
-              </div>
-              <span class="energy-label">TOTAL</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Active Character Controller Panel -->
-        <div class="hud-card glass-panel" style="flex: 1.2; position: relative;">
-          <div class="hud-card-title">
-            <span>Team Status</span>
-            <div style="display: flex; align-items: center; gap: 8px; position: relative;">
-              <button class="music-menu-button" id="music-menu-btn" title="Change Music">🎵</button>
-              <button class="mute-button" id="mute-btn" title="Toggle Sound">🔊</button>
-              <button class="pause-button" id="pause-btn" title="Pause simulation" onclick="toggleGamePause()">⏸</button>
-              <a href="https://www.buymeacoffee.com/hshakeri" target="_blank" class="coffee-button" title="Sponsor Open STEM Missions">❤️</a>
-              
-              <!-- Music Dropdown List -->
-              <div class="music-dropdown" id="music-dropdown">
-                <button class="music-dropdown-item" data-track="0">🌍 Earth Base <span class="track-active-indicator"></span></button>
-                <button class="music-dropdown-item" data-track="1">🌙 Moon Orbit <span class="track-active-indicator"></span></button>
-                <button class="music-dropdown-item" data-track="2">🪐 Jupiter Core <span class="track-active-indicator"></span></button>
-                <button class="music-dropdown-item" data-track="3">❄️ Glacies Ice <span class="track-active-indicator"></span></button>
-                <button class="music-dropdown-item" data-track="4">🧲 Magnet Field <span class="track-active-indicator"></span></button>
-                <button class="music-dropdown-item" data-track="5">💧 Tears (Jazz) <span class="track-active-indicator"></span></button>
-              </div>
-            </div>
-          </div>
-          
-          <div class="character-hud-cards">
-            <!-- Star Card -->
-            <div class="char-hud-card active" id="char-card-star">
-              <div class="char-avatar star-avatar">S</div>
-              <div class="char-hud-info">
-                <span class="char-name" style="color: var(--neon-cyan);">Star</span>
-                <span class="char-status">Light, Glide</span>
-              </div>
-            </div>
-            <!-- Hopper Card -->
-            <div class="char-hud-card" id="char-card-hopper">
-              <div class="char-avatar hopper-avatar">H</div>
-              <div class="char-hud-info">
-                <span class="char-name" style="color: var(--neon-orange);">Hopper</span>
-                <span class="char-status">Heavy, Rocket</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
     </div>
 
     <div id="main-pane-resizer" class="pane-resizer vertical" title="Drag to resize the game and dashboard panes"></div>
@@ -328,9 +323,9 @@
       <!-- Main Mode Switch Tabs -->
       <div class="main-mode-tabs">
         <button class="mode-tab active" id="mode-btn-terminal" onclick="switchMainMode('terminal')">💻 Code</button>
-        <button class="mode-tab" id="mode-btn-notebook" onclick="switchMainMode('notebook')">📓 Notebook</button>
-        <button class="mode-tab" id="mode-btn-navigator" onclick="switchMainMode('navigator')">🚀 Navigator</button>
-        <button class="mode-tab" id="mode-btn-parents" onclick="switchMainMode('parents')">👪 Guides</button>
+        <button class="mode-tab" id="mode-btn-notebook" onclick="switchMainMode('notebook')">📓 Log</button>
+        <button class="mode-tab" id="mode-btn-navigator" onclick="switchMainMode('navigator')">🚀 Nav</button>
+        <button class="mode-tab" id="mode-btn-parents" onclick="switchMainMode('parents')">👪 For Parent</button>
       </div>
 
       <!-- Mode Pane 1: Coding Terminal -->
@@ -341,6 +336,11 @@
           <div class="blink-dot"></div>
         </div>
         <div class="terminal-sub-header" id="header-planet-sub">// Coordinate: Standard Gravity & Trajectories</div>
+        <div class="mode-save-row">
+          <button class="notebook-btn mini-save-btn" onclick="switchMainMode('notebook')">Open Log Save/Load</button>
+          <button class="notebook-btn mini-save-btn" onclick="exportLocalSave()">Export</button>
+          <button class="notebook-btn mini-save-btn" onclick="importLocalSave()">Load</button>
+        </div>
 
         <!-- Active Mission Checklist Box -->
         <div id="mission-panel" class="mission-panel">
@@ -359,17 +359,25 @@
         </div>
 
         <!-- Console logs -->
-        <div class="console-area" style="flex-grow: 1; display: flex; flex-direction: column; min-height: 120px; margin-top: 10px;">
+        <div class="console-area bash-shell" style="flex-grow: 1; display: flex; flex-direction: column; min-height: 120px; margin-top: 10px;">
+          <div class="bash-shell-bar">
+            <div class="bash-window-dots" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <span class="bash-shell-title">bash - star-hopper mission sandbox</span>
+          </div>
           <div class="console-history" id="console-history" style="flex-grow: 1; overflow-y: auto;">
-            <div class="console-line info">--- Star Hopper Space Terminal OS v2.0 ---</div>
-            <div class="console-line info">Type commands to change level physics, write loops, and spawn items.</div>
-            <div class="console-line info">Click Code Cards below to auto-type variables and actions!</div>
+            <div class="console-line info">$ source /missions/current_planet.env</div>
+            <div class="console-line info">bash sandbox ready: tune physics, write loops, and spawn tools.</div>
+            <div class="console-line info">Click Code Cards below to stage commands at the prompt.</div>
           </div>
 
           <!-- Interactive Typing Row -->
           <div class="console-input-row">
-            <span class="console-prompt">hopper&gt;</span>
-            <input type="text" id="console-input" class="console-input" placeholder="Type command here..." autofocus autocomplete="off" spellcheck="false">
+            <span class="console-prompt">cadet@star-hopper:~$</span>
+            <input type="text" id="console-input" class="console-input" placeholder="Type physics command..." autofocus autocomplete="off" spellcheck="false">
             <!-- Autocomplete Suggestions List Overlay -->
             <div id="autocomplete-box" class="autocomplete-box" style="display: none;"></div>
           </div>
@@ -382,13 +390,13 @@
         <div class="notebook-container">
           <div class="notebook-header">
             <span>📓</span>
-            <h2>Space Scientist Journal</h2>
+            <h2>Mission Log</h2>
           </div>
 
           <!-- GitHub Gist Cloud Sync -->
           <div class="notebook-prompt-box" id="gist-sync-card" style="background: rgba(167, 139, 250, 0.05); border-color: rgba(167, 139, 250, 0.2); margin-bottom: 12px; padding: 10px; border-radius: 8px;">
             <div class="notebook-prompt-title" style="color: var(--neon-purple); display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <span>☁️ Cloud & Local Save Manager</span>
+              <span>☁️ Shared Save/Load Hub</span>
               <span id="sync-status-badge" class="badge-disconnected" style="font-size: 0.65rem; padding: 2px 6px; border-radius: 4px;">Disconnected</span>
             </div>
             
@@ -466,7 +474,7 @@
           <div class="notebook-prompt-box" id="notebook-prompt-reflection">
             <div class="notebook-prompt-title">✍️ Post-Mission reflection</div>
             <div id="notebook-prompt-question" style="font-size: 0.8rem; margin-bottom: 5px; color: var(--text-primary);">What happens when you reduce gravity? Did you observe your trajectory extend?</div>
-            <textarea id="notebook-user-response" class="notebook-textarea" placeholder="I think Star travels in a wider curve because..."></textarea>
+            <textarea id="notebook-user-response" class="notebook-textarea" placeholder="I think Rover travels in a wider curve because..."></textarea>
             <button class="notebook-btn" onclick="saveNotebookReflection()">Save Entry</button>
           </div>
 
@@ -477,7 +485,7 @@
           </div>
 
           <!-- Print button -->
-          <button class="notebook-btn" style="background: var(--neon-cyan); color: #030712; width: 100%; font-size: 0.8rem; height: 36px; margin-top: 10px;" onclick="printNotebook()">🖨️ Print Space Scientist Certificate</button>
+          <button id="certificate-btn" class="notebook-btn certificate-locked" style="background: var(--neon-cyan); color: #030712; width: 100%; font-size: 0.8rem; height: 36px; margin-top: 10px;" onclick="printNotebook()" disabled>🔒 Scientist Certificate Locked</button>
         </div>
       </div>
 
@@ -493,6 +501,11 @@
               <option value="classic">Classic Trainer</option>
               <option value="solar" selected>Solar Simulator</option>
             </select>
+          </div>
+          <div class="mode-save-row navigator-save-row">
+            <button class="notebook-btn mini-save-btn" onclick="switchMainMode('notebook')">Open Log Save/Load</button>
+            <button class="notebook-btn mini-save-btn" onclick="exportLocalSave()">Export</button>
+            <button class="notebook-btn mini-save-btn" onclick="importLocalSave()">Load</button>
           </div>
 
           <!-- Objective -->
@@ -566,7 +579,7 @@
             <p>1. <strong>Observe:</strong> "What is happening before writing any code?"</p>
             <p>2. <strong>Predict:</strong> "If we make gravity 0.1, what will change in the green lines?"</p>
             <p>3. <strong>Code:</strong> "Type the command and see if the syntax is correct."</p>
-            <p>4. <strong>Reflect:</strong> "Why did Star stay in the air so long?"</p>
+            <p>4. <strong>Reflect:</strong> "Why did Rover stay in the air so long?"</p>
           </div>
 
           <div class="guide-section-title">🔒 Safety & Privacy Guarantee</div>
@@ -591,15 +604,15 @@
   </div>
 
   <!-- Import JS Modules sequentially -->
-  <script src="missions.js"></script>
-  <script src="planets.js"></script>
+  <script src="missions.js?v=galaxy-overlay-log-2"></script>
+  <script src="planets.js?v=galaxy-overlay-log-2"></script>
   <script src="audio.js"></script>
-  <script src="interpreter.js"></script>
-  <script src="entities.js"></script>
+  <script src="interpreter.js?v=galaxy-overlay-log-2"></script>
+  <script src="entities.js?v=galaxy-overlay-log-2"></script>
   <script src="physics.js"></script>
-  <script src="ui.js?v=dashboard-pause-resize-2"></script>
-  <script src="game.js?v=dashboard-pause-resize-2"></script>
-  <script src="notebook.js"></script>
+  <script src="ui.js?v=galaxy-overlay-log-2"></script>
+  <script src="game.js?v=galaxy-overlay-log-2"></script>
+  <script src="notebook.js?v=galaxy-overlay-log-2"></script>
   <script src="navigator-classic.js"></script>
   <script src="nav-core.js"></script>
   <script src="nav-bodies.js"></script>
@@ -608,9 +621,9 @@
   <script src="nav-transfer.js"></script>
   <script src="nav-renderer.js"></script>
   <script src="nav-missions.js"></script>
-  <script src="navigator.js"></script>
+  <script src="navigator.js?v=galaxy-overlay-log-2"></script>
   <script src="github-sync.js"></script>
-  <script src="guided-mode.js"></script>
+  <script src="guided-mode.js?v=galaxy-overlay-log-2"></script>
 
   <!-- Space Scientist Printable Certificate (Only displayed on print trigger) -->
   <div id="print-area-certificate">
@@ -646,7 +659,7 @@
     </ul>
     <div class="print-section-title">💬 The 15-Minute Coaching Routine</div>
     <div class="print-box">
-      <p><strong>1. Observe:</strong> "What is blocking Star/Hopper right now? Why can't they jump that high?"</p>
+      <p><strong>1. Observe:</strong> "What is blocking Rover/Hopper right now? Why can't they jump that high?"</p>
       <p><strong>2. Predict:</strong> "If we cut gravity in half, what do you think will happen to our jumps?"</p>
       <p><strong>3. Code:</strong> "Type the command. Did you spell 'gravity' right?"</p>
       <p><strong>4. Reflect:</strong> "Look at the telemetry. Did the jump match your prediction?"</p>
@@ -676,7 +689,7 @@
     <div class="print-section-title">📝 Assessment Questions</div>
     <ol class="print-list">
       <li>Where in the jump is Potential Energy (PE) highest? Where is Kinetic Energy (KE) highest?</li>
-      <li>Why does the heavy character Hopper require more force than Star to jump the same height?</li>
+      <li>Why does the heavy character Hopper require more force than Rover to jump the same height?</li>
       <li>What happens to a sliding crate if friction is set to zero?</li>
     </ol>
   </div>

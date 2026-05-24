@@ -16,27 +16,31 @@ const PLANETS = [
       gravity: 0.6,
       friction: 0.85,
       airResistance: 0.99,
-      jumpPower: 11,
+      jumpPower: 10,
       speed: 4,
       bounceForce: 12
     },
     
     tutorial: [
       { trigger: "start", text: "Welcome to Star Hopper, cadet! I am Vector, your physics robot helper. Earth has standard gravity. Jump with SPACE or Up Arrow, and walk with Left/Right Arrow keys." },
-      { trigger: "wall", text: "Oh no! That wall is too high to jump! Open the terminal on the right and type: gravity = 0.2 to lower gravity, or jump_power = 22 to boost your legs!" },
-      { trigger: "swap", text: "Press 'C' or 'Shift' to swap between Star (light, high glide) and Hopper (heavy, rocket boosters). Star can float over hazards!" }
+      { trigger: "wall", text: "That wall is now an engineering gate. Tune gravity, player.jump_power, hopper.mass, and player.speed, then swap to Hopper to test the design." },
+      { trigger: "swap", text: "Press 'C' or 'Shift' to swap between Rover (light, high glide) and Hopper (heavy, rocket boosters). Hopper needs coded upgrades to clear tougher routes." }
     ],
 
     missions: [
       {
         id: "earth-gravity",
-        prompt: "Set gravity to 0.2 to glide further!",
-        validate: (game) => Compiler.env.gravity !== null && Compiler.env.gravity <= 0.25
+        prompt: "Lower gravity to 0.35 or below before attempting the wall.",
+        validate: (game) => Compiler.env.gravity !== null && Compiler.env.gravity <= 0.35
       },
       {
         id: "earth-jump",
-        prompt: "Boost jump_power to at least 22 to clear the high wall!",
-        validate: (game) => game.player.jumpPower >= 21
+        prompt: "Engineer Hopper: jump_power >= 17, hopper.mass <= 1.2, speed >= 4.8.",
+        validate: (game) => game.player.charType === 'hopper'
+          && game.player.jumpPower >= 17
+          && game.hopperMass <= 1.2
+          && Compiler.env.speed !== null
+          && Compiler.env.speed >= 4.8
       }
     ],
     
@@ -138,8 +142,12 @@ const PLANETS = [
     missions: [
       {
         id: "jupiter-thrust",
-        prompt: "Boost Hopper's thrusters (hopper.rocket_power = 75)!",
-        validate: (game) => game.hopper.rocketPower >= 65
+        prompt: "Engineer Hopper for Jupiter: hopper.rocket_power >= 70, hopper.mass <= 1.4, speed >= 4.5.",
+        validate: (game) => game.player.charType === 'hopper'
+          && game.player.rocketPower >= 70
+          && game.hopperMass <= 1.4
+          && Compiler.env.speed !== null
+          && Compiler.env.speed >= 4.5
       },
       {
         id: "jupiter-loop-boxes",
@@ -184,7 +192,7 @@ const PLANETS = [
     },
     
     tutorial: [
-      { trigger: "start", text: "Brrr! This ice comet has near zero friction. Star will slide forever because of inertia (Newton's 1st Law)!" },
+      { trigger: "start", text: "Brrr! This ice comet has near zero friction. Rover will slide forever because of inertia (Newton's 1st Law)!" },
       { trigger: "slippery", text: "You can override boot friction by programming spiked grips. Type: friction = 0.85 in the terminal to stop sliding instantly!" },
       { trigger: "loops", text: "Need blocks to climb up? Run a repeat loop to spawn a stack: repeat 3 { spawn_box() }" }
     ],
@@ -197,7 +205,7 @@ const PLANETS = [
       },
       {
         id: "glacies-ice-if",
-        prompt: "Write an 'if' rule to make Star say 'slippery!' when touching ice (if player.touching('ice'):)",
+        prompt: "Write an 'if' rule to make Rover say 'slippery!' when touching ice (if player.touching('ice'):)",
         validate: (game) => Compiler.activeRules.some(r => r.target === 'player.touching' && r.eventArgs[0] && r.eventArgs[0].value === 'ice')
       }
     ],
