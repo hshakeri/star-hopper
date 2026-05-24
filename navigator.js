@@ -247,6 +247,14 @@ function drawNavigator(game) {
   }
 }
 
+function getNavigatorCanvasPoint(canvas, clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: (clientX - rect.left) * (canvas.width / rect.width),
+    y: (clientY - rect.top) * (canvas.height / rect.height)
+  };
+}
+
 // Hook Keyboard console inputs and zoom wheel
 document.addEventListener("DOMContentLoaded", () => {
   const navInput = document.getElementById("navigator-console-input");
@@ -262,13 +270,50 @@ document.addEventListener("DOMContentLoaded", () => {
   // Scroll wheel zoom for Solar Simulator canvas
   const canvas = document.getElementById("game-canvas");
   if (canvas) {
+    let isDraggingNavigator = false;
+    let lastDragPoint = null;
+
     canvas.addEventListener("wheel", (e) => {
       if (window.navigatorModeActive && window.navigatorMode === 'solar') {
         e.preventDefault();
         const zoomFactor = e.deltaY < 0 ? 1.05 : 0.95;
-        window.Nav.SU_TO_PX = Math.max(50, Math.min(300, window.Nav.SU_TO_PX * zoomFactor));
+        const anchor = getNavigatorCanvasPoint(canvas, e.clientX, e.clientY);
+        window.Nav.setZoom(window.Nav.SU_TO_PX * zoomFactor, anchor, canvas);
       }
     }, { passive: false });
+
+    canvas.addEventListener("pointerdown", (e) => {
+      if (!window.navigatorModeActive || window.navigatorMode !== 'solar' || e.button !== 0) return;
+      isDraggingNavigator = true;
+      lastDragPoint = getNavigatorCanvasPoint(canvas, e.clientX, e.clientY);
+      canvas.style.cursor = "grabbing";
+      if (canvas.setPointerCapture) {
+        canvas.setPointerCapture(e.pointerId);
+      }
+    });
+
+    canvas.addEventListener("pointermove", (e) => {
+      if (!isDraggingNavigator || !lastDragPoint) return;
+      e.preventDefault();
+      const point = getNavigatorCanvasPoint(canvas, e.clientX, e.clientY);
+      window.Nav.viewOffsetX += point.x - lastDragPoint.x;
+      window.Nav.viewOffsetY += point.y - lastDragPoint.y;
+      lastDragPoint = point;
+    });
+
+    window.addEventListener("pointerup", (e) => {
+      if (!isDraggingNavigator) return;
+      isDraggingNavigator = false;
+      lastDragPoint = null;
+      canvas.style.cursor = "";
+      if (canvas.releasePointerCapture) {
+        try {
+          canvas.releasePointerCapture(e.pointerId);
+        } catch (err) {
+          // Pointer capture may already be released by the browser.
+        }
+      }
+    });
   }
 });
 
@@ -277,6 +322,8 @@ document.addEventListener("DOMContentLoaded", () => {
  */
 function zoomNavigator(factor) {
   if (window.Nav) {
-    window.Nav.SU_TO_PX = Math.max(50, Math.min(300, window.Nav.SU_TO_PX * factor));
+    const canvas = document.getElementById("game-canvas");
+    const anchor = canvas ? { x: canvas.width / 2, y: canvas.height / 2 } : null;
+    window.Nav.setZoom(window.Nav.SU_TO_PX * factor, anchor, canvas);
   }
 }

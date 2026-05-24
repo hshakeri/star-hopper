@@ -343,6 +343,42 @@ function runSolarTests() {
   } catch (err) {
     renderTestResult("solar-suite", "Console Command Queue parser and sequence scheduler", false, err.message);
   }
+
+  // Test 18: Solar mission starts in a stable local Earth parking orbit
+  try {
+    Nav.Missions[0].setup();
+    const earthState = Nav.bodyStateAt(Nav.BODIES.EARTH, 0);
+    const relDistance = Nav.Vector.distance(Nav.ship, earthState);
+    const relSpeed = Nav.Vector.distance(
+      { x: Nav.ship.vx, y: Nav.ship.vy },
+      { x: earthState.vx, y: earthState.vy }
+    );
+
+    assertEquals(true, relDistance < Nav.SOI_RADII.earth, "Ship should start inside Earth's SOI");
+    assertEquals(true, relSpeed < 0.01, "Parking-orbit speed should match scaled solar units");
+    renderTestResult("solar-suite", "Solar setup: Earth parking orbit uses scaled velocity", true);
+  } catch (err) {
+    renderTestResult("solar-suite", "Solar setup: Earth parking orbit uses scaled velocity", false, err.message);
+  }
+
+  // Test 19: Navigator zoom preserves the world point under the cursor
+  try {
+    const canvas = { width: 800, height: 500 };
+    const anchor = { x: 300, y: 190 };
+    Nav.SU_TO_PX = 150;
+    Nav.viewOffsetX = 35;
+    Nav.viewOffsetY = -20;
+
+    const before = Nav.screenToWorld(anchor, canvas);
+    Nav.setZoom(210, anchor, canvas);
+    const after = Nav.screenToWorld(anchor, canvas);
+
+    assertClose(before.x, after.x, 0.0001, "Zoom should keep anchored world X fixed");
+    assertClose(before.y, after.y, 0.0001, "Zoom should keep anchored world Y fixed");
+    renderTestResult("solar-suite", "Navigator viewport: anchored zoom keeps frame stable", true);
+  } catch (err) {
+    renderTestResult("solar-suite", "Navigator viewport: anchored zoom keeps frame stable", false, err.message);
+  }
 }
 
 // Main execution entry point

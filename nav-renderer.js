@@ -132,6 +132,9 @@ window.Nav = window.Nav || {};
       py = nextY;
 
       // Add path point
+      if (!Number.isFinite(px) || !Number.isFinite(py) || !Number.isFinite(pvx) || !Number.isFinite(pvy)) {
+        break;
+      }
       points.push({ x: px, y: py });
 
       // Check if predicted position collides with Sun or planets
@@ -163,18 +166,21 @@ window.Nav = window.Nav || {};
     ctx.fillStyle = "#090d16";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Center coordinates
-    const cx = canvas.width / 2;
-    const cy = canvas.height / 2;
+    // Center coordinates include the user-panned solar viewport offset.
+    const sunScreen = Nav.worldToScreen({ x: 0, y: 0 }, canvas);
+    const cx = sunScreen.x;
+    const cy = sunScreen.y;
 
     // Draw coordinate grids
     ctx.strokeStyle = "rgba(56, 189, 248, 0.03)";
     ctx.lineWidth = 1;
     const gridSpacing = 50;
-    for (let x = 0; x < canvas.width; x += gridSpacing) {
+    const gridStartX = ((cx % gridSpacing) + gridSpacing) % gridSpacing;
+    const gridStartY = ((cy % gridSpacing) + gridSpacing) % gridSpacing;
+    for (let x = gridStartX; x < canvas.width; x += gridSpacing) {
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
     }
-    for (let y = 0; y < canvas.height; y += gridSpacing) {
+    for (let y = gridStartY; y < canvas.height; y += gridSpacing) {
       ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
     }
 
@@ -204,10 +210,12 @@ window.Nav = window.Nav || {};
         const eState = Nav.bodyStateAt(earthBody, t);
         const dState = Nav.bodyStateAt(destBody, t);
 
-        const ex = cx + Nav.suToPx(eState.x);
-        const ey = cy + Nav.suToPx(eState.y);
-        const dx = cx + Nav.suToPx(dState.x);
-        const dy = cy + Nav.suToPx(dState.y);
+        const earthScreen = Nav.worldToScreen(eState, canvas);
+        const destScreen = Nav.worldToScreen(dState, canvas);
+        const ex = earthScreen.x;
+        const ey = earthScreen.y;
+        const dx = destScreen.x;
+        const dy = destScreen.y;
 
         // Draw line Sun to Earth
         ctx.beginPath();
@@ -241,8 +249,9 @@ window.Nav = window.Nav || {};
     for (const key in Nav.BODIES) {
       const body = Nav.BODIES[key];
       const state = Nav.bodyStateAt(body, t);
-      const bx = cx + Nav.suToPx(state.x);
-      const by = cy + Nav.suToPx(state.y);
+      const bodyScreen = Nav.worldToScreen(state, canvas);
+      const bx = bodyScreen.x;
+      const by = bodyScreen.y;
       const rPx = Nav.suToPx(body.radius);
 
       // Draw Sphere of Influence boundary ring (excluding Sun)
@@ -302,13 +311,15 @@ window.Nav = window.Nav || {};
 
     // 5. Draw Spacecraft & Path Telemetry
     if (Nav.ship) {
-      const sx = cx + Nav.suToPx(Nav.ship.x);
-      const sy = cy + Nav.suToPx(Nav.ship.y);
+      const shipScreen = Nav.worldToScreen(Nav.ship, canvas);
+      const sx = shipScreen.x;
+      const sy = shipScreen.y;
 
       // Record trail coordinates in real-time
-      if (Math.round(Nav.ship.timeElapsed * 10) % 3 === 0) {
+      if (Nav.ship.lastTrailTime === null || Nav.ship.timeElapsed - Nav.ship.lastTrailTime >= 0.5) {
         Nav.ship.trail.push({ x: Nav.ship.x, y: Nav.ship.y });
         if (Nav.ship.trail.length > 150) Nav.ship.trail.shift();
+        Nav.ship.lastTrailTime = Nav.ship.timeElapsed;
       }
 
       // Draw Spacecraft flight path history
@@ -317,8 +328,10 @@ window.Nav = window.Nav || {};
       ctx.lineWidth = 2;
       for (let i = 0; i < Nav.ship.trail.length; i++) {
         const pt = Nav.ship.trail[i];
-        const tx = cx + Nav.suToPx(pt.x);
-        const ty = cy + Nav.suToPx(pt.y);
+        if (!Number.isFinite(pt.x) || !Number.isFinite(pt.y)) continue;
+        const trailScreen = Nav.worldToScreen(pt, canvas);
+        const tx = trailScreen.x;
+        const ty = trailScreen.y;
         if (i === 0) ctx.moveTo(tx, ty);
         else ctx.lineTo(tx, ty);
       }
@@ -332,8 +345,10 @@ window.Nav = window.Nav || {};
       ctx.setLineDash([3, 4]);
       for (let i = 0; i < predPath.length; i++) {
         const pt = predPath[i];
-        const px = cx + Nav.suToPx(pt.x);
-        const py = cy + Nav.suToPx(pt.y);
+        if (!Number.isFinite(pt.x) || !Number.isFinite(pt.y)) continue;
+        const predScreen = Nav.worldToScreen(pt, canvas);
+        const px = predScreen.x;
+        const py = predScreen.y;
         if (i === 0) ctx.moveTo(px, py);
         else ctx.lineTo(px, py);
       }
@@ -361,7 +376,8 @@ window.Nav = window.Nav || {};
       Nav.exhaustParticles.forEach(p => {
         ctx.fillStyle = "#ef4444";
         ctx.globalAlpha = p.life;
-        ctx.fillRect(cx + Nav.suToPx(p.x), cy + Nav.suToPx(p.y), 2.5, 2.5);
+        const particleScreen = Nav.worldToScreen(p, canvas);
+        ctx.fillRect(particleScreen.x, particleScreen.y, 2.5, 2.5);
       });
       ctx.globalAlpha = 1.0;
 

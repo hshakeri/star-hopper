@@ -7,6 +7,22 @@ window.Nav = window.Nav || {};
   Nav.activeMissionIndex = 0;
   Nav.orbitalMissionsCompleted = new Set();
 
+  function getLaunchStateNearBody(body, offsetX, offsetY) {
+    const bodyState = Nav.bodyStateAt(body, 0);
+    const offsetDistance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
+    const localMu = Nav.G * body.mass;
+    const localSpeed = offsetDistance > 0 ? Math.sqrt(localMu / offsetDistance) : 0;
+    const tangentX = offsetDistance > 0 ? -offsetY / offsetDistance : 0;
+    const tangentY = offsetDistance > 0 ? offsetX / offsetDistance : 1;
+
+    return {
+      x: bodyState.x + offsetX,
+      y: bodyState.y + offsetY,
+      vx: bodyState.vx + tangentX * localSpeed,
+      vy: bodyState.vy + tangentY * localSpeed
+    };
+  }
+
   Nav.Missions = [
     {
       id: "sol-hohmann-mars",
@@ -18,21 +34,14 @@ window.Nav = window.Nav || {};
       starterCode: "wait(35); point_at('mars'); thrust(3.5, 6.0); wait(65); point_at('sun'); thrust(2.0, 4.0); wait(40);",
       setup: function() {
         const earth = Nav.BODIES.EARTH;
-        const eState = Nav.bodyStateAt(earth, 0);
-        // Circular orbit velocity around the Sun
-        const r = earth.orbitRadius;
-        const vCirc = Math.sqrt((Nav.G * Nav.BODIES.SUN.mass) / r);
-        
-        // Start in orbit around Earth (small offset and orbital velocity relative to Sun)
-        const vx = -vCirc * Math.sin(earth.initialAngle);
-        const vy = vCirc * Math.cos(earth.initialAngle);
+        const launch = getLaunchStateNearBody(earth, 0.12, 0.12);
         
         Nav.initShip(
-          eState.x + 0.12, 
-          eState.y + 0.12, 
-          vx + 0.08, 
-          vy + 0.08, 
-          Math.atan2(vy, vx), 
+          launch.x,
+          launch.y,
+          launch.vx,
+          launch.vy,
+          Math.atan2(launch.vy, launch.vx),
           1.0,  // dryMass
           2.0,  // fuelMass
           0.04  // burnRate (fuel consumed per day of full thrust)
@@ -59,18 +68,14 @@ window.Nav = window.Nav || {};
       starterCode: "wait(12); point_at('jupiter'); thrust(4.5, 8.0); wait(150);",
       setup: function() {
         const earth = Nav.BODIES.EARTH;
-        const eState = Nav.bodyStateAt(earth, 0);
-        const r = earth.orbitRadius;
-        const vCirc = Math.sqrt((Nav.G * Nav.BODIES.SUN.mass) / r);
-        const vx = -vCirc * Math.sin(earth.initialAngle);
-        const vy = vCirc * Math.cos(earth.initialAngle);
+        const launch = getLaunchStateNearBody(earth, 0.12, 0.12);
 
         Nav.initShip(
-          eState.x + 0.12,
-          eState.y + 0.12,
-          vx + 0.1,
-          vy + 0.1,
-          Math.atan2(vy, vx),
+          launch.x,
+          launch.y,
+          launch.vx,
+          launch.vy,
+          Math.atan2(launch.vy, launch.vx),
           1.0,  // dryMass
           2.5,  // fuelMass
           0.05  // burnRate

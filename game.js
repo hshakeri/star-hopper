@@ -49,6 +49,7 @@ class StarHopperGame {
     this.fixedStepMs = 1000 / 60;
     this.maxAccumulatedFrameMs = 1000 / 15;
     this.maxPhysicsSteps = 5;
+    this.isPaused = false;
   }
 
   init() {
@@ -142,6 +143,8 @@ class StarHopperGame {
   }
 
   startLevel(id) {
+    this.isPaused = false;
+    if (typeof updatePauseControls === 'function') updatePauseControls();
     this.state = 'playing';
     const startScr = document.getElementById("start-screen");
     const clearScr = document.getElementById("clear-screen");
@@ -321,16 +324,21 @@ class StarHopperGame {
 
       const frameMs = Math.min(timestamp - this.lastFrameTime, this.maxAccumulatedFrameMs);
       this.lastFrameTime = timestamp;
-      this.physicsAccumulator += frameMs;
 
-      let steps = 0;
-      while (this.physicsAccumulator >= this.fixedStepMs && steps < this.maxPhysicsSteps) {
-        this.update();
-        this.physicsAccumulator -= this.fixedStepMs;
-        steps++;
-      }
+      if (!this.isPaused) {
+        this.physicsAccumulator += frameMs;
 
-      if (steps === this.maxPhysicsSteps) {
+        let steps = 0;
+        while (this.physicsAccumulator >= this.fixedStepMs && steps < this.maxPhysicsSteps) {
+          this.update();
+          this.physicsAccumulator -= this.fixedStepMs;
+          steps++;
+        }
+
+        if (steps === this.maxPhysicsSteps) {
+          this.physicsAccumulator = 0;
+        }
+      } else {
         this.physicsAccumulator = 0;
       }
 
@@ -668,5 +676,6 @@ class StarHopperGame {
 let Game;
 window.addEventListener("load", () => {
   Game = new StarHopperGame();
+  window.Game = Game;
   Game.init();
 });

@@ -13,6 +13,8 @@ window.Nav = window.Nav || {};
   
   Nav.SU_TO_PX = 150; // pixels per Space Unit
   Nav.G = 0.8 / 350877; // Gravitational constant G scaled for 240-day year (was 0.8)
+  Nav.viewOffsetX = 0;
+  Nav.viewOffsetY = 0;
   
   // Convert SU to Pixels (for rendering)
   Nav.suToPx = function(su) {
@@ -22,6 +24,34 @@ window.Nav = window.Nav || {};
   // Convert Pixels to SU (for physics)
   Nav.pxToSu = function(px) {
     return px / Nav.SU_TO_PX;
+  };
+
+  Nav.worldToScreen = function(pos, canvas) {
+    return {
+      x: canvas.width / 2 + Nav.viewOffsetX + Nav.suToPx(pos.x),
+      y: canvas.height / 2 + Nav.viewOffsetY + Nav.suToPx(pos.y)
+    };
+  };
+
+  Nav.screenToWorld = function(screen, canvas) {
+    return {
+      x: (screen.x - canvas.width / 2 - Nav.viewOffsetX) / Nav.SU_TO_PX,
+      y: (screen.y - canvas.height / 2 - Nav.viewOffsetY) / Nav.SU_TO_PX
+    };
+  };
+
+  Nav.setZoom = function(nextScale, anchor, canvas) {
+    const clampedScale = Math.max(50, Math.min(300, nextScale));
+    if (clampedScale === Nav.SU_TO_PX) return;
+
+    if (anchor && canvas) {
+      const anchoredWorld = Nav.screenToWorld(anchor, canvas);
+      Nav.SU_TO_PX = clampedScale;
+      Nav.viewOffsetX = anchor.x - canvas.width / 2 - anchoredWorld.x * Nav.SU_TO_PX;
+      Nav.viewOffsetY = anchor.y - canvas.height / 2 - anchoredWorld.y * Nav.SU_TO_PX;
+    } else {
+      Nav.SU_TO_PX = clampedScale;
+    }
   };
 
   // --- 2. VECTOR 2D MATH UTILITIES ---

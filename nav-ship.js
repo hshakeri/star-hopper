@@ -32,6 +32,7 @@ window.Nav = window.Nav || {};
       burnRate: burnRate,// Fuel consumed per TU of thruster firing
       timeElapsed: 0,    // Total mission duration (TU / days)
       trail: [],          // Positions trail array for rendering
+      lastTrailTime: null,
       maxVelocityObserved: Math.sqrt(vx * vx + vy * vy),
       closestApproaches: { earth: Infinity, mars: Infinity, jupiter: Infinity }
     };

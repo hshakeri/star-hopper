@@ -36,6 +36,118 @@ function scrollToBottom(el) {
   el.scrollTop = el.scrollHeight;
 }
 
+function updatePauseControls() {
+  const game = window.Game || Game;
+  const paused = !!(game && game.isPaused);
+  const pauseButtons = [
+    document.getElementById("pause-btn"),
+    document.getElementById("canvas-pause-btn")
+  ].filter(Boolean);
+  const pauseOverlay = document.getElementById("pause-overlay");
+
+  pauseButtons.forEach((pauseBtn) => {
+    pauseBtn.textContent = paused ? "▶" : "⏸";
+    pauseBtn.title = paused ? "Resume simulation" : "Pause simulation";
+    pauseBtn.classList.toggle("paused", paused);
+  });
+
+  if (pauseOverlay) {
+    pauseOverlay.classList.toggle("hidden", !paused);
+  }
+}
+
+function toggleGamePause() {
+  const game = window.Game || Game;
+  if (!game || (game.state !== 'playing' && !window.navigatorModeActive)) return;
+
+  game.isPaused = !game.isPaused;
+  game.physicsAccumulator = 0;
+  updatePauseControls();
+
+  if (typeof SFX !== 'undefined' && typeof SFX.playType === 'function') {
+    SFX.playType();
+  }
+}
+
+function setupResizablePanes() {
+  const app = document.getElementById("app-container");
+  const mainResizer = document.getElementById("main-pane-resizer");
+  const deckResizer = document.getElementById("deck-pane-resizer");
+  const root = document.documentElement;
+
+  if (!app || app.dataset.resizersBound === "true") return;
+  app.dataset.resizersBound = "true";
+
+  const savedGameWidth = localStorage.getItem("starHopper.gamePaneWidth");
+  const savedDeckHeight = localStorage.getItem("starHopper.codeDeckHeight");
+  if (savedGameWidth) root.style.setProperty("--game-pane-width", savedGameWidth);
+  if (savedDeckHeight) root.style.setProperty("--code-deck-height", savedDeckHeight);
+
+  const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+  if (mainResizer) {
+    mainResizer.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      mainResizer.classList.add("dragging");
+      document.body.classList.add("resizing-panes");
+      document.body.style.cursor = "col-resize";
+
+      const onMove = (moveEvent) => {
+        const rect = app.getBoundingClientRect();
+        const minGameWidth = 520;
+        const minTerminalWidth = 320;
+        const reserved = mainResizer.offsetWidth + 20;
+        const maxGameWidth = Math.max(minGameWidth, rect.width - minTerminalWidth - reserved);
+        const nextWidth = clamp(moveEvent.clientX - rect.left, minGameWidth, maxGameWidth);
+        const cssValue = `${Math.round(nextWidth)}px`;
+
+        root.style.setProperty("--game-pane-width", cssValue);
+        localStorage.setItem("starHopper.gamePaneWidth", cssValue);
+      };
+
+      const onUp = () => {
+        mainResizer.classList.remove("dragging");
+        document.body.classList.remove("resizing-panes");
+        document.body.style.cursor = "";
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+      };
+
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+    });
+  }
+
+  if (deckResizer) {
+    deckResizer.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      deckResizer.classList.add("dragging");
+      document.body.classList.add("resizing-panes");
+      document.body.style.cursor = "row-resize";
+
+      const onMove = (moveEvent) => {
+        const appRect = app.getBoundingClientRect();
+        const nextHeight = clamp(appRect.bottom - moveEvent.clientY - 150, 90, 260);
+        const cssValue = `${Math.round(nextHeight)}px`;
+
+        root.style.setProperty("--code-deck-height", cssValue);
+        localStorage.setItem("starHopper.codeDeckHeight", cssValue);
+      };
+
+      const onUp = () => {
+        deckResizer.classList.remove("dragging");
+        document.body.classList.remove("resizing-panes");
+        document.body.style.cursor = "";
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+      };
+
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+    });
+  }
+}
+
 // Telemetry visual updates (runs every frame)
 function updateHUD(game) {
   const player = game.player;
@@ -221,6 +333,9 @@ function closeDialogue() {
 
 // Binds UI controls, terminal input, and cards
 function setupUIBindings(game) {
+  setupResizablePanes();
+  updatePauseControls();
+
   const input = document.getElementById("console-input");
   const suggestBox = document.getElementById("autocomplete-box");
   
