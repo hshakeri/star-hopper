@@ -2173,3 +2173,166 @@ select:focus-visible,
     scroll-behavior: auto !important;
   }
 }
+
+/* ==========================================================================
+   TOUCH CONTROLS + MOBILE RESPONSIVE LAYOUT
+   ========================================================================== */
+
+/* On-screen D-pad + jump bar, sits below the canvas. Hidden by default and
+   revealed on touch devices / phone widths (media queries below). */
+.touch-controls {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: 0 0 auto;
+  padding: 4px 6px;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.touch-dpad {
+  display: flex;
+  gap: 12px;
+}
+
+.touch-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 66px;
+  height: 58px;
+  padding: 0 16px;
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--neon-cyan);
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: 14px;
+  box-shadow:
+    0 2px 10px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.08s ease, background 0.12s ease, box-shadow 0.12s ease;
+}
+
+.touch-btn.touch-jump {
+  color: var(--neon-green);
+  border-color: rgba(74, 222, 128, 0.45);
+  font-size: 1rem;
+  letter-spacing: 1px;
+  min-width: 116px;
+}
+
+.touch-btn.pressed,
+.touch-btn:active {
+  transform: translateY(1px) scale(0.97);
+  background: rgba(56, 189, 248, 0.22);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
+}
+
+.touch-btn.touch-jump.pressed,
+.touch-btn.touch-jump:active {
+  background: rgba(74, 222, 128, 0.22);
+  box-shadow: 0 0 16px rgba(74, 222, 128, 0.45);
+}
+
+/* Reveal on touch-primary devices regardless of size */
+@media (pointer: coarse) {
+  .touch-controls { display: flex; }
+}
+
+/* Hide controls during menus / non-gameplay overlays */
+#game-section:has(#start-screen:not(.hidden)) .touch-controls,
+#game-section:has(#clear-screen:not(.hidden)) .touch-controls,
+#game-section:has(#gameover-screen:not(.hidden)) .touch-controls {
+  display: none !important;
+}
+
+/* Phone / small-tablet layout: stack the two panes and let the page scroll */
+@media (max-width: 820px) {
+  body {
+    display: block;
+    height: auto;
+    min-height: 100vh;
+    overflow: auto;
+  }
+
+  #app-container {
+    flex-direction: column;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    max-height: none;
+    min-height: 0;
+    padding: 8px;
+    gap: 12px;
+  }
+
+  #game-section {
+    flex: none;
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    gap: 10px;
+  }
+
+  /* Scale the play area to the game's native aspect ratio instead of filling
+     a fixed-height flex column. */
+  #canvas-wrapper {
+    flex: none;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    aspect-ratio: 720 / 448;
+  }
+
+  .touch-controls {
+    display: flex;
+  }
+
+  /* Drag-to-resize handles are pointer-only; hide on phones. */
+  #main-pane-resizer,
+  #deck-pane-resizer {
+    display: none;
+  }
+
+  #bottom-code-deck {
+    height: auto;
+    max-height: 200px;
+  }
+
+  #terminal-section {
+    flex: none;
+    width: 100%;
+    min-width: 0;
+    height: 72vh;
+    min-height: 360px;
+  }
+
+  /* The play area is short on phones — keep the guided overlay compact so it
+     doesn't swallow the whole canvas. Drop the music label to free top-right
+     room for the tutorial text. */
+  .music-track-label {
+    display: none;
+  }
+
+  #guided-mode-hud {
+    padding: 6px 112px 6px 10px;
+  }
+
+  .guided-text {
+    font-size: 0.72rem;
+    max-width: none;
+  }
+
+  .guided-header {
+    font-size: 0.62rem;
+  }
+}

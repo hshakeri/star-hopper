@@ -219,6 +219,15 @@
 
       </div>
 
+      <!-- On-screen touch controls (mobile / touch devices) -->
+      <div id="touch-controls" class="touch-controls" role="group" aria-label="Touch game controls">
+        <div class="touch-dpad">
+          <button type="button" class="touch-btn" data-key="ArrowLeft" aria-label="Move left">◀</button>
+          <button type="button" class="touch-btn" data-key="ArrowRight" aria-label="Move right">▶</button>
+        </div>
+        <button type="button" class="touch-btn touch-jump" data-key="ArrowUp" aria-label="Jump">▲ JUMP</button>
+      </div>
+
       <div id="deck-pane-resizer" class="pane-resizer horizontal" title="Drag to resize the code deck"></div>
 
       <!-- Bottom Code Deck Panel (Physics Constants & Logic & Rules) -->
@@ -606,6 +615,7 @@
   <script src="physics.js"></script>
   <script src="ui.js?v=progressive-gems-1"></script>
   <script src="game.js?v=progressive-gems-1"></script>
+  <script src="touch-controls.js"></script>
   <script src="notebook.js?v=progressive-gems-1"></script>
   <script src="navigator-classic.js"></script>
   <script src="nav-core.js"></script>
