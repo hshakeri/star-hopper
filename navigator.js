@@ -15,6 +15,12 @@ function initNavigatorMode() {
     selector.value = window.navigatorMode;
   }
 
+  // Update zoom control visibility
+  const zoomCtrl = document.getElementById("navigator-zoom-controls");
+  if (zoomCtrl) {
+    zoomCtrl.style.display = (window.navigatorMode === 'solar') ? 'flex' : 'none';
+  }
+
   if (window.navigatorMode === 'classic') {
     if (typeof initNavigatorModeClassic === 'function') {
       initNavigatorModeClassic();
@@ -29,6 +35,10 @@ function initNavigatorMode() {
  */
 function stopNavigatorMode() {
   window.navigatorModeActive = false;
+  const zoomCtrl = document.getElementById("navigator-zoom-controls");
+  if (zoomCtrl) {
+    zoomCtrl.style.display = 'none';
+  }
 }
 
 /**
@@ -40,6 +50,12 @@ function switchNavigatorMode(mode) {
   // Reset the input console to clean the screen
   const inputEl = document.getElementById("navigator-console-input");
   if (inputEl) inputEl.value = "";
+
+  // Update zoom control visibility
+  const zoomCtrl = document.getElementById("navigator-zoom-controls");
+  if (zoomCtrl) {
+    zoomCtrl.style.display = (mode === 'solar') ? 'flex' : 'none';
+  }
 
   if (mode === 'classic') {
     if (typeof initNavigatorModeClassic === 'function') {
@@ -255,3 +271,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }, { passive: false });
   }
 });
+
+/**
+ * Zooms the Solar simulator canvas dynamically by scaling SU_TO_PX.
+ */
+function zoomNavigator(factor) {
+  if (window.Nav) {
+    window.Nav.SU_TO_PX = Math.max(50, Math.min(300, window.Nav.SU_TO_PX * factor));
+  }
+}

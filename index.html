@@ -60,6 +60,12 @@
 
         <canvas id="game-canvas" width="720" height="448"></canvas>
 
+        <!-- Zoom Controls Overlay -->
+        <div id="navigator-zoom-controls" style="position: absolute; bottom: 15px; right: 15px; display: none; gap: 5px; z-index: 100;">
+          <button class="notebook-btn" style="width: 28px; height: 28px; padding: 0; font-size: 1.1rem; line-height: 26px; text-align: center; background: rgba(15, 23, 42, 0.85); border: 1px solid var(--panel-border); color: var(--text-primary); border-radius: 4px;" onclick="zoomNavigator(1.05)">＋</button>
+          <button class="notebook-btn" style="width: 28px; height: 28px; padding: 0; font-size: 1.1rem; line-height: 26px; text-align: center; background: rgba(15, 23, 42, 0.85); border: 1px solid var(--panel-border); color: var(--text-primary); border-radius: 4px;" onclick="zoomNavigator(0.95)">－</button>
+        </div>
+
         <!-- Start / Planet Selection Screen -->
         <div id="start-screen" class="canvas-overlay">
           <h1>STAR HOPPER</h1>
