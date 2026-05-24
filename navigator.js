@@ -178,38 +178,41 @@ function updateNavigator(game) {
   } else {
     if (!window.Nav.ship) return;
 
-    // Calculate timestep size dt
-    const dt = 0.005 * window.Nav.timeWarpFactor;
+    // Only update physics and time if there are commands in the queue or an action is currently executing
+    if (window.Nav.commandQueue.length > 0 || window.Nav.currentAction) {
+      // Calculate timestep size dt
+      const dt = 0.005 * window.Nav.timeWarpFactor;
 
-    // Execute flight instruction queue
-    window.Nav.processFlightQueue(dt, window.Nav.ship.timeElapsed);
+      // Execute flight instruction queue
+      window.Nav.processFlightQueue(dt, window.Nav.ship.timeElapsed);
 
-    // Step physics Verlet math integration
-    window.Nav.ship.timeElapsed = window.Nav.stepSolarShip(window.Nav.ship, dt, window.Nav.ship.timeElapsed);
+      // Step physics Verlet math integration
+      window.Nav.ship.timeElapsed = window.Nav.stepSolarShip(window.Nav.ship, dt, window.Nav.ship.timeElapsed);
 
-    // Validate if current mission goals have been met
-    const activeMission = window.Nav.Missions[window.Nav.activeMissionIndex];
-    if (activeMission && !window.Nav.orbitalMissionsCompleted.has(activeMission.id)) {
-      if (activeMission.validate(window.Nav.ship, window.Nav.ship.timeElapsed)) {
-        window.Nav.orbitalMissionsCompleted.add(activeMission.id);
-        window.Nav.logConsole(`MISSION ACCOMPLISHED: ${activeMission.title}!`, "success");
-        renderNavigatorMissionsSolar();
-        if (typeof SFX !== 'undefined' && typeof SFX.playSuccess === 'function') {
-          SFX.playSuccess();
+      // Validate if current mission goals have been met
+      const activeMission = window.Nav.Missions[window.Nav.activeMissionIndex];
+      if (activeMission && !window.Nav.orbitalMissionsCompleted.has(activeMission.id)) {
+        if (activeMission.validate(window.Nav.ship, window.Nav.ship.timeElapsed)) {
+          window.Nav.orbitalMissionsCompleted.add(activeMission.id);
+          window.Nav.logConsole(`MISSION ACCOMPLISHED: ${activeMission.title}!`, "success");
+          renderNavigatorMissionsSolar();
+          if (typeof SFX !== 'undefined' && typeof SFX.playSuccess === 'function') {
+            SFX.playSuccess();
+          }
         }
       }
-    }
 
-    // Safety checks: collision with central stars or planets
-    for (const key in window.Nav.BODIES) {
-      const body = window.Nav.BODIES[key];
-      const state = window.Nav.bodyStateAt(body, window.Nav.ship.timeElapsed);
-      const dist = window.Nav.Vector.distance(window.Nav.ship, state);
+      // Safety checks: collision with central stars or planets
+      for (const key in window.Nav.BODIES) {
+        const body = window.Nav.BODIES[key];
+        const state = window.Nav.bodyStateAt(body, window.Nav.ship.timeElapsed);
+        const dist = window.Nav.Vector.distance(window.Nav.ship, state);
 
-      if (dist < body.radius) {
-        window.Nav.logConsole(`FATAL COLLISION: Spacecraft burned up/crashed on ${body.name}!`, "error");
-        loadNavigatorMissionSolar(window.Nav.activeMissionIndex);
-        break;
+        if (dist < body.radius) {
+          window.Nav.logConsole(`FATAL COLLISION: Spacecraft burned up/crashed on ${body.name}!`, "error");
+          loadNavigatorMissionSolar(window.Nav.activeMissionIndex);
+          break;
+        }
       }
     }
   }
