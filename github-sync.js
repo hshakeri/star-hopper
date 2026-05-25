@@ -6,8 +6,65 @@ let gitHubSync = {
   gistId: localStorage.getItem('github_sync_gist_id') || '',
   username: localStorage.getItem('github_sync_username') || '',
   avatarUrl: localStorage.getItem('github_sync_avatar') || '',
+  lastSyncedAt: parseInt(localStorage.getItem('github_sync_last_at') || '0', 10) || 0,
   status: 'disconnected' // 'disconnected', 'connected', 'syncing'
 };
+
+// Inline status message in the sync card (replaces blocking alert popups)
+function setSyncMessage(msg, type = 'info') {
+  const el = document.getElementById('sync-message');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.className = 'sync-message ' + type;
+  el.style.display = msg ? 'block' : 'none';
+  if (msg && type !== 'error') {
+    clearTimeout(setSyncMessage._timer);
+    setSyncMessage._timer = setTimeout(() => {
+      if (el.textContent === msg) el.style.display = 'none';
+    }, 4000);
+  }
+}
+
+function formatRelativeTime(ts) {
+  if (!ts) return '';
+  const secs = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+  if (secs < 10) return 'just now';
+  if (secs < 60) return secs + 's ago';
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return mins + ' min ago';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h ago';
+  return Math.floor(hrs / 24) + 'd ago';
+}
+
+function updateSyncMeta() {
+  const el = document.getElementById('sync-last-synced');
+  if (!el) return;
+  el.textContent = gitHubSync.lastSyncedAt
+    ? 'Saved ' + formatRelativeTime(gitHubSync.lastSyncedAt)
+    : 'Not saved to cloud yet';
+}
+
+function markSynced() {
+  gitHubSync.lastSyncedAt = Date.now();
+  localStorage.setItem('github_sync_last_at', String(gitHubSync.lastSyncedAt));
+  updateSyncMeta();
+}
+
+// Manual "Load from Cloud" — pull the latest cloud save and merge it in.
+async function pullFromCloud() {
+  if (!gitHubSync.token || !gitHubSync.gistId) return;
+  const badge = document.getElementById('sync-status-badge');
+  if (badge) { badge.textContent = 'Syncing...'; badge.className = 'badge-syncing'; }
+  setSyncMessage('Loading your latest progress from the cloud…', 'info');
+  const ok = await loadGistData();
+  if (badge) { badge.textContent = 'Connected'; badge.className = 'badge-connected'; }
+  if (ok) {
+    setSyncMessage('Loaded your latest progress from the cloud.', 'success');
+  } else {
+    setSyncMessage('Could not load from the cloud — check your connection.', 'error');
+  }
+}
 
 // Initial load check on boot
 window.addEventListener('DOMContentLoaded', () => {
@@ -19,6 +76,11 @@ window.addEventListener('DOMContentLoaded', () => {
   } else {
     updateSyncUI();
   }
+
+  // Keep the "Saved X ago" label fresh while connected.
+  setInterval(() => {
+    if (gitHubSync.status === 'connected') updateSyncMeta();
+  }, 30000);
 });
 
 // Load local storage progress
@@ -125,12 +187,12 @@ function importLocalSave() {
           updateMissionList(Game);
         }
         
-        alert("Successfully imported progress!");
+        setSyncMessage('Imported your save file successfully.', 'success');
         if (typeof SFX !== 'undefined' && typeof SFX.playSuccess === 'function') {
           SFX.playSuccess();
         }
       } catch (err) {
-        alert("Failed to parse save file. Please make sure it is a valid star_hopper_save.json.");
+        setSyncMessage("Couldn't read that file — pick a valid star_hopper_save.json.", 'error');
         if (typeof SFX !== 'undefined' && typeof SFX.playError === 'function') {
           SFX.playError();
         }
@@ -205,38 +267,41 @@ async function connectGitHubSync() {
   
   const token = tokenInput.value.trim();
   if (!token) {
-    alert("Please paste a GitHub Personal Access Token (PAT) first.");
+    setSyncMessage('Paste your GitHub token above first.', 'error');
     return;
   }
-  
+
   const badge = document.getElementById('sync-status-badge');
   if (badge) {
     badge.textContent = 'Connecting...';
     badge.className = 'badge-syncing';
   }
-  
+  setSyncMessage('Connecting to GitHub…', 'info');
+
   try {
     const isValid = await verifyTokenAndUser(token);
     if (isValid) {
       gitHubSync.token = token;
       sessionStorage.setItem('github_sync_token', token);
       gitHubSync.status = 'connected';
-      
-      // Look for Gist or create one
+
+      // Look for the save Gist or create one
       await findOrCreateGist();
-      
+
       updateSyncUI();
+      markSynced();
+      setSyncMessage('Connected as ' + gitHubSync.username + ' — your progress now syncs across devices.', 'success');
       if (typeof SFX !== 'undefined' && typeof SFX.playSuccess === 'function') {
         SFX.playSuccess();
       }
     } else {
-      alert("Invalid Personal Access Token. Please make sure it has 'gist' access permissions.");
       disconnectGitHubSync();
+      setSyncMessage("That token didn't work. Make sure it has 'gist' permission and try again.", 'error');
     }
   } catch (err) {
     console.error("Error connecting GitHub sync:", err);
-    alert("Could not reach GitHub API. Check your internet connection.");
     disconnectGitHubSync();
+    setSyncMessage('Could not reach GitHub — check your internet connection.', 'error');
   }
 }
 
@@ -281,6 +346,7 @@ function updateSyncUI() {
     
     if (usernameSpan) usernameSpan.textContent = gitHubSync.username;
     if (avatarImg) avatarImg.src = gitHubSync.avatarUrl;
+    updateSyncMeta();
   } else {
     if (loggedOutDiv) loggedOutDiv.style.display = 'flex';
     if (loggedInDiv) loggedInDiv.style.display = 'none';
@@ -369,8 +435,8 @@ async function createNewGist() {
 
 // Load gist save content and merge with local progress
 async function loadGistData() {
-  if (!gitHubSync.token || !gitHubSync.gistId) return;
-  
+  if (!gitHubSync.token || !gitHubSync.gistId) return false;
+
   try {
     const response = await fetch(`https://api.github.com/gists/${gitHubSync.gistId}`, {
       headers: {
@@ -418,9 +484,13 @@ async function loadGistData() {
         
         console.log("Successfully synchronized progress from GitHub cloud.");
       }
+      markSynced();
+      return true;
     }
+    return false;
   } catch (err) {
     console.error("Failed to fetch/merge Gist save data:", err);
+    return false;
   }
 }
 
@@ -469,6 +539,8 @@ async function syncGistData() {
         }, 2000);
       }
       console.log("Pushed progress successfully to GitHub cloud.");
+      markSynced();
+      setSyncMessage('Progress saved to the cloud.', 'success');
     } else {
       throw new Error("Patch Gist failed");
     }
@@ -478,6 +550,7 @@ async function syncGistData() {
       badge.textContent = 'Sync Error';
       badge.className = 'badge-disconnected';
     }
+    setSyncMessage('Could not save to the cloud — check your connection.', 'error');
   }
 }
 

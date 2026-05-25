@@ -1960,6 +1960,34 @@ html {
   text-shadow: 0 0 4px var(--neon-cyan);
 }
 
+/* Inline cloud-sync status messages (replace blocking alert popups) */
+.sync-message {
+  font-size: 0.66rem;
+  line-height: 1.3;
+  margin-top: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+}
+
+.sync-message.success {
+  color: var(--neon-green);
+  background: rgba(74, 222, 128, 0.1);
+  border-color: rgba(74, 222, 128, 0.3);
+}
+
+.sync-message.error {
+  color: var(--neon-pink);
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.sync-message.info {
+  color: var(--neon-cyan);
+  background: rgba(56, 189, 248, 0.1);
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
 /* Certificate & Guide Print Area Hidden during Normal screen */
 #print-area-certificate, #print-area-parent, #print-area-teacher, #print-area-student {
   display: none;
