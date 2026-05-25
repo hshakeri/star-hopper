@@ -278,12 +278,12 @@ class StarHopperGame {
     const retryBtn = document.getElementById("btn-retry");
     if (retryBtn) {
       retryBtn.addEventListener("click", () => {
-        this.startLevel(this.currentPlanetIndex);
+        this.startLevel(this.currentPlanetIndex, true);
       });
     }
   }
 
-  startLevel(id) {
+  startLevel(id, preserveTunings = false) {
     this.isPaused = false;
     if (typeof updatePauseControls === 'function') updatePauseControls();
     this.state = 'playing';
@@ -294,26 +294,59 @@ class StarHopperGame {
     if (startScr) startScr.classList.add("hidden");
     if (clearScr) clearScr.classList.add("hidden");
     if (goScr) goScr.classList.add("hidden");
-    this.loadPlanet(id);
+    this.loadPlanet(id, preserveTunings);
   }
 
-  loadPlanet(index) {
+  loadPlanet(index, preserveTunings = false) {
     this.currentPlanetIndex = index;
     this.currentPlanet = PLANETS[index];
-    
+
+    // On a same-level retry, keep the player's typed code tunings so progress
+    // made one task at a time survives death/restart. Only the physical level
+    // (position, gems, enemies) is rebuilt below.
+    let saved = null;
+    if (preserveTunings && this.player) {
+      saved = {
+        env: { ...Compiler.env },
+        rules: Compiler.activeRules.slice(),
+        hopperMass: this.hopperMass,
+        starMass: this.starMass,
+        charType: this.player.charType,
+        jumpPower: this.player.jumpPower,
+        rocketPower: this.player.rocketPower
+      };
+    }
+
     // Clear terminal overrides
     Compiler.reset();
     this.starMass = 1.0;
     this.hopperMass = 2.5;
-    
+
     // Instantiate single character in place
     this.player = new Player(this.startX, this.startY);
     this.player.charType = 'star'; // default start active character style
     this.player.jumpPower = this.currentPlanet.physics.jumpPower ?? this.player.jumpPower;
-    
+
     // Set up aliases for backwards compatibility with missions and rules references
     this.star = this.player;
     this.hopper = this.player;
+
+    // Restore preserved code tunings on a retry (set directly to avoid the
+    // sound/particle side effects of swap()).
+    if (saved) {
+      Compiler.env = saved.env;
+      Compiler.activeRules = saved.rules;
+      this.hopperMass = saved.hopperMass;
+      this.starMass = saved.starMass;
+      if (saved.charType === 'hopper') {
+        this.player.charType = 'hopper';
+        this.player.w = 24;
+        this.player.h = 32;
+        this.player.mass = saved.hopperMass;
+      }
+      this.player.jumpPower = saved.jumpPower;
+      this.player.rocketPower = saved.rocketPower;
+    }
     
     this.enemies = [];
     this.interactiveObjects = [];
@@ -605,7 +638,7 @@ class StarHopperGame {
   }
 
   resetLevel() {
-    this.startLevel(this.currentPlanetIndex);
+    this.startLevel(this.currentPlanetIndex, true);
   }
 
   // Core Game Loop
