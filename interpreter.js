@@ -698,8 +698,11 @@ const runtimeContext = {
       set: (game, val) => { game.player.spikes = !!val; }
     },
     "hopper.pole": {
-      get: (game) => game.player.pole || 'north',
-      set: (game, val) => { game.player.pole = val; }
+      get: (game) => game.player.pole || Compiler.env.magnetPole || 'north',
+      set: (game, val) => {
+        game.player.pole = val;
+        Compiler.env.magnetPole = val;
+      }
     },
     music: {
       get: (game) => {
@@ -762,6 +765,28 @@ const runtimeContext = {
       game.bouncePlayer();
       return "Bounced!";
     },
+    use_hopper: (game) => {
+      if (!game || !game.player) return "Hopper is not ready yet.";
+      game.player.charType = 'hopper';
+      game.player.w = 24;
+      game.player.h = 32;
+      game.player.mass = game.hopperMass !== undefined ? game.hopperMass : 2.5;
+      if (typeof document !== 'undefined' && document.documentElement) {
+        document.documentElement.style.setProperty('--active-neon', 'var(--neon-orange)');
+      }
+      return "Hopper activated!";
+    },
+    use_rover: (game) => {
+      if (!game || !game.player) return "Rover is not ready yet.";
+      game.player.charType = 'star';
+      game.player.w = 20;
+      game.player.h = 32;
+      game.player.mass = game.starMass !== undefined ? game.starMass : 1.0;
+      if (typeof document !== 'undefined' && document.documentElement) {
+        document.documentElement.style.setProperty('--active-neon', 'var(--neon-cyan)');
+      }
+      return "Rover activated!";
+    },
     reset: (game) => {
       game.startLevel(game.currentPlanetIndex);
       return "Level reset!";
@@ -807,6 +832,7 @@ class AutocompleteEngine {
       "hopper.mass", "hopper.rocket_power", "hopper.spikes", "hopper.pole",
       "spawn()", "spawn_gem()", "spawn_box()", "spawn_spring()",
       "invert_gravity()", "rave_mode()", "shrink_enemies()", "bounce_up()", "reset()",
+      "use_hopper()", "use_rover()",
       "play_music()", "music"
     ];
   }

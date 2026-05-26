@@ -106,8 +106,37 @@ function loadNavigatorMissionSolar(index) {
   if (inputEl) {
     inputEl.value = mission.starterCode;
   }
+  updateNavigatorBridgeCard(mission);
 
   renderNavigatorMissionsSolar();
+}
+
+function updateNavigatorBridgeCard(mission) {
+  const summary = document.getElementById("navigator-bridge-summary");
+  const code = document.getElementById("navigator-bridge-code");
+  if (!mission || !summary || !code) return;
+
+  const destination = mission.destinationId && window.Nav.BODIES
+    ? window.Nav.BODIES[mission.destinationId.toUpperCase()]
+    : null;
+  const destinationName = destination ? destination.name : "the next planet";
+  const isRouteBridge = typeof mission.targetPlanetIndex === "number";
+
+  summary.textContent = isRouteBridge
+    ? `Rover is docked. Run this short launch plan to travel to ${destinationName}, then the next surface mission begins.`
+    : `Advanced orbit challenge: edit the launch plan and test the spacecraft path.`;
+  code.value = mission.starterCode || "";
+}
+
+function runNavigatorBridgePlan() {
+  const code = document.getElementById("navigator-bridge-code");
+  const input = document.getElementById("navigator-console-input");
+  if (!code) return;
+
+  const plan = code.value.trim();
+  if (!plan) return;
+  if (input) input.value = plan;
+  runNavigatorCommands(plan);
 }
 
 /**

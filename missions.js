@@ -1,5 +1,26 @@
 // missions.js - Detailed 6-Step Pedagogical Mission configurations for Star Hopper
 
+function buildScaffoldCode(scaffold, values = {}) {
+  if (!scaffold || !scaffold.template) return "";
+
+  let code = scaffold.template;
+  (scaffold.slots || []).forEach(slot => {
+    const value = Object.prototype.hasOwnProperty.call(values, slot.id) ? values[slot.id] : slot.value;
+    const token = new RegExp(`\\{${slot.id}\\}`, "g");
+    code = code.replace(token, String(value));
+  });
+  return code;
+}
+
+function getCorrectedScaffoldValues(scaffold) {
+  const values = {};
+  if (!scaffold || !Array.isArray(scaffold.slots)) return values;
+  scaffold.slots.forEach(slot => {
+    if (slot.correctValue !== undefined) values[slot.id] = slot.correctValue;
+  });
+  return values;
+}
+
 const PlatformerMissions = [
   {
     id: "earth-gravity-wall",
@@ -7,8 +28,9 @@ const PlatformerMissions = [
     title: "Hopper Engineering Shakedown",
     ageRange: "8-12",
     concept: "Gravity, mass, jump impulse, and run speed combine to shape a jump arc.",
+    beginnerConcept: "Variables are named numbers. Change one number, test, then change another.",
     codingConcept: "Variable assignment and parameter tuning",
-    starterCode: "gravity = 0.35\nplayer.jump_power = 17\nhopper.mass = 1.2\nplayer.speed = 4.8",
+    starterCode: "use_hopper()\ngravity = 0.35\nplayer.jump_power = 17\nhopper.mass = 1.2\nplayer.speed = 4.8",
     objective: "Engineer Hopper with gravity, mass, jump power, and speed to unlock every Emerald Core gem and clear the wall.",
     steps: [
       { id: "observe", prompt: "Observe: Hopper is too heavy to clear the high metal wall with default settings.", done: false },
@@ -19,10 +41,55 @@ const PlatformerMissions = [
       { id: "challenge", prompt: "Challenge: Clear the wall as Hopper with gravity <= 0.35, player.jump_power >= 17, hopper.mass <= 1.2, and player.speed >= 4.8.", done: false }
     ],
     hints: [
-      "The Code panel gives starter values; edit the numbers to reach the target.",
+      "Mission Coach gives starter values; edit the numbers to reach the target.",
       "Hopper needs less mass and more horizontal speed than the default suit.",
       "Low Emerald gems unlock after gravity is tuned; high ridge gems need the full Hopper build."
     ],
+    scaffold: {
+      mode: "fill-values",
+      template: "use_hopper()\ngravity = {gravity}\nplayer.jump_power = {jump_power}\nhopper.mass = {mass}\nplayer.speed = {speed}",
+      slots: [
+        { id: "gravity", label: "gravity", value: "0.35", hint: "Smaller gravity lets Hopper stay in the air longer." },
+        { id: "jump_power", label: "jump", value: "17", hint: "More jump power starts the arc higher." },
+        { id: "mass", label: "mass", value: "1.2", hint: "Less mass makes Hopper easier to lift." },
+        { id: "speed", label: "speed", value: "4.8", hint: "More speed helps Hopper reach the far side." }
+      ],
+      explain: "The first line activates Hopper; the four numbers tune pull down, push up, body weight, and sideways speed.",
+      parentPrompt: "Which number changed the jump the most?",
+      codeIdea: "Activate Hopper, edit the four numbers, then run the code.",
+      physicsIdea: "Gravity pulls down while jump force and speed shape the arc.",
+      success: "Hopper collects all Emerald Core gems and reaches the portal."
+    },
+    prediction: {
+      question: "Which change will help Hopper reach the high Emerald gems?",
+      options: [
+        { id: "lighter-longer", label: "Lower gravity and lighter Hopper", feedback: "Good prediction. Less pull and less mass make the jump arc easier to stretch.", correct: true },
+        { id: "heavier", label: "Make Hopper heavier", feedback: "A heavier Hopper is harder to lift, so the arc usually gets shorter." },
+        { id: "music", label: "Change the music", feedback: "Music changes the mood, but the physics numbers change the jump." }
+      ]
+    },
+    resultChecks: [
+      {
+        id: "earth-hopper-active",
+        label: "Hopper activated",
+        success: "Hopper is active, so the engineering numbers apply to the heavy suit.",
+        waiting: "Run the coach code to activate Hopper.",
+        check: (game) => game.player && game.player.charType === 'hopper'
+      },
+      {
+        id: "earth-emerald-gates",
+        label: "Emerald gates opened",
+        success: "All Emerald gems are unlocked by the new gravity, mass, jump, and speed settings.",
+        waiting: "Some Emerald gems are still locked by code.",
+        check: (game) => typeof game.getLockedRequiredCollectibleCount === 'function' && game.getLockedRequiredCollectibleCount() === 0
+      }
+    ],
+    badge: {
+      id: "variables",
+      icon: "🔧",
+      label: "Variable Tuner",
+      description: "Changed named numbers to engineer a better jump."
+    },
     validate: (game, Compiler) => {
       const currentG = Compiler.env.gravity !== null ? Compiler.env.gravity : game.currentPlanet.physics.gravity;
       const currentSpeed = Compiler.env.speed !== null ? Compiler.env.speed : game.currentPlanet.physics.speed;
@@ -46,6 +113,7 @@ const PlatformerMissions = [
     title: "Luna Loop Springs",
     ageRange: "8-12",
     concept: "Spring elastic force stores kinetic energy to launch objects.",
+    beginnerConcept: "Loops repeat a command so you do not type the same thing again and again.",
     codingConcept: "Repeat loops",
     starterCode: "repeat 3: spawn_spring()",
     objective: "Use arithmetic jump tuning and repeat loops to collect Moon Quartz gems and cross the lunar canyon.",
@@ -62,6 +130,49 @@ const PlatformerMissions = [
       "Springs launch you upwards when you step on them.",
       "Lower Quartz gems use jump arithmetic; high Quartz gems unlock after the spring loop."
     ],
+    scaffold: {
+      mode: "pattern-fill",
+      template: "player.jump_power = gravity * {jump_math}\nrepeat {springs}: spawn_spring()",
+      slots: [
+        { id: "jump_math", label: "gravity x", value: "150", hint: "Gravity times 150 makes Moon jumps tall enough." },
+        { id: "springs", label: "springs", value: "3", hint: "The loop places three spring launchpads." }
+      ],
+      explain: "Arithmetic makes the jump power, and the repeat loop builds several springs from one line.",
+      parentPrompt: "Why is a loop easier than typing spawn_spring three times?",
+      codeIdea: "Use one math line and one repeat loop.",
+      physicsIdea: "Springs store energy and return it as a bounce.",
+      success: "Rover collects Moon Quartz gems after using arithmetic and springs."
+    },
+    prediction: {
+      question: "What will repeat 3 do to the spring command?",
+      options: [
+        { id: "three-springs", label: "Build 3 springs", feedback: "Yes. A repeat loop runs the spring command three times.", correct: true },
+        { id: "one-big", label: "Build 1 giant spring", feedback: "Repeat does not resize the spring; it runs the same command again." },
+        { id: "no-change", label: "Do nothing", feedback: "The loop runs code, so the level should change." }
+      ]
+    },
+    resultChecks: [
+      {
+        id: "moon-jump-math",
+        label: "Jump math worked",
+        success: "Jump power now comes from arithmetic, so Moon hops reach higher.",
+        waiting: "Jump power still needs the gravity math line.",
+        check: (game) => game.player && game.player.jumpPower >= 18
+      },
+      {
+        id: "moon-spring-loop",
+        label: "Spring loop built",
+        success: "The repeat loop placed enough springs to chain bounces.",
+        waiting: "Run the repeat loop until 3 springs are placed.",
+        check: (game) => game.spawnedSprings && game.spawnedSprings.length >= 3
+      }
+    ],
+    badge: {
+      id: "loops",
+      icon: "🔁",
+      label: "Loop Builder",
+      description: "Used one repeat command to build several tools."
+    },
     validate: (game, Compiler) => {
       return game.spawnedSprings.length >= 3 && game.player.x > 1200;
     },
@@ -77,8 +188,9 @@ const PlatformerMissions = [
     title: "Escape Velocity",
     ageRange: "8-12",
     concept: "Mass resists acceleration: heavy objects require more force.",
+    beginnerConcept: "Force, mass, and speed work together. Heavy things need a stronger push.",
     codingConcept: "Multi-parameter Hopper engineering",
-    starterCode: "hopper.mass = 1.2\nhopper.rocket_power = 75\nplayer.speed = 5.0",
+    starterCode: "use_hopper()\nhopper.mass = 1.2\nhopper.rocket_power = 75\nplayer.speed = 5.0",
     objective: "Engineer Hopper and loop crate blocks to collect Amber Storm gems while escaping the gravity trench.",
     steps: [
       { id: "observe", prompt: "Observe: Swap to Hopper: notice he is heavy and jumps poorly.", done: false },
@@ -93,6 +205,52 @@ const PlatformerMissions = [
       "Hopper has rocket boosters activated by holding Space in mid-air.",
       "Amber Storm gems unlock after the Hopper build and crate-loop lesson are both active."
     ],
+    scaffold: {
+      mode: "choose-tune",
+      template: "use_hopper()\nhopper.mass = {mass}\nhopper.rocket_power = {rocket_power}\nplayer.speed = {speed}\nrepeat {boxes}: spawn_box()",
+      commandChoices: ["use_hopper()", "hopper.mass", "hopper.rocket_power", "player.speed", "repeat"],
+      slots: [
+        { id: "mass", label: "mass", value: "1.2", hint: "Lower mass helps Hopper accelerate." },
+        { id: "rocket_power", label: "rocket", value: "75", hint: "More rocket force fights Jupiter gravity." },
+        { id: "speed", label: "speed", value: "5.0", hint: "Speed helps cross platform gaps." },
+        { id: "boxes", label: "boxes", value: "3", hint: "Three boxes make a small building loop." }
+      ],
+      explain: "Activate Hopper, then use a strong rocket and lighter mass; a loop builds helpful blocks.",
+      parentPrompt: "Why does a heavy object need more force to move?",
+      codeIdea: "Activate and tune Hopper, then repeat a box command.",
+      physicsIdea: "More force and less mass create more acceleration.",
+      success: "Hopper uses rocket force and boxes to collect Amber Storm gems."
+    },
+    prediction: {
+      question: "On Jupiter, which engineering choice gives Hopper more acceleration?",
+      options: [
+        { id: "force-mass", label: "More rocket force and less mass", feedback: "Right. More force and less mass make acceleration stronger.", correct: true },
+        { id: "less-force", label: "Less rocket force", feedback: "Less force makes it harder to fight Jupiter's gravity." },
+        { id: "more-mass", label: "More mass", feedback: "More mass resists acceleration, so Hopper feels heavier." }
+      ]
+    },
+    resultChecks: [
+      {
+        id: "jupiter-hopper-engineered",
+        label: "Hopper engineered",
+        success: "Hopper has enough rocket force, lower mass, and speed for Jupiter.",
+        waiting: "Tune mass, rocket power, and speed together.",
+        check: (game) => typeof game.isJupiterHopperEngineered === 'function' && game.isJupiterHopperEngineered()
+      },
+      {
+        id: "jupiter-box-loop",
+        label: "Crate loop built",
+        success: "The loop placed crate blocks for the route.",
+        waiting: "Run the repeat loop to place 3 crates.",
+        check: (game) => game.spawnedBoxes && game.spawnedBoxes.length >= 3
+      }
+    ],
+    badge: {
+      id: "force-mass",
+      icon: "🚀",
+      label: "Force Engineer",
+      description: "Balanced force and mass to move in heavy gravity."
+    },
     validate: (game, Compiler) => {
       const currentG = Compiler.env.gravity !== null ? Compiler.env.gravity : game.currentPlanet.physics.gravity;
       const currentSpeed = Compiler.env.speed !== null ? Compiler.env.speed : game.currentPlanet.physics.speed;
@@ -117,6 +275,7 @@ const PlatformerMissions = [
     title: "Frictionless Slides",
     ageRange: "8-12",
     concept: "Friction is a resistive force that slows sliding motion.",
+    beginnerConcept: "Friction is grip. Conditionals let code react when Rover touches something.",
     codingConcept: "Friction tuning and conditionals",
     starterCode: "friction = 8",
     objective: "Tune friction or spikes, then use an ice-touch rule to collect Violet Ice gems and climb the slopes.",
@@ -133,6 +292,49 @@ const PlatformerMissions = [
       "Hopper can deploy spikes by holding Down Arrow on the ground.",
       "Low Violet gems need friction or spikes; high Violet gems add an ice-touch rule."
     ],
+    scaffold: {
+      mode: "debug-fix",
+      template: "friction = {friction}\nwhen player.touching('ice'): player.say('{message}')",
+      slots: [
+        { id: "friction", label: "friction", value: "slippery", correctValue: "8", hint: "This blank starts broken. Replace it with a number like 8." },
+        { id: "message", label: "say", value: "slippery!", hint: "The event runs when Rover touches ice." }
+      ],
+      explain: "Friction gives grip, and the when rule lets the program notice ice.",
+      parentPrompt: "What changed when friction got bigger?",
+      codeIdea: "Set grip, then add a when-touching-ice rule.",
+      physicsIdea: "Friction pushes against sliding motion.",
+      success: "Rover controls the slide and collects Violet Ice gems."
+    },
+    prediction: {
+      question: "What happens if friction becomes bigger on ice?",
+      options: [
+        { id: "more-grip", label: "Rover gets more grip", feedback: "Yes. Higher friction resists sliding and helps Rover stop.", correct: true },
+        { id: "more-slide", label: "Rover slides forever", feedback: "That happens with low friction, not high friction." },
+        { id: "more-gravity", label: "Gravity turns off", feedback: "Friction changes sliding, not the downward pull." }
+      ]
+    },
+    resultChecks: [
+      {
+        id: "glacies-friction-fixed",
+        label: "Friction debug fixed",
+        success: "The friction value is a number now, so Rover has grip.",
+        waiting: "Fix the broken friction blank with a number like 8.",
+        check: (game) => typeof game.getCurrentFriction === 'function' && game.getCurrentFriction() >= 5
+      },
+      {
+        id: "glacies-ice-event",
+        label: "Ice event ready",
+        success: "The when rule is ready to react when Rover touches ice.",
+        waiting: "Keep the when player.touching('ice') rule in the code.",
+        check: (game) => typeof game.hasIceTouchRule === 'function' && game.hasIceTouchRule()
+      }
+    ],
+    badge: {
+      id: "friction",
+      icon: "🛞",
+      label: "Friction Fixer",
+      description: "Debugged grip so sliding motion could be controlled."
+    },
     validate: (game, Compiler) => {
       const currentF = Compiler.env.friction !== null ? Compiler.env.friction : 0.02;
       return (currentF >= 5.0 || game.player.spikes) && game.player.x > 1000;
@@ -149,13 +351,14 @@ const PlatformerMissions = [
     title: "Magnetic Force Fields",
     ageRange: "8-12",
     concept: "Magnetic poles attract or repel based on polarity.",
+    beginnerConcept: "Events let code wait for a moment, then react automatically.",
     codingConcept: "Event hooks (When)",
-    starterCode: "when hopper.magnet_on:\n    gravity = 0.1",
+    starterCode: "use_hopper()\nwhen hopper.rocket_on: gravity = 0.1\nwhen player.touching('magnet'): hopper.pole = 'south'",
     objective: "Combine rocket and touching event rules to collect Magenta Flux gems and cross the magnetic field gap.",
     steps: [
       { id: "observe", prompt: "Observe: Falling into the electric field instantly resets you.", done: false },
       { id: "predict", prompt: "Predict: Can electromagnet poles counteract gravity?", done: false },
-      { id: "code", prompt: "Code: Type: when hopper.magnet_on:\n    gravity = 0.1", done: false },
+      { id: "code", prompt: "Code: Write one rocket event and one magnet-touch event.", done: false },
       { id: "test", prompt: "Test: Hold Down/S in mid-air to engage magnets, float, and collect Magenta Flux gems.", done: false },
       { id: "explain", prompt: "Explain: How do magnetic fields apply force at a distance?", done: false },
       { id: "challenge", prompt: "Challenge: Clear the level by launching a crate box onto the goal trigger.", done: false }
@@ -165,8 +368,57 @@ const PlatformerMissions = [
       "Event rules (`when`) trigger actions automatically when a condition is met.",
       "Magenta Flux gems unlock only after both event-rule ideas are in the program."
     ],
+    scaffold: {
+      mode: "assemble-events",
+      template: "use_hopper()\nwhen hopper.rocket_on: gravity = {gravity}\nwhen player.touching('magnet'): hopper.pole = '{pole}'",
+      slots: [
+        { id: "gravity", label: "gravity", value: "0.1", hint: "Low gravity helps Hopper float while the rocket is on." },
+        { id: "pole", label: "pole", value: "south", hint: "Changing pole changes how magnets push or pull." }
+      ],
+      explain: "Activate Hopper first; the event rules wait for rocket or magnet moments, then change physics.",
+      parentPrompt: "What event made the code run by itself?",
+      codeIdea: "Write two when rules that react to rocket and magnet moments.",
+      physicsIdea: "Magnetic force can pull or push without touching.",
+      success: "Hopper uses event rules to collect Magenta Flux gems."
+    },
+    prediction: {
+      question: "What makes a when rule different from a normal line of code?",
+      options: [
+        { id: "waits", label: "It waits for an event", feedback: "Correct. A when rule waits, then reacts at the right moment.", correct: true },
+        { id: "runs-once", label: "It only changes color", feedback: "A when rule can change physics, not just colors." },
+        { id: "breaks-code", label: "It breaks the program", feedback: "A valid when rule is safe; it listens for an event." }
+      ]
+    },
+    resultChecks: [
+      {
+        id: "magnet-rocket-event",
+        label: "Rocket event assembled",
+        success: "The rocket event can change gravity during boost moments.",
+        waiting: "Add a when hopper.rocket_on rule.",
+        check: (game) => typeof game.hasRocketEventRule === 'function' && game.hasRocketEventRule()
+      },
+      {
+        id: "magnet-touch-event",
+        label: "Magnet event assembled",
+        success: "The magnet-touch event can switch Hopper's pole.",
+        waiting: "Add a when player.touching('magnet') rule.",
+        check: (game) => typeof game.hasPlayerTouchingRule === 'function' && game.hasPlayerTouchingRule()
+      }
+    ],
+    badge: {
+      id: "events",
+      icon: "🧲",
+      label: "Event Listener",
+      description: "Built rules that wait for rocket and magnet moments."
+    },
     validate: (game, Compiler) => {
-      return Compiler.activeRules.some(r => r.target.includes('magnet_on') || r.target.includes('player.touching')) && game.player.x > 1200;
+      const hasRocketRule = typeof game.hasRocketEventRule === 'function'
+        ? game.hasRocketEventRule()
+        : Compiler.activeRules.some(r => r.target.includes('hopper.rocket_on'));
+      const hasTouchRule = typeof game.hasPlayerTouchingRule === 'function'
+        ? game.hasPlayerTouchingRule()
+        : Compiler.activeRules.some(r => r.target.includes('player.touching'));
+      return hasRocketRule && hasTouchRule && game.player.x > 1200;
     },
     reflection: [
       "What did the force vectors show when you activated the magnet?",

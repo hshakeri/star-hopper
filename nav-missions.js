@@ -82,8 +82,8 @@ window.Nav = window.Nav || {};
     makeRouteMission({
       id: "route-earth-moon",
       title: "Earth to Moon Transfer",
-      concept: "Return to orbit, steer toward Moon, burn, and coast",
-      objective: "After Earth rover discovery, dock Rover inside the spacecraft and run a transfer plan to reach Moon orbit.",
+      concept: "Simple route bridge: point, thrust, coast",
+      objective: "Run the short launch plan so the spacecraft carries Rover from Earth to Moon.",
       originId: "earth",
       destinationId: "moon",
       targetPlanetIndex: 1,
@@ -94,8 +94,8 @@ window.Nav = window.Nav || {};
     makeRouteMission({
       id: "route-moon-jupiter",
       title: "Moon to Jupiter Transfer",
-      concept: "Long coast planning, time warp, and deep-space burn",
-      objective: "Leave Moon orbit and guide the spacecraft to Jupiter before Rover deploys for the rocket escape challenge.",
+      concept: "Simple route bridge: aim, burn, time warp",
+      objective: "Run the launch plan to carry Rover from Moon orbit to Jupiter.",
       originId: "moon",
       destinationId: "jupiter",
       targetPlanetIndex: 2,
@@ -106,8 +106,8 @@ window.Nav = window.Nav || {};
     makeRouteMission({
       id: "route-jupiter-glacies",
       title: "Jupiter to Glacies Transfer",
-      concept: "Outer-orbit cruise with controlled thrust",
-      objective: "Exit Jupiter's gravity neighborhood and navigate to the icy Glacies survey zone.",
+      concept: "Simple route bridge: aim, burn, coast",
+      objective: "Run the launch plan to carry Rover from Jupiter to the icy Glacies survey zone.",
       originId: "jupiter",
       destinationId: "glacies",
       targetPlanetIndex: 3,
@@ -118,8 +118,8 @@ window.Nav = window.Nav || {};
     makeRouteMission({
       id: "route-glacies-magnet",
       title: "Glacies to Mag-Net Transfer",
-      concept: "Final approach to a magnetic nebula field",
-      objective: "Plot the final spacecraft route to Mag-Net, then deploy Rover for magnetic field experiments.",
+      concept: "Simple route bridge: final approach",
+      objective: "Run the launch plan to carry Rover from Glacies to the Mag-Net field.",
       originId: "glacies",
       destinationId: "magnet",
       targetPlanetIndex: 4,

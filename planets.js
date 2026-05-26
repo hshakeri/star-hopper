@@ -80,7 +80,7 @@ const PLANETS = [
     },
     
     tutorial: [
-      { trigger: "start", text: "Awesome, you made it to the Moon! Gravity is tiny here (g = 1.6). Notice how slowly we float! Our jumps are huge." },
+      { trigger: "start", text: "Awesome, you made it to the Moon! Gravity is tiny here (g = 0.12). Notice how slowly we float! Our jumps are huge." },
       { trigger: "gap", text: "Look at that massive canyon! We need to place multiple bouncy springs on the launchpad. Type this loop: repeat 3 { spawn_spring() }" },
       { trigger: "gravity_check", text: "You can type gravity = 0.05 to float like an astronaut, or gravity = 2.0 to feel super heavy!" }
     ],
@@ -193,7 +193,7 @@ const PLANETS = [
     
     tutorial: [
       { trigger: "start", text: "Brrr! This ice comet has near zero friction. Rover will slide forever because of inertia (Newton's 1st Law)!" },
-      { trigger: "slippery", text: "You can override boot friction by programming spiked grips. Type: friction = 0.85 in the terminal to stop sliding instantly!" },
+      { trigger: "slippery", text: "You can override boot friction by programming spiked grips. Type: friction = 8 in Mission Coach to stop sliding." },
       { trigger: "loops", text: "Need blocks to climb up? Run a repeat loop to spawn a stack: repeat 3 { spawn_box() }" }
     ],
 
@@ -248,7 +248,7 @@ const PLANETS = [
     
     tutorial: [
       { trigger: "start", text: "Welcome to the Magnetic Nebula! In this low gravity, magnetic blocks (red: + positive, blue: - negative) can pull or push us." },
-      { trigger: "poles", text: "We need Hopper to cling to the magnetic ceiling. Set up an event rule: when player.touching('magnet'): magnet = 'negative'" },
+      { trigger: "poles", text: "We need Hopper to react to magnetic nodes. Set up an event rule: when player.touching('magnet'): hopper.pole = 'south'" },
       { trigger: "finish", text: "Excellent! Toggle the electromagnet polarization to slide along the magnetic tracks to the goal portal!" }
     ],
 
@@ -260,7 +260,7 @@ const PLANETS = [
       },
       {
         id: "magnet-switch",
-        prompt: "Write a 'when' rule that changes magnet when player is touching magnet",
+        prompt: "Write a 'when' rule that changes Hopper's pole when player is touching magnet",
         validate: (game) => Compiler.activeRules.some(r => r.target === 'player.touching')
       }
     ],

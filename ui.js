@@ -293,6 +293,10 @@ function updateHUD(game) {
 // Update Mission Checklist UI
 function updateMissionList(game) {
   updatePedagogicalGuide(game);
+  updateParentMissionSummary(game);
+  if (typeof updateLearningConceptProgress === 'function') {
+    updateLearningConceptProgress(game);
+  }
 
   const listContainer = document.getElementById("mission-list");
   if (!listContainer) return;
@@ -358,6 +362,391 @@ function updateMissionList(game) {
     portalItem.appendChild(portalLabel);
     listContainer.appendChild(portalItem);
   }
+}
+
+function getActivePlatformerMission(game) {
+  const currentPlanet = game && game.currentPlanet;
+  if (!currentPlanet || !currentPlanet.missions) return null;
+  return currentPlanet.missions.find(mission => !game.completedMissions.has(mission.id)) || currentPlanet.missions[0] || null;
+}
+
+function escapeHTML(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function getScaffoldValues(scaffoldRoot) {
+  const values = {};
+  if (!scaffoldRoot) return values;
+  scaffoldRoot.querySelectorAll("[data-scaffold-slot]").forEach(input => {
+    values[input.dataset.scaffoldSlot] = input.value;
+  });
+  return values;
+}
+
+function getScaffoldModeLabel(mode) {
+  const labels = {
+    "fill-values": "Fill the numbers",
+    "pattern-fill": "Complete the pattern",
+    "choose-tune": "Choose and tune",
+    "debug-fix": "Debug the line",
+    "assemble-events": "Assemble events"
+  };
+  return labels[mode] || "Try this code";
+}
+
+function getCoachPredictionOption(game, missionId) {
+  const selectedId = game && game.coachPredictions ? game.coachPredictions[missionId] : null;
+  const fullMission = PlatformerMissions.find(mission => mission.id === missionId);
+  if (!fullMission || !fullMission.prediction || !selectedId) return null;
+  return fullMission.prediction.options.find(option => option.id === selectedId) || null;
+}
+
+function evaluateMissionResultChecks(game, fullMission) {
+  const checks = fullMission && Array.isArray(fullMission.resultChecks) ? fullMission.resultChecks : [];
+  const items = checks.map(check => {
+    let passed = false;
+    try {
+      passed = !!check.check(game, Compiler);
+    } catch (err) {
+      passed = false;
+    }
+    return {
+      id: check.id,
+      label: check.label,
+      passed,
+      message: passed ? check.success : check.waiting
+    };
+  });
+
+  return {
+    allPassed: items.length > 0 && items.every(item => item.passed),
+    items
+  };
+}
+
+function renderResultFeedback(container, mission, resultState) {
+  const fullMission = mission && mission.fullMission;
+  const resultBox = document.createElement("div");
+  resultBox.className = "coach-result-box";
+
+  if (!resultState || !Array.isArray(resultState.items) || resultState.items.length === 0) {
+    resultBox.innerHTML = `
+      <div class="coach-mini-title">What changed?</div>
+      <p>Run the code to see what changed in the mission.</p>
+    `;
+    container.appendChild(resultBox);
+    return;
+  }
+
+  const badge = fullMission && fullMission.badge ? fullMission.badge : null;
+  resultBox.innerHTML = `
+    <div class="coach-mini-title">What changed?</div>
+    <div class="coach-result-list">
+      ${resultState.items.map(item => `
+        <div class="coach-result-item ${item.passed ? "passed" : ""}">
+          <span>${item.passed ? "✓" : "○"}</span>
+          <strong>${escapeHTML(item.label)}</strong>
+          <p>${escapeHTML(item.message)}</p>
+        </div>
+      `).join("")}
+    </div>
+    ${badge && resultState.allPassed ? `<div class="coach-badge-inline">${escapeHTML(badge.icon)} ${escapeHTML(badge.label)} ready for your Log.</div>` : ""}
+  `;
+  container.appendChild(resultBox);
+}
+
+function showBadgeToast(badge) {
+  if (!badge) return;
+  let toast = document.getElementById("badge-toast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "badge-toast";
+    toast.className = "badge-toast hidden";
+    document.body.appendChild(toast);
+  }
+
+  toast.innerHTML = `
+    <span class="badge-toast-icon">${escapeHTML(badge.icon)}</span>
+    <span><strong>${escapeHTML(badge.label)}</strong><br>${escapeHTML(badge.description)}</span>
+  `;
+  toast.classList.remove("hidden");
+  clearTimeout(showBadgeToast.timer);
+  showBadgeToast.timer = setTimeout(() => {
+    toast.classList.add("hidden");
+  }, 2600);
+}
+
+function unlockCoachBadge(game, fullMission) {
+  if (!game || !fullMission || !fullMission.badge) return false;
+  game.earnedBadges = game.earnedBadges || new Set();
+  if (game.earnedBadges.has(fullMission.badge.id)) return false;
+
+  game.earnedBadges.add(fullMission.badge.id);
+  showBadgeToast(fullMission.badge);
+  ui_log_output(`Badge unlocked: ${fullMission.badge.icon} ${fullMission.badge.label}`, "success");
+  if (typeof showDialogue === 'function') {
+    showDialogue(`${fullMission.badge.icon} Badge unlocked: ${fullMission.badge.label}!`, "badge");
+  }
+  if (typeof updateBadgeShelf === 'function') {
+    updateBadgeShelf(game);
+  }
+  return true;
+}
+
+function getCoachFocusText(game, activeMission) {
+  const fullMission = activeMission.fullMission;
+  if (game.completedMissions.has(activeMission.id)) {
+    return "Explain what worked in the Log, then collect any remaining gems.";
+  }
+
+  const selectedPrediction = game.coachPredictions && game.coachPredictions[activeMission.id];
+  if (fullMission.prediction && !selectedPrediction) {
+    return fullMission.prediction.question;
+  }
+
+  if (!game.currentMissionSteps || !game.currentMissionSteps.code) {
+    return fullMission.scaffold && fullMission.scaffold.codeIdea
+      ? fullMission.scaffold.codeIdea
+      : "Run the coach code, then test the mission.";
+  }
+
+  const resultState = game.coachLastResults ? game.coachLastResults[activeMission.id] : null;
+  if (resultState && !resultState.allPassed) {
+    const waiting = resultState.items.find(item => !item.passed);
+    return waiting ? waiting.message : "Adjust the code and run it again.";
+  }
+
+  if (resultState && resultState.allPassed) {
+    return "Great. Test it in the level and collect the unlocked gems.";
+  }
+
+  return "Move in the level and watch what changed.";
+}
+
+function renderScaffoldEditor(game, mission) {
+  const container = document.getElementById("mission-scaffold");
+  if (!container) return;
+
+  const scaffold = mission && mission.fullMission ? mission.fullMission.scaffold : null;
+  if (!scaffold) {
+    container.innerHTML = "";
+    return;
+  }
+  const fullMission = mission.fullMission;
+  const selectedPrediction = game.coachPredictions ? game.coachPredictions[mission.id] : null;
+
+  container.innerHTML = "";
+
+  const card = document.createElement("div");
+  card.className = "try-code-card";
+
+  if (fullMission.prediction) {
+    const prediction = document.createElement("div");
+    prediction.className = "coach-prediction-card";
+    const selectedOption = getCoachPredictionOption(game, mission.id);
+    prediction.innerHTML = `
+      <div class="coach-mini-title">Predict first</div>
+      <p>${escapeHTML(fullMission.prediction.question)}</p>
+      <div class="prediction-options">
+        ${fullMission.prediction.options.map(option => `
+          <button type="button" class="prediction-option ${selectedPrediction === option.id ? "selected" : ""}" data-prediction-id="${escapeHTML(option.id)}">
+            ${escapeHTML(option.label)}
+          </button>
+        `).join("")}
+      </div>
+      <div class="prediction-feedback ${selectedOption ? "" : "hidden"}">${selectedOption ? escapeHTML(selectedOption.feedback) : ""}</div>
+    `;
+    prediction.querySelectorAll("[data-prediction-id]").forEach(button => {
+      button.addEventListener("click", () => {
+        game.coachPredictions = game.coachPredictions || {};
+        game.coachPredictions[mission.id] = button.dataset.predictionId;
+        if (game.currentMissionSteps) game.currentMissionSteps.predict = true;
+        const option = fullMission.prediction.options.find(item => item.id === button.dataset.predictionId);
+        if (option && typeof showDialogue === 'function') {
+          showDialogue(option.feedback, "predict");
+        }
+        updatePedagogicalGuide(game);
+        updateParentMissionSummary(game);
+      });
+    });
+    container.appendChild(prediction);
+  }
+
+  const header = document.createElement("div");
+  header.className = "try-code-header";
+  header.innerHTML = `<span>Try this code</span><span>${escapeHTML(getScaffoldModeLabel(scaffold.mode))}</span>`;
+  card.appendChild(header);
+
+  if (scaffold.commandChoices && scaffold.commandChoices.length) {
+    const choices = document.createElement("div");
+    choices.className = "command-choice-row";
+    choices.innerHTML = scaffold.commandChoices.map(choice => `<span>${escapeHTML(choice)}</span>`).join("");
+    card.appendChild(choices);
+  }
+
+  const slots = document.createElement("div");
+  slots.className = "scaffold-slot-grid";
+  scaffold.slots.forEach(slot => {
+    const label = document.createElement("label");
+    label.className = "scaffold-slot";
+    label.title = slot.hint || "";
+
+    const name = document.createElement("span");
+    name.textContent = slot.label;
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.value = slot.value;
+    input.dataset.scaffoldSlot = slot.id;
+    input.autocomplete = "off";
+    input.spellcheck = false;
+
+    label.appendChild(name);
+    label.appendChild(input);
+    slots.appendChild(label);
+  });
+  card.appendChild(slots);
+
+  const explanation = document.createElement("p");
+  explanation.className = "try-code-explain";
+  explanation.textContent = scaffold.explain;
+  card.appendChild(explanation);
+
+  const preview = document.createElement("pre");
+  preview.className = "try-code-preview";
+  const refreshPreview = () => {
+    preview.textContent = buildScaffoldCode(scaffold, getScaffoldValues(card));
+  };
+  refreshPreview();
+  card.appendChild(preview);
+
+  slots.addEventListener("input", refreshPreview);
+
+  const actions = document.createElement("div");
+  actions.className = "try-code-actions";
+
+  const runBtn = document.createElement("button");
+  runBtn.className = "notebook-btn run-scaffold-btn";
+  runBtn.type = "button";
+  const predictionRequired = !!fullMission.prediction && !selectedPrediction;
+  runBtn.disabled = predictionRequired;
+  runBtn.textContent = predictionRequired ? "Pick Prediction First" : "Run Code";
+  runBtn.addEventListener("click", () => {
+    const code = buildScaffoldCode(scaffold, getScaffoldValues(card));
+    runCoachCode(game, code);
+  });
+
+  const editBtn = document.createElement("button");
+  editBtn.className = "notebook-btn edit-scaffold-btn";
+  editBtn.type = "button";
+  editBtn.textContent = "Edit in terminal";
+  editBtn.addEventListener("click", () => {
+    const input = document.getElementById("console-input");
+    if (input) {
+      input.value = buildScaffoldCode(scaffold, getScaffoldValues(card));
+      input.focus();
+    }
+  });
+
+  actions.appendChild(editBtn);
+  actions.appendChild(runBtn);
+  card.appendChild(actions);
+  container.appendChild(card);
+
+  renderResultFeedback(container, mission, game.coachLastResults ? game.coachLastResults[mission.id] : null);
+}
+
+function runCoachCode(game, code) {
+  const trimmed = code.trim();
+  if (!trimmed) return;
+  const activeMission = getActivePlatformerMission(game);
+  if (activeMission && activeMission.fullMission && activeMission.fullMission.prediction) {
+    const hasPrediction = game.coachPredictions && game.coachPredictions[activeMission.id];
+    if (!hasPrediction) {
+      ui_log_output("Pick a prediction before running Mission Coach code.", "error");
+      SFX.playError();
+      return;
+    }
+  }
+
+  const lockedBefore = typeof game.getLockedRequiredCollectibleCount === 'function' ? game.getLockedRequiredCollectibleCount() : 0;
+  ui_log_input(trimmed);
+  const res = Compiler.runCommand(trimmed, game);
+  if (res.success) {
+    ui_log_output(res.msg, "success");
+    SFX.playSuccess();
+    if (activeMission) {
+      game.lastCoachCodeByMission = game.lastCoachCodeByMission || {};
+      game.lastCoachCodeByMission[activeMission.id] = trimmed;
+    }
+    if (typeof handleGuidedCodeHook === 'function') {
+      handleGuidedCodeHook(trimmed);
+    }
+    if (game.currentMissionSteps) {
+      game.currentMissionSteps.code = true;
+    }
+    if (typeof showDialogue === 'function') {
+      showDialogue("Code ran. Check What changed, then test it in the level.", "code");
+    }
+  } else {
+    ui_log_output(res.msg, "error");
+    SFX.playError();
+  }
+
+  game.checkMissions();
+  if (res.success && activeMission && activeMission.fullMission) {
+    game.coachLastResults = game.coachLastResults || {};
+    const resultState = evaluateMissionResultChecks(game, activeMission.fullMission);
+    game.coachLastResults[activeMission.id] = resultState;
+    const lockedAfter = typeof game.getLockedRequiredCollectibleCount === 'function' ? game.getLockedRequiredCollectibleCount() : lockedBefore;
+    if (lockedBefore > lockedAfter) {
+      const opened = lockedBefore - lockedAfter;
+      ui_log_output(`◆ Code unlocked ${opened} mission gem${opened === 1 ? "" : "s"}!`, "success");
+      if (typeof showDialogue === 'function') {
+        showDialogue(`Nice engineering. ${opened} gem gate${opened === 1 ? "" : "s"} opened!`, "badge");
+      }
+    }
+    if (resultState.allPassed || game.completedMissions.has(activeMission.id)) {
+      unlockCoachBadge(game, activeMission.fullMission);
+    }
+  }
+  updatePedagogicalGuide(game);
+  updateMissionList(game);
+}
+
+function updateParentMissionSummary(game) {
+  const summary = document.getElementById("parent-mission-summary");
+  if (!summary) return;
+
+  const mission = getActivePlatformerMission(game);
+  if (!mission || !mission.fullMission || !mission.fullMission.scaffold) {
+    summary.innerHTML = "<p>Launch a mission to see the parent coaching summary.</p>";
+    return;
+  }
+
+  const full = mission.fullMission;
+  const scaffold = full.scaffold;
+  const status = game && typeof game.getLevelObjectiveStatus === 'function' ? game.getLevelObjectiveStatus() : null;
+  const progress = status ? `Tasks ${status.missionsComplete}/${status.missionsTotal}, gems ${status.collectiblesCollected}/${status.collectiblesTotal}` : "Mission not started";
+  const prediction = full.prediction ? full.prediction.question : "Watch first, then make a prediction.";
+  const badge = full.badge ? `${full.badge.icon} ${full.badge.label}: ${full.badge.description}` : "Complete the mission to unlock a concept badge.";
+
+  summary.innerHTML = `
+    <span class="guide-card-title">${escapeHTML(full.title)}</span>
+    <p><strong>Concept:</strong> ${escapeHTML(full.beginnerConcept)}</p>
+    <p><strong>Prediction:</strong> ${escapeHTML(prediction)}</p>
+    <p><strong>Code idea:</strong> ${escapeHTML(scaffold.codeIdea)}</p>
+    <p><strong>Physics idea:</strong> ${escapeHTML(scaffold.physicsIdea)}</p>
+    <p><strong>Ask your child:</strong> ${escapeHTML(scaffold.parentPrompt)}</p>
+    <p><strong>Badge:</strong> ${escapeHTML(badge)}</p>
+    <p><strong>Success:</strong> ${escapeHTML(scaffold.success)}</p>
+    <p class="parent-progress-line">${escapeHTML(progress)}</p>
+  `;
 }
 
 // Typing effect helper for robot dialogues
@@ -507,9 +896,12 @@ function setupUIBindings(game) {
   // 4. Mute toggle
   const muteBtn = document.getElementById("mute-btn");
   if (muteBtn) {
+    muteBtn.innerHTML = SFX.isMuted ? '🔇' : '🔊';
+    muteBtn.title = SFX.isMuted ? "Sound muted" : "Toggle Sound";
     muteBtn.addEventListener("click", () => {
       const isMuted = SFX.toggleMute();
       muteBtn.innerHTML = isMuted ? '🔇' : '🔊';
+      muteBtn.title = isMuted ? "Sound muted" : "Toggle Sound";
     });
   }
 
@@ -613,20 +1005,13 @@ function setupUIBindings(game) {
   }
 }
 
-// 6-Step Pedagogical Guide renderer
+// Mission Coach renderer
 function updatePedagogicalGuide(game) {
   const panel = document.getElementById("pedagogical-mission-panel");
   const stepsContainer = document.getElementById("pedagogical-steps");
   if (!panel || !stepsContainer) return;
 
-  const currentPlanet = game.currentPlanet;
-  if (!currentPlanet || !currentPlanet.missions) {
-    panel.style.display = "none";
-    return;
-  }
-
-  // Find first uncompleted mission
-  const activeMission = currentPlanet.missions.find(m => !game.completedMissions.has(m.id)) || currentPlanet.missions[0];
+  const activeMission = getActivePlatformerMission(game);
   if (!activeMission || !activeMission.fullMission) {
     panel.style.display = "none";
     return;
@@ -635,6 +1020,13 @@ function updatePedagogicalGuide(game) {
   panel.style.display = "block";
   const titleEl = document.getElementById("pedagogical-mission-title");
   if (titleEl) titleEl.textContent = activeMission.fullMission.title;
+  const summaryEl = document.getElementById("mission-coach-summary");
+  if (summaryEl) {
+    summaryEl.innerHTML = `
+      <span>${escapeHTML(activeMission.fullMission.beginnerConcept)}</span>
+      <span>${escapeHTML(activeMission.fullMission.scaffold ? activeMission.fullMission.scaffold.codeIdea : activeMission.fullMission.codingConcept)}</span>
+    `;
+  }
 
   // Ensure steps state is initialized
   if (!game.currentMissionSteps || game.currentMissionId !== activeMission.id) {
@@ -660,11 +1052,11 @@ function updatePedagogicalGuide(game) {
   }
 
   stepsContainer.innerHTML = "";
-  const steps = activeMission.fullMission.steps;
+  const steps = activeMission.fullMission.steps.filter(step => step.id !== "challenge");
   
   // Determine current active step index
   let activeIndex = 0;
-  const keys = ["observe", "predict", "code", "test", "explain", "challenge"];
+  const keys = ["observe", "predict", "code", "test", "explain"];
   for (let i = 0; i < keys.length; i++) {
     if (!game.currentMissionSteps[keys[i]]) {
       activeIndex = i;
@@ -672,7 +1064,12 @@ function updatePedagogicalGuide(game) {
     }
   }
   if (game.completedMissions.has(activeMission.id)) {
-    activeIndex = 5; // Challenge
+    activeIndex = steps.length - 1;
+  }
+
+  const focusEl = document.getElementById("mission-coach-focus");
+  if (focusEl) {
+    focusEl.innerHTML = `<span>Next action</span><strong>${escapeHTML(getCoachFocusText(game, activeMission))}</strong>`;
   }
 
   steps.forEach((step, index) => {
@@ -693,4 +1090,6 @@ function updatePedagogicalGuide(game) {
 
     stepsContainer.appendChild(item);
   });
+
+  renderScaffoldEditor(game, activeMission);
 }

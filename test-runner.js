@@ -63,6 +63,34 @@ function assertClose(expected, actual, tolerance = 0.0001, msg = "") {
   }
 }
 
+function makeScaffoldMockGame(planetIndex = 0) {
+  return {
+    currentPlanet: PLANETS[planetIndex] || PLANETS[0],
+    currentPlanetIndex: planetIndex,
+    player: {
+      charType: 'hopper',
+      jumpPower: 10,
+      rocketPower: 40,
+      mass: 1,
+      spikes: false,
+      pole: 'north',
+      touchingGroundType: 'ice',
+      say: () => {},
+      isTouching: () => false
+    },
+    starMass: 1,
+    hopperMass: 2.5,
+    spawnedBoxes: [],
+    spawnedSprings: [],
+    spawnItemAbovePlayer(type) {
+      if (type === 'box') this.spawnedBoxes.push({});
+      if (type === 'spring') this.spawnedSprings.push({});
+    },
+    shrinkAllEnemies: () => {},
+    bouncePlayer: () => {}
+  };
+}
+
 // -----------------------------------------------------------------------------
 // Test Case Declarations
 // -----------------------------------------------------------------------------
@@ -377,11 +405,200 @@ function runEngineTests() {
   } catch (err) {
     renderTestResult("engine-suite", "Objectives: Earth gems require progressive engineering gates", false, err.message);
   }
+
+  // Test 18: Every planet mission includes beginner curriculum scaffolding
+  try {
+    const missing = PlatformerMissions.filter(mission => {
+      const scaffold = mission.scaffold;
+      const prediction = mission.prediction;
+      const badge = mission.badge;
+      return !mission.beginnerConcept ||
+        !scaffold ||
+        !scaffold.template ||
+        !scaffold.mode ||
+        !Array.isArray(scaffold.slots) ||
+        scaffold.slots.length === 0 ||
+        !scaffold.explain ||
+        !scaffold.parentPrompt ||
+        !scaffold.codeIdea ||
+        !scaffold.physicsIdea ||
+        !scaffold.success ||
+        !prediction ||
+        !prediction.question ||
+        !Array.isArray(prediction.options) ||
+        prediction.options.length < 2 ||
+        !prediction.options.some(option => option.correct) ||
+        !Array.isArray(mission.resultChecks) ||
+        mission.resultChecks.length === 0 ||
+        !mission.resultChecks.every(check => check.id && check.label && check.success && check.waiting && typeof check.check === 'function') ||
+        !badge ||
+        !badge.id ||
+        !badge.label ||
+        !badge.icon ||
+        !badge.description;
+    });
+
+    assertEquals(0, missing.length, `Missing coach metadata: ${missing.map(m => m.id).join(", ")}`);
+    renderTestResult("engine-suite", "Curriculum: planet missions include Mission Coach contracts", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Curriculum: planet missions include Mission Coach contracts", false, err.message);
+  }
+
+  // Test 19: Scaffold templates compile and run as KidCode, or start as intentional debug prompts
+  try {
+    for (const mission of PlatformerMissions) {
+      Compiler.reset();
+      const code = buildScaffoldCode(mission.scaffold);
+      const res = Compiler.runCommand(code, makeScaffoldMockGame(mission.planetId));
+      if (mission.scaffold.mode === "debug-fix") {
+        assertEquals(false, res.success, `${mission.id} debug scaffold should begin with a fixable error`);
+        const fixedCode = buildScaffoldCode(mission.scaffold, getCorrectedScaffoldValues(mission.scaffold));
+        const fixedRes = Compiler.runCommand(fixedCode, makeScaffoldMockGame(mission.planetId));
+        assertEquals(true, fixedRes.success, `${mission.id} corrected scaffold failed: ${fixedRes.msg}`);
+      } else {
+        assertEquals(true, res.success, `${mission.id} scaffold failed: ${res.msg}`);
+      }
+    }
+    renderTestResult("engine-suite", "Curriculum: scaffold templates generate runnable or fixable KidCode", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Curriculum: scaffold templates generate runnable or fixable KidCode", false, err.message);
+  }
+
+  // Test 20: Earth scaffold activates Hopper so the second Emerald gate unlocks
+  try {
+    Compiler.reset();
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[0];
+    game.currentPlanetIndex = 0;
+    game.player = { charType: 'star', jumpPower: 10, rocketPower: 40, mass: 1, spikes: false };
+    game.star = game.player;
+    game.hopper = game.player;
+    game.hopperMass = 2.5;
+
+    const earthMission = PlatformerMissions.find(mission => mission.id === "earth-gravity-wall");
+    const res = Compiler.runCommand(buildScaffoldCode(earthMission.scaffold), game);
+    const highGem = { type: 'coin', requiredCollectible: true, collected: false, gemGate: game.getGemGateForCollectible(0, 3, 34) };
+
+    assertEquals(true, res.success, res.msg);
+    assertEquals("hopper", game.player.charType, "Scaffold should activate Hopper");
+    assertEquals(true, game.canCollectGem(highGem), "Full Earth scaffold should unlock high Emerald gems");
+    renderTestResult("engine-suite", "Curriculum: Earth scaffold unlocks second Emerald gate", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Curriculum: Earth scaffold unlocks second Emerald gate", false, err.message);
+  }
+
+  // Test 21: Result checks read actual game state after coach code runs
+  try {
+    Compiler.reset();
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[0];
+    game.currentPlanetIndex = 0;
+    game.player = { charType: 'star', jumpPower: 10, rocketPower: 40, mass: 1, spikes: false };
+    game.star = game.player;
+    game.hopper = game.player;
+    game.hopperMass = 2.5;
+    game.interactiveObjects = [
+      { type: 'coin', requiredCollectible: true, collected: false, gemGate: game.getGemGateForCollectible(0, 6, 5) },
+      { type: 'coin', requiredCollectible: true, collected: false, gemGate: game.getGemGateForCollectible(0, 3, 34) }
+    ];
+
+    const earthMission = PlatformerMissions.find(mission => mission.id === "earth-gravity-wall");
+    const before = earthMission.resultChecks.map(check => check.check(game, Compiler));
+    const res = Compiler.runCommand(buildScaffoldCode(earthMission.scaffold), game);
+    const after = earthMission.resultChecks.map(check => check.check(game, Compiler));
+
+    assertEquals(false, before.every(Boolean), "Earth result checks should not pass before code");
+    assertEquals(true, res.success, res.msg);
+    assertEquals(true, after.every(Boolean), "Earth result checks should pass after scaffold code");
+    renderTestResult("engine-suite", "Curriculum: result checks reflect live game changes", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Curriculum: result checks reflect live game changes", false, err.message);
+  }
+
+  // Test 22: Completed missions unlock concept badges
+  try {
+    Compiler.reset();
+    const previousUnlock = typeof unlockCoachBadge === 'function' ? unlockCoachBadge : null;
+    unlockCoachBadge = (game, fullMission) => {
+      game.earnedBadges = game.earnedBadges || new Set();
+      game.earnedBadges.add(fullMission.badge.id);
+      return true;
+    };
+
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[0];
+    game.currentPlanetIndex = 0;
+    game.player = { charType: 'hopper', jumpPower: 17, rocketPower: 40, mass: 1.2, spikes: false, x: 1201 };
+    game.hopperMass = 1.2;
+    Compiler.env.gravity = 0.35;
+    Compiler.env.speed = 4.8;
+    game.checkMissions();
+
+    const earthMission = PlatformerMissions.find(mission => mission.id === "earth-gravity-wall");
+    assertEquals(true, game.completedMissions.has(earthMission.id), "Earth mission should be complete");
+    assertEquals(true, game.earnedBadges.has(earthMission.badge.id), "Earth concept badge should unlock");
+
+    if (previousUnlock) {
+      unlockCoachBadge = previousUnlock;
+    } else if (typeof window !== 'undefined') {
+      delete window.unlockCoachBadge;
+    }
+    renderTestResult("engine-suite", "Curriculum: mission completion unlocks concept badges", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Curriculum: mission completion unlocks concept badges", false, err.message);
+  }
+
+  // Test 23: Mission Coach copy avoids hidden old mode names
+  try {
+    const texts = [];
+    PlatformerMissions.forEach(mission => {
+      texts.push(mission.title, mission.beginnerConcept, mission.objective, mission.codingConcept);
+      mission.steps.forEach(step => texts.push(step.prompt));
+      mission.hints.forEach(hint => texts.push(hint));
+      const scaffold = mission.scaffold;
+      texts.push(scaffold.explain, scaffold.parentPrompt, scaffold.codeIdea, scaffold.physicsIdea, scaffold.success);
+      scaffold.slots.forEach(slot => texts.push(slot.label, slot.hint));
+      texts.push(mission.prediction.question);
+      mission.prediction.options.forEach(option => texts.push(option.label, option.feedback));
+      mission.resultChecks.forEach(check => texts.push(check.label, check.success, check.waiting));
+      texts.push(mission.badge.label, mission.badge.description);
+    });
+
+    if (typeof getGuidedStepCopy === 'function') {
+      texts.push(...getGuidedStepCopy());
+    }
+
+    const forbidden = [
+      ["Code", "tab"].join(" "),
+      ["Nav", "tab"].join(" "),
+      ["Navigator", "tab"].join(" "),
+      ["Notebook", "tab"].join(" ")
+    ];
+    const hit = texts.find(text => forbidden.some(term => String(text).includes(term)));
+    assertEquals(undefined, hit, `Found hidden UI wording: ${hit}`);
+    renderTestResult("engine-suite", "Curriculum: Mission Coach copy avoids hidden tabs", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Curriculum: Mission Coach copy avoids hidden tabs", false, err.message);
+  }
+
+  // Test 24: Hopper pole assignment controls magnetic polarity state
+  try {
+    Compiler.reset();
+    const game = makeScaffoldMockGame(4);
+    const res = Compiler.runCommand("hopper.pole = 'south'", game);
+
+    assertEquals(true, res.success);
+    assertEquals("south", game.player.pole, "Player pole should update");
+    assertEquals("south", Compiler.env.magnetPole, "Compiler magnetic polarity should update");
+    renderTestResult("engine-suite", "Compiler: hopper.pole tunes magnetic polarity", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Compiler: hopper.pole tunes magnetic polarity", false, err.message);
+  }
 }
 
 // Suite 4: Solar Interplanetary Flight Simulator Tests
 function runSolarTests() {
-  // Test 18: Vector Math Addition and Scaling
+  // Test 23: Vector Math Addition and Scaling
   try {
     const v1 = { x: 1.5, y: -2.0 };
     const v2 = { x: 2.5, y: 5.0 };
@@ -397,7 +614,7 @@ function runSolarTests() {
     renderTestResult("solar-suite", "Vector Math: 2D addition & scaling correctness", false, err.message);
   }
 
-  // Test 19: Deterministic circular orbit position lookup
+  // Test 24: Deterministic circular orbit position lookup
   try {
     const earth = Nav.BODIES.EARTH;
     const state = Nav.bodyStateAt(earth, 0); // t=0
@@ -410,7 +627,7 @@ function runSolarTests() {
     renderTestResult("solar-suite", "Planetary Coordinates: deterministic state lookup at t=0", false, err.message);
   }
 
-  // Test 20: Hohmann Transfer math validation
+  // Test 25: Hohmann Transfer math validation
   try {
     const earth = Nav.BODIES.EARTH;
     const mars = Nav.BODIES.MARS;
@@ -424,7 +641,7 @@ function runSolarTests() {
     renderTestResult("solar-suite", "Analytical Hohmann: transfer requirements calculations", false, err.message);
   }
 
-  // Test 21: Spacecraft console command queue parser
+  // Test 26: Spacecraft console command queue parser
   try {
     Nav.initShip(0, 0, 0, 0);
     // Queue up statements
@@ -439,7 +656,7 @@ function runSolarTests() {
     renderTestResult("solar-suite", "Console Command Queue parser and sequence scheduler", false, err.message);
   }
 
-  // Test 22: Solar mission starts in a stable local Earth parking orbit
+  // Test 27: Solar mission starts in a stable local Earth parking orbit
   try {
     Nav.Missions[0].setup();
     const earthState = Nav.bodyStateAt(Nav.BODIES.EARTH, 0);
@@ -456,7 +673,7 @@ function runSolarTests() {
     renderTestResult("solar-suite", "Solar setup: Earth parking orbit uses scaled velocity", false, err.message);
   }
 
-  // Test 23: Navigator zoom preserves the world point under the cursor
+  // Test 28: Navigator zoom preserves the world point under the cursor
   try {
     const canvas = { width: 800, height: 500 };
     const anchor = { x: 300, y: 190 };
@@ -473,6 +690,20 @@ function runSolarTests() {
     renderTestResult("solar-suite", "Navigator viewport: anchored zoom keeps frame stable", true);
   } catch (err) {
     renderTestResult("solar-suite", "Navigator viewport: anchored zoom keeps frame stable", false, err.message);
+  }
+
+  // Test 29: Beginner route bridge loads the correct next planet route
+  try {
+    const loaded = Nav.loadRouteToPlanet(0, 1);
+    const mission = Nav.Missions[Nav.activeMissionIndex];
+
+    assertEquals(true, loaded, "Route bridge should load");
+    assertEquals("route-earth-moon", mission.id, "Earth should bridge to Moon");
+    assertEquals(1, mission.targetPlanetIndex, "Bridge should target planet index 1");
+    assertEquals(true, mission.starterCode.includes("point_at('moon')"), "Bridge should preload Moon route code");
+    renderTestResult("solar-suite", "Navigator: beginner bridge loads next planet route", true);
+  } catch (err) {
+    renderTestResult("solar-suite", "Navigator: beginner bridge loads next planet route", false, err.message);
   }
 }
 

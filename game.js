@@ -47,6 +47,10 @@ class StarHopperGame {
 
     // Completed missions list
     this.completedMissions = new Set();
+    this.coachPredictions = {};
+    this.coachLastResults = {};
+    this.lastCoachCodeByMission = {};
+    this.earnedBadges = new Set();
     this.pendingNavigationTargetIndex = null;
     this.navigationReturnTimer = null;
 
@@ -486,6 +490,9 @@ class StarHopperGame {
             ui_log_output(`★ Mission Complete: ${mission.prompt}`, "success");
             SFX.playSuccess();
             Particles.spawnBurst(this.player.x + this.player.w/2, this.player.y + this.player.h/2, '#facc15', 15, 3, 3, 'glow');
+            if (mission.fullMission && typeof unlockCoachBadge === 'function') {
+              unlockCoachBadge(this, mission.fullMission);
+            }
           }
         } catch (err) {
           console.error("Mission validation failed:", err);
@@ -604,7 +611,7 @@ class StarHopperGame {
     const originName = this.currentPlanet ? this.currentPlanet.name : "current planet";
     const targetName = PLANETS[targetIndex] ? PLANETS[targetIndex].name : "next planet";
     ui_log_output(`✓ Rover docked with spacecraft above ${originName}.`, "success");
-    ui_log_output(`Navigation required: plot a course to ${targetName}.`, "info");
+    ui_log_output(`Spacecraft bridge: run the launch plan to travel to ${targetName}.`, "info");
 
     if (typeof switchMainMode === 'function') {
       switchMainMode('navigator');
@@ -837,8 +844,8 @@ class StarHopperGame {
     } else {
       const targetName = PLANETS[nextIndex] ? PLANETS[nextIndex].name : "next planet";
       if (clearTitle) clearTitle.textContent = "ROVER DISCOVERY COMPLETE! 🚀";
-      if (clearSubtitle) clearSubtitle.textContent = `Rover has returned to the spacecraft. Plot the transfer route to ${targetName} before the next surface mission.`;
-      if (nextBtn) nextBtn.textContent = "PLOT NEXT ORBIT";
+      if (clearSubtitle) clearSubtitle.textContent = `Rover has returned to the spacecraft. Run a short launch plan to reach ${targetName}.`;
+      if (nextBtn) nextBtn.textContent = "RUN LAUNCH PLAN";
     }
     ui_log_output(`✓ Level cleared! Target coordinates secured.`, "success");
     ui_log_output(`Rover returning to spacecraft docking bay...`, "info");

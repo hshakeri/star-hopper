@@ -89,6 +89,7 @@ const files = [
   'nav-missions.js',
   'navigator.js',
   'game.js',
+  'guided-mode.js',
   'test-runner.js'
 ];
 

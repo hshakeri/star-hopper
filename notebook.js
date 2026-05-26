@@ -9,6 +9,15 @@ let maxSpeedObserved = 0;
 let flightStartTimestamp = null;
 let currentFlightTime = 0;
 
+const BEGINNER_CONCEPT_PROGRESS = [
+  { id: "variables", label: "Variables", missionId: "earth-gravity-wall" },
+  { id: "loops", label: "Loops", missionId: "moon-canyon-jump" },
+  { id: "force", label: "Force/Mass", missionId: "jupiter-rocket-heavy" },
+  { id: "friction", label: "Friction", missionId: "glacies-friction-loop" },
+  { id: "events", label: "Events", missionId: "magnet-field-event" },
+  { id: "navigation", label: "Navigation", navigation: true }
+];
+
 // Updates the Science Notebook UI with telemetry from the active game
 function updateNotebook(game) {
   if (!game) return;
@@ -95,6 +104,8 @@ function updateNotebook(game) {
   }
 
   updateCertificateState();
+  updateLearningConceptProgress(game);
+  updateBadgeShelf(game);
 
   // Periodically refresh current question based on active mission
   updateActiveQuestion(game);
@@ -128,6 +139,7 @@ function updateActiveQuestion(game) {
       qEl.dataset.missionId = activeMission.id;
       qEl.dataset.missionTitle = activeMission.fullMission.title;
       qEl.dataset.starterCode = activeMission.fullMission.starterCode;
+      qEl.dataset.badgeId = activeMission.fullMission.badge ? activeMission.fullMission.badge.id : "";
     }
   } else {
     qEl.textContent = "Write code to explore gravity boundaries!";
@@ -148,13 +160,26 @@ function saveNotebookReflection() {
 
   const missionId = qEl.dataset.missionId || "general-reflection";
   const missionTitle = qEl.dataset.missionTitle || "General Exploration";
-  const starterCode = qEl.dataset.starterCode || "custom variables";
+  const mission = typeof PlatformerMissions !== 'undefined'
+    ? PlatformerMissions.find(item => item.id === missionId)
+    : null;
+  const starterCode = (window.Game && window.Game.lastCoachCodeByMission && window.Game.lastCoachCodeByMission[missionId])
+    || qEl.dataset.starterCode
+    || "custom variables";
+  const prediction = window.Game && typeof getCoachPredictionOption === 'function'
+    ? getCoachPredictionOption(window.Game, missionId)
+    : null;
+  const badge = mission && mission.badge && window.Game && window.Game.earnedBadges && window.Game.earnedBadges.has(mission.badge.id)
+    ? mission.badge
+    : null;
 
   notebookEntries[missionId] = {
     title: missionTitle,
     question: qEl.textContent,
     answer: responseText,
     code: starterCode,
+    prediction: prediction ? prediction.label : "",
+    badge: badge ? `${badge.icon} ${badge.label}` : "",
     timestamp: new Date().toLocaleTimeString()
   };
 
@@ -197,6 +222,8 @@ function renderNotebookHistory() {
         <span style="font-size: 0.65rem; color: var(--text-muted);">${entry.timestamp}</span>
       </div>
       <p style="color: var(--neon-cyan); font-size: 0.75rem; font-family: monospace; margin-bottom: 4px;">Code: ${entry.code.replace(/\n/g, '; ')}</p>
+      ${entry.prediction ? `<p style="color: var(--neon-orange); font-size: 0.72rem; margin-bottom: 4px;">Prediction: ${entry.prediction}</p>` : ""}
+      ${entry.badge ? `<p style="color: var(--neon-green); font-size: 0.72rem; margin-bottom: 4px;">Badge: ${entry.badge}</p>` : ""}
       <p style="color: var(--text-muted); font-style: italic; font-size: 0.72rem; margin-bottom: 4px;">Q: ${entry.question}</p>
       <p style="font-size: 0.78rem; color: var(--text-primary);">A: ${entry.answer}</p>
     `;
@@ -247,6 +274,52 @@ function updateCertificateState() {
   btn.textContent = unlocked ? "🖨️ Print Scientist Certificate" : "🔒 Scientist Certificate Locked";
 }
 
+function updateLearningConceptProgress(game = window.Game) {
+  const list = document.getElementById("concept-progress-list");
+  if (!list) return;
+
+  const completedMissions = game && game.completedMissions ? game.completedMissions : new Set();
+  const activeMission = typeof getActivePlatformerMission === 'function' ? getActivePlatformerMission(game) : null;
+  const activeMissionId = activeMission ? activeMission.id : null;
+  const navComplete = !!(window.Nav && window.Nav.orbitalMissionsCompleted && window.Nav.orbitalMissionsCompleted.size > 0);
+
+  list.innerHTML = "";
+  BEGINNER_CONCEPT_PROGRESS.forEach(concept => {
+    const complete = concept.navigation ? navComplete : completedMissions.has(concept.missionId);
+    const active = !complete && concept.missionId === activeMissionId;
+    const item = document.createElement("div");
+    item.className = `concept-progress-item ${complete ? "complete" : ""} ${active ? "active" : ""}`;
+    item.innerHTML = `
+      <span>${complete ? "✓" : (active ? "▶" : "○")}</span>
+      <strong>${concept.label}</strong>
+    `;
+    list.appendChild(item);
+  });
+}
+
+function updateBadgeShelf(game = window.Game) {
+  const list = document.getElementById("badge-shelf-list");
+  if (!list || typeof PlatformerMissions === 'undefined') return;
+
+  const completedMissions = game && game.completedMissions ? game.completedMissions : new Set();
+  const earnedBadges = game && game.earnedBadges ? game.earnedBadges : new Set();
+  list.innerHTML = "";
+
+  PlatformerMissions.filter(mission => mission.badge).forEach(mission => {
+    const earned = earnedBadges.has(mission.badge.id) || completedMissions.has(mission.id);
+    const item = document.createElement("div");
+    item.className = `badge-shelf-item ${earned ? "earned" : ""}`;
+    item.innerHTML = `
+      <span class="badge-shelf-icon">${escapeHTML(mission.badge.icon)}</span>
+      <div>
+        <strong>${escapeHTML(mission.badge.label)}</strong>
+        <p>${escapeHTML(earned ? mission.badge.description : "Locked")}</p>
+      </div>
+    `;
+    list.appendChild(item);
+  });
+}
+
 // Print specific student/parent/teacher sheets selectively
 function printArtifact(type) {
   document.body.className = '';
@@ -290,6 +363,15 @@ function switchMainMode(mode) {
 
   if (typeof updateCertificateState === 'function') {
     updateCertificateState();
+  }
+  if (typeof updateParentMissionSummary === 'function' && window.Game) {
+    updateParentMissionSummary(window.Game);
+  }
+  if (typeof updateLearningConceptProgress === 'function' && window.Game) {
+    updateLearningConceptProgress(window.Game);
+  }
+  if (typeof updateBadgeShelf === 'function' && window.Game) {
+    updateBadgeShelf(window.Game);
   }
 
   // Handle special mode transitions

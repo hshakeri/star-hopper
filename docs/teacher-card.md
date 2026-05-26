@@ -27,9 +27,9 @@
 *   **10m - 30m: Lab Exploration**
     *   Students work individually or in pairs (Pilot + Flight Dynamics Engineer).
     *   Complete Earth, Moon, Jupiter, and Glacies levels.
-    *   Task: Record at least **3 completed reflections** in the Science Notebook tab.
+    *   Task: Record at least **3 completed reflections** in the Mission Log.
 *   **30m - 40m: Spaceship Keplerian Orbit Challenge**
-    *   Switch to the "Navigator" tab.
+    *   Use the spacecraft story bridge in Play, or open advanced orbit tools for extension work.
     *   Students execute circular orbit thrust commands (`point_at('earth'); thrust(3.5, 1.5)`).
 *   **40m - 45m: Academy Graduation**
     *   Verify missions, print certificates, and export local JSON saves to submit work.

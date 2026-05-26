@@ -5,7 +5,7 @@ class SoundEngine {
     this.ctx = null;
     this.bgmInterval = null;
     this.currentBgm = null;
-    this.isMuted = false;
+    this.isMuted = true;
     this.notes = {
       C3: 130.81, D3: 146.83, E3: 164.81, F3: 174.61, G3: 196.00, A3: 220.00, B3: 246.94,
       C4: 261.63, D4: 293.66, E4: 329.63, F4: 349.23, G4: 392.00, A4: 440.00, B4: 493.88,
@@ -208,12 +208,11 @@ class SoundEngine {
   startBGM(planetId) {
     this.resume();
     this.stopBGM();
-    if (this.isMuted || !this.ctx) return;
-
     this.currentBgm = planetId;
     if (window.updateMusicMenuState) {
       window.updateMusicMenuState();
     }
+    if (this.isMuted || !this.ctx) return;
     let step = 0;
 
     // Define different looping notes/patterns based on planets

@@ -3,6 +3,39 @@
 let guidedModeActive = false;
 let currentGuidedStep = 1;
 
+const MissionCoachGuidedCopy = [
+  {
+    label: "Step 1 of 5: Observe",
+    text: "Try moving and jumping. Watch what blocks the rover before changing code.",
+    highlight: "game-canvas"
+  },
+  {
+    label: "Step 2 of 5: Predict",
+    text: "Open Log and write what you think will happen before the code changes.",
+    highlight: "mode-btn-notebook"
+  },
+  {
+    label: "Step 3 of 5: Code",
+    text: "Return to Play and use Mission Coach. Change the blanks in Try this code, then run it.",
+    highlight: "mode-btn-terminal"
+  },
+  {
+    label: "Step 4 of 5: Test",
+    text: "Move again and collect the unlocked gems. Compare the jump path with your prediction.",
+    highlight: "game-canvas"
+  },
+  {
+    label: "Step 5 of 5: Explain",
+    text: "Open Log and explain which code change helped most.",
+    highlight: "mode-btn-notebook",
+    button: "Got it"
+  }
+];
+
+function getGuidedStepCopy() {
+  return MissionCoachGuidedCopy.map(step => `${step.label} ${step.text}`);
+}
+
 // Initialize guided tutorial on Earth load
 function checkStartGuidedMode(planetIndex) {
   if (planetIndex === 0 && localStorage.getItem('star_hopper_guided_completed') !== 'true') {
@@ -45,38 +78,13 @@ function updateGuidedUI() {
 
   clearHighlights();
 
-  switch(currentGuidedStep) {
-    case 1:
-      labelEl.textContent = "Step 1 of 5: Observe (Jump)";
-      descEl.textContent = "Press UP Arrow or W key to jump and observe Earth's heavy gravity field.";
-      nextBtn.style.display = 'none';
-      highlightElement('game-canvas');
-      break;
-    case 2:
-      labelEl.textContent = "Step 2 of 5: Predict (Journal)";
-      descEl.textContent = "Click the 'Log' tab at the top right, write your hypothesis in the journal, and click Save Entry.";
-      nextBtn.style.display = 'none';
-      highlightElement('mode-btn-notebook');
-      break;
-    case 3:
-      labelEl.textContent = "Step 3 of 5: Code (Program)";
-      descEl.textContent = "Click the 'Code' tab, type 'gravity = 0.2' in the console terminal, and press Enter to compile.";
-      nextBtn.style.display = 'none';
-      highlightElement('mode-btn-terminal');
-      break;
-    case 4:
-      labelEl.textContent = "Step 4 of 5: Experiment (Leap)";
-      descEl.textContent = "Try jumping again! With lower gravity, Rover can soar over the wall. Reach the green portal on the right.";
-      nextBtn.style.display = 'none';
-      highlightElement('game-canvas');
-      break;
-    case 5:
-      labelEl.textContent = "Step 5 of 5: Explain (Graduation)";
-      descEl.textContent = "Awesome! Switch to the 'Log' tab and print your Space Science Cadet Certificate!";
-      nextBtn.style.display = 'block';
-      nextBtn.textContent = "Complete Tutorial ✔";
-      highlightElement('mode-btn-notebook');
-      break;
+  const step = MissionCoachGuidedCopy[currentGuidedStep - 1];
+  if (step) {
+    labelEl.textContent = step.label;
+    descEl.textContent = step.text;
+    nextBtn.style.display = step.button ? 'block' : 'none';
+    nextBtn.textContent = step.button || "Next";
+    highlightElement(step.highlight);
   }
 }
 
@@ -150,7 +158,7 @@ function handleGuidedSaveHook() {
 function handleGuidedCodeHook(command) {
   if (guidedModeActive && currentGuidedStep === 3) {
     const cleaned = command.replace(/\s+/g, '');
-    if (cleaned.includes('gravity=') && parseFloat(cleaned.split('gravity=')[1]) <= 0.25) {
+    if (cleaned.includes('=')) {
       currentGuidedStep = 4;
       updateGuidedUI();
     }

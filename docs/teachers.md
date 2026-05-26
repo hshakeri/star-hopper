@@ -28,9 +28,9 @@ graph TD
 
 ### Option A: The 45-Minute Lab Session (Individual or Pairs)
 * **00m - 10m: Introduction**: Define gravity, friction, and kinetic/potential energy. Demonstrate typing `gravity = 0.2` in the Earth base.
-* **10m - 30m: Exploration Mode**: Students work through Earth, Moon, Jupiter, and Glacies. Instruct them to record at least **3 journal reflections** in their Notebook tab.
-* **30m - 40m: The Orbital Navigation challenge**: Switch to the "Navigator" tab. Challenge students to successfully establish a stable orbit around Earth (`point_at('earth'); thrust(4, 2); wait(3)`).
-* **40m - 45m: Academy Graduation**: Students click "Print Academy Certificate" in their Notebook, type their name, and print (or save as PDF) to submit their completed logs.
+* **10m - 30m: Exploration Mode**: Students work through Earth, Moon, Jupiter, and Glacies. Instruct them to record at least **3 journal reflections** in the Mission Log.
+* **30m - 40m: The Orbital Navigation challenge**: Use the spacecraft story bridge in Play, or open advanced orbit tools for an extension challenge (`point_at('earth'); thrust(4, 2); wait(3)`).
+* **40m - 45m: Academy Graduation**: Students click "Print Academy Certificate" in the Log, type their name, and print (or save as PDF) to submit their completed logs.
 
 ### Option B: Peer Debugging & Pair Programming
 * Assign roles: **Pilot** (operates keyboard and jumps) and **Flight Engineer** (types commands in the terminal).
