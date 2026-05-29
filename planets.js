@@ -90,9 +90,9 @@ const PLANETS = [
     },
     
     tutorial: [
-      { trigger: "start", text: "Awesome, you made it to the Moon! Gravity is tiny here (g = 0.12). Notice how slowly we float! Our jumps are huge." },
+      { trigger: "start", text: "Awesome, you made it to the Moon! Gravity is tiny here (g ≈ 2 m/s², about 1/6th of Earth). Notice how slowly we float! Our jumps are huge." },
       { trigger: "gap", text: "Look at that massive canyon! We need to place multiple bouncy springs on the launchpad. Type this loop: repeat 3 { spawn_spring() }" },
-      { trigger: "gravity_check", text: "You can type gravity = 0.05 to float like an astronaut, or gravity = 2.0 to feel super heavy!" }
+      { trigger: "gravity_check", text: "You can type gravity = 0.8 to float like an astronaut, or gravity = 33 to feel super heavy!" }
     ],
 
     missions: [
@@ -151,7 +151,7 @@ const PLANETS = [
     tutorial: [
       { trigger: "start", text: "CRITICAL! Jupiter is HUGE! Its gravity is heavy. Jumping is almost impossible here!" },
       { trigger: "collapse", text: "The platforms ahead are breaking under our heavy weight! Swap to Hopper and hold SPACE in the air to fire Rocket Thrusters." },
-      { trigger: "code_gravity", text: "Writing a program to cancel gravity when we fall can save us. Type: if (falling) { gravity = 0.1 }" }
+      { trigger: "code_gravity", text: "Writing a program to soften gravity when we fall can save us. Type: if (falling) { gravity = 1.6 }" }
     ],
 
     missions: [

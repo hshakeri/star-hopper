@@ -626,11 +626,23 @@ function getSpellingSuggestion(input, list) {
 // ----------------------------------------------------
 // 4.5. RUNTIME CONTEXT DEFINITION
 // ----------------------------------------------------
+// Earth's 0.6 game-units of gravity represent 9.8 m/s², so 1 game-unit = 16.33 m/s².
+const GRAVITY_MPS2_PER_UNIT = 9.8 / 0.6;
+
 const runtimeContext = {
   variables: {
+    // Kids type gravity in real m/s² (Earth ≈ 9.8). Stored internally in game-units
+    // (0.6 = Earth), converted here so the code value matches the dashboard.
     gravity: {
-      get: (game) => Compiler.env.gravity !== null ? Compiler.env.gravity : game.currentPlanet.physics.gravity,
-      set: (game, val) => { Compiler.env.gravity = val; }
+      get: (game) => {
+        const units = Compiler.env.gravity !== null ? Compiler.env.gravity : game.currentPlanet.physics.gravity;
+        return Math.round(units * GRAVITY_MPS2_PER_UNIT * 100) / 100;
+      },
+      set: (game, val) => {
+        const n = Number(val);
+        const mps2 = Math.max(-40, Math.min(40, Number.isFinite(n) ? n : 9.8));
+        Compiler.env.gravity = mps2 / GRAVITY_MPS2_PER_UNIT;
+      }
     },
     friction: {
       get: (game) => Compiler.env.friction !== null ? Compiler.env.friction : game.currentPlanet.physics.friction,

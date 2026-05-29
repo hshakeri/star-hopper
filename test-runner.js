@@ -101,12 +101,12 @@ function runCompilerTests() {
 
   // Test 1: Gravity variable assignment
   try {
-    const res = Compiler.runCommand("gravity = 0.25", {});
+    const res = Compiler.runCommand("gravity = 9.8", {});
     assertEquals(true, res.success, "Command should succeed");
-    assertEquals(0.25, Compiler.env.gravity, "Gravity override should be 0.25");
-    renderTestResult("compiler-suite", "Variable Assignment: gravity = 0.25", true);
+    assertClose(0.6, Compiler.env.gravity, 0.001, "gravity = 9.8 m/s² should store ~0.6 game-units");
+    renderTestResult("compiler-suite", "Variable Assignment: gravity = 9.8 m/s² (stored in game-units)", true);
   } catch (err) {
-    renderTestResult("compiler-suite", "Variable Assignment: gravity = 0.25", false, err.message);
+    renderTestResult("compiler-suite", "Variable Assignment: gravity = 9.8 m/s² (stored in game-units)", false, err.message);
   }
 
   // Test 2: Friction variable assignment
@@ -122,9 +122,9 @@ function runCompilerTests() {
   // Test 3: Multiple commands split by semicolon or linebreaks
   try {
     Compiler.reset();
-    const res = Compiler.runCommand("gravity = 0.1; friction = 5.0", {});
+    const res = Compiler.runCommand("gravity = 9.8; friction = 5.0", {});
     assertEquals(true, res.success);
-    assertEquals(0.1, Compiler.env.gravity);
+    assertClose(0.6, Compiler.env.gravity, 0.001);
     assertEquals(5.0, Compiler.env.friction);
     renderTestResult("compiler-suite", "Multiple statement parsing (split by ';')", true);
   } catch (err) {
@@ -197,14 +197,14 @@ function runEngineTests() {
     Compiler.reset();
     const mockPlanetPhysics = { gravity: 0.6, friction: 0.15, jumpPower: 11.5 };
     
-    // Apply compiler overrides
-    Compiler.runCommand("gravity = 0.2", {});
-    
+    // Apply compiler overrides (gravity typed in m/s², stored in game-units)
+    Compiler.runCommand("gravity = 9.8", {});
+
     // Merge overrides logic similar to physics.js
     const activeGravity = (Compiler.env.gravity !== null) ? Compiler.env.gravity : mockPlanetPhysics.gravity;
     const activeFriction = (Compiler.env.friction !== null) ? Compiler.env.friction : mockPlanetPhysics.friction;
 
-    assertEquals(0.2, activeGravity, "Gravity override should take precedence");
+    assertClose(0.6, activeGravity, 0.001, "Gravity override should take precedence");
     assertEquals(0.15, activeFriction, "Friction should revert to planet defaults");
     renderTestResult("engine-suite", "Compiler overrides priority vs planet defaults", true);
   } catch (err) {

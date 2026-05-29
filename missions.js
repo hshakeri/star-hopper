@@ -30,7 +30,7 @@ const PlatformerMissions = [
     concept: "Newton's 2nd law: acceleration = force ÷ mass. A lighter rover (or a stronger engine) reaches a higher top speed and jumps higher under the same push.",
     beginnerConcept: "Change one number, test, then change another — and notice that less mass makes the same engine go faster and jump higher.",
     codingConcept: "Variable assignment and parameter tuning",
-    starterCode: "use_hopper()\ngravity = 0.3\nhopper.mass = 1.2\nhopper.engine = 6\nplayer.jump_power = 18",
+    starterCode: "use_hopper()\ngravity = 4.9\nhopper.mass = 1.2\nhopper.engine = 6\nplayer.jump_power = 18",
     objective: "Engineer a lighter, stronger Hopper (mass, engine force, jump force) so its top speed and jump rise to unlock every Emerald Core gem and clear the wall.",
     steps: [
       { id: "observe", prompt: "Observe: Hopper is too heavy to clear the high metal wall with default settings.", done: false },
@@ -38,7 +38,7 @@ const PlatformerMissions = [
       { id: "code", prompt: "Code: Lower hopper.mass and gravity, then raise hopper.engine and player.jump_power.", done: false },
       { id: "test", prompt: "Test: Swap to Hopper, collect the locked ridge gems, and watch how a lighter rover moves faster and jumps higher.", done: false },
       { id: "explain", prompt: "Explain: Why did lowering the mass raise both the speed and the jump?", done: false },
-      { id: "challenge", prompt: "Challenge: Clear the wall as Hopper with gravity <= 0.35 and hopper.mass <= 1.2, reaching top speed >= 4.8 by tuning engine and mass.", done: false }
+      { id: "challenge", prompt: "Challenge: Clear the wall as Hopper with gravity <= 5.7 m/s² and hopper.mass <= 1.2, reaching top speed >= 4.8 by tuning engine and mass.", done: false }
     ],
     hints: [
       "Mission Coach gives starter values; edit the numbers to reach the target.",
@@ -49,7 +49,7 @@ const PlatformerMissions = [
       mode: "fill-values",
       template: "use_hopper()\ngravity = {gravity}\nhopper.mass = {mass}\nhopper.engine = {engine}\nplayer.jump_power = {jump_power}",
       slots: [
-        { id: "gravity", label: "gravity", value: "0.3", hint: "Less gravity lets Hopper hang longer and jump higher." },
+        { id: "gravity", label: "gravity (m/s²)", value: "4.9", hint: "Gravity in m/s² (Earth is 9.8). Less gravity lets Hopper hang longer and jump higher." },
         { id: "mass", label: "mass", value: "1.2", hint: "Less mass means the SAME engine and jump push Hopper faster and higher (a = F / m)." },
         { id: "engine", label: "engine", value: "6", hint: "Top speed = engine force ÷ mass. Raise the force or drop the mass to go faster." },
         { id: "jump_power", label: "jump", value: "18", hint: "Jump height = jump force ÷ mass. A lighter Hopper jumps higher for the same force." }
@@ -124,7 +124,7 @@ const PlatformerMissions = [
       mode: "pattern-fill",
       template: "player.jump_power = gravity * {jump_math}\nrepeat {springs}: spawn_spring()",
       slots: [
-        { id: "jump_math", label: "gravity x", value: "150", hint: "Gravity times 150 makes Moon jumps tall enough." },
+        { id: "jump_math", label: "gravity x", value: "10", hint: "Moon gravity (~2 m/s²) times 10 makes a jump force tall enough." },
         { id: "springs", label: "springs", value: "3", hint: "The loop places three spring launchpads." }
       ],
       explain: "Arithmetic makes the jump power, and the repeat loop builds several springs from one line.",
@@ -191,7 +191,7 @@ const PlatformerMissions = [
       { id: "challenge", prompt: "Challenge: Escape with default Jupiter gravity using hopper.rocket_power >= 70 and hopper.mass <= 1.4, reaching top speed >= 4.5 (engine ÷ mass).", done: false }
     ],
     hints: [
-      "Jupiter's gravity is extremely strong (g = 2.0).",
+      "Jupiter's gravity is extremely strong (g ≈ 24.5 m/s², about 2.5x Earth).",
       "Hopper has rocket boosters activated by holding Space in mid-air.",
       "Amber Storm gems unlock after the Hopper build and crate-loop lesson are both active."
     ],
@@ -335,7 +335,7 @@ const PlatformerMissions = [
     concept: "Magnetic poles attract or repel based on polarity.",
     beginnerConcept: "Events let code wait for a moment, then react automatically.",
     codingConcept: "Event hooks (When)",
-    starterCode: "use_hopper()\nwhen hopper.rocket_on: gravity = 0.1\nwhen player.touching('magnet'): hopper.pole = 'south'",
+    starterCode: "use_hopper()\nwhen hopper.rocket_on: gravity = 1.6\nwhen player.touching('magnet'): hopper.pole = 'south'",
     objective: "Combine rocket and touching event rules to collect Magenta Flux gems and cross the magnetic field gap.",
     steps: [
       { id: "observe", prompt: "Observe: Falling into the electric field instantly resets you.", done: false },
@@ -354,7 +354,7 @@ const PlatformerMissions = [
       mode: "assemble-events",
       template: "use_hopper()\nwhen hopper.rocket_on: gravity = {gravity}\nwhen player.touching('magnet'): hopper.pole = '{pole}'",
       slots: [
-        { id: "gravity", label: "gravity", value: "0.1", hint: "Low gravity helps Hopper float while the rocket is on." },
+        { id: "gravity", label: "gravity (m/s²)", value: "1.6", hint: "Gravity in m/s² (Earth is 9.8). Low gravity helps Hopper float while the rocket is on." },
         { id: "pole", label: "pole", value: "south", hint: "Changing pole changes how magnets push or pull." }
       ],
       explain: "Activate Hopper first; the event rules wait for rocket or magnet moments, then change physics.",

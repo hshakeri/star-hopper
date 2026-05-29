@@ -159,13 +159,13 @@ class StarHopperGame {
       if (row >= 6) {
         return {
           id: "earth-gravity-gems",
-          label: "lower gravity to 0.35 or below",
+          label: "lower gravity to about 5.7 m/s² or below",
           validate: (game) => game.getCurrentGravity() <= 0.35
         };
       }
       return {
         id: "earth-hopper-engineering-gems",
-        label: "engineer Hopper: gravity <= 0.35 and hopper.mass <= 1.2, then raise hopper.engine and player.jump_power (lighter + stronger = faster and higher)",
+        label: "engineer Hopper: gravity <= 5.7 m/s² and hopper.mass <= 1.2, then raise hopper.engine and player.jump_power (lighter + stronger = faster and higher)",
         validate: (game) => game.isEarthHopperEngineered()
       };
     }
