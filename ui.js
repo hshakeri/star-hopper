@@ -897,6 +897,20 @@ function setupUIBindings(game) {
     // Grow the console textarea to fit multi-line code as it's typed/pasted.
     input.addEventListener("input", () => autoGrowConsoleInput(input));
 
+    // The textarea is only the bottom strip of the shell box, so clicking the
+    // prompt, the banner, or the padding should still focus it. (Clicks inside the
+    // output history are left alone so log text stays selectable/copyable.)
+    const shellBox = input.closest(".console-area");
+    if (shellBox) {
+      shellBox.addEventListener("mousedown", (e) => {
+        if (e.target === input) return;
+        if (e.target.closest && e.target.closest("#console-history")) return;
+        e.preventDefault();
+        input.focus();
+        try { input.setSelectionRange(input.value.length, input.value.length); } catch (_) {}
+      });
+    }
+
     // Autocomplete dynamic input watcher
     if (suggestBox) {
       input.addEventListener("input", () => {
