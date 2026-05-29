@@ -122,6 +122,10 @@ function saveLocalProgress() {
       notebookEntries: typeof notebookEntries !== 'undefined' ? notebookEntries : {}
     };
     localStorage.setItem('star_hopper_local_progress', JSON.stringify(payload));
+    // Mirror into the active Cadet profile so progress auto-saves with no Save button.
+    if (window.StarHopperProfiles && typeof window.StarHopperProfiles.autoSave === 'function') {
+      window.StarHopperProfiles.autoSave();
+    }
   } catch (err) {
     console.error("Error writing local progress:", err);
   }

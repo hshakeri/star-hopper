@@ -649,6 +649,7 @@ function renderScaffoldEditor(game, mission) {
     const input = document.getElementById("console-input");
     if (input) {
       input.value = buildScaffoldCode(scaffold, getScaffoldValues(card));
+      autoGrowConsoleInput(input);
       input.focus();
     }
   });
@@ -789,6 +790,13 @@ function closeDialogue() {
   }
 }
 
+// Resize the console textarea to fit its content (capped, then it scrolls).
+function autoGrowConsoleInput(el) {
+  if (!el) return;
+  el.style.height = "auto";
+  el.style.height = Math.min(el.scrollHeight, 132) + "px";
+}
+
 // Binds UI controls, terminal input, and cards
 function setupUIBindings(game) {
   setupResizablePanes();
@@ -800,10 +808,12 @@ function setupUIBindings(game) {
   // 1. Code editor input submission
   if (input) {
     input.addEventListener("keydown", (e) => {
-      // Allow enter to submit
-      if (e.key === "Enter") {
+      // Enter runs the program; Shift+Enter inserts a newline so kids can enter
+      // multi-line code (e.g. the whole Mission Coach block) in one go.
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
         const val = input.value;
-        if (val) {
+        if (val.trim()) {
           ui_log_input(val);
           const res = Compiler.runCommand(val, game);
           if (res.success) {
@@ -821,13 +831,17 @@ function setupUIBindings(game) {
             SFX.playError();
           }
           input.value = "";
+          autoGrowConsoleInput(input);
           if (suggestBox) suggestBox.style.display = "none";
-          
+
           // Re-validate missions immediately on run
           game.checkMissions();
         }
       }
     });
+
+    // Grow the console textarea to fit multi-line code as it's typed/pasted.
+    input.addEventListener("input", () => autoGrowConsoleInput(input));
 
     // Autocomplete dynamic input watcher
     if (suggestBox) {
@@ -980,6 +994,7 @@ function setupUIBindings(game) {
 
     // 6. Observe & Test steps keyboard watcher
     window.addEventListener("keydown", (e) => {
+      if (document.activeElement && document.activeElement.id === "console-input") return; // typing code, not playing
       if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ', 'a', 'd', 'w', 's'].includes(e.key)) {
         if (game.currentMissionSteps) {
           if (!game.currentMissionSteps.observe) {

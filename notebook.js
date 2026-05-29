@@ -218,14 +218,14 @@ function renderNotebookHistory() {
 
     item.innerHTML = `
       <div class="notebook-entry-header">
-        <span>Mission: ${entry.title}</span>
-        <span style="font-size: 0.65rem; color: var(--text-muted);">${entry.timestamp}</span>
+        <span>Mission: ${entry.title || "Mission"}</span>
+        <span style="font-size: 0.65rem; color: var(--text-muted);">${entry.timestamp || ""}</span>
       </div>
-      <p style="color: var(--neon-cyan); font-size: 0.75rem; font-family: monospace; margin-bottom: 4px;">Code: ${entry.code.replace(/\n/g, '; ')}</p>
+      <p style="color: var(--neon-cyan); font-size: 0.75rem; font-family: monospace; margin-bottom: 4px;">Code: ${(entry.code || "").replace(/\n/g, '; ')}</p>
       ${entry.prediction ? `<p style="color: var(--neon-orange); font-size: 0.72rem; margin-bottom: 4px;">Prediction: ${entry.prediction}</p>` : ""}
       ${entry.badge ? `<p style="color: var(--neon-green); font-size: 0.72rem; margin-bottom: 4px;">Badge: ${entry.badge}</p>` : ""}
-      <p style="color: var(--text-muted); font-style: italic; font-size: 0.72rem; margin-bottom: 4px;">Q: ${entry.question}</p>
-      <p style="font-size: 0.78rem; color: var(--text-primary);">A: ${entry.answer}</p>
+      <p style="color: var(--text-muted); font-style: italic; font-size: 0.72rem; margin-bottom: 4px;">Q: ${entry.question || ""}</p>
+      <p style="font-size: 0.78rem; color: var(--text-primary);">A: ${entry.answer || ""}</p>
     `;
     historyContainer.appendChild(item);
   });
