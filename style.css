@@ -1139,6 +1139,50 @@ body.resizing-panes * {
   box-shadow: none;
 }
 
+/* Teaser nodes: not yet playable, but a "coming attraction" — keep their color,
+   add a dashed pulsing halo and a colored transmission hook so they invite
+   curiosity instead of reading as a dead door. */
+.galaxy-map .planet-node.teaser {
+  opacity: 0.92;
+  cursor: default;
+  border: 1px dashed color-mix(in srgb, var(--btn-color) 55%, transparent);
+  animation: teaser-pulse 2.6s ease-in-out infinite;
+}
+
+.galaxy-map .planet-node.teaser::before {
+  filter: saturate(0.9);
+}
+
+.galaxy-map .planet-node.teaser:hover {
+  transform: translate(-50%, -50%);
+  background: rgba(15, 23, 42, 0.64);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--btn-color) 40%, transparent);
+}
+
+.galaxy-map .planet-node.teaser .mission-meta {
+  color: color-mix(in srgb, var(--btn-color) 82%, white 12%);
+  font-weight: 700;
+}
+
+@keyframes teaser-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--btn-color) 22%, transparent),
+      0 0 10px color-mix(in srgb, var(--btn-color) 16%, transparent);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--btn-color) 42%, transparent),
+      0 0 18px color-mix(in srgb, var(--btn-color) 30%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .galaxy-map .planet-node.teaser {
+    animation: none;
+  }
+}
+
 .level-num {
   font-family: var(--font-retro);
   font-size: 0.66rem;

@@ -11,7 +11,12 @@ const PLANETS = [
     accentColor: "#22c55e",
     skyColor: "#0f172a", // Dark Slate Blue
     ambientMusicType: "earth",
-    
+
+    story: {
+      arrival: "Welcome aboard, cadet — I'm Vector, your physics robot. Move with the arrow keys and jump with SPACE. Hear that? A coded signal, repeating from deep space. We'll trace it world by world. Start by engineering a jump over that wall to recover the Emerald shard.",
+      payoff: "Emerald shard secured — it holds one fragment of a lost star-map. The signal is bouncing off the Moon next."
+    },
+
     physics: {
       gravity: 0.6,
       friction: 0.85,
@@ -69,7 +74,12 @@ const PLANETS = [
     accentColor: "#0ea5e9",
     skyColor: "#020617", // Rich Midnight Black
     ambientMusicType: "moon",
-    
+
+    story: {
+      arrival: "The signal echoes across this canyon, cadet. Gravity is tiny here, so your jumps go huge — loop a few springs to cross and reach the Moon Quartz shard on the high ledge.",
+      payoff: "Quartz shard locked in. Two fragments now, and the star-map is pointing outward — toward Jupiter."
+    },
+
     physics: {
       gravity: 0.12, // ~1/6th Earth
       friction: 0.9,
@@ -123,7 +133,12 @@ const PLANETS = [
     accentColor: "#ea580c",
     skyColor: "#170f05", // Muted Brown/Black
     ambientMusicType: "jupiter",
-    
+
+    story: {
+      arrival: "Heavy gravity here, cadet. The signal's source is fighting to climb out of a gravity well — exactly like us. Engineer Hopper with more rocket force and less mass to recover the Amber shard.",
+      payoff: "Amber shard recovered. Whatever is sending this signal came from beyond the gas giants..."
+    },
+
     physics: {
       gravity: 1.5, // High! Fast falling.
       friction: 0.75, // Heavy air resistance
@@ -181,7 +196,12 @@ const PLANETS = [
     accentColor: "#8b5cf6",
     skyColor: "#050212", // Cold black
     ambientMusicType: "glacies",
-    
+
+    story: {
+      arrival: "The signal froze into this ice comet — it's encoded right in the frost. Get a grip on the slippery slopes, then decode the Violet shard ahead.",
+      payoff: "Violet shard decoded. The map is nearly whole — and the signal keeps repeating one word: Hopper-Zero. The first probe we ever lost."
+    },
+
     physics: {
       gravity: 0.25, // Low
       friction: 0.996, // Almost no friction! You slip and slide.
@@ -235,7 +255,12 @@ const PLANETS = [
     accentColor: "#db2777",
     skyColor: "#0d010d", // Dark pinkish black
     ambientMusicType: "magnet",
-    
+
+    story: {
+      arrival: "Magnetic fields are scrambling the final fragment, cadet. Write event rules to ride the poles and reach the Magenta shard across the gap.",
+      payoff: "Magenta shard secured — every fragment recovered, and the star-map is whole. The coordinates resolve past the asteroid belt, into the dark, to a gate that should not exist."
+    },
+
     physics: {
       gravity: 0.05, // Almost weightless!
       friction: 0.9,

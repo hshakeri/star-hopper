@@ -6,7 +6,7 @@ let currentGuidedStep = 1;
 const MissionCoachGuidedCopy = [
   {
     label: "Step 1 of 5: Observe",
-    text: "Try moving and jumping. Watch what blocks the rover before changing code.",
+    text: "📡 Vector here — a coded signal is repeating from deep space, and we'll trace it world by world. First, try moving and jumping; watch what blocks the rover before changing any code.",
     highlight: "game-canvas"
   },
   {

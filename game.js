@@ -435,6 +435,13 @@ class StarHopperGame {
   }
 
   triggerTutorialDialogue(trigger) {
+    // On arrival, Vector delivers the story transmission (The Signal arc) if the
+    // planet defines one; mid-level mechanic cues (wall/gap/poles/...) fall through
+    // to the planet's tutorial beats.
+    if (trigger === "start" && this.currentPlanet.story && this.currentPlanet.story.arrival) {
+      showDialogue(this.currentPlanet.story.arrival, "start");
+      return;
+    }
     const dialogs = this.currentPlanet.tutorial;
     const item = dialogs.find(d => d.trigger === trigger);
     if (item) {
@@ -837,14 +844,17 @@ class StarHopperGame {
     const clearSubtitle = document.getElementById("clear-subtitle");
     const nextBtn = document.getElementById("btn-next-level");
     const nextIndex = this.getNextPlanetIndex();
+    const payoff = this.currentPlanet && this.currentPlanet.story ? this.currentPlanet.story.payoff : "";
     if (nextIndex === null) {
-      if (clearTitle) clearTitle.textContent = "EXPEDITION COMPLETE! 🚀";
-      if (clearSubtitle) clearSubtitle.textContent = "All rover discoveries are logged. Open the Log to print the Scientist Certificate.";
+      // Final playable world cleared: the star-map is complete, but the trail leads
+      // on to the teased worlds (Asteroid Forge / Dark Matter Lab / Quantum Gate).
+      if (clearTitle) clearTitle.textContent = "STAR-MAP COMPLETE! 🛰️";
+      if (clearSubtitle) clearSubtitle.textContent = `${payoff ? payoff + " " : ""}Three more worlds are inbound. Open the Log to print your Scientist Certificate.`;
       if (nextBtn) nextBtn.textContent = "OPEN LOG";
     } else {
       const targetName = PLANETS[nextIndex] ? PLANETS[nextIndex].name : "next planet";
-      if (clearTitle) clearTitle.textContent = "ROVER DISCOVERY COMPLETE! 🚀";
-      if (clearSubtitle) clearSubtitle.textContent = `Rover has returned to the spacecraft. Run a short launch plan to reach ${targetName}.`;
+      if (clearTitle) clearTitle.textContent = "SHARD RECOVERED! 🚀";
+      if (clearSubtitle) clearSubtitle.textContent = `${payoff ? payoff + " " : "Rover has returned to the spacecraft. "}Run a launch plan to reach ${targetName}.`;
       if (nextBtn) nextBtn.textContent = "RUN LAUNCH PLAN";
     }
     ui_log_output(`✓ Level cleared! Target coordinates secured.`, "success");
