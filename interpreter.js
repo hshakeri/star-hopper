@@ -648,22 +648,42 @@ const runtimeContext = {
       get: (game) => game.player.mass,
       set: (game, val) => { game.player.mass = val; }
     },
-    "player.speed": {
-      get: (game) => Compiler.env.speed !== null ? Compiler.env.speed : game.currentPlanet.physics.speed,
+    // Engine drive force. Actual top speed is DERIVED as engine / mass (F = m·a),
+    // so a stronger engine OR a lighter rover both raise the speed you reach.
+    engine: {
+      get: (game) => game.getEngineForce(),
       set: (game, val) => {
-        const numeric = Number(val);
-        const fallback = game.currentPlanet.physics.speed;
-        const tunedSpeed = Math.max(1, Math.min(8, Number.isFinite(numeric) ? numeric : fallback));
-        Compiler.env.speed = tunedSpeed;
+        const n = Number(val);
+        Compiler.env.engine = Math.max(1, Math.min(20, Number.isFinite(n) ? n : game.currentPlanet.physics.speed));
+      }
+    },
+    "player.engine": {
+      get: (game) => game.getEngineForce(),
+      set: (game, val) => {
+        const n = Number(val);
+        Compiler.env.engine = Math.max(1, Math.min(20, Number.isFinite(n) ? n : game.currentPlanet.physics.speed));
+      }
+    },
+    "hopper.engine": {
+      get: (game) => game.getEngineForce(),
+      set: (game, val) => {
+        const n = Number(val);
+        Compiler.env.engine = Math.max(1, Math.min(20, Number.isFinite(n) ? n : game.currentPlanet.physics.speed));
+      }
+    },
+    // Legacy "speed" knob: now sets the engine force (speed itself is a read-only result).
+    "player.speed": {
+      get: (game) => game.getCurrentSpeed(),
+      set: (game, val) => {
+        const n = Number(val);
+        Compiler.env.engine = Math.max(1, Math.min(20, Number.isFinite(n) ? n : game.currentPlanet.physics.speed));
       }
     },
     speed: {
-      get: (game) => Compiler.env.speed !== null ? Compiler.env.speed : game.currentPlanet.physics.speed,
+      get: (game) => game.getCurrentSpeed(),
       set: (game, val) => {
-        const numeric = Number(val);
-        const fallback = game.currentPlanet.physics.speed;
-        const tunedSpeed = Math.max(1, Math.min(8, Number.isFinite(numeric) ? numeric : fallback));
-        Compiler.env.speed = tunedSpeed;
+        const n = Number(val);
+        Compiler.env.engine = Math.max(1, Math.min(20, Number.isFinite(n) ? n : game.currentPlanet.physics.speed));
       }
     },
     "star.mass": {
@@ -858,6 +878,7 @@ class CompilerSingleton {
       gravity: null,
       friction: null,
       speed: null,
+      engine: null,
       magnetStrength: null,
       magnetPole: 'north',
       raveMode: false
@@ -885,6 +906,7 @@ class CompilerSingleton {
       gravity: null,
       friction: null,
       speed: null,
+      engine: null,
       magnetStrength: null,
       magnetPole: 'north',
       raveMode: false

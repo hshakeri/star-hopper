@@ -203,8 +203,11 @@ class Player {
     const baseFriction = isCustomF ? Compiler.env.friction : currentPlanet.physics.friction;
     const airResistance = currentPlanet.physics.airResistance ?? 0.99;
     
-    const speedMultiplier = Compiler.env.speed ?? currentPlanet.physics.speed;
-    const jumpMultiplier = this.jumpPower;
+    // Top speed and jump launch are DERIVED from force / mass (F = m·a): a stronger
+    // engine OR a lighter rover both go faster and jump higher.
+    const engineForce = Compiler.env.engine ?? currentPlanet.physics.speed;
+    const speedMultiplier = engineForce / this.mass;
+    const jumpMultiplier = this.jumpPower / this.mass;
 
     // Apply scale changes dynamically
     this.w = 20 * this.scale;
@@ -214,10 +217,12 @@ class Player {
     let gravityForce = baseGravity;
     let horizontalFriction = baseFriction;
 
+    // Gravity is a free-fall acceleration — independent of mass (a feather and a
+    // hammer fall together). Mass instead resists acceleration (speed/jump above).
     if (this.charType === 'star') {
-      gravityForce = baseGravity * 0.7 * this.mass;
+      gravityForce = baseGravity * 0.7;
     } else {
-      gravityForce = baseGravity * 1.3 * this.mass;
+      gravityForce = baseGravity * 1.3;
     }
 
     // Check if this instance is the active player being controlled

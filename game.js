@@ -81,11 +81,33 @@ class StarHopperGame {
     return this.currentPlanet && this.currentPlanet.physics ? this.currentPlanet.physics.gravity : 0;
   }
 
-  getCurrentSpeed() {
-    if (typeof Compiler !== 'undefined' && Compiler.env && Compiler.env.speed !== null) {
-      return Compiler.env.speed;
+  getActiveMass() {
+    return (this.player && Number.isFinite(this.player.mass)) ? this.player.mass : 1.0;
+  }
+
+  // Engine drive force (tunable); falls back to the planet's stock value.
+  getEngineForce() {
+    if (typeof Compiler !== 'undefined' && Compiler.env && Compiler.env.engine !== null && Compiler.env.engine !== undefined) {
+      return Compiler.env.engine;
     }
-    return this.currentPlanet && this.currentPlanet.physics ? this.currentPlanet.physics.speed : 0;
+    return this.currentPlanet && this.currentPlanet.physics ? this.currentPlanet.physics.speed : 4;
+  }
+
+  // Top speed is DERIVED: stronger engine OR lighter rover => faster (F = m·a).
+  // Calibrated so the mass-1.0 rover keeps its stock speed; only heavier suits feel it.
+  getCurrentSpeed() {
+    return this.getEngineForce() / this.getActiveMass();
+  }
+
+  // Jump force (impulse, tunable via player.jump_power); stock value falls back per planet.
+  getJumpForce() {
+    if (this.player && Number.isFinite(this.player.jumpPower)) return this.player.jumpPower;
+    return this.currentPlanet && this.currentPlanet.physics ? this.currentPlanet.physics.jumpPower : 10;
+  }
+
+  // Launch velocity is DERIVED: lighter rover => higher jump (impulse / mass).
+  getJumpVelocity() {
+    return this.getJumpForce() / this.getActiveMass();
   }
 
   getCurrentFriction() {
@@ -104,9 +126,9 @@ class StarHopperGame {
     return this.player
       && this.player.charType === 'hopper'
       && this.getCurrentGravity() <= 0.35
-      && this.player.jumpPower >= 17
       && this.hopperMass <= 1.2
-      && this.getCurrentSpeed() >= 4.8;
+      && this.getCurrentSpeed() >= 4.8      // derived: engine force ÷ mass
+      && this.getJumpVelocity() >= 14;       // derived: jump force ÷ mass
   }
 
   isJupiterHopperEngineered() {
@@ -143,7 +165,7 @@ class StarHopperGame {
       }
       return {
         id: "earth-hopper-engineering-gems",
-        label: "use Hopper with gravity <= 0.35, jump_power >= 17, hopper.mass <= 1.2, and speed >= 4.8",
+        label: "engineer Hopper: gravity <= 0.35 and hopper.mass <= 1.2, then raise hopper.engine and player.jump_power (lighter + stronger = faster and higher)",
         validate: (game) => game.isEarthHopperEngineered()
       };
     }

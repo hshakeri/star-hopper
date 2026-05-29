@@ -27,18 +27,18 @@ const PlatformerMissions = [
     planetId: 0, // Earth
     title: "Hopper Engineering Shakedown",
     ageRange: "8-12",
-    concept: "Gravity, mass, jump impulse, and run speed combine to shape a jump arc.",
-    beginnerConcept: "Variables are named numbers. Change one number, test, then change another.",
+    concept: "Newton's 2nd law: acceleration = force ÷ mass. A lighter rover (or a stronger engine) reaches a higher top speed and jumps higher under the same push.",
+    beginnerConcept: "Change one number, test, then change another — and notice that less mass makes the same engine go faster and jump higher.",
     codingConcept: "Variable assignment and parameter tuning",
-    starterCode: "use_hopper()\ngravity = 0.35\nplayer.jump_power = 17\nhopper.mass = 1.2\nplayer.speed = 4.8",
-    objective: "Engineer Hopper with gravity, mass, jump power, and speed to unlock every Emerald Core gem and clear the wall.",
+    starterCode: "use_hopper()\ngravity = 0.3\nhopper.mass = 1.2\nhopper.engine = 6\nplayer.jump_power = 18",
+    objective: "Engineer a lighter, stronger Hopper (mass, engine force, jump force) so its top speed and jump rise to unlock every Emerald Core gem and clear the wall.",
     steps: [
       { id: "observe", prompt: "Observe: Hopper is too heavy to clear the high metal wall with default settings.", done: false },
-      { id: "predict", prompt: "Predict: Which change matters most: lower gravity, higher jump power, lower mass, or higher speed?", done: false },
-      { id: "code", prompt: "Code: Tune at least three parameters, for example gravity, player.jump_power, hopper.mass, and player.speed.", done: false },
-      { id: "test", prompt: "Test: Swap to Hopper, collect the locked ridge gems, and watch the green trajectory path.", done: false },
-      { id: "explain", prompt: "Explain: Why did the tuned Hopper arc clear the wall?", done: false },
-      { id: "challenge", prompt: "Challenge: Clear the wall as Hopper with gravity <= 0.35, player.jump_power >= 17, hopper.mass <= 1.2, and player.speed >= 4.8.", done: false }
+      { id: "predict", prompt: "Predict: If you lower the mass but keep the same engine, will the top speed go up, down, or stay the same?", done: false },
+      { id: "code", prompt: "Code: Lower hopper.mass and gravity, then raise hopper.engine and player.jump_power.", done: false },
+      { id: "test", prompt: "Test: Swap to Hopper, collect the locked ridge gems, and watch how a lighter rover moves faster and jumps higher.", done: false },
+      { id: "explain", prompt: "Explain: Why did lowering the mass raise both the speed and the jump?", done: false },
+      { id: "challenge", prompt: "Challenge: Clear the wall as Hopper with gravity <= 0.35 and hopper.mass <= 1.2, reaching top speed >= 4.8 by tuning engine and mass.", done: false }
     ],
     hints: [
       "Mission Coach gives starter values; edit the numbers to reach the target.",
@@ -47,18 +47,18 @@ const PlatformerMissions = [
     ],
     scaffold: {
       mode: "fill-values",
-      template: "use_hopper()\ngravity = {gravity}\nplayer.jump_power = {jump_power}\nhopper.mass = {mass}\nplayer.speed = {speed}",
+      template: "use_hopper()\ngravity = {gravity}\nhopper.mass = {mass}\nhopper.engine = {engine}\nplayer.jump_power = {jump_power}",
       slots: [
-        { id: "gravity", label: "gravity", value: "0.35", hint: "Smaller gravity lets Hopper stay in the air longer." },
-        { id: "jump_power", label: "jump", value: "17", hint: "More jump power starts the arc higher." },
-        { id: "mass", label: "mass", value: "1.2", hint: "Less mass makes Hopper easier to lift." },
-        { id: "speed", label: "speed", value: "4.8", hint: "More speed helps Hopper reach the far side." }
+        { id: "gravity", label: "gravity", value: "0.3", hint: "Less gravity lets Hopper hang longer and jump higher." },
+        { id: "mass", label: "mass", value: "1.2", hint: "Less mass means the SAME engine and jump push Hopper faster and higher (a = F / m)." },
+        { id: "engine", label: "engine", value: "6", hint: "Top speed = engine force ÷ mass. Raise the force or drop the mass to go faster." },
+        { id: "jump_power", label: "jump", value: "18", hint: "Jump height = jump force ÷ mass. A lighter Hopper jumps higher for the same force." }
       ],
-      explain: "The first line activates Hopper; the four numbers tune pull down, push up, body weight, and sideways speed.",
-      parentPrompt: "Which number changed the jump the most?",
-      codeIdea: "Activate Hopper, edit the four numbers, then run the code.",
-      physicsIdea: "Gravity pulls down while jump force and speed shape the arc.",
-      success: "Hopper collects all Emerald Core gems and reaches the portal."
+      explain: "Activate Hopper, then make it light and strong: top speed = engine ÷ mass and jump = jump force ÷ mass, so dropping mass both speeds it up AND lifts it higher.",
+      parentPrompt: "When you lowered the mass, what happened to the speed and the jump?",
+      codeIdea: "Activate Hopper, lower the mass, and raise the engine and jump force.",
+      physicsIdea: "Newton's 2nd law: acceleration = force ÷ mass. Same engine + less mass = more speed and a higher jump.",
+      success: "The lighter, stronger Hopper reaches top speed >= 4.8, clears the wall, and collects every Emerald Core gem."
     },
     prediction: {
       question: "Which change will help Hopper reach the high Emerald gems?",
@@ -90,17 +90,7 @@ const PlatformerMissions = [
       label: "Variable Tuner",
       description: "Changed named numbers to engineer a better jump."
     },
-    validate: (game, Compiler) => {
-      const currentG = Compiler.env.gravity !== null ? Compiler.env.gravity : game.currentPlanet.physics.gravity;
-      const currentSpeed = Compiler.env.speed !== null ? Compiler.env.speed : game.currentPlanet.physics.speed;
-      const hopperMass = game.hopperMass !== undefined ? game.hopperMass : 2.5;
-      return game.player.charType === 'hopper'
-        && currentG <= 0.35
-        && game.player.jumpPower >= 17
-        && hopperMass <= 1.2
-        && currentSpeed >= 4.8
-        && game.player.x > 1100;
-    },
+    validate: (game) => game.isEarthHopperEngineered() && game.player.x > 1100,
     reflection: [
       "Which parameter changed the arc the most?",
       "Did Hopper need more force or less mass?",
@@ -190,15 +180,15 @@ const PlatformerMissions = [
     concept: "Mass resists acceleration: heavy objects require more force.",
     beginnerConcept: "Force, mass, and speed work together. Heavy things need a stronger push.",
     codingConcept: "Multi-parameter Hopper engineering",
-    starterCode: "use_hopper()\nhopper.mass = 1.2\nhopper.rocket_power = 75\nplayer.speed = 5.0",
+    starterCode: "use_hopper()\nhopper.mass = 1.2\nhopper.rocket_power = 75\nhopper.engine = 6",
     objective: "Engineer Hopper and loop crate blocks to collect Amber Storm gems while escaping the gravity trench.",
     steps: [
       { id: "observe", prompt: "Observe: Swap to Hopper: notice he is heavy and jumps poorly.", done: false },
       { id: "predict", prompt: "Predict: Will Hopper need more rocket force on Jupiter than Earth?", done: false },
-      { id: "code", prompt: "Code: Engineer Hopper with lower mass, stronger rocket_power, and higher player.speed.", done: false },
+      { id: "code", prompt: "Code: Engineer Hopper with lower mass and stronger rocket_power and hopper.engine (top speed = engine ÷ mass).", done: false },
       { id: "test", prompt: "Test: Trigger your jump, hold Space to rocket boost, and collect the Amber Storm gems.", done: false },
-      { id: "explain", prompt: "Explain: Why does mass require larger forces to accelerate?", done: false },
-      { id: "challenge", prompt: "Challenge: Escape with default Jupiter gravity using hopper.rocket_power >= 70, hopper.mass <= 1.4, and player.speed >= 4.5.", done: false }
+      { id: "explain", prompt: "Explain: Why does more mass need more force to reach the same speed?", done: false },
+      { id: "challenge", prompt: "Challenge: Escape with default Jupiter gravity using hopper.rocket_power >= 70 and hopper.mass <= 1.4, reaching top speed >= 4.5 (engine ÷ mass).", done: false }
     ],
     hints: [
       "Jupiter's gravity is extremely strong (g = 2.0).",
@@ -207,18 +197,18 @@ const PlatformerMissions = [
     ],
     scaffold: {
       mode: "choose-tune",
-      template: "use_hopper()\nhopper.mass = {mass}\nhopper.rocket_power = {rocket_power}\nplayer.speed = {speed}\nrepeat {boxes}: spawn_box()",
-      commandChoices: ["use_hopper()", "hopper.mass", "hopper.rocket_power", "player.speed", "repeat"],
+      template: "use_hopper()\nhopper.mass = {mass}\nhopper.rocket_power = {rocket_power}\nhopper.engine = {engine}\nrepeat {boxes}: spawn_box()",
+      commandChoices: ["use_hopper()", "hopper.mass", "hopper.rocket_power", "hopper.engine", "repeat"],
       slots: [
-        { id: "mass", label: "mass", value: "1.2", hint: "Lower mass helps Hopper accelerate." },
+        { id: "mass", label: "mass", value: "1.2", hint: "Lower mass helps Hopper accelerate (a = F / m)." },
         { id: "rocket_power", label: "rocket", value: "75", hint: "More rocket force fights Jupiter gravity." },
-        { id: "speed", label: "speed", value: "5.0", hint: "Speed helps cross platform gaps." },
+        { id: "engine", label: "engine", value: "6", hint: "Top speed = engine force ÷ mass. Raise force or drop mass to go faster." },
         { id: "boxes", label: "boxes", value: "3", hint: "Three boxes make a small building loop." }
       ],
-      explain: "Activate Hopper, then use a strong rocket and lighter mass; a loop builds helpful blocks.",
-      parentPrompt: "Why does a heavy object need more force to move?",
-      codeIdea: "Activate and tune Hopper, then repeat a box command.",
-      physicsIdea: "More force and less mass create more acceleration.",
+      explain: "Activate Hopper, then make it light and powerful: a strong rocket and engine plus low mass give more acceleration and top speed; a loop builds helpful blocks.",
+      parentPrompt: "Why does a heavier Hopper need more force to reach the same speed?",
+      codeIdea: "Activate and tune Hopper (mass, rocket, engine), then repeat a box command.",
+      physicsIdea: "More force and less mass create more acceleration (a = F / m).",
       success: "Hopper uses rocket force and boxes to collect Amber Storm gems."
     },
     prediction: {
@@ -251,18 +241,10 @@ const PlatformerMissions = [
       label: "Force Engineer",
       description: "Balanced force and mass to move in heavy gravity."
     },
-    validate: (game, Compiler) => {
-      const currentG = Compiler.env.gravity !== null ? Compiler.env.gravity : game.currentPlanet.physics.gravity;
-      const currentSpeed = Compiler.env.speed !== null ? Compiler.env.speed : game.currentPlanet.physics.speed;
-      const hopperMass = game.hopperMass !== undefined ? game.hopperMass : 2.5;
-      return game.player.charType === 'hopper'
-        && currentG >= game.currentPlanet.physics.gravity
-        && currentSpeed >= 4.5
-        && hopperMass <= 1.4
-        && game.player.rocketPower >= 70
-        && game.player.y < 220
-        && game.player.x > 800;
-    },
+    validate: (game) => game.isJupiterHopperEngineered()
+      && game.getCurrentGravity() >= game.currentPlanet.physics.gravity
+      && game.player.y < 220
+      && game.player.x > 800,
     reflection: [
       "How did Hopper feel compared to Rover under Jupiter's gravity?",
       "What happens to acceleration when force increases but mass stays constant?",

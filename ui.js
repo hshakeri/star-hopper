@@ -797,6 +797,46 @@ function autoGrowConsoleInput(el) {
   el.style.height = Math.min(el.scrollHeight, 132) + "px";
 }
 
+// --- Console command history (shell-style Up/Down recall) ---
+let consoleCmdHistory = [];
+let consoleHistoryPos = 0;   // index into history; === length means "live draft"
+let consoleLiveDraft = "";
+
+function consoleHistoryAdd(cmd) {
+  const c = (cmd || "").trim();
+  if (c && consoleCmdHistory[consoleCmdHistory.length - 1] !== c) consoleCmdHistory.push(c);
+  consoleHistoryPos = consoleCmdHistory.length;
+  consoleLiveDraft = "";
+}
+function consoleHistoryPrev(currentValue) {
+  if (consoleCmdHistory.length === 0) return null;
+  if (consoleHistoryPos === consoleCmdHistory.length) {
+    consoleLiveDraft = currentValue;                 // remember what was being typed
+    consoleHistoryPos = consoleCmdHistory.length - 1;
+  } else if (consoleHistoryPos > 0) {
+    consoleHistoryPos--;
+  }
+  return consoleCmdHistory[consoleHistoryPos];
+}
+function consoleHistoryNext() {
+  if (consoleHistoryPos >= consoleCmdHistory.length) return null; // already at the live draft
+  consoleHistoryPos++;
+  if (consoleHistoryPos >= consoleCmdHistory.length) return consoleLiveDraft || "";
+  return consoleCmdHistory[consoleHistoryPos];
+}
+function consoleCursorOnFirstLine(el) {
+  return el.value.lastIndexOf("\n", el.selectionStart - 1) === -1;
+}
+function consoleCursorOnLastLine(el) {
+  return el.value.indexOf("\n", el.selectionStart) === -1;
+}
+function consoleRecall(input, value, suggestBox) {
+  input.value = value;
+  autoGrowConsoleInput(input);
+  try { input.setSelectionRange(value.length, value.length); } catch (e) { /* noop */ }
+  if (suggestBox) suggestBox.style.display = "none";
+}
+
 // Binds UI controls, terminal input, and cards
 function setupUIBindings(game) {
   setupResizablePanes();
@@ -808,6 +848,19 @@ function setupUIBindings(game) {
   // 1. Code editor input submission
   if (input) {
     input.addEventListener("keydown", (e) => {
+      // Shell-style history: Up/Down recall previous commands, but only at the
+      // text edges so they still move the caret within multi-line code.
+      if (e.key === "ArrowUp" && consoleCursorOnFirstLine(input)) {
+        const recalled = consoleHistoryPrev(input.value);
+        if (recalled !== null) { e.preventDefault(); consoleRecall(input, recalled, suggestBox); }
+        return;
+      }
+      if (e.key === "ArrowDown" && consoleCursorOnLastLine(input)) {
+        const recalled = consoleHistoryNext();
+        if (recalled !== null) { e.preventDefault(); consoleRecall(input, recalled, suggestBox); }
+        return;
+      }
+
       // Enter runs the program; Shift+Enter inserts a newline so kids can enter
       // multi-line code (e.g. the whole Mission Coach block) in one go.
       if (e.key === "Enter" && !e.shiftKey) {
@@ -815,6 +868,7 @@ function setupUIBindings(game) {
         const val = input.value;
         if (val.trim()) {
           ui_log_input(val);
+          consoleHistoryAdd(val);
           const res = Compiler.runCommand(val, game);
           if (res.success) {
             ui_log_output(res.msg, "success");

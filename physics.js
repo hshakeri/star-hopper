@@ -230,10 +230,11 @@ class PhysicsEngine {
     let gravityForce = baseGravity;
     let horizontalFriction = baseFriction;
 
+    // Gravity is mass-independent free-fall (matches entities.js); mass affects speed/jump.
     if (player.charType === 'star') {
-      gravityForce = baseGravity * 0.7 * player.mass;
+      gravityForce = baseGravity * 0.7;
     } else {
-      gravityForce = baseGravity * 1.3 * player.mass;
+      gravityForce = baseGravity * 1.3;
     }
 
     const stepCount = 50;
@@ -286,7 +287,7 @@ class PhysicsEngine {
     const py = player.y + player.h/2;
 
     const baseGravity = Compiler.env.gravity !== null ? Compiler.env.gravity : currentPlanet.physics.gravity;
-    let gravityVal = (player.charType === 'star') ? baseGravity * 0.7 * player.mass : baseGravity * 1.3 * player.mass;
+    let gravityVal = (player.charType === 'star') ? baseGravity * 0.7 : baseGravity * 1.3;
 
     // 1. Gravity Vector (Green)
     this.drawArrow(ctx, px, py, px, py + (gravityVal * 40), '#4ade80', 2);

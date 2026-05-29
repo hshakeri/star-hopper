@@ -311,7 +311,7 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Physics: spike hazard tiles are detected", false, err.message);
   }
 
-  // Test 14: player.speed command updates the movement speed override used by physics
+  // Test 14: the engine/speed knob writes the engine drive force (top speed = engine / mass)
   try {
     Compiler.reset();
     const mockGame = {
@@ -320,12 +320,15 @@ function runEngineTests() {
     };
 
     const res = Compiler.runCommand("player.speed = 5.5", mockGame);
-
     assertEquals(true, res.success);
-    assertEquals(5.5, Compiler.env.speed, "player.speed should write to the runtime speed override");
-    renderTestResult("engine-suite", "Compiler: player.speed tunes active movement speed", true);
+    assertEquals(5.5, Compiler.env.engine, "player.speed should set the engine drive force");
+
+    const res2 = Compiler.runCommand("hopper.engine = 7", mockGame);
+    assertEquals(true, res2.success);
+    assertEquals(7, Compiler.env.engine, "hopper.engine should set the engine drive force");
+    renderTestResult("engine-suite", "Compiler: engine knob sets the runtime drive force", true);
   } catch (err) {
-    renderTestResult("engine-suite", "Compiler: player.speed tunes active movement speed", false, err.message);
+    renderTestResult("engine-suite", "Compiler: engine knob sets the runtime drive force", false, err.message);
   }
 
   // Test 15: Hopper rocket power produces tunable lift instead of a single clamped value
@@ -397,10 +400,11 @@ function runEngineTests() {
 
     assertEquals(false, game.canCollectGem(highGem), "High Earth gems should still need full Hopper engineering");
     game.player.charType = 'hopper';
-    game.player.jumpPower = 17;
+    game.player.mass = 1.2;
     game.hopperMass = 1.2;
-    Compiler.env.speed = 4.8;
-    assertEquals(true, game.canCollectGem(highGem), "High Earth gems should unlock with the full Hopper build");
+    game.player.jumpPower = 18;     // jump FORCE -> launch = 18 / 1.2 = 15
+    Compiler.env.engine = 6;        // engine FORCE -> top speed = 6 / 1.2 = 5
+    assertEquals(true, game.canCollectGem(highGem), "High Earth gems should unlock with the light + strong Hopper build");
     renderTestResult("engine-suite", "Objectives: Earth gems require progressive engineering gates", true);
   } catch (err) {
     renderTestResult("engine-suite", "Objectives: Earth gems require progressive engineering gates", false, err.message);
@@ -528,10 +532,10 @@ function runEngineTests() {
     const game = new StarHopperGame();
     game.currentPlanet = PLANETS[0];
     game.currentPlanetIndex = 0;
-    game.player = { charType: 'hopper', jumpPower: 17, rocketPower: 40, mass: 1.2, spikes: false, x: 1201 };
+    game.player = { charType: 'hopper', jumpPower: 18, rocketPower: 40, mass: 1.2, spikes: false, x: 1201 };
     game.hopperMass = 1.2;
     Compiler.env.gravity = 0.35;
-    Compiler.env.speed = 4.8;
+    Compiler.env.engine = 6;        // top speed = 6 / 1.2 = 5 (>= 4.8)
     game.checkMissions();
 
     const earthMission = PlatformerMissions.find(mission => mission.id === "earth-gravity-wall");
