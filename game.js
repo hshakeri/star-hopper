@@ -110,6 +110,29 @@ class StarHopperGame {
     return this.getJumpForce() / this.getActiveMass();
   }
 
+  // --- Composite mission stats: ONE forgiving score per world ---
+  // Instead of passing four separate thresholds at once, kids tune any mix of
+  // properties and watch a single number climb past a target line.
+
+  // Earth: faster + higher-jumping + lower-gravity = more agile.
+  getAgility() {
+    const g = Math.max(0.05, this.getCurrentGravity());           // game-units gravity
+    return (this.getCurrentSpeed() + this.getJumpVelocity()) * 0.6 / g;
+  }
+
+  // Jupiter: rocket thrust-to-weight plus drive speed = escape power.
+  getJupiterThrust() {
+    const rocket = (this.player && Number.isFinite(this.player.rocketPower)) ? this.player.rocketPower : 40;
+    return rocket / this.getActiveMass() + this.getCurrentSpeed();
+  }
+
+  // The composite stat + target for the current world (null if it has no stat gate).
+  getMissionStat() {
+    if (this.currentPlanetIndex === 0) return { key: 'agility', label: 'Agility', value: this.getAgility(), target: 30 };
+    if (this.currentPlanetIndex === 2) return { key: 'thrust', label: 'Thrust', value: this.getJupiterThrust(), target: 45 };
+    return null;
+  }
+
   getCurrentFriction() {
     if (typeof Compiler !== 'undefined' && Compiler.env && Compiler.env.friction !== null) {
       return Compiler.env.friction;
@@ -123,20 +146,11 @@ class StarHopperGame {
   }
 
   isEarthHopperEngineered() {
-    return this.player
-      && this.player.charType === 'hopper'
-      && this.getCurrentGravity() <= 0.35
-      && this.hopperMass <= 1.2
-      && this.getCurrentSpeed() >= 4.8      // derived: engine force ÷ mass
-      && this.getJumpVelocity() >= 14;       // derived: jump force ÷ mass
+    return !!(this.player && this.player.charType === 'hopper' && this.getAgility() >= 30);
   }
 
   isJupiterHopperEngineered() {
-    return this.player
-      && this.player.charType === 'hopper'
-      && this.player.rocketPower >= 70
-      && this.hopperMass <= 1.4
-      && this.getCurrentSpeed() >= 4.5;
+    return !!(this.player && this.player.charType === 'hopper' && this.getJupiterThrust() >= 45);
   }
 
   hasIceTouchRule() {
@@ -165,7 +179,7 @@ class StarHopperGame {
       }
       return {
         id: "earth-hopper-engineering-gems",
-        label: "engineer Hopper: gravity <= 5.7 m/s² and hopper.mass <= 1.2, then raise hopper.engine and player.jump_power (lighter + stronger = faster and higher)",
+        label: "engineer Hopper to Agility 30+ — lower hopper.mass and gravity and/or raise hopper.engine and player.jump_power (any mix that pushes Agility over 30)",
         validate: (game) => game.isEarthHopperEngineered()
       };
     }
@@ -188,7 +202,7 @@ class StarHopperGame {
     if (planetIndex === 2) {
       return {
         id: "jupiter-engineering-loop-gems",
-        label: "engineer Hopper for high gravity and spawn 3 crate blocks with a loop",
+        label: "engineer Hopper to Thrust 45+ (raise hopper.rocket_power and hopper.engine, lower mass) and spawn 3 crate blocks with a loop",
         validate: (game) => game.isJupiterHopperEngineered() && game.spawnedBoxes.length >= 3
       };
     }

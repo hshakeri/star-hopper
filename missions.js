@@ -31,7 +31,7 @@ const PlatformerMissions = [
     beginnerConcept: "Change one number, test, then change another — and notice that less mass makes the same engine go faster and jump higher.",
     codingConcept: "Variable assignment and parameter tuning",
     starterCode: "use_hopper()\ngravity = 4.9\nhopper.mass = 1.2\nhopper.engine = 6\nplayer.jump_power = 18",
-    objective: "Engineer a lighter, stronger Hopper (mass, engine force, jump force) so its top speed and jump rise to unlock every Emerald Core gem and clear the wall.",
+    objective: "Push Hopper's Agility past 30 with any mix of lower mass, lower gravity, more engine force, and more jump force, to unlock every Emerald Core gem and clear the wall.",
     steps: [
       { id: "observe", prompt: "Observe: Hopper is too heavy to clear the high metal wall with default settings.", done: false },
       { id: "predict", prompt: "Predict: If you lower the mass but keep the same engine, will the top speed go up, down, or stay the same?", done: false },
@@ -54,7 +54,7 @@ const PlatformerMissions = [
         { id: "engine", label: "engine", value: "6", hint: "Top speed = engine force ÷ mass. Raise the force or drop the mass to go faster." },
         { id: "jump_power", label: "jump", value: "18", hint: "Jump height = jump force ÷ mass. A lighter Hopper jumps higher for the same force." }
       ],
-      explain: "Activate Hopper, then make it light and strong: top speed = engine ÷ mass and jump = jump force ÷ mass, so dropping mass both speeds it up AND lifts it higher.",
+      explain: "Activate Hopper, then raise its Agility past 30. Agility climbs when you lower mass or gravity, or raise engine force or jump force — there's no single right answer, just get the number over 30 (watch it print in the shell).",
       parentPrompt: "When you lowered the mass, what happened to the speed and the jump?",
       codeIdea: "Activate Hopper, lower the mass, and raise the engine and jump force.",
       physicsIdea: "Newton's 2nd law: acceleration = force ÷ mass. Same engine + less mass = more speed and a higher jump.",
@@ -78,9 +78,9 @@ const PlatformerMissions = [
       },
       {
         id: "earth-emerald-gates",
-        label: "Emerald gates opened",
-        success: "All Emerald gems are unlocked by the new gravity, mass, jump, and speed settings.",
-        waiting: "Some Emerald gems are still locked by code.",
+        label: "Agility 30+ reached",
+        success: "Agility cleared 30 — every Emerald gem is unlocked. Any mix of mass, gravity, engine, and jump that gets there works.",
+        waiting: "Agility is still under 30. Lower mass/gravity or raise engine/jump — the shell prints your current Agility after each line.",
         check: (game) => typeof game.getLockedRequiredCollectibleCount === 'function' && game.getLockedRequiredCollectibleCount() === 0
       }
     ],
@@ -181,7 +181,7 @@ const PlatformerMissions = [
     beginnerConcept: "Force, mass, and speed work together. Heavy things need a stronger push.",
     codingConcept: "Multi-parameter Hopper engineering",
     starterCode: "use_hopper()\nhopper.mass = 1.2\nhopper.rocket_power = 75\nhopper.engine = 6",
-    objective: "Engineer Hopper and loop crate blocks to collect Amber Storm gems while escaping the gravity trench.",
+    objective: "Push Hopper's Thrust past 45 (more rocket power and engine, less mass) and loop crate blocks to collect Amber Storm gems while escaping the gravity trench.",
     steps: [
       { id: "observe", prompt: "Observe: Swap to Hopper: notice he is heavy and jumps poorly.", done: false },
       { id: "predict", prompt: "Predict: Will Hopper need more rocket force on Jupiter than Earth?", done: false },
@@ -205,7 +205,7 @@ const PlatformerMissions = [
         { id: "engine", label: "engine", value: "6", hint: "Top speed = engine force ÷ mass. Raise force or drop mass to go faster." },
         { id: "boxes", label: "boxes", value: "3", hint: "Three boxes make a small building loop." }
       ],
-      explain: "Activate Hopper, then make it light and powerful: a strong rocket and engine plus low mass give more acceleration and top speed; a loop builds helpful blocks.",
+      explain: "Activate Hopper, then raise its Thrust past 45: more rocket power and engine force, and less mass, all push it up. The shell prints your Thrust after each line. A loop builds helpful blocks.",
       parentPrompt: "Why does a heavier Hopper need more force to reach the same speed?",
       codeIdea: "Activate and tune Hopper (mass, rocket, engine), then repeat a box command.",
       physicsIdea: "More force and less mass create more acceleration (a = F / m).",

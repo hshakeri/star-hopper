@@ -700,6 +700,7 @@ function runCoachCode(game, code) {
   }
 
   game.checkMissions();
+  if (res.success) logMissionStat(game);
   if (res.success && activeMission && activeMission.fullMission) {
     game.coachLastResults = game.coachLastResults || {};
     const resultState = evaluateMissionResultChecks(game, activeMission.fullMission);
@@ -837,6 +838,20 @@ function consoleRecall(input, value, suggestBox) {
   if (suggestBox) suggestBox.style.display = "none";
 }
 
+// After a property is entered, echo the world's composite stat so the player can
+// watch one number climb toward the target instead of guessing four thresholds.
+function logMissionStat(game) {
+  if (!game || typeof game.getMissionStat !== "function") return;
+  const s = game.getMissionStat();
+  if (!s) return;
+  const v = Math.round(s.value);
+  if (v >= s.target) {
+    ui_log_output(`🎯 ${s.label}: ${v} / ${s.target} ✓ — target reached, gems unlocked!`, "success");
+  } else {
+    ui_log_output(`🎯 ${s.label}: ${v} / ${s.target} — lower mass/gravity or raise engine/jump to push it up.`, "info");
+  }
+}
+
 // Binds UI controls, terminal input, and cards
 function setupUIBindings(game) {
   setupResizablePanes();
@@ -888,8 +903,9 @@ function setupUIBindings(game) {
           autoGrowConsoleInput(input);
           if (suggestBox) suggestBox.style.display = "none";
 
-          // Re-validate missions immediately on run
+          // Re-validate missions immediately on run, then echo the composite stat
           game.checkMissions();
+          if (res.success) logMissionStat(game);
         }
       }
     });
