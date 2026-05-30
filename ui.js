@@ -858,21 +858,37 @@ function consoleRecall(input, value, suggestBox) {
 // After a property is entered, echo the world's composite stat so the player can
 // watch one number climb toward the target instead of guessing four thresholds.
 function logMissionStat(game) {
-  if (!game || typeof game.getMissionStat !== "function") return;
-  const s = game.getMissionStat();
-  if (!s) return;
-  if (game.player && game.player.charType !== "hopper") {
-    ui_log_output(`🎯 ${s.label} is measured on the Hopper suit — run use_hopper() first, then tune.`, "info");
-    return;
+  if (!game) return;
+
+  // 1. Composite stat line (Earth/Jupiter); other worlds have no stat, so skip it.
+  const s = (typeof game.getMissionStat === "function") ? game.getMissionStat() : null;
+  const onHopper = !game.player || game.player.charType === "hopper";
+  if (s) {
+    if (!onHopper) {
+      ui_log_output(`🎯 ${s.label} is measured on the Hopper suit — run use_hopper() first, then tune.`, "info");
+    } else if (s.value >= s.target) {
+      ui_log_output(`🎯 ${s.label}: ${Math.round(s.value)} / ${s.target} ✓`, "success");
+    } else {
+      const tip = s.key === "thrust"
+        ? "raise hopper.rocket_power or hopper.engine, or lower hopper.mass"
+        : "lower hopper.mass or gravity, or raise hopper.engine or player.jump_power";
+      ui_log_output(`🎯 ${s.label}: ${Math.round(s.value)} / ${s.target} — ${tip} to push it up.`, "info");
+    }
   }
-  const v = Math.round(s.value);
-  if (v >= s.target) {
-    ui_log_output(`🎯 ${s.label}: ${v} / ${s.target} ✓ — target reached, gems unlocked!`, "success");
+
+  // 2. REAL gem status (every world). The stat is often only PART of a gem's gate,
+  //    so report the actual lock count — and only when it CHANGES, so it never spams.
+  if (typeof game.getLockedRequiredCollectibleCount !== "function") return;
+  const locked = game.getLockedRequiredCollectibleCount();
+  const statMet = !!(s && onHopper && s.value >= s.target);
+  const key = locked + "|" + statMet;
+  if (game._lastGemLogKey === key) return;
+  game._lastGemLogKey = key;
+  if (locked === 0) {
+    ui_log_output(`◆ All mission gems unlocked — go collect them!`, "success");
   } else {
-    const tip = s.key === "thrust"
-      ? "raise hopper.rocket_power or hopper.engine, or lower hopper.mass"
-      : "lower hopper.mass or gravity, or raise hopper.engine or player.jump_power";
-    ui_log_output(`🎯 ${s.label}: ${v} / ${s.target} — ${tip} to push it up.`, "info");
+    const gate = (typeof game.getFirstLockedGemGate === "function") ? game.getFirstLockedGemGate() : null;
+    ui_log_output(`◆ ${locked} gem${locked === 1 ? "" : "s"} still locked${gate ? ` — ${gate.label}.` : "."}`, "info");
   }
 }
 

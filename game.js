@@ -405,6 +405,8 @@ class StarHopperGame {
     this.requiredCollectiblesTotal = 0;
     this.requiredCollectiblesCollected = 0;
     this.portalLockNoticeCooldown = 0;
+    this.shownGemGateIds = new Set();   // reset once-per-level gem-gate hints
+    this._lastGemLogKey = null;         // reset shell gem-status de-duplication
     // Keep global completed missions across planet switches
     Particles.clear();
 
@@ -592,16 +594,25 @@ class StarHopperGame {
     ).length;
   }
 
+  // The gem gate of the first still-locked required gem (for accurate hints).
+  getFirstLockedGemGate() {
+    const obj = this.interactiveObjects.find(o =>
+      o.type === 'coin' && o.requiredCollectible && !o.collected && !this.canCollectGem(o)
+    );
+    return obj && obj.gemGate ? obj.gemGate : null;
+  }
+
   showGemGateHint(obj) {
     if (!obj || !obj.gemGate) return;
     const gateId = obj.gemGate.id || "gem-gate";
-    if (this.gemGateNoticeCooldown > 0 && this.lastGemGateNoticeId === gateId) return;
+    // Show each gate's requirement only once per level load — one time is enough.
+    this.shownGemGateIds = this.shownGemGateIds || new Set();
+    if (this.shownGemGateIds.has(gateId)) return;
+    this.shownGemGateIds.add(gateId);
 
     const gem = obj.gem || this.getGemConfig();
     ui_log_output(`Locked ${gem.shortName} gem: ${obj.gemGate.label}.`, "error");
     SFX.playError();
-    this.gemGateNoticeCooldown = 90;
-    this.lastGemGateNoticeId = gateId;
     updateMissionList(this);
   }
 
