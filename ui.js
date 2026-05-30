@@ -153,6 +153,23 @@ function updateHUD(game) {
   const player = game.player;
   const planet = game.currentPlanet;
 
+  // 0. Mission composite stat (Agility/Thrust) — one forgiving target, shown live.
+  const hudRow = document.getElementById("hud-row");
+  const stat = (typeof game.getMissionStat === "function") ? game.getMissionStat() : null;
+  if (hudRow) {
+    if (stat) {
+      hudRow.classList.add("has-mission-stat");
+      const labelEl = document.getElementById("hud-mission-stat-label");
+      const valEl = document.getElementById("hud-mission-stat");
+      const card = document.getElementById("card-mission-stat");
+      if (labelEl) labelEl.textContent = stat.label;
+      if (valEl) valEl.textContent = `${Math.round(stat.value)} / ${stat.target}`;
+      if (card) card.classList.toggle("stat-passed", stat.value >= stat.target);
+    } else {
+      hudRow.classList.remove("has-mission-stat");
+    }
+  }
+
   // 1. Gravity Gauge
   const gravityElement = document.getElementById("hud-gravity");
   if (gravityElement) {

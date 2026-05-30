@@ -464,6 +464,26 @@ body.resizing-panes * {
   border-radius: 0;
 }
 
+/* The mission-stat (Agility/Thrust) card only appears on worlds that have one,
+   adding a leading column so the rest of the dashboard doesn't shift awkwardly. */
+#card-mission-stat { display: none; }
+
+.minimal-dashboard.has-mission-stat {
+  grid-template-columns: 0.78fr 0.72fr 0.86fr 0.58fr 1.05fr 1.25fr;
+  max-width: 700px;
+}
+
+.minimal-dashboard.has-mission-stat #card-mission-stat { display: flex; }
+
+#card-mission-stat .hud-card-value { transition: color 0.2s ease; }
+
+#card-mission-stat.stat-passed {
+  border-color: rgba(74, 222, 128, 0.5);
+  box-shadow: 0 0 12px rgba(74, 222, 128, 0.25);
+}
+
+#card-mission-stat.stat-passed .hud-card-value { color: var(--neon-green); }
+
 #canvas-wrapper:has(#start-screen:not(.hidden)) #hud-row,
 #canvas-wrapper:has(#clear-screen:not(.hidden)) #hud-row,
 #canvas-wrapper:has(#gameover-screen:not(.hidden)) #hud-row {
