@@ -87,6 +87,8 @@ function loadNavigatorMissionSolar(index) {
   const mission = window.Nav.Missions[index];
   if (!mission) return;
 
+  window.Nav.followShip = true; // a fresh flight re-centers the camera on the ship
+
   // Display objective instruction
   const objEl = document.getElementById("navigator-mission-objective");
   if (objEl) {
@@ -278,6 +280,11 @@ function drawNavigator(game) {
       drawNavigatorClassic(game);
     }
   } else {
+    // Keep the ship centered (dashboard follows it) unless the player has panned.
+    if (window.Nav.followShip !== false && window.Nav.ship) {
+      window.Nav.viewOffsetX = -window.Nav.suToPx(window.Nav.ship.x);
+      window.Nav.viewOffsetY = -window.Nav.suToPx(window.Nav.ship.y);
+    }
     window.Nav.drawSolarSimulation(game);
   }
 }
@@ -334,6 +341,7 @@ document.addEventListener("DOMContentLoaded", () => {
       window.Nav.viewOffsetX += point.x - lastDragPoint.x;
       window.Nav.viewOffsetY += point.y - lastDragPoint.y;
       lastDragPoint = point;
+      window.Nav.followShip = false; // player took manual control of the view
     });
 
     window.addEventListener("pointerup", (e) => {

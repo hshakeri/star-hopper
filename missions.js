@@ -181,7 +181,7 @@ const PlatformerMissions = [
     beginnerConcept: "Force, mass, and speed work together. Heavy things need a stronger push.",
     codingConcept: "Multi-parameter Hopper engineering",
     starterCode: "use_hopper()\nhopper.mass = 1.2\nhopper.rocket_power = 75\nhopper.engine = 6",
-    objective: "Push Hopper's Thrust past 45 (more rocket power and engine, less mass) and loop crate blocks to collect Amber Storm gems while escaping the gravity trench.",
+    objective: "Push Hopper's Thrust past 45 (more rocket power or engine, less mass) to unlock the Amber Storm gems, then escape the gravity trench — spawn crate blocks with a loop if you need stepping stones across the gaps.",
     steps: [
       { id: "observe", prompt: "Observe: Swap to Hopper: notice he is heavy and jumps poorly.", done: false },
       { id: "predict", prompt: "Predict: Will Hopper need more rocket force on Jupiter than Earth?", done: false },

@@ -208,9 +208,9 @@ class StarHopperGame {
 
     if (planetIndex === 2) {
       return {
-        id: "jupiter-engineering-loop-gems",
-        label: "engineer Hopper to Thrust 45+ (raise hopper.rocket_power and hopper.engine, lower mass) and spawn 3 crate blocks with a loop",
-        validate: (game) => game.isJupiterHopperEngineered() && game.spawnedBoxes.length >= 3
+        id: "jupiter-thrust-gems",
+        label: "engineer Hopper to Thrust 45+ (raise hopper.rocket_power or hopper.engine, lower hopper.mass)",
+        validate: (game) => game.isJupiterHopperEngineered()
       };
     }
 
@@ -266,6 +266,19 @@ class StarHopperGame {
   setupControls() {
     // Capture keyboard buttons
     window.addEventListener("keydown", (e) => {
+      // Shift+C toggles focus between the code shell and the game. Mac/Windows safe
+      // (no system clash) and we ignore Ctrl/Cmd/Alt so it never hits Ctrl+Shift+C.
+      if (e.shiftKey && (e.key === "C" || e.key === "c") && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        const consoleInput = document.getElementById("console-input");
+        if (document.activeElement === consoleInput) {
+          if (consoleInput) consoleInput.blur();   // hand control back to the game
+        } else if (consoleInput) {
+          consoleInput.focus();                     // jump into the shell to type code
+        }
+        return;
+      }
+
       // Prevent scrolling on Space and Arrow keys when focused on game
       if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].includes(e.key)) {
         if (document.activeElement.id !== "console-input") {
@@ -278,14 +291,15 @@ class StarHopperGame {
       this.keys[e.key.toLowerCase()] = true;
       this.keys[e.key] = true; // raw code support
 
-      // Swap button 'c' or 'Shift'
-      if (e.key === "c" || e.key === "C" || e.key === "Shift") {
+      // Swap characters with plain 'c' only (Shift+C is the focus toggle above; Shift
+      // alone no longer swaps — it was firing accidentally).
+      if (e.key === "c" && !e.metaKey && !e.ctrlKey && !e.altKey) {
         if (this.state === 'playing') {
           this.player.swap(this);
           // Update active border accent color in CSS
           const color = (this.player.charType === 'star') ? 'var(--neon-cyan)' : 'var(--neon-orange)';
           document.documentElement.style.setProperty('--active-neon', color);
-          
+
           // Trigger dialogue comment on first swap
           this.triggerTutorialDialogue("swap");
         }

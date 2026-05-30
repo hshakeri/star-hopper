@@ -29,7 +29,7 @@ const PLANETS = [
     tutorial: [
       { trigger: "start", text: "Welcome to Star Hopper, cadet! I am Vector, your physics robot helper. Earth has standard gravity. Jump with SPACE or Up Arrow, and walk with Left/Right Arrow keys." },
       { trigger: "wall", text: "That wall is now an engineering gate. Tune gravity, player.jump_power, hopper.mass, and player.speed, then swap to Hopper to test the design." },
-      { trigger: "swap", text: "Press 'C' or 'Shift' to swap between Rover (light, high glide) and Hopper (heavy, rocket boosters). Hopper needs coded upgrades to clear tougher routes." }
+      { trigger: "swap", text: "Press C to swap between Rover (light, high glide) and Hopper (heavy, rocket boosters). Tip: Shift+C jumps between the game and the code shell. Hopper needs coded upgrades to clear tougher routes." }
     ],
 
     missions: [

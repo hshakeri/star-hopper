@@ -15,7 +15,8 @@ window.Nav = window.Nav || {};
   Nav.G = 0.8 / 350877; // Gravitational constant G scaled for 240-day year (was 0.8)
   Nav.viewOffsetX = 0;
   Nav.viewOffsetY = 0;
-  
+  Nav.followShip = true; // camera keeps the ship centered until the player pans
+
   // Convert SU to Pixels (for rendering)
   Nav.suToPx = function(su) {
     return su * Nav.SU_TO_PX;
