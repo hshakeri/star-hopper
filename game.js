@@ -291,19 +291,8 @@ class StarHopperGame {
       this.keys[e.key.toLowerCase()] = true;
       this.keys[e.key] = true; // raw code support
 
-      // Swap characters with plain 'c' only (Shift+C is the focus toggle above; Shift
-      // alone no longer swaps — it was firing accidentally).
-      if (e.key === "c" && !e.metaKey && !e.ctrlKey && !e.altKey) {
-        if (this.state === 'playing') {
-          this.player.swap(this);
-          // Update active border accent color in CSS
-          const color = (this.player.charType === 'star') ? 'var(--neon-cyan)' : 'var(--neon-orange)';
-          document.documentElement.style.setProperty('--active-neon', color);
-
-          // Trigger dialogue comment on first swap
-          this.triggerTutorialDialogue("swap");
-        }
-      }
+      // No manual character swap: each planet starts you in the right suit (see
+      // loadPlanet). Shift+C (above) jumps between the game and the code shell.
     });
 
     window.addEventListener("keyup", (e) => {
@@ -383,9 +372,18 @@ class StarHopperGame {
     this.starMass = 1.0;
     this.hopperMass = 2.5;
 
-    // Instantiate single character in place
+    // Instantiate the character this world calls for — no manual swap; each planet
+    // starts you in the right suit for its lesson.
     this.player = new Player(this.startX, this.startY);
-    this.player.charType = 'star'; // default start active character style
+    const defaultChar = this.currentPlanet.defaultChar || 'star';
+    this.player.charType = defaultChar;
+    if (defaultChar === 'hopper') {
+      this.player.w = 24;
+      this.player.h = 32;
+      this.player.mass = this.hopperMass;
+    } else {
+      this.player.mass = this.starMass;
+    }
     this.player.jumpPower = this.currentPlanet.physics.jumpPower ?? this.player.jumpPower;
 
     // Set up aliases for backwards compatibility with missions and rules references

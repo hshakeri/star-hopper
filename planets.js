@@ -310,6 +310,12 @@ const PLANETS = [
   }
 ];
 
+// Per-planet starting character — no manual swap; each world starts you in the suit
+// its lesson needs (Hopper for engineering/rocket/magnet worlds, Rover for the light
+// jump/friction worlds). Index matches the planet id.
+const PLANET_DEFAULT_CHAR = ['hopper', 'star', 'hopper', 'star', 'hopper'];
+PLANETS.forEach((planet, i) => { planet.defaultChar = PLANET_DEFAULT_CHAR[i] || 'star'; });
+
 // Map rich missions from missions.js if they exist
 if (typeof PlatformerMissions !== 'undefined') {
   PLANETS.forEach(planet => {
