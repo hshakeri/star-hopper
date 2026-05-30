@@ -419,6 +419,7 @@ class StarHopperGame {
     this.portalLockNoticeCooldown = 0;
     this.shownGemGateIds = new Set();   // reset once-per-level gem-gate hints
     this._lastGemLogKey = null;         // reset shell gem-status de-duplication
+    this._lastPortalLockMsg = null;     // reset portal-lock message de-duplication
     // Keep global completed missions across planet switches
     Particles.clear();
 
@@ -629,18 +630,16 @@ class StarHopperGame {
   }
 
   formatObjectiveLockMessage(status = this.getLevelObjectiveStatus()) {
-    const missing = [];
-    const missionsLeft = status.missionsTotal - status.missionsComplete;
-    const collectiblesLeft = status.collectiblesTotal - status.collectiblesCollected;
-
-    if (missionsLeft > 0) {
-      missing.push(`${missionsLeft} task${missionsLeft === 1 ? "" : "s"}`);
+    const parts = [];
+    if (status.missionsComplete < status.missionsTotal) {
+      // Name the actual remaining task so it's never an opaque "1 task".
+      const missions = this.currentPlanet && this.currentPlanet.missions ? this.currentPlanet.missions : [];
+      const next = missions.find(m => !this.completedMissions.has(m.id));
+      parts.push(next && next.prompt ? `finish the task — ${next.prompt}` : "finish the mission task");
     }
-    if (collectiblesLeft > 0) {
-      missing.push(`${collectiblesLeft} mission gem${collectiblesLeft === 1 ? "" : "s"}`);
-    }
-
-    return missing.length > 0 ? missing.join(" and ") : "final checks";
+    const gemsLeft = status.collectiblesTotal - status.collectiblesCollected;
+    if (gemsLeft > 0) parts.push(`collect ${gemsLeft} more mission gem${gemsLeft === 1 ? "" : "s"}`);
+    return parts.length > 0 ? parts.join("; and ") : "complete the final checks";
   }
 
   attemptPortalClear() {
@@ -651,11 +650,12 @@ class StarHopperGame {
       return;
     }
 
-    if (this.portalLockNoticeCooldown <= 0) {
-      const remaining = this.formatObjectiveLockMessage(status);
-      ui_log_output(`Portal locked: complete ${remaining} before extraction.`, "error");
+    // Only announce the lock when its message changes — no spammy repeats.
+    const msg = `Portal locked: ${this.formatObjectiveLockMessage(status)}.`;
+    if (this._lastPortalLockMsg !== msg) {
+      this._lastPortalLockMsg = msg;
+      ui_log_output(msg, "error");
       SFX.playError();
-      this.portalLockNoticeCooldown = 90;
       updateMissionList(this);
     }
   }

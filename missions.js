@@ -241,10 +241,7 @@ const PlatformerMissions = [
       label: "Force Engineer",
       description: "Balanced force and mass to move in heavy gravity."
     },
-    validate: (game) => game.isJupiterHopperEngineered()
-      && game.getCurrentGravity() >= game.currentPlanet.physics.gravity
-      && game.player.y < 220
-      && game.player.x > 800,
+    validate: (game) => game.isJupiterHopperEngineered(),
     reflection: [
       "How did Hopper feel compared to Rover under Jupiter's gravity?",
       "What happens to acceleration when force increases but mass stays constant?",
