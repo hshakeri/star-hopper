@@ -114,16 +114,23 @@ class StarHopperGame {
   // Instead of passing four separate thresholds at once, kids tune any mix of
   // properties and watch a single number climb past a target line.
 
+  // These stats describe the engineered Hopper suit, so they read 0 until Hopper
+  // is active — that way the shell/HUD never shows a passing score the gate rejects.
+
   // Earth: faster + higher-jumping + lower-gravity = more agile.
   getAgility() {
+    if (!this.player || this.player.charType !== 'hopper') return 0;
     const g = Math.max(0.05, this.getCurrentGravity());           // game-units gravity
     return (this.getCurrentSpeed() + this.getJumpVelocity()) * 0.6 / g;
   }
 
-  // Jupiter: rocket thrust-to-weight plus drive speed = escape power.
+  // Jupiter: rocket thrust-to-weight plus drive speed = escape power. Calibrated so
+  // that at a stock Hopper's weight (2.5) Thrust ≈ rocket_power, and a lighter
+  // Hopper lifts the thrust-to-weight higher.
   getJupiterThrust() {
-    const rocket = (this.player && Number.isFinite(this.player.rocketPower)) ? this.player.rocketPower : 40;
-    return rocket / this.getActiveMass() + this.getCurrentSpeed();
+    if (!this.player || this.player.charType !== 'hopper') return 0;
+    const rocket = Number.isFinite(this.player.rocketPower) ? this.player.rocketPower : 40;
+    return rocket * (2.5 / this.getActiveMass()) + this.getCurrentSpeed();
   }
 
   // The composite stat + target for the current world (null if it has no stat gate).

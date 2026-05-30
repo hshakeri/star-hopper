@@ -861,11 +861,18 @@ function logMissionStat(game) {
   if (!game || typeof game.getMissionStat !== "function") return;
   const s = game.getMissionStat();
   if (!s) return;
+  if (game.player && game.player.charType !== "hopper") {
+    ui_log_output(`🎯 ${s.label} is measured on the Hopper suit — run use_hopper() first, then tune.`, "info");
+    return;
+  }
   const v = Math.round(s.value);
   if (v >= s.target) {
     ui_log_output(`🎯 ${s.label}: ${v} / ${s.target} ✓ — target reached, gems unlocked!`, "success");
   } else {
-    ui_log_output(`🎯 ${s.label}: ${v} / ${s.target} — lower mass/gravity or raise engine/jump to push it up.`, "info");
+    const tip = s.key === "thrust"
+      ? "raise hopper.rocket_power or hopper.engine, or lower hopper.mass"
+      : "lower hopper.mass or gravity, or raise hopper.engine or player.jump_power";
+    ui_log_output(`🎯 ${s.label}: ${v} / ${s.target} — ${tip} to push it up.`, "info");
   }
 }
 
