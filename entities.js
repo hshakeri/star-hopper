@@ -198,7 +198,10 @@ class Player {
     }
     // 1. Fetch parameters from Compiler variables, falling back to planet physics defaults
     const isCustomG = Compiler.env.gravity !== null;
-    const baseGravity = isCustomG ? Compiler.env.gravity : currentPlanet.physics.gravity;
+    // Felt gravity = planet/override gravity minus the antigravity device.
+    const baseGravity = (game && typeof game.getCurrentGravity === 'function')
+      ? game.getCurrentGravity()
+      : (isCustomG ? Compiler.env.gravity : currentPlanet.physics.gravity) - (Compiler.env.antigravity || 0);
     const isCustomF = Compiler.env.friction !== null;
     const baseFriction = isCustomF ? Compiler.env.friction : currentPlanet.physics.friction;
     const airResistance = currentPlanet.physics.airResistance ?? 0.99;

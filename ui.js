@@ -170,12 +170,14 @@ function updateHUD(game) {
     }
   }
 
-  // 1. Gravity Gauge
+  // 1. Gravity Gauge — show the gravity the rover actually FEELS (after antigravity)
   const gravityElement = document.getElementById("hud-gravity");
   if (gravityElement) {
-    const isCustomG = Compiler.env.gravity !== null;
-    const currentG = isCustomG ? Compiler.env.gravity : planet.physics.gravity;
-    
+    const isCustomG = Compiler.env.gravity !== null || (Compiler.env.antigravity || 0) !== 0;
+    const currentG = (typeof game.getCurrentGravity === 'function')
+      ? game.getCurrentGravity()
+      : (Compiler.env.gravity !== null ? Compiler.env.gravity : planet.physics.gravity);
+
     // Scale visual gravity: standard Earth 0.6 matches 9.8 m/s2
     const realWorldG = (currentG / 0.6) * 9.8;
     gravityElement.textContent = `${realWorldG.toFixed(1)} m/s²`;

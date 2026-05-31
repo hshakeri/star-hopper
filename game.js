@@ -1,7 +1,19 @@
 // game.js - Star Hopper platformer game engine, loops, level loading, and draw pipelines
 
+// Material limits on the Hopper. Each tuner starts at a "base" cap that's strong
+// enough to clear that planet; collecting a planet's samples (gems) unlocks the
+// "extreme" cap so kids can engineer further. (mass uses base/extreme as a FLOOR.)
+const HOPPER_UPGRADES = {
+  engine:      { base: 8,   extreme: 20,  planet: 0, gem: "Emerald Core", part: "engine",            cmd: "hopper.engine" },
+  jump:        { base: 22,  extreme: 45,  planet: 1, gem: "Moon Quartz",  part: "jump springs",      cmd: "player.jump_power" },
+  rocket:      { base: 80,  extreme: 120, planet: 2, gem: "Amber Storm",  part: "rockets",           cmd: "hopper.rocket_power" },
+  mass:        { base: 1.0, extreme: 0.4, planet: 3, gem: "Violet Ice",   part: "lightweight alloy", cmd: "hopper.mass", isFloor: true },
+  antigravity: { base: 6,   extreme: 14,  planet: 4, gem: "Magenta Flux", part: "antigravity coil",  cmd: "antigravity" }
+};
+
 class StarHopperGame {
   constructor() {
+    this.unlockedUpgrades = new Set(); // sample-unlocked engineering limits (persists in profile)
     this.canvas = null;
     this.ctx = null;
     this.currentPlanetIndex = 0;
@@ -74,11 +86,42 @@ class StarHopperGame {
     return gems[index] || gems[0];
   }
 
+  // Gravity the rover actually FEELS (game-units): the planet's gravity (or a gravity=
+  // override) minus the antigravity device. Antigravity counters gravity; negative
+  // antigravity adds to it. Floored just above zero so you never fully float away.
   getCurrentGravity() {
-    if (typeof Compiler !== 'undefined' && Compiler.env && Compiler.env.gravity !== null) {
-      return Compiler.env.gravity;
+    const env = (typeof Compiler !== 'undefined' && Compiler.env) ? Compiler.env : {};
+    const base = (env.gravity !== null && env.gravity !== undefined)
+      ? env.gravity
+      : (this.currentPlanet && this.currentPlanet.physics ? this.currentPlanet.physics.gravity : 0.6);
+    const anti = env.antigravity || 0; // game-units
+    return Math.max(0.02, base - anti);
+  }
+
+  // The active cap for a tuner: "base" until that planet's samples are collected,
+  // then "extreme". For mass this value is the lowest allowed (a floor).
+  getUpgradeCap(key) {
+    const u = HOPPER_UPGRADES[key];
+    if (!u) return Infinity;
+    return (this.unlockedUpgrades && this.unlockedUpgrades.has(key)) ? u.extreme : u.base;
+  }
+
+  // Collecting all of a planet's samples reinforces its signature part.
+  unlockUpgradeForPlanet(planetIndex) {
+    const key = Object.keys(HOPPER_UPGRADES).find(k => HOPPER_UPGRADES[k].planet === planetIndex);
+    if (!key) return;
+    this.unlockedUpgrades = this.unlockedUpgrades || new Set();
+    if (this.unlockedUpgrades.has(key)) return;
+    this.unlockedUpgrades.add(key);
+    const u = HOPPER_UPGRADES[key];
+    const limitText = u.isFloor ? `as low as ${u.extreme}` : `up to ${u.extreme}`;
+    if (typeof showDialogue === 'function') {
+      showDialogue(`🔧 ${u.gem} samples collected! The engineers reinforced your ${u.part} — you can now push ${u.cmd} ${limitText}.`, "badge");
     }
-    return this.currentPlanet && this.currentPlanet.physics ? this.currentPlanet.physics.gravity : 0;
+    if (typeof ui_log_output === 'function') {
+      ui_log_output(`🔧 Upgrade unlocked from ${u.gem} samples: ${u.cmd} ${u.isFloor ? '≥' : '≤'} ${u.extreme}.`, "success");
+    }
+    if (typeof saveLocalProgress === 'function') saveLocalProgress(); // persist the unlock
   }
 
   getActiveMass() {
@@ -845,6 +888,10 @@ class StarHopperGame {
           if (obj.requiredCollectible) {
             ui_log_output(`◆ ${gem.name} gem collected: ${this.requiredCollectiblesCollected}/${this.requiredCollectiblesTotal}`, "success");
             updateMissionList(this);
+            // Collecting all of a planet's samples reinforces the Hopper (raises a limit).
+            if (this.requiredCollectiblesTotal > 0 && this.requiredCollectiblesCollected >= this.requiredCollectiblesTotal) {
+              this.unlockUpgradeForPlanet(this.currentPlanetIndex);
+            }
           } else {
             ui_log_output(`◆ Bonus ${gem.shortName} gem collected! Total: ${this.coinsCollected}`, "success");
           }

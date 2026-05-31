@@ -60,7 +60,8 @@ function shCaptureProgress() {
   return {
     completedMissions: (window.Game && Game.completedMissions) ? Array.from(Game.completedMissions) : [],
     notebookEntries: (typeof notebookEntries !== 'undefined' && notebookEntries) ? notebookEntries : {},
-    earnedBadges: (window.Game && Game.earnedBadges) ? Array.from(Game.earnedBadges) : []
+    earnedBadges: (window.Game && Game.earnedBadges) ? Array.from(Game.earnedBadges) : [],
+    unlockedUpgrades: (window.Game && Game.unlockedUpgrades) ? Array.from(Game.unlockedUpgrades) : []
   };
 }
 
@@ -69,6 +70,7 @@ function shApplyProgress(progress) {
   if (!window.Game) return;
   Game.completedMissions = new Set(progress.completedMissions || []);
   Game.earnedBadges = new Set(progress.earnedBadges || []);
+  Game.unlockedUpgrades = new Set(progress.unlockedUpgrades || []);
   try {
     if (typeof notebookEntries !== 'undefined' && notebookEntries) {
       Object.keys(notebookEntries).forEach(k => delete notebookEntries[k]);

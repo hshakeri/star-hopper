@@ -224,7 +224,7 @@ class PhysicsEngine {
     let tempVx = player.vx;
     let tempVy = player.vy;
 
-    const baseGravity = Compiler.env.gravity !== null ? Compiler.env.gravity : currentPlanet.physics.gravity;
+    const baseGravity = Math.max(0.02, (Compiler.env.gravity !== null ? Compiler.env.gravity : currentPlanet.physics.gravity) - (Compiler.env.antigravity || 0));
     const baseFriction = Compiler.env.friction !== null ? Compiler.env.friction : currentPlanet.physics.friction;
 
     let gravityForce = baseGravity;
@@ -286,7 +286,7 @@ class PhysicsEngine {
     const px = player.x + player.w/2 - cameraX;
     const py = player.y + player.h/2;
 
-    const baseGravity = Compiler.env.gravity !== null ? Compiler.env.gravity : currentPlanet.physics.gravity;
+    const baseGravity = Math.max(0.02, (Compiler.env.gravity !== null ? Compiler.env.gravity : currentPlanet.physics.gravity) - (Compiler.env.antigravity || 0));
     let gravityVal = (player.charType === 'star') ? baseGravity * 0.7 : baseGravity * 1.3;
 
     // 1. Gravity Vector (Green)
