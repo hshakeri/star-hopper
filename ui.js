@@ -924,6 +924,15 @@ function setupUIBindings(game) {
         if (val.trim()) {
           ui_log_input(val);
           consoleHistoryAdd(val);
+          // Navigator commands (point_at/thrust/warp/wait) only work in the launch-plan
+          // console during a flight between planets — redirect instead of "not defined".
+          if (/^\s*(point_at|thrust|warp|wait)\s*\(/.test(val)) {
+            ui_log_output("That's a Navigator command — use it in the launch-plan console while flying between planets (Run Launch Plan), not here in the surface shell.", "info");
+            input.value = "";
+            autoGrowConsoleInput(input);
+            if (suggestBox) suggestBox.style.display = "none";
+            return;
+          }
           const res = Compiler.runCommand(val, game);
           if (res.success) {
             ui_log_output(res.msg, "success");

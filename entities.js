@@ -375,6 +375,19 @@ class Player {
       this.magnetActive = true;
     }
 
+    // 6b. Downward thrust: hold Down in mid-air to push down — essential for steering
+    // in very low gravity. Works for both suits. (Skipped on Mag-Net, where Down drives
+    // the electromagnet instead.)
+    const onMagnetWorld = game && game.currentPlanetIndex === 4;
+    if (!this.onGround && downPressed && !onMagnetWorld) {
+      this.vy += (this.charType === 'hopper') ? 0.55 : 0.4;
+      // down-thrust dust
+      if (Math.random() < 0.3) {
+        Particles.spawn(this.x + this.w / 2, this.y, '#67e8f9', 1.5,
+          (Math.random() - 0.5) * 0.6, -1 - Math.random(), 10, 'glow');
+      }
+    }
+
     // Apply gravity
     this.vy += gravityForce;
     if (this.vy > 12) this.vy = 12; // Terminal velocity
