@@ -30,31 +30,31 @@ const PlatformerMissions = [
     concept: "Newton's 2nd law: acceleration = force ÷ mass. A lighter rover (or a stronger engine) reaches a higher top speed and jumps higher under the same push.",
     beginnerConcept: "Change one number, test, then change another — and notice that less mass makes the same engine go faster and jump higher.",
     codingConcept: "Variable assignment and parameter tuning",
-    starterCode: "use_hopper()\ngravity = 4.9\nhopper.mass = 1.2\nhopper.engine = 6\nplayer.jump_power = 18",
-    objective: "Push Hopper's Agility past 30 with any mix of lower mass, lower gravity, more engine force, and more jump force, to unlock every Emerald Core gem and clear the wall.",
+    starterCode: "use_hopper()\nantigravity = 4.9\nhopper.mass = 1.2\nhopper.engine = 6\nplayer.jump_power = 18",
+    objective: "Push Hopper's Agility past 30 with any mix of lower mass, more antigravity, more engine force, and more jump force, to unlock every Emerald Core gem and clear the wall.",
     steps: [
       { id: "observe", prompt: "Observe: Hopper is too heavy to clear the high metal wall with default settings.", done: false },
       { id: "predict", prompt: "Predict: If you lower the mass but keep the same engine, will the top speed go up, down, or stay the same?", done: false },
-      { id: "code", prompt: "Code: Lower hopper.mass and gravity, then raise hopper.engine and player.jump_power.", done: false },
+      { id: "code", prompt: "Code: Lower hopper.mass and add antigravity, then raise hopper.engine and player.jump_power.", done: false },
       { id: "test", prompt: "Test: Swap to Hopper, collect the locked ridge gems, and watch how a lighter rover moves faster and jumps higher.", done: false },
       { id: "explain", prompt: "Explain: Why did lowering the mass raise both the speed and the jump?", done: false },
-      { id: "challenge", prompt: "Challenge: Clear the wall as Hopper with gravity <= 5.7 m/s² and hopper.mass <= 1.2, reaching top speed >= 4.8 by tuning engine and mass.", done: false }
+      { id: "challenge", prompt: "Challenge: Clear the wall as Hopper with antigravity >= 4.1 (felt gravity <= 5.7 m/s²) and hopper.mass <= 1.2, reaching top speed >= 4.8 by tuning engine and mass.", done: false }
     ],
     hints: [
       "Mission Coach gives starter values; edit the numbers to reach the target.",
       "Hopper needs less mass and more horizontal speed than the default suit.",
-      "Low Emerald gems unlock after gravity is tuned; high ridge gems need the full Hopper build."
+      "Low Emerald gems unlock after antigravity is tuned; high ridge gems need the full Hopper build."
     ],
     scaffold: {
       mode: "fill-values",
-      template: "use_hopper()\ngravity = {gravity}\nhopper.mass = {mass}\nhopper.engine = {engine}\nplayer.jump_power = {jump_power}",
+      template: "use_hopper()\nantigravity = {gravity}\nhopper.mass = {mass}\nhopper.engine = {engine}\nplayer.jump_power = {jump_power}",
       slots: [
-        { id: "gravity", label: "gravity (m/s²)", value: "4.9", hint: "Gravity in m/s² (Earth is 9.8). Less gravity lets Hopper hang longer and jump higher." },
+        { id: "gravity", label: "antigravity (m/s²)", value: "4.9", hint: "Antigravity in m/s². Earth's gravity is a fixed 9.8 — more antigravity pushes back against it, so Hopper hangs longer and jumps higher." },
         { id: "mass", label: "mass", value: "1.2", hint: "Less mass means the SAME engine and jump push Hopper faster and higher (a = F / m)." },
         { id: "engine", label: "engine", value: "6", hint: "Top speed = engine force ÷ mass. Raise the force or drop the mass to go faster." },
         { id: "jump_power", label: "jump", value: "18", hint: "Jump height = jump force ÷ mass. A lighter Hopper jumps higher for the same force." }
       ],
-      explain: "Activate Hopper, then raise its Agility past 30. Agility climbs when you lower mass or gravity, or raise engine force or jump force — there's no single right answer, just get the number over 30 (watch it print in the shell).",
+      explain: "Activate Hopper, then raise its Agility past 30. Agility climbs when you lower mass or add antigravity, or raise engine force or jump force — there's no single right answer, just get the number over 30 (watch it print in the shell).",
       parentPrompt: "When you lowered the mass, what happened to the speed and the jump?",
       codeIdea: "Activate Hopper, lower the mass, and raise the engine and jump force.",
       physicsIdea: "Newton's 2nd law: acceleration = force ÷ mass. Same engine + less mass = more speed and a higher jump.",
@@ -63,7 +63,7 @@ const PlatformerMissions = [
     prediction: {
       question: "Which change will help Hopper reach the high Emerald gems?",
       options: [
-        { id: "lighter-longer", label: "Lower gravity and lighter Hopper", feedback: "Good prediction. Less pull and less mass make the jump arc easier to stretch.", correct: true },
+        { id: "lighter-longer", label: "More antigravity and lighter Hopper", feedback: "Good prediction. Pushing back against gravity and less mass make the jump arc easier to stretch.", correct: true },
         { id: "heavier", label: "Make Hopper heavier", feedback: "A heavier Hopper is harder to lift, so the arc usually gets shorter." },
         { id: "music", label: "Change the music", feedback: "Music changes the mood, but the physics numbers change the jump." }
       ]
@@ -79,8 +79,8 @@ const PlatformerMissions = [
       {
         id: "earth-emerald-gates",
         label: "Agility 30+ reached",
-        success: "Agility cleared 30 — every Emerald gem is unlocked. Any mix of mass, gravity, engine, and jump that gets there works.",
-        waiting: "Agility is still under 30. Lower mass/gravity or raise engine/jump — the shell prints your current Agility after each line.",
+        success: "Agility cleared 30 — every Emerald gem is unlocked. Any mix of mass, antigravity, engine, and jump that gets there works.",
+        waiting: "Agility is still under 30. Lower mass / add antigravity or raise engine/jump — the shell prints your current Agility after each line.",
         check: (game) => typeof game.getLockedRequiredCollectibleCount === 'function' && game.getLockedRequiredCollectibleCount() === 0
       }
     ],
@@ -332,7 +332,7 @@ const PlatformerMissions = [
     concept: "Magnetic poles attract or repel based on polarity.",
     beginnerConcept: "Events let code wait for a moment, then react automatically.",
     codingConcept: "Event hooks (When)",
-    starterCode: "use_hopper()\nwhen hopper.rocket_on: gravity = 1.6\nwhen player.touching('magnet'): hopper.pole = 'south'",
+    starterCode: "use_hopper()\nwhen hopper.rocket_on: antigravity = 0.8\nwhen player.touching('magnet'): hopper.pole = 'south'",
     objective: "Combine rocket and touching event rules to collect Magenta Flux gems and cross the magnetic field gap.",
     steps: [
       { id: "observe", prompt: "Observe: Falling into the electric field instantly resets you.", done: false },
@@ -349,9 +349,9 @@ const PlatformerMissions = [
     ],
     scaffold: {
       mode: "assemble-events",
-      template: "use_hopper()\nwhen hopper.rocket_on: gravity = {gravity}\nwhen player.touching('magnet'): hopper.pole = '{pole}'",
+      template: "use_hopper()\nwhen hopper.rocket_on: antigravity = {gravity}\nwhen player.touching('magnet'): hopper.pole = '{pole}'",
       slots: [
-        { id: "gravity", label: "gravity (m/s²)", value: "1.6", hint: "Gravity in m/s² (Earth is 9.8). Low gravity helps Hopper float while the rocket is on." },
+        { id: "gravity", label: "antigravity (m/s²)", value: "0.8", hint: "Mag-Net's gravity is fixed and tiny. Antigravity cancels the last bit so Hopper hangs perfectly still while the rocket is on." },
         { id: "pole", label: "pole", value: "south", hint: "Changing pole changes how magnets push or pull." }
       ],
       explain: "Activate Hopper first; the event rules wait for rocket or magnet moments, then change physics.",
@@ -372,7 +372,7 @@ const PlatformerMissions = [
       {
         id: "magnet-rocket-event",
         label: "Rocket event assembled",
-        success: "The rocket event can change gravity during boost moments.",
+        success: "The rocket event can change antigravity during boost moments.",
         waiting: "Add a when hopper.rocket_on rule.",
         check: (game) => typeof game.hasRocketEventRule === 'function' && game.hasRocketEventRule()
       },

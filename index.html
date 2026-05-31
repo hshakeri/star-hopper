@@ -6,7 +6,7 @@
   <title>Star Hopper - Physics & Coding Game</title>
   <meta name="description" content="A 2D platformer physics sandbox game for kids to learn programming constructs (loops, conditionals, assignments) and physics forces (gravity, friction, magnetism) by coding the level rules in real-time.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%2338bdf8'/%3E%3Cstop offset='100%25' stop-color='%23a855f7'/%3E%3C/linearGradient%3E%3Cfilter id='glow'%3E%3CfeGaussianBlur stdDeviation='1' result='blur'/%3E%3CfeMerge%3E%3CfeMergeNode in='blur'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='%230f172a'/%3E%3Cpath d='M 6,26 Q 16,22 18,14' stroke='%23e11d48' stroke-width='2' stroke-linecap='round' fill='none' opacity='0.8'/%3E%3Cpath d='M 8,24 Q 14,20 16,16' stroke='%23fb923c' stroke-width='1.5' stroke-linecap='round' fill='none' opacity='0.8'/%3E%3Cpath d='M 22,6 L 24,11 L 29,12 L 25,16 L 26,21 L 22,18 L 18,21 L 19,16 L 15,12 L 20,11 Z' fill='url(%23grad)' filter='url(%23glow)'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="style.css?v=coach-v16">
+  <link rel="stylesheet" href="style.css?v=coach-v17">
 </head>
 <body>
 
@@ -250,11 +250,8 @@
             <!-- Tab Pane: Physics -->
             <div id="pane-physics" class="code-pane">
               <div class="deck-group-header">Environment</div>
-              <div class="code-card category-math" data-code="gravity = 7.4" title="Gravity in m/s² (Earth is 9.8). Edit lower when a wall needs longer hang time.">
-                <span class="variable">gravity</span> = <span class="keyword">7.4</span>
-              </div>
-              <div class="code-card category-math" data-code="gravity = 26" title="Heavy gravity in m/s² (about 2.5x Earth).">
-                <span class="variable">gravity</span> = <span class="keyword">26</span>
+              <div class="code-card category-math" data-code="antigravity = 3" title="Antigravity in m/s². A planet's gravity is fixed — push back against it (Earth is 9.8) for longer hang time.">
+                <span class="variable">antigravity</span> = <span class="keyword">3</span>
               </div>
               <div class="code-card category-math" data-code="friction = 0.5" title="Slick ice sliding physics.">
                 <span class="variable">friction</span> = <span class="keyword">0.5</span>
@@ -309,14 +306,11 @@
               </div>
 
               <!-- Event Hook Triggers -->
-              <div class="code-card category-if" data-code="when player.lands: gravity = 9.8" title="Snap back to Earth gravity (9.8 m/s²) on landing.">
-                <span class="keyword">when</span> <span class="variable">player.lands</span>: gravity = <span class="keyword">9.8</span>
+              <div class="code-card category-if" data-code="when player.lands: antigravity = 0" title="Cancel antigravity on landing so you feel the planet's full gravity again.">
+                <span class="keyword">when</span> <span class="variable">player.lands</span>: antigravity = <span class="keyword">0</span>
               </div>
               <div class="code-card category-if" data-code="when player.touching('ice'): player.say('Woohoo!')" title="Active player says something on ice block contact.">
                 <span class="keyword">when</span> <span class="variable">player.touching</span>(<span class="string">'ice'</span>): player.<span class="function">say</span>(<span class="string">'Woohoo!'</span>)
-              </div>
-              <div class="code-card category-if" data-code="when hopper.rocket_on: gravity = 41" title="Pile on heavy gravity (m/s²) while the rocket is held.">
-                <span class="keyword">when</span> <span class="variable">hopper.rocket_on</span>: gravity = <span class="keyword">41</span>
               </div>
               <div class="code-card category-if" data-code="when hit_enemy: bounce_up()" title="Stomping an alien fires a massive bounce impulse.">
                 <span class="keyword">when</span> <span class="variable">hit_enemy</span>: <span class="function">bounce_up</span>()
@@ -669,16 +663,16 @@
   </div>
 
   <!-- Import JS Modules sequentially -->
-  <script src="missions.js?v=coach-v16"></script>
-  <script src="planets.js?v=coach-v16"></script>
-  <script src="audio.js?v=coach-v16"></script>
-  <script src="interpreter.js?v=coach-v16"></script>
-  <script src="entities.js?v=coach-v16"></script>
-  <script src="physics.js?v=coach-v16"></script>
-  <script src="ui.js?v=coach-v16"></script>
-  <script src="game.js?v=coach-v16"></script>
+  <script src="missions.js?v=coach-v17"></script>
+  <script src="planets.js?v=coach-v17"></script>
+  <script src="audio.js?v=coach-v17"></script>
+  <script src="interpreter.js?v=coach-v17"></script>
+  <script src="entities.js?v=coach-v17"></script>
+  <script src="physics.js?v=coach-v17"></script>
+  <script src="ui.js?v=coach-v17"></script>
+  <script src="game.js?v=coach-v17"></script>
   <script src="touch-controls.js"></script>
-  <script src="notebook.js?v=coach-v16"></script>
+  <script src="notebook.js?v=coach-v17"></script>
   <script src="navigator-classic.js"></script>
   <script src="nav-core.js"></script>
   <script src="nav-bodies.js?v=journey-flow-1"></script>
@@ -686,11 +680,11 @@
   <script src="nav-ship.js?v=journey-flow-1"></script>
   <script src="nav-transfer.js"></script>
   <script src="nav-renderer.js"></script>
-  <script src="nav-missions.js?v=coach-v16"></script>
-  <script src="navigator.js?v=coach-v16"></script>
-  <script src="github-sync.js?v=coach-v16"></script>
-  <script src="profiles.js?v=coach-v16"></script>
-  <script src="guided-mode.js?v=coach-v16"></script>
+  <script src="nav-missions.js?v=coach-v17"></script>
+  <script src="navigator.js?v=coach-v17"></script>
+  <script src="github-sync.js?v=coach-v17"></script>
+  <script src="profiles.js?v=coach-v17"></script>
+  <script src="guided-mode.js?v=coach-v17"></script>
 
   <!-- Space Scientist Printable Certificate (Only displayed on print trigger) -->
   <div id="print-area-certificate">
@@ -727,13 +721,13 @@
     <div class="print-section-title">💬 The 15-Minute Coaching Routine</div>
     <div class="print-box">
       <p><strong>1. Observe:</strong> "What is blocking Rover/Hopper right now? Why can't they jump that high?"</p>
-      <p><strong>2. Predict:</strong> "If we cut gravity in half, what do you think will happen to our jumps?"</p>
-      <p><strong>3. Code:</strong> "Type the command. Did you spell 'gravity' right?"</p>
+      <p><strong>2. Predict:</strong> "A planet's gravity is fixed. If we add antigravity to push back against it, what do you think will happen to our jumps?"</p>
+      <p><strong>3. Code:</strong> "Type the command. Did you spell 'antigravity' right?"</p>
       <p><strong>4. Reflect:</strong> "Look at the telemetry. Did the jump match your prediction?"</p>
     </div>
     <div class="print-section-title">💻 Try These KidCode Commands Together</div>
     <ul class="print-list">
-      <li><code>gravity = 2.5</code> (Float like an astronaut; Earth is 9.8 m/s²)</li>
+      <li><code>antigravity = 6</code> (Push back against gravity to float; Earth's gravity is a fixed 9.8 m/s²)</li>
       <li><code>friction = 10</code> (Immediate stops on slippery ice)</li>
       <li><code>repeat 3: spawn_spring()</code> (Bounce high across canyons)</li>
     </ul>
@@ -747,7 +741,7 @@
     
     <div class="print-section-title">⏱️ 45-Minute Lab Agenda</div>
     <table class="print-table">
-      <tr><td><strong>00m - 10m</strong></td><td><strong>Intro:</strong> Define gravity, friction, potential/kinetic energy. Demo writing <code>gravity = 3.3</code> (m/s²; Earth is 9.8).</td></tr>
+      <tr><td><strong>00m - 10m</strong></td><td><strong>Intro:</strong> Define gravity, friction, potential/kinetic energy. Demo writing <code>antigravity = 5</code> (push back against the planet's fixed gravity; Earth is 9.8 m/s²).</td></tr>
       <tr><td><strong>10m - 30m</strong></td><td><strong>Exploration:</strong> Students complete Earth, Moon, Jupiter, and Glacies levels, recording reflections.</td></tr>
       <tr><td><strong>30m - 40m</strong></td><td><strong>Orbit Challenge:</strong> Navigate a circular trajectory around Earth using thrust vectors.</td></tr>
       <tr><td><strong>40m - 45m</strong></td><td><strong>Wrap-up:</strong> Students export logs, print certificates, and submit reflections.</td></tr>

@@ -882,7 +882,7 @@ const runtimeContext = {
 class AutocompleteEngine {
   constructor() {
     this.choices = [
-      "gravity", "friction", "jump_power", "scale",
+      "antigravity", "gravity", "friction", "jump_power", "scale",
       "player.jump_power", "player.mass", "player.speed", "player.say()", "player.touching()",
       "star.mass",
       "hopper.mass", "hopper.rocket_power", "hopper.spikes", "hopper.pole",
