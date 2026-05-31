@@ -198,9 +198,33 @@ function addNavigatorConsole(code) {
 }
 
 /**
+ * Prints a kid-friendly tutorial for the four orbital commands into the
+ * navigator console. Triggered by typing help / commands / tutorial / ?.
+ */
+function showNavigatorHelp() {
+  const log = (t, c) => { if (window.Nav && window.Nav.logConsole) window.Nav.logConsole(t, c || "info"); };
+  log("📖 NAVIGATOR FLIGHT-DECK GUIDE", "success");
+  log("Type these one per line (or join with ; ) then press Enter.", "info");
+  log("• point_at('moon') — aim the nose at a body (earth, moon, jupiter, glacies, magnet).", "info");
+  log("• thrust(power, seconds) — fire the engine. Bigger power or longer time = more speed.", "info");
+  log("    e.g. thrust(5, 2) burns at power 5 for 2 seconds.", "info");
+  log("• wait(seconds) — coast with engines off and let gravity curve your path.", "info");
+  log("• warp(factor) — speed up time so long coasts finish faster (e.g. warp(5)).", "info");
+  log("Flight idea: point_at(target) → thrust to build speed → wait to coast in.", "info");
+  log("Tip: if a plan overshoots or falls short, tune the thrust numbers — that's the engineering!", "success");
+}
+
+/**
  * Parses and queues commands when clicking Enter or running autopilot.
  */
 function runNavigatorCommands(commandString) {
+  // Intercept tutorial requests before they hit the flight solver.
+  if (/^\s*(help|commands|tutorial|\?)\s*\(?\s*\)?\s*$/i.test(commandString || "")) {
+    showNavigatorHelp();
+    const inputEl = document.getElementById("navigator-console-input");
+    if (inputEl) inputEl.value = "";
+    return;
+  }
   if (window.navigatorMode === 'classic') {
     if (typeof runNavigatorCommandsClassic === 'function') {
       runNavigatorCommandsClassic(commandString);

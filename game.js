@@ -393,6 +393,7 @@ class StarHopperGame {
   loadPlanet(index, preserveTunings = false) {
     this.currentPlanetIndex = index;
     this.currentPlanet = PLANETS[index];
+    this._brakeHintShown = false; // re-arm the Glacies "raise friction to brake" hint per level
 
     // On a same-level retry, keep the player's typed code tunings so progress
     // made one task at a time survives death/restart. Only the physical level
@@ -934,6 +935,16 @@ class StarHopperGame {
     if (this.player.x > 750 && this.player.x < 850) {
       if (this.currentPlanetIndex === 3) this.triggerTutorialDialogue("slippery");
       else if (this.currentPlanetIndex === 4) this.triggerTutorialDialogue("poles");
+    }
+
+    // Glacies brake hint: fires the first time the cadet is genuinely sliding fast
+    // on the ice without having raised friction or enabled spikes — i.e. exactly
+    // when "I can't stop!" is felt. Names the fix, then stays quiet (shown once).
+    if (this.currentPlanetIndex === 3 && !this._brakeHintShown &&
+        this.player.onGround && Math.abs(this.player.vx) > 2.2 &&
+        Compiler.env.friction === null && !(this.hopper && this.hopper.spikes)) {
+      this._brakeHintShown = true;
+      showDialogue("🧊 Sliding and can't brake? The ice has almost no friction. Type friction = 8 (or hopper.spikes = 1) in Mission Coach to grip and stop.", "slippery");
     }
   }
 
