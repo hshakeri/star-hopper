@@ -901,10 +901,37 @@ function setupUIBindings(game) {
 
   const input = document.getElementById("console-input");
   const suggestBox = document.getElementById("autocomplete-box");
-  
+
+  // Tab-completion cycle state: tabLast is the last value we wrote programmatically,
+  // so a repeated Tab keeps cycling the same base prefix while any real typing resets.
+  let tabBase = null, tabIdx = -1, tabLast = null;
+
   // 1. Code editor input submission
   if (input) {
     input.addEventListener("keydown", (e) => {
+      // Tab completes the word under the caret; pressing Tab again cycles matches.
+      if (e.key === "Tab") {
+        e.preventDefault();
+        const text = input.value;
+        const m = text.match(/[\w\.]+$/);
+        const cur = m ? m[0] : "";
+        if (!cur) return;
+        const continuing = (text === tabLast && tabBase !== null);
+        const base = continuing ? tabBase : cur;
+        const sugg = Compiler.autocomplete.suggest(base);
+        if (!sugg.length) return;
+        tabBase = base;
+        tabIdx = continuing ? (tabIdx + 1) % sugg.length : 0;
+        const pick = sugg[tabIdx];
+        const idx = text.lastIndexOf(cur);
+        input.value = text.slice(0, idx) + pick;
+        tabLast = input.value;
+        autoGrowConsoleInput(input);
+        if (suggestBox) suggestBox.style.display = "none";
+        try { input.setSelectionRange(input.value.length, input.value.length); } catch (_) {}
+        return;
+      }
+
       // Shell-style history: Up/Down recall previous commands, but only at the
       // text edges so they still move the caret within multi-line code.
       if (e.key === "ArrowUp" && consoleCursorOnFirstLine(input)) {
@@ -962,7 +989,11 @@ function setupUIBindings(game) {
     });
 
     // Grow the console textarea to fit multi-line code as it's typed/pasted.
-    input.addEventListener("input", () => autoGrowConsoleInput(input));
+    // Real typing also breaks any active Tab-completion cycle.
+    input.addEventListener("input", () => {
+      autoGrowConsoleInput(input);
+      if (input.value !== tabLast) { tabBase = null; tabIdx = -1; }
+    });
 
     // The textarea is only the bottom strip of the shell box, so clicking the
     // prompt, the banner, or the padding should still focus it. (Clicks inside the

@@ -858,6 +858,7 @@ class StarHopperGame {
           this.player.vy = -6;
           this.player.hitEnemyThisFrame = true;
           SFX.playStomp();
+          this.player.say("STOMP!", { shout: true, timer: 70 });
           Particles.spawnBurst(enemy.x + enemy.w/2, enemy.y + enemy.h/2, '#ef4444', 12, 3, 3, 'glow');
           this.enemies = this.enemies.filter(e => e !== enemy);
         } else {
@@ -886,6 +887,10 @@ class StarHopperGame {
           SFX.playCoin();
           const gem = obj.gem || this.getGemConfig();
           Particles.spawnBurst(obj.x + 8, obj.y + 8, gem.color, 10, 2, 2.5, 'glow');
+          const collectedAllSamples = obj.requiredCollectible && this.requiredCollectiblesTotal > 0 &&
+            this.requiredCollectiblesCollected >= this.requiredCollectiblesTotal;
+          this.player.say(collectedAllSamples ? "POWER UP!" : "GET!",
+            { emoji: collectedAllSamples ? "⚡" : "✦", shout: true, timer: collectedAllSamples ? 110 : 70 });
           if (obj.requiredCollectible) {
             ui_log_output(`◆ ${gem.name} gem collected: ${this.requiredCollectiblesCollected}/${this.requiredCollectiblesTotal}`, "success");
             updateMissionList(this);

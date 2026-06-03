@@ -2718,25 +2718,21 @@ html {
   display: none;
 }
 
-/* Bottom Code Deck Panel */
+/* Command Dictionary (relocated below the shell; opens as a non-resizing popover) */
 #bottom-code-deck {
-  height: var(--code-deck-height);
-  min-height: 90px;
-  max-height: 260px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  order: 5;            /* float below the bash console in the left game column */
+  flex: 0 0 auto;
+  height: auto;
+  min-height: 0;
+  overflow: visible;   /* let the open popover escape this slim toggle bar */
 }
 
-#bottom-code-deck:has(.more-command-deck:not([open])) {
-  height: 42px;
-  min-height: 42px;
+.console-area.bash-shell {
+  order: 4;            /* shell sits directly above the dictionary toggle */
 }
 
 .more-command-deck {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+  display: block;
 }
 
 .more-command-deck summary {
@@ -2747,17 +2743,40 @@ html {
   padding: 10px 15px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  list-style: none;
 }
 
-.more-command-deck[open] summary {
-  border-bottom: 1px solid var(--panel-border);
-  color: var(--active-neon);
+.more-command-deck summary::-webkit-details-marker { display: none; }
+.more-command-deck summary::before { content: "▸ "; }
+.more-command-deck[open] summary { color: var(--active-neon); }
+.more-command-deck[open] summary::before { content: "▾ "; }
+
+/* The dictionary content floats above the column as an overlay, so opening it
+   never shrinks the game canvas or the shell (zero layout shift). */
+.dict-popover { display: none; }
+
+.more-command-deck[open] .dict-popover {
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 46px;        /* sit just above the slim toggle bar */
+  max-height: min(52vh, 360px);
+  z-index: 85;
+  background: rgba(15, 23, 42, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
 }
 
 #bottom-code-deck .code-deck-tabs {
   border-top: none;
-  border-top-left-radius: 15px;
-  border-top-right-radius: 15px;
+  border-top-left-radius: 14px;
+  border-top-right-radius: 14px;
 }
 
 #bottom-code-deck .code-deck {
@@ -2770,6 +2789,42 @@ html {
   flex-wrap: wrap;
   gap: 8px;
   align-content: flex-start;
+}
+
+/* Responsive: fill large monitors, shrink gracefully on small ones */
+@media (min-width: 1700px) {
+  #app-container { max-width: 1760px; max-height: 1080px; }
+}
+
+@media (min-width: 2200px) {
+  :root { --game-pane-width: 68%; }
+  #app-container { max-width: 2040px; max-height: 1320px; }
+}
+
+@media (max-width: 1180px) {
+  :root { --game-pane-width: 60%; }
+  #game-section { min-width: 440px; }
+}
+
+@media (max-width: 900px) {
+  #app-container {
+    flex-direction: column;
+    height: auto;
+    max-height: none;
+    min-height: 0;
+    padding: 12px;
+  }
+  #game-section { flex: 0 0 auto; width: 100%; min-width: 0; height: auto; }
+  #canvas-wrapper { min-height: 300px; }
+  #terminal-section { width: 100%; height: auto; min-height: 360px; }
+  #main-pane-resizer { display: none; }
+  /* Stacked layout has no fixed-height column to overlay, so dock the popover inline. */
+  .more-command-deck[open] .dict-popover {
+    position: static;
+    bottom: auto;
+    max-height: 300px;
+    box-shadow: none;
+  }
 }
 
 /* Print Overrides styles */

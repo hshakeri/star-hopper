@@ -126,9 +126,15 @@ class Player {
     this.facing = 1;
   }
 
-  say(text) {
+  // Retro 80s-style speech balloon. opts: { emoji, shout, timer }
+  say(text, opts) {
+    opts = opts || {};
     this.sayText = text;
-    this.sayTimer = 150; // 2.5 seconds (at 60fps)
+    this.sayEmoji = opts.emoji || "";
+    this.sayShout = !!opts.shout;       // big pixel-font arcade shout (e.g. "GET!")
+    this.sayTimer = opts.timer || 150;  // ~2.5s at 60fps
+    this.sayReveal = 0;                 // chars revealed so far (typewriter effect)
+    this.sayPrevLen = 0;
   }
 
   stay() {
@@ -599,45 +605,59 @@ class Player {
 
     ctx.restore();
 
-    // Draw speech bubble if active
+    // Draw retro 80s-arcade speech balloon (cream "message window" with a thick
+    // character-colored frame, blocky pointer, and a typewriter character reveal).
     if (this.sayTimer > 0 && this.sayText) {
       this.sayTimer--;
-      
+      if (this.sayReveal === undefined) this.sayReveal = this.sayText.length;
+      this.sayReveal = Math.min(this.sayText.length, (this.sayReveal || 0) + 0.55);
+      const shownCount = Math.ceil(this.sayReveal);
+      // Soft "blip" as each new glyph appears, classic JRPG textbox feel.
+      if (shownCount > (this.sayPrevLen || 0) && typeof SFX !== 'undefined' && SFX.playType) {
+        if (Math.random() < 0.6) SFX.playType();
+      }
+      this.sayPrevLen = shownCount;
+
+      const accent = (this.charType === 'star') ? '#38bdf8' : '#f97316';
+      const shout = this.sayShout;
+      const prefix = this.sayEmoji ? this.sayEmoji + ' ' : '';
+      const fullLabel = prefix + this.sayText;
+      const shownLabel = prefix + this.sayText.slice(0, shownCount);
+
       ctx.save();
-      ctx.shadowBlur = 4;
-      ctx.shadowColor = 'rgba(0,0,0,0.3)';
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)'; // Dark glass
-      ctx.strokeStyle = (this.charType === 'star') ? '#38bdf8' : '#f97316';
-      ctx.lineWidth = 1.5;
-      
-      const text = this.sayText;
-      ctx.font = '11px sans-serif';
-      const textWidth = ctx.measureText(text).width;
-      const bubbleW = textWidth + 16;
-      const bubbleH = 20;
-      const bx = this.x + this.w/2 - bubbleW/2 - cameraX;
-      const by = this.y - bubbleH - 12;
-      
-      // Draw rounded bubble rect
-      ctx.beginPath();
-      ctx.roundRect(bx, by, bubbleW, bubbleH, 4);
-      ctx.fill();
-      ctx.stroke();
-      
-      // Draw pointing bubble triangle
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-      ctx.beginPath();
-      ctx.moveTo(this.x + this.w/2 - cameraX - 4, by + bubbleH);
-      ctx.lineTo(this.x + this.w/2 - cameraX + 4, by + bubbleH);
-      ctx.lineTo(this.x + this.w/2 - cameraX, by + bubbleH + 5);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-      
-      // Draw text
-      ctx.fillStyle = '#ffffff';
+      ctx.font = shout ? "13px 'Press Start 2P', monospace" : "bold 12px 'Outfit', sans-serif";
+      // Measure with the FULL text so the window keeps a steady size while typing.
+      const textWidth = ctx.measureText(fullLabel).width;
+      const padX = shout ? 12 : 10;
+      const bubbleW = Math.min(232, textWidth + padX * 2);
+      const bubbleH = shout ? 28 : 23;
+      const cx = this.x + this.w / 2 - cameraX;
+      const bx = cx - bubbleW / 2;
+      const by = this.y - bubbleH - 16;
+
+      ctx.shadowBlur = 0;
+      // 1. Outer character-colored frame (the retro "window" border).
+      ctx.fillStyle = accent;
+      ctx.beginPath(); ctx.roundRect(bx - 3, by - 3, bubbleW + 6, bubbleH + 6, 6); ctx.fill();
+      // 2. Thin dark keyline for that crisp pixel-window edge.
+      ctx.fillStyle = '#0b1022';
+      ctx.beginPath(); ctx.roundRect(bx - 1.5, by - 1.5, bubbleW + 3, bubbleH + 3, 5); ctx.fill();
+      // 3. Cream parchment panel.
+      ctx.fillStyle = '#fbf3da';
+      ctx.beginPath(); ctx.roundRect(bx, by, bubbleW, bubbleH, 4); ctx.fill();
+
+      // 4. Blocky stepped pointer (pixel tail) under the window.
+      ctx.fillStyle = accent;
+      ctx.fillRect(cx - 6, by + bubbleH - 1, 12, 4);
+      ctx.fillStyle = '#fbf3da';
+      ctx.fillRect(cx - 4, by + bubbleH - 1, 8, 3);
+      ctx.fillRect(cx - 2, by + bubbleH + 2, 4, 3);
+
+      // 5. Text (dark navy ink on cream).
+      ctx.fillStyle = '#15233e';
       ctx.textAlign = 'center';
-      ctx.fillText(text, this.x + this.w/2 - cameraX, by + 14);
+      ctx.textBaseline = 'middle';
+      ctx.fillText(shownLabel, cx, by + bubbleH / 2 + 1);
       ctx.restore();
     }
   }
