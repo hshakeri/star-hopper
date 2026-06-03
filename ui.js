@@ -587,6 +587,63 @@ function isSlotAlreadySet(game, varName, target) {
   return Math.abs(live - target) < 0.05;
 }
 
+// Live value + cap text for a tunable command — powers the Tab-completion hints and
+// the Command Dictionary cards so they show the CURRENT value and the material cap.
+function getTunableInfo(game, cmd) {
+  if (!game) return null;
+  const G = 9.8 / 0.6;
+  const r1 = (n) => Math.round(n * 10) / 10;
+  const defs = {
+    "antigravity":         { live: () => (Compiler.env.antigravity || 0) * G, key: 'antigravity' },
+    "hopper.mass":         { live: () => game.hopperMass, key: 'mass' },
+    "hopper.engine":       { live: () => game.getEngineForce(), key: 'engine' },
+    "hopper.jump_power":   { live: () => (game.player ? game.player.jumpPower : 0), key: 'jump' },
+    "player.jump_power":   { live: () => (game.player ? game.player.jumpPower : 0), key: 'jump' },
+    "jump_power":          { live: () => (game.player ? game.player.jumpPower : 0), key: 'jump' },
+    "hopper.rocket_power": { live: () => (game.player && Number.isFinite(game.player.rocketPower) ? game.player.rocketPower : 0), key: 'rocket' },
+    "player.speed":        { live: () => game.getCurrentSpeed(), key: null },
+    "speed":               { live: () => game.getCurrentSpeed(), key: null },
+    "friction":            { live: () => game.getCurrentFriction(), key: null },
+    "gravity":             { live: () => game.getCurrentGravity() * G, key: null }
+  };
+  const d = defs[cmd];
+  if (!d) return null;
+  let cur = null;
+  try { const v = d.live(); cur = Number.isFinite(v) ? r1(v) : null; } catch (e) { cur = null; }
+  let capText = "";
+  if (d.key && typeof game.getUpgradeCap === 'function' && typeof HOPPER_UPGRADES !== 'undefined' && HOPPER_UPGRADES[d.key]) {
+    const cap = r1(game.getUpgradeCap(d.key));
+    capText = HOPPER_UPGRADES[d.key].isFloor ? `min ${cap}` : `max ${cap}`;
+  }
+  return { cur, capText };
+}
+
+// Refresh the Physics Constants cards to show each tuner's CURRENT value + cap
+// (instead of a fixed default), so clicking one loads where you actually are.
+function refreshDictionaryCards(game) {
+  if (!game) return;
+  document.querySelectorAll('#pane-physics .code-card').forEach(card => {
+    const code = card.getAttribute('data-code') || "";
+    const m = code.match(/^([\w.]+)\s*=\s*-?[\d.]+\s*$/);
+    if (!m) return;
+    const varName = m[1];
+    if (varName === 'friction') return; // keep the slick/brake friction presets distinct
+    const info = getTunableInfo(game, varName);
+    if (!info || info.cur === null) return;
+    card.setAttribute('data-code', `${varName} = ${info.cur}`);
+    const kw = card.querySelector('.keyword');
+    if (kw) kw.textContent = info.cur;
+    let capEl = card.querySelector('.card-cap');
+    if (info.capText) {
+      if (!capEl) { capEl = document.createElement('span'); capEl.className = 'card-cap'; card.appendChild(capEl); }
+      capEl.textContent = ` ${info.capText}`;
+    } else if (capEl) {
+      capEl.remove();
+    }
+    card.title = `Now ${varName} = ${info.cur}${info.capText ? ' · ' + info.capText : ''}. Click to load it into the shell.`;
+  });
+}
+
 // Mission Coach scaffold — friendly and ONE assignment at a time. The cadet picks
 // the prediction first, then tunes a single number, sees it run, and moves on. An
 // assignment already satisfied in the live game flashes "already set" and is skipped.
@@ -1021,7 +1078,21 @@ function setupUIBindings(game) {
     matches.forEach((s, i) => {
       const opt = document.createElement("div");
       opt.className = "autocomplete-item" + (i === activeIdx ? " active" : "");
-      opt.textContent = s;
+      const nameEl = document.createElement("span");
+      nameEl.className = "ac-name";
+      nameEl.textContent = s;
+      opt.appendChild(nameEl);
+      // Show the live value + material cap for tunable commands (hopper.mass, etc).
+      const info = (typeof getTunableInfo === "function") ? getTunableInfo(game, s) : null;
+      if (info && (info.cur !== null || info.capText)) {
+        const hintEl = document.createElement("span");
+        hintEl.className = "ac-hint";
+        const parts = [];
+        if (info.cur !== null) parts.push(`now ${info.cur}`);
+        if (info.capText) parts.push(info.capText);
+        hintEl.textContent = parts.join(" · ");
+        opt.appendChild(hintEl);
+      }
       opt.addEventListener("mousedown", (ev) => {
         const text = input.value;
         const idx = cur ? text.lastIndexOf(cur) : -1;
@@ -1178,6 +1249,16 @@ function setupUIBindings(game) {
   if (closeBtn) {
     closeBtn.addEventListener("click", closeDialogue);
   }
+
+  // 3b. Mission Coach bubble — click the header to collapse / inflate.
+  const coachToggle = document.getElementById("coach-bubble-toggle");
+  const coachBubble = document.getElementById("pedagogical-mission-panel");
+  if (coachToggle && coachBubble) {
+    coachToggle.addEventListener("click", () => {
+      const collapsed = coachBubble.classList.toggle("collapsed");
+      coachToggle.setAttribute("aria-expanded", String(!collapsed));
+    });
+  }
   
   // 4. Mute toggle
   const muteBtn = document.getElementById("mute-btn");
@@ -1197,12 +1278,19 @@ function setupUIBindings(game) {
   const panePhysics = document.getElementById("pane-physics");
   const paneRules = document.getElementById("pane-rules");
 
+  // Refresh the Physics cards to current values whenever the dictionary opens.
+  const dictDeck = document.getElementById("more-command-deck");
+  if (dictDeck) {
+    dictDeck.addEventListener("toggle", () => { if (dictDeck.open) refreshDictionaryCards(game); });
+  }
+
   if (tabPhysics && tabRules && panePhysics && paneRules) {
     tabPhysics.addEventListener("click", () => {
       tabPhysics.classList.add("active");
       tabRules.classList.remove("active");
       panePhysics.classList.remove("hidden");
       paneRules.classList.add("hidden");
+      refreshDictionaryCards(game);
       SFX.playType();
     });
 
@@ -1304,7 +1392,7 @@ function updatePedagogicalGuide(game) {
     return;
   }
 
-  panel.style.display = "block";
+  panel.style.display = "flex"; // .coach-bubble is a flex column (head + scrolling body)
   const titleEl = document.getElementById("pedagogical-mission-title");
   if (titleEl) titleEl.textContent = activeMission.fullMission.title;
   const summaryEl = document.getElementById("mission-coach-summary");

@@ -399,6 +399,27 @@ window.Nav = window.Nav || {};
 
       ctx.restore();
 
+      // Spacecraft speech balloon (e.g. "Cruising now!" when it captures into orbit).
+      if (Nav.ship.sayTimer && Nav.ship.sayTimer > 0 && Nav.ship.sayText) {
+        Nav.ship.sayTimer--;
+        ctx.save();
+        ctx.font = "bold 11px 'Outfit', sans-serif";
+        const text = Nav.ship.sayText;
+        const tw = ctx.measureText(text).width;
+        const bw = tw + 18, bh = 22;
+        const bx = sx - bw / 2, by = sy - bh - 18;
+        ctx.fillStyle = "#f97316"; // orange frame (navigator accent)
+        ctx.beginPath(); ctx.roundRect(bx - 3, by - 3, bw + 6, bh + 6, 6); ctx.fill();
+        ctx.fillStyle = "#fbf3da";
+        ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 4); ctx.fill();
+        ctx.fillStyle = "#f97316"; ctx.fillRect(sx - 5, by + bh - 1, 10, 4);
+        ctx.fillStyle = "#fbf3da"; ctx.fillRect(sx - 3, by + bh - 1, 6, 3);
+        ctx.fillStyle = "#15233e";
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText(text, sx, by + bh / 2 + 1);
+        ctx.restore();
+      }
+
       // 6. Draw HUD Panels on Canvas (Left Side Telemetry, Right Side Hohmann Helpers)
       // HUD Left: Telemetry
       ctx.fillStyle = "rgba(15, 23, 42, 0.78)";

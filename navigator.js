@@ -265,6 +265,9 @@ function updateNavigator(game) {
       if (activeMission && !window.Nav.orbitalMissionsCompleted.has(activeMission.id)) {
         if (activeMission.validate(window.Nav.ship, window.Nav.ship.timeElapsed)) {
           window.Nav.orbitalMissionsCompleted.add(activeMission.id);
+          // Spacecraft settles into the destination orbit — give it a happy shout.
+          window.Nav.ship.sayText = "Cruising now!";
+          window.Nav.ship.sayTimer = 220;
           window.Nav.logConsole(`MISSION ACCOMPLISHED: ${activeMission.title}!`, "success");
           renderNavigatorMissionsSolar();
           if (typeof updateCertificateState === 'function') {

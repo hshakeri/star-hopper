@@ -1469,6 +1469,16 @@ html {
   cursor: pointer;
   transition: background 0.15s;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.autocomplete-item .ac-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
 .autocomplete-item:last-child {
@@ -1480,6 +1490,19 @@ html {
   background: var(--active-neon);
   color: #000;
   font-weight: bold;
+}
+
+.autocomplete-item:hover .ac-hint,
+.autocomplete-item.active .ac-hint {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+/* Dictionary card "current cap" annotation */
+.code-card .card-cap {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-left: 2px;
 }
 
 /* Mission panel styling */
@@ -1633,6 +1656,60 @@ html {
 .coach-skip-note code { font-family: var(--font-mono); color: var(--neon-cyan); }
 .coach-skip { animation: coach-skip-pulse 0.85s ease; }
 @keyframes coach-skip-pulse { 0% { opacity: 0.4; } 30% { opacity: 1; } 100% { opacity: 0.85; } }
+
+/* Mission Coach speech bubble — collapsible overlay on the game canvas */
+.coach-bubble {
+  position: absolute;
+  top: 46px;
+  right: 12px;
+  width: min(300px, 54%);
+  max-height: calc(100% - 130px);
+  display: flex;
+  flex-direction: column;
+  background: rgba(15, 23, 42, 0.93);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 2px solid var(--neon-cyan);
+  border-radius: 14px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+  z-index: 82;
+  font-family: var(--font-kid);
+  overflow: hidden;
+}
+.coach-bubble-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 12px;
+  background: rgba(56, 189, 248, 0.16);
+  border: none;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-family: var(--font-kid);
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+.coach-bubble-title { letter-spacing: 0.3px; }
+.coach-chevron { color: var(--neon-cyan); transition: transform 0.2s ease; }
+.coach-bubble.collapsed .coach-chevron { transform: rotate(-90deg); }
+.coach-bubble-body {
+  padding: 10px 12px 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.coach-bubble.collapsed { width: auto; max-height: none; }
+.coach-bubble.collapsed .coach-bubble-body { display: none; }
+
+/* Keep the coach bubble out of the way on overlay screens / guided mode */
+#canvas-wrapper:has(#start-screen:not(.hidden)) .coach-bubble,
+#canvas-wrapper:has(#clear-screen:not(.hidden)) .coach-bubble,
+#canvas-wrapper:has(#gameover-screen:not(.hidden)) .coach-bubble,
+#canvas-wrapper:has(#guided-mode-hud:not(.hidden)) .coach-bubble {
+  display: none !important;
+}
 
 .mission-coach-summary {
   display: grid;
