@@ -5,7 +5,7 @@
 // "extreme" cap so kids can engineer further. (mass uses base/extreme as a FLOOR.)
 const HOPPER_UPGRADES = {
   engine:      { base: 8,   extreme: 20,  planet: 0, gem: "Emerald Core", part: "engine",            cmd: "hopper.engine" },
-  jump:        { base: 22,  extreme: 45,  planet: 1, gem: "Moon Quartz",  part: "jump springs",      cmd: "player.jump_power" },
+  jump:        { base: 22,  extreme: 45,  planet: 1, gem: "Moon Quartz",  part: "jump springs",      cmd: "hopper.jump_power" },
   rocket:      { base: 80,  extreme: 120, planet: 2, gem: "Amber Storm",  part: "rockets",           cmd: "hopper.rocket_power" },
   mass:        { base: 1.0, extreme: 0.4, planet: 3, gem: "Violet Ice",   part: "lightweight alloy", cmd: "hopper.mass", isFloor: true },
   antigravity: { base: 6,   extreme: 14,  planet: 4, gem: "Magenta Flux", part: "antigravity coil",  cmd: "antigravity" }
@@ -104,6 +104,36 @@ class StarHopperGame {
     const u = HOPPER_UPGRADES[key];
     if (!u) return Infinity;
     return (this.unlockedUpgrades && this.unlockedUpgrades.has(key)) ? u.extreme : u.base;
+  }
+
+  // Tells the cadet WHY a tuner clamped — "X can't go higher than N now, unless you …".
+  // Suppressed during `when`-rule execution so a rule body can't spam it every frame.
+  reportCapHit(key, requested) {
+    if (!Number.isFinite(requested)) return;
+    if (typeof Compiler !== 'undefined' && Compiler.suppressCapNotice) return;
+    const u = HOPPER_UPGRADES[key];
+    if (!u) return;
+    const cap = this.getUpgradeCap(key);
+    const exceeded = u.isFloor ? (requested < cap) : (requested > cap);
+    if (!exceeded) return;
+    const unlocked = !!(this.unlockedUpgrades && this.unlockedUpgrades.has(key));
+    const planetName = (typeof PLANETS !== 'undefined' && PLANETS[u.planet]) ? PLANETS[u.planet].name : 'its home world';
+    const limit = u.isFloor ? `go lower than ${cap}` : `go higher than ${cap}`;
+    let msg = `⚙ ${u.cmd} can't ${limit} yet — the materials would fail.`;
+    if (!unlocked) {
+      const reach = u.isFloor ? `as low as ${u.extreme}` : `up to ${u.extreme}`;
+      msg += ` Collect the ${u.gem} samples on ${planetName} to reinforce the ${u.part}, then you can push it ${reach}.`;
+    }
+    if (typeof ui_log_output === 'function') ui_log_output(msg, "info");
+  }
+
+  // Every engineering gauge, shown together so the dashboard is consistent across
+  // worlds (Agility + Thrust always visible). `active` marks the current gate.
+  getGauges() {
+    return [
+      { key: 'agility', label: 'Agility', value: this.getAgility(),       target: 30, active: this.currentPlanetIndex === 0 },
+      { key: 'thrust',  label: 'Thrust',  value: this.getJupiterThrust(), target: 45, active: this.currentPlanetIndex === 2 }
+    ];
   }
 
   // Collecting all of a planet's samples reinforces its signature part.
@@ -223,13 +253,13 @@ class StarHopperGame {
       if (row >= 6) {
         return {
           id: "earth-gravity-gems",
-          label: "lower gravity to about 5.7 m/s² or below",
+          label: "lower the gravity force on Hopper to about 5.7 m/s² or below using antigravity (e.g. antigravity = 4.1)",
           validate: (game) => game.getCurrentGravity() <= 0.35
         };
       }
       return {
         id: "earth-hopper-engineering-gems",
-        label: "engineer Hopper to Agility 30+ — lower hopper.mass and gravity and/or raise hopper.engine and player.jump_power (any mix that pushes Agility over 30)",
+        label: "engineer Hopper to Agility 30+ — lower hopper.mass, add antigravity, and/or raise hopper.engine and hopper.jump_power (any mix that pushes Agility over 30)",
         validate: (game) => game.isEarthHopperEngineered()
       };
     }

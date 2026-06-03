@@ -153,21 +153,27 @@ function updateHUD(game) {
   const player = game.player;
   const planet = game.currentPlanet;
 
-  // 0. Mission composite stat (Agility/Thrust) — one forgiving target, shown live.
+  // 0. Engineering gauges — Agility AND Thrust are ALWAYS shown (consistent dashboard),
+  //    with the current world's gate gauge highlighted.
   const hudRow = document.getElementById("hud-row");
-  const stat = (typeof game.getMissionStat === "function") ? game.getMissionStat() : null;
-  if (hudRow) {
-    if (stat) {
-      hudRow.classList.add("has-mission-stat");
-      const labelEl = document.getElementById("hud-mission-stat-label");
-      const valEl = document.getElementById("hud-mission-stat");
-      const card = document.getElementById("card-mission-stat");
-      if (labelEl) labelEl.textContent = stat.label;
-      if (valEl) valEl.textContent = `${Math.round(stat.value)} / ${stat.target}`;
-      if (card) card.classList.toggle("stat-passed", stat.value >= stat.target);
-    } else {
-      hudRow.classList.remove("has-mission-stat");
-    }
+  const gauges = (typeof game.getGauges === "function") ? game.getGauges() : [];
+  if (hudRow && gauges.length) {
+    hudRow.classList.add("has-mission-stat");
+    let anyActivePassed = false;
+    gauges.forEach((gz) => {
+      const el = document.getElementById("gauge-" + gz.key);
+      if (!el) return;
+      const onHopper = !game.player || game.player.charType === "hopper";
+      const passed = gz.value >= gz.target;
+      // Only the current world's gate gauge shows the ✓ / green, so the off-duty
+      // gauge (e.g. Thrust on Earth) reads as informational, not "already won".
+      el.textContent = `${gz.label} ${Math.round(gz.value)}/${gz.target}${(passed && gz.active) ? " ✓" : ""}`;
+      el.classList.toggle("gauge-passed", passed && onHopper && gz.active);
+      el.classList.toggle("gauge-active", gz.active);
+      if (gz.active && passed) anyActivePassed = true;
+    });
+    const card = document.getElementById("card-mission-stat");
+    if (card) card.classList.toggle("stat-passed", anyActivePassed);
   }
 
   // 1. Gravity Gauge — show the gravity the rover actually FEELS (after antigravity)
@@ -873,8 +879,21 @@ function logMissionStat(game) {
     } else {
       const tip = s.key === "thrust"
         ? "raise hopper.rocket_power or hopper.engine, or lower hopper.mass"
-        : "lower hopper.mass or gravity, or raise hopper.engine or player.jump_power";
+        : "lower hopper.mass, add antigravity, or raise hopper.engine or hopper.jump_power";
       ui_log_output(`🎯 ${s.label}: ${Math.round(s.value)} / ${s.target} — ${tip} to push it up.`, "info");
+    }
+    // Show the equation with live numbers so the cadet sees HOW each tuner moves the score.
+    if (onHopper) {
+      const f = (n) => (Math.round(n * 10) / 10).toFixed(1);
+      const m = game.getActiveMass();
+      if (s.key === "agility") {
+        const S = game.getCurrentSpeed(), J = game.getJumpVelocity(), g = game.getCurrentGravity();
+        ui_log_output(`   speed = engine ${f(game.getEngineForce())} ÷ mass ${f(m)} = ${f(S)} · jump = force ${f(game.getJumpForce())} ÷ mass ${f(m)} = ${f(J)}`, "info");
+        ui_log_output(`   Agility = (speed ${f(S)} + jump ${f(J)}) × 0.6 ÷ gravity ${f(g)} = ${Math.round(s.value)}`, "info");
+      } else if (s.key === "thrust") {
+        const R = Number.isFinite(game.player.rocketPower) ? game.player.rocketPower : 40;
+        ui_log_output(`   Thrust = rocket ${f(R)} × (2.5 ÷ mass ${f(m)}) + speed ${f(game.getCurrentSpeed())} = ${Math.round(s.value)}`, "info");
+      }
     }
   }
 
@@ -906,6 +925,32 @@ function setupUIBindings(game) {
   // so a repeated Tab keeps cycling the same base prefix while any real typing resets.
   let tabBase = null, tabIdx = -1, tabLast = null;
 
+  // Render the autocomplete dropdown with EVERY match (so the cadet sees all the
+  // options, e.g. all hopper.* names), highlighting activeIdx and letting a click
+  // insert a choice by replacing the trailing word `cur`.
+  function renderSuggestBox(matches, activeIdx, cur) {
+    if (!suggestBox) return;
+    if (!matches || !matches.length) { suggestBox.style.display = "none"; return; }
+    suggestBox.innerHTML = "";
+    suggestBox.style.display = "flex";
+    matches.forEach((s, i) => {
+      const opt = document.createElement("div");
+      opt.className = "autocomplete-item" + (i === activeIdx ? " active" : "");
+      opt.textContent = s;
+      opt.addEventListener("mousedown", (ev) => {
+        const text = input.value;
+        const idx = cur ? text.lastIndexOf(cur) : -1;
+        input.value = (idx >= 0 ? text.slice(0, idx) : text) + s;
+        input.focus();
+        suggestBox.style.display = "none";
+        tabLast = input.value;
+        autoGrowConsoleInput(input);
+        ev.preventDefault();
+      });
+      suggestBox.appendChild(opt);
+    });
+  }
+
   // 1. Code editor input submission
   if (input) {
     input.addEventListener("keydown", (e) => {
@@ -927,7 +972,8 @@ function setupUIBindings(game) {
         input.value = text.slice(0, idx) + pick;
         tabLast = input.value;
         autoGrowConsoleInput(input);
-        if (suggestBox) suggestBox.style.display = "none";
+        // Keep the dropdown open showing ALL matches with the current pick highlighted.
+        renderSuggestBox(sugg, tabIdx, pick);
         try { input.setSelectionRange(input.value.length, input.value.length); } catch (_) {}
         return;
       }
@@ -1009,37 +1055,12 @@ function setupUIBindings(game) {
       });
     }
 
-    // Autocomplete dynamic input watcher
+    // Autocomplete dynamic input watcher — lists every match as you type.
     if (suggestBox) {
       input.addEventListener("input", () => {
-        const text = input.value;
-        
-        // Find trailing word/segment matching identifiers
-        const lastWordMatch = text.match(/[\w\.]+$/);
+        const lastWordMatch = input.value.match(/[\w\.]+$/);
         const prefix = lastWordMatch ? lastWordMatch[0] : "";
-        
-        const suggestions = Compiler.autocomplete.suggest(prefix);
-        
-        if (suggestions.length > 0) {
-          suggestBox.innerHTML = "";
-          suggestBox.style.display = "flex";
-          
-          suggestions.forEach(s => {
-            const opt = document.createElement("div");
-            opt.className = "autocomplete-item";
-            opt.textContent = s;
-            opt.addEventListener("mousedown", (ev) => {
-              const index = text.lastIndexOf(prefix);
-              input.value = text.slice(0, index) + s;
-              input.focus();
-              suggestBox.style.display = "none";
-              ev.preventDefault();
-            });
-            suggestBox.appendChild(opt);
-          });
-        } else {
-          suggestBox.style.display = "none";
-        }
+        renderSuggestBox(Compiler.autocomplete.suggest(prefix), -1, prefix);
       });
 
       input.addEventListener("blur", () => {

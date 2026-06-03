@@ -30,12 +30,12 @@ const PlatformerMissions = [
     concept: "Newton's 2nd law: acceleration = force ÷ mass. A lighter rover (or a stronger engine) reaches a higher top speed and jumps higher under the same push.",
     beginnerConcept: "Change one number, test, then change another — and notice that less mass makes the same engine go faster and jump higher.",
     codingConcept: "Variable assignment and parameter tuning",
-    starterCode: "use_hopper()\nantigravity = 4.9\nhopper.mass = 1.2\nhopper.engine = 6\nplayer.jump_power = 18",
+    starterCode: "use_hopper()\nantigravity = 4.9\nhopper.mass = 1.2\nhopper.engine = 6\nhopper.jump_power = 18",
     objective: "Push Hopper's Agility past 30 with any mix of lower mass, more antigravity, more engine force, and more jump force, to unlock every Emerald Core gem and clear the wall.",
     steps: [
       { id: "observe", prompt: "Observe: Hopper is too heavy to clear the high metal wall with default settings.", done: false },
       { id: "predict", prompt: "Predict: If you lower the mass but keep the same engine, will the top speed go up, down, or stay the same?", done: false },
-      { id: "code", prompt: "Code: Lower hopper.mass and add antigravity, then raise hopper.engine and player.jump_power.", done: false },
+      { id: "code", prompt: "Code: Lower hopper.mass and add antigravity, then raise hopper.engine and hopper.jump_power.", done: false },
       { id: "test", prompt: "Test: Swap to Hopper, collect the locked ridge gems, and watch how a lighter rover moves faster and jumps higher.", done: false },
       { id: "explain", prompt: "Explain: Why did lowering the mass raise both the speed and the jump?", done: false },
       { id: "challenge", prompt: "Challenge: Clear the wall as Hopper with antigravity >= 4.1 (felt gravity <= 5.7 m/s²) and hopper.mass <= 1.2, reaching top speed >= 4.8 by tuning engine and mass.", done: false }
@@ -47,7 +47,7 @@ const PlatformerMissions = [
     ],
     scaffold: {
       mode: "fill-values",
-      template: "use_hopper()\nantigravity = {gravity}\nhopper.mass = {mass}\nhopper.engine = {engine}\nplayer.jump_power = {jump_power}",
+      template: "use_hopper()\nantigravity = {gravity}\nhopper.mass = {mass}\nhopper.engine = {engine}\nhopper.jump_power = {jump_power}",
       slots: [
         { id: "gravity", label: "antigravity (m/s²)", value: "4.9", hint: "Antigravity in m/s². Earth's gravity is a fixed 9.8 — more antigravity pushes back against it, so Hopper hangs longer and jumps higher." },
         { id: "mass", label: "mass", value: "1.2", hint: "Less mass means the SAME engine and jump push Hopper faster and higher (a = F / m)." },

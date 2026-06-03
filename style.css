@@ -484,6 +484,12 @@ body.resizing-panes * {
 
 #card-mission-stat.stat-passed .hud-card-value { color: var(--neon-green); }
 
+/* Both engineering gauges (Agility + Thrust) stack in the one card, always visible. */
+.gauge-stack { display: flex; flex-direction: column; gap: 1px; line-height: 1.15; }
+.gauge { font-size: 0.62rem; color: var(--text-muted); white-space: nowrap; transition: color 0.2s ease; }
+.gauge.gauge-active { color: var(--text-primary); font-weight: 700; }
+.gauge.gauge-passed { color: var(--neon-green); }
+
 #canvas-wrapper:has(#start-screen:not(.hidden)) #hud-row,
 #canvas-wrapper:has(#clear-screen:not(.hidden)) #hud-row,
 #canvas-wrapper:has(#gameover-screen:not(.hidden)) #hud-row {
@@ -1467,7 +1473,8 @@ html {
   border-bottom: none;
 }
 
-.autocomplete-item:hover {
+.autocomplete-item:hover,
+.autocomplete-item.active {
   background: var(--active-neon);
   color: #000;
   font-weight: bold;
@@ -2761,8 +2768,10 @@ html {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 46px;        /* sit just above the slim toggle bar */
-  max-height: min(52vh, 360px);
+  /* Float over the GAME VIEW, clearing the bash shell (~200px) + toggle below it,
+     so opening the dictionary never hides the terminal you type into. */
+  bottom: 268px;
+  max-height: min(48vh, 340px);
   z-index: 85;
   background: rgba(15, 23, 42, 0.96);
   backdrop-filter: blur(12px);

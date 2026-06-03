@@ -629,6 +629,21 @@ function getSpellingSuggestion(input, list) {
 // Earth's 0.6 game-units of gravity represent 9.8 m/s², so 1 game-unit = 16.33 m/s².
 const GRAVITY_MPS2_PER_UNIT = 9.8 / 0.6;
 
+// Shared setters so the many aliases (engine/speed, jump_power) clamp identically and
+// all surface the same "can't go past the cap" notice via game.reportCapHit().
+function _setEngineForce(game, val) {
+  const n = Number(val);
+  if (typeof game.reportCapHit === 'function') game.reportCapHit('engine', n);
+  const cap = (typeof game.getUpgradeCap === 'function') ? game.getUpgradeCap('engine') : 20;
+  Compiler.env.engine = Math.max(1, Math.min(cap, Number.isFinite(n) ? n : game.currentPlanet.physics.speed));
+}
+function _setJumpPower(game, val) {
+  const n = Number(val);
+  if (typeof game.reportCapHit === 'function') game.reportCapHit('jump', n);
+  const cap = (typeof game.getUpgradeCap === 'function') ? game.getUpgradeCap('jump') : 45;
+  game.player.jumpPower = Math.max(1, Math.min(cap, Number.isFinite(n) ? n : game.player.jumpPower));
+}
+
 const runtimeContext = {
   variables: {
     // Kids type gravity in real m/s² (Earth ≈ 9.8). Stored internally in game-units
@@ -650,6 +665,7 @@ const runtimeContext = {
       get: (game) => Math.round((Compiler.env.antigravity || 0) * GRAVITY_MPS2_PER_UNIT * 100) / 100,
       set: (game, val) => {
         const n = Number(val);
+        if (typeof game.reportCapHit === 'function') game.reportCapHit('antigravity', n);
         const cap = (typeof game.getUpgradeCap === 'function') ? game.getUpgradeCap('antigravity') : 6;
         const mps2 = Math.max(-40, Math.min(cap, Number.isFinite(n) ? n : 0));
         Compiler.env.antigravity = mps2 / GRAVITY_MPS2_PER_UNIT;
@@ -659,19 +675,19 @@ const runtimeContext = {
       get: (game) => Compiler.env.friction !== null ? Compiler.env.friction : game.currentPlanet.physics.friction,
       set: (game, val) => { Compiler.env.friction = val; }
     },
+    // jump_power affects whichever suit is active, so it has player.* and hopper.*
+    // aliases (use hopper.jump_power to match hopper.engine / hopper.mass / hopper.rocket_power).
     jump_power: {
       get: (game) => game.player.jumpPower,
-      set: (game, val) => {
-        const n = Number(val);
-        game.player.jumpPower = Math.max(1, Math.min((typeof game.getUpgradeCap === 'function' ? game.getUpgradeCap('jump') : 45), Number.isFinite(n) ? n : game.player.jumpPower));
-      }
+      set: (game, val) => _setJumpPower(game, val)
     },
     "player.jump_power": {
       get: (game) => game.player.jumpPower,
-      set: (game, val) => {
-        const n = Number(val);
-        game.player.jumpPower = Math.max(1, Math.min((typeof game.getUpgradeCap === 'function' ? game.getUpgradeCap('jump') : 45), Number.isFinite(n) ? n : game.player.jumpPower));
-      }
+      set: (game, val) => _setJumpPower(game, val)
+    },
+    "hopper.jump_power": {
+      get: (game) => game.player.jumpPower,
+      set: (game, val) => _setJumpPower(game, val)
     },
     "player.mass": {
       get: (game) => game.player.mass,
@@ -681,44 +697,24 @@ const runtimeContext = {
     // so a stronger engine OR a lighter rover both raise the speed you reach.
     engine: {
       get: (game) => game.getEngineForce(),
-      set: (game, val) => {
-        const n = Number(val);
-        const engCap = (typeof game.getUpgradeCap === 'function') ? game.getUpgradeCap('engine') : 20;
-        Compiler.env.engine = Math.max(1, Math.min(engCap, Number.isFinite(n) ? n : game.currentPlanet.physics.speed));
-      }
+      set: (game, val) => _setEngineForce(game, val)
     },
     "player.engine": {
       get: (game) => game.getEngineForce(),
-      set: (game, val) => {
-        const n = Number(val);
-        const engCap = (typeof game.getUpgradeCap === 'function') ? game.getUpgradeCap('engine') : 20;
-        Compiler.env.engine = Math.max(1, Math.min(engCap, Number.isFinite(n) ? n : game.currentPlanet.physics.speed));
-      }
+      set: (game, val) => _setEngineForce(game, val)
     },
     "hopper.engine": {
       get: (game) => game.getEngineForce(),
-      set: (game, val) => {
-        const n = Number(val);
-        const engCap = (typeof game.getUpgradeCap === 'function') ? game.getUpgradeCap('engine') : 20;
-        Compiler.env.engine = Math.max(1, Math.min(engCap, Number.isFinite(n) ? n : game.currentPlanet.physics.speed));
-      }
+      set: (game, val) => _setEngineForce(game, val)
     },
     // Legacy "speed" knob: now sets the engine force (speed itself is a read-only result).
     "player.speed": {
       get: (game) => game.getCurrentSpeed(),
-      set: (game, val) => {
-        const n = Number(val);
-        const engCap = (typeof game.getUpgradeCap === 'function') ? game.getUpgradeCap('engine') : 20;
-        Compiler.env.engine = Math.max(1, Math.min(engCap, Number.isFinite(n) ? n : game.currentPlanet.physics.speed));
-      }
+      set: (game, val) => _setEngineForce(game, val)
     },
     speed: {
       get: (game) => game.getCurrentSpeed(),
-      set: (game, val) => {
-        const n = Number(val);
-        const engCap = (typeof game.getUpgradeCap === 'function') ? game.getUpgradeCap('engine') : 20;
-        Compiler.env.engine = Math.max(1, Math.min(engCap, Number.isFinite(n) ? n : game.currentPlanet.physics.speed));
-      }
+      set: (game, val) => _setEngineForce(game, val)
     },
     "star.mass": {
       get: (game) => game.starMass !== undefined ? game.starMass : 1.0,
@@ -733,6 +729,7 @@ const runtimeContext = {
     "hopper.mass": {
       get: (game) => game.hopperMass !== undefined ? game.hopperMass : 2.5,
       set: (game, val) => {
+        if (typeof game.reportCapHit === 'function') game.reportCapHit('mass', Number(val));
         const massFloor = (typeof game.getUpgradeCap === 'function') ? game.getUpgradeCap('mass') : 0.4;
         const clamped = Math.max(massFloor, Math.min(10.0, Number(val) || 2.5));
         game.hopperMass = clamped;
@@ -745,6 +742,7 @@ const runtimeContext = {
       get: (game) => Number.isFinite(game.player.rocketPower) ? game.player.rocketPower : 40,
       set: (game, val) => {
         const numeric = Number(val);
+        if (typeof game.reportCapHit === 'function') game.reportCapHit('rocket', numeric);
         const rktCap = (typeof game.getUpgradeCap === 'function') ? game.getUpgradeCap('rocket') : 120;
         game.player.rocketPower = Math.max(0, Math.min(rktCap, Number.isFinite(numeric) ? numeric : 40));
       }
@@ -885,7 +883,7 @@ class AutocompleteEngine {
       "antigravity", "gravity", "friction", "jump_power", "scale",
       "player.jump_power", "player.mass", "player.speed", "player.say()", "player.touching()",
       "star.mass",
-      "hopper.mass", "hopper.rocket_power", "hopper.spikes", "hopper.pole",
+      "hopper.engine", "hopper.jump_power", "hopper.mass", "hopper.rocket_power", "hopper.spikes", "hopper.pole",
       "spawn()", "spawn_gem()", "spawn_box()", "spawn_spring()",
       "invert_gravity()", "rave_mode()", "shrink_enemies()", "bounce_up()", "reset()",
       "use_hopper()", "use_rover()",
@@ -1028,10 +1026,15 @@ class CompilerSingleton {
 
       if (trigger) {
         try {
+          // Rule bodies run every frame, so mute cap notices here (a `when` setting
+          // an over-cap value must not spam the shell). It still clamps.
+          this.suppressCapNotice = true;
           interpreter.evaluate(rule.body);
         } catch (err) {
           // Silently log execution errors to avoid gameplay disruptions
           console.warn("Event execution fail:", err.message);
+        } finally {
+          this.suppressCapNotice = false;
         }
       }
     }
