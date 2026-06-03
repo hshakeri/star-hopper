@@ -554,6 +554,8 @@ class StarHopperGame {
     // Trigger dialogue helper robot text only after the player launches a mission.
     if (this.state === 'playing') {
       this.triggerTutorialDialogue("start");
+      // Retro arcade arrival shout, comic-strip style.
+      if (this.player) this.player.say("HERE WE GO!", { shout: true, timer: 120 });
     }
     // Draw initial mission list
     updateMissionList(this);

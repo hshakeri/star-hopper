@@ -927,7 +927,8 @@ function showDialogue(text, trigger = "start") {
   if (!bubble || !textContainer) return;
 
   bubble.style.display = "flex";
-  bubble.style.borderColor = trigger === "start" ? "var(--active-neon)" : "var(--neon-pink)";
+  // Comic-book ink outline (matches the speech tail). Alerts get a red ink outline.
+  bubble.style.borderColor = trigger === "start" ? "#15233e" : "#7f1d1d";
   
   // Clear previous typing intervals
   if (currentDialogueTimer) {
