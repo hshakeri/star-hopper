@@ -254,12 +254,14 @@ class StarHopperGame {
         return {
           id: "earth-gravity-gems",
           label: "lower the gravity force on Hopper to about 5.7 m/s² or below using antigravity (e.g. antigravity = 4.1)",
+          short: "PUSH BACK GRAVITY!",
           validate: (game) => game.getCurrentGravity() <= 0.35
         };
       }
       return {
         id: "earth-hopper-engineering-gems",
         label: "engineer Hopper to Agility 30+ — lower hopper.mass, add antigravity, and/or raise hopper.engine and hopper.jump_power (any mix that pushes Agility over 30)",
+        short: "GET AGILITY 30+!",
         validate: (game) => game.isEarthHopperEngineered()
       };
     }
@@ -269,12 +271,14 @@ class StarHopperGame {
         return {
           id: "moon-arithmetic-gems",
           label: "boost jump_power to 18 or more with arithmetic",
+          short: "JUMP 18+ WITH MATH!",
           validate: (game) => game.player && game.player.jumpPower >= 18
         };
       }
       return {
         id: "moon-loop-spring-gems",
         label: "boost jump_power to 18 and spawn 3 springs with a repeat loop",
+        short: "JUMP 18+ & 3 SPRINGS!",
         validate: (game) => game.player && game.player.jumpPower >= 18 && game.spawnedSprings.length >= 3
       };
     }
@@ -283,6 +287,7 @@ class StarHopperGame {
       return {
         id: "jupiter-thrust-gems",
         label: "engineer Hopper to Thrust 45+ (raise hopper.rocket_power or hopper.engine, lower hopper.mass)",
+        short: "GET THRUST 45+!",
         validate: (game) => game.isJupiterHopperEngineered()
       };
     }
@@ -292,12 +297,14 @@ class StarHopperGame {
         return {
           id: "glacies-friction-gems",
           label: "raise friction to 5 or enable Hopper spikes",
+          short: "FRICTION 5+ OR SPIKES!",
           validate: (game) => game.getCurrentFriction() >= 5 || (game.player && game.player.spikes)
         };
       }
       return {
         id: "glacies-ice-rule-gems",
         label: "raise friction or spikes, then add a when player.touching('ice') rule",
+        short: "GRIP + ICE RULE!",
         validate: (game) => (game.getCurrentFriction() >= 5 || (game.player && game.player.spikes)) && game.hasIceTouchRule()
       };
     }
@@ -306,6 +313,7 @@ class StarHopperGame {
       return {
         id: "magnet-event-gems",
         label: "combine a hopper.rocket_on rule with a player.touching rule",
+        short: "ROCKET + TOUCH RULE!",
         validate: (game) => game.hasRocketEventRule() && game.hasPlayerTouchingRule()
       };
     }
@@ -425,6 +433,8 @@ class StarHopperGame {
     this.currentPlanet = PLANETS[index];
     this._brakeHintShown = false; // re-arm the Glacies "raise friction to brake" hint per level
     this.coachSlot = null; // restart the Mission Coach one-tweak-at-a-time walkthrough
+    this.missionBalloon = null;   // clear any on-canvas mission balloon
+    this.shownGemGateIds = new Set(); // re-arm gem-gate hints (bash + balloon) per level
 
     // On a same-level retry, keep the player's typed code tunings so progress
     // made one task at a time survives death/restart. Only the physical level
@@ -702,8 +712,77 @@ class StarHopperGame {
 
     const gem = obj.gem || this.getGemConfig();
     ui_log_output(`Locked ${gem.shortName} gem: ${obj.gemGate.label}.`, "error");
+    // Brief version as an on-canvas mission balloon (hopper-balloon style, gold).
+    this.showMissionBalloon(`🔒 ${obj.gemGate.short || obj.gemGate.label}`);
     SFX.playError();
     updateMissionList(this);
+  }
+
+  // A mission/objective speech balloon drawn on the canvas — same retro window as
+  // the Hopper's, but gold and a touch bigger, with word wrap for short phrases.
+  showMissionBalloon(text, opts) {
+    opts = opts || {};
+    this.missionBalloon = {
+      text: text,
+      timer: opts.timer || 230,    // ~3.8s at 60fps
+      color: opts.color || '#facc15',
+      reveal: 0,
+      prevLen: 0
+    };
+  }
+
+  drawMissionBalloon(ctx) {
+    const mb = this.missionBalloon;
+    if (!mb || mb.timer <= 0 || !mb.text) return;
+    mb.timer--;
+    mb.reveal = Math.min(mb.text.length, (mb.reveal || 0) + 0.7);
+    const shownCount = Math.ceil(mb.reveal);
+    if (shownCount > (mb.prevLen || 0) && typeof SFX !== 'undefined' && SFX.playType && Math.random() < 0.5) SFX.playType();
+    mb.prevLen = shownCount;
+    const shown = mb.text.slice(0, shownCount);
+
+    const W = this.canvas ? this.canvas.width : 720;
+    ctx.save();
+    ctx.font = "10px 'Press Start 2P', monospace";
+    // Word-wrap the FULL text to a max width so the box size is steady while typing.
+    const maxW = Math.min(360, W - 40);
+    const words = mb.text.split(' ');
+    const lines = [];
+    let line = '';
+    for (const w of words) {
+      const test = line ? line + ' ' + w : w;
+      if (ctx.measureText(test).width > maxW - 24 && line) { lines.push(line); line = w; }
+      else line = test;
+    }
+    if (line) lines.push(line);
+    const lineH = 16;
+    const boxW = Math.min(maxW, Math.max(...lines.map(l => ctx.measureText(l).width)) + 24);
+    const boxH = lines.length * lineH + 14;
+    const cx = W / 2;
+    const bx = cx - boxW / 2;
+    const by = 12;
+
+    // Outer ink frame → gold edge → cream panel (retro window, gold accent).
+    ctx.fillStyle = '#0b1022';
+    ctx.beginPath(); ctx.roundRect(bx - 3, by - 3, boxW + 6, boxH + 6, 7); ctx.fill();
+    ctx.fillStyle = mb.color;
+    ctx.beginPath(); ctx.roundRect(bx - 1, by - 1, boxW + 2, boxH + 2, 6); ctx.fill();
+    ctx.fillStyle = '#fbf3da';
+    ctx.beginPath(); ctx.roundRect(bx, by, boxW, boxH, 5); ctx.fill();
+
+    // Text (reveal across the wrapped lines), ink on cream.
+    ctx.fillStyle = '#15233e';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    let used = 0;
+    for (let i = 0; i < lines.length; i++) {
+      const full = lines[i];
+      const remain = Math.max(0, shown.length - used);
+      const part = full.slice(0, remain);
+      used += full.length + 1; // + the space
+      ctx.fillText(part, cx, by + 9 + i * lineH + lineH / 2 - 4);
+    }
+    ctx.restore();
   }
 
   formatObjectiveLockMessage(status = this.getLevelObjectiveStatus()) {
@@ -1067,6 +1146,9 @@ class StarHopperGame {
 
     // 9. Draw Particle systems
     Particles.draw(this.ctx, this.cameraX);
+
+    // 10. Mission/objective speech balloon (screen-space, top-center)
+    this.drawMissionBalloon(this.ctx);
   }
 
   drawSpaceBackground() {
