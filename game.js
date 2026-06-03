@@ -760,7 +760,7 @@ class StarHopperGame {
     const boxH = lines.length * lineH + 14;
     const cx = W / 2;
     const bx = cx - boxW / 2;
-    const by = 12;
+    const by = 64; // sit below the top control ribbon, inside the play area
 
     // Outer ink frame → gold edge → cream panel (retro window, gold accent).
     ctx.fillStyle = '#0b1022';
