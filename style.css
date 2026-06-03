@@ -1704,12 +1704,15 @@ html {
 .coach-bubble.collapsed .coach-bubble-body { display: none; }
 
 /* Keep the coach bubble out of the way on overlay screens / guided mode */
-#canvas-wrapper:has(#start-screen:not(.hidden)) .coach-bubble,
+/* Coach bubble hides on every overlay; the Mission bubble stays visible on the
+   start screen (floated above it) so objectives show from the get-go. */
+#canvas-wrapper:has(#start-screen:not(.hidden)) .coach-bubble:not(.mission-bubble),
 #canvas-wrapper:has(#clear-screen:not(.hidden)) .coach-bubble,
 #canvas-wrapper:has(#gameover-screen:not(.hidden)) .coach-bubble,
 #canvas-wrapper:has(#guided-mode-hud:not(.hidden)) .coach-bubble {
   display: none !important;
 }
+#canvas-wrapper:has(#start-screen:not(.hidden)) .mission-bubble { z-index: 101; }
 
 /* Mission objectives bubble — top-LEFT (mirrors the Coach bubble top-right) */
 .coach-bubble.mission-bubble {
@@ -1727,27 +1730,43 @@ html {
 /* Hide the canvas bubbles while flying the orbital navigator */
 body.navigator-active .coach-bubble { display: none !important; }
 
-/* ---- Slim right rail (collapsed): only inflate buttons show, game view widens ---- */
+/* ---- Persistent ribbon rail on the right edge; panes inflate to its left ---- */
+#terminal-section { flex-direction: row-reverse; gap: 0; }
+.main-mode-tabs {
+  flex: 0 0 66px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 7px;
+  border-bottom: none;
+  border-left: 1px solid var(--panel-border);
+  height: 100%;
+}
+.mode-tab {
+  flex: 0 0 auto;
+  padding: 9px 2px;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.03);
+}
+.mode-tab .mode-ico { font-size: 1.3rem; }
+.mode-tab .mode-lbl {
+  display: block;
+  font-size: 0.55rem;
+  line-height: 1.15;
+  text-align: center;
+  margin-top: 3px;
+  word-break: break-word;
+}
+.support-rail-btn { margin-top: auto; text-decoration: none; color: var(--neon-pink); border-color: rgba(236, 72, 153, 0.3); }
+.support-rail-btn:hover { color: var(--neon-pink); background: rgba(236, 72, 153, 0.12); }
+
+.mode-content { height: 100%; flex: 1 1 auto; min-height: 0; }
+
+/* Collapsed (default): hide the panes; only the rail shows, game view widens */
 #app-container.right-collapsed #game-section { flex: 1 1 auto; }
 #app-container.right-collapsed #main-pane-resizer { display: none; }
-#app-container.right-collapsed #terminal-section {
-  flex: 0 0 52px;
-  min-width: 52px;
-}
+#app-container.right-collapsed #terminal-section { flex: 0 0 66px; min-width: 66px; }
 #app-container.right-collapsed .mode-content { display: none !important; }
-#app-container.right-collapsed #support-project-btn { display: none; }
-#app-container.right-collapsed .main-mode-tabs {
-  flex-direction: column;
-  border-bottom: none;
-  padding: 8px 6px;
-  gap: 10px;
-}
-#app-container.right-collapsed .mode-tab { flex: 0 0 auto; padding: 12px 0; }
-#app-container.right-collapsed .mode-tab .mode-lbl { display: none; }
-#app-container.right-collapsed .mode-tab .mode-ico { font-size: 1.35rem; }
-
-.mode-tab .mode-ico { font-size: 1rem; }
-.mode-tab .mode-lbl { font-size: 0.72rem; }
 
 .mission-coach-summary {
   display: grid;
