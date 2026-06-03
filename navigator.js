@@ -8,7 +8,8 @@ window.navigatorMode = 'solar'; // Default to the new Solar Simulator
  */
 function initNavigatorMode() {
   window.navigatorModeActive = true;
-  
+  document.body.classList.add('navigator-active'); // hides the canvas Mission/Coach bubbles
+
   // Keep dropdown UI updated
   const selector = document.getElementById("navigator-mode-select");
   if (selector) {
@@ -35,6 +36,7 @@ function initNavigatorMode() {
  */
 function stopNavigatorMode() {
   window.navigatorModeActive = false;
+  document.body.classList.remove('navigator-active');
   const zoomCtrl = document.getElementById("navigator-zoom-controls");
   if (zoomCtrl) {
     zoomCtrl.style.display = 'none';

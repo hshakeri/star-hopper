@@ -333,7 +333,27 @@ window.onafterprint = () => {
   document.body.className = '';
 };
 
+// Inflate a side pane, or collapse it if it's already the open one (slim-rail UX).
+function toggleMainPane(mode) {
+  const app = document.getElementById('app-container');
+  const expanded = app && !app.classList.contains('right-collapsed');
+  const btn = document.getElementById('mode-btn-' + mode);
+  const isActive = btn && btn.classList.contains('active');
+  if (expanded && isActive) {
+    switchMainMode('terminal'); // collapse back to the game view
+  } else {
+    switchMainMode(mode);
+  }
+}
+
 function switchMainMode(mode) {
+  // The right column is a slim icon rail by default; only Log/Parent/Navigator inflate it.
+  const app = document.getElementById('app-container');
+  if (app) {
+    if (mode === 'terminal') app.classList.add('right-collapsed');
+    else app.classList.remove('right-collapsed');
+  }
+
   // Hide dialogue bubble if switching away from terminal
   if (mode !== 'terminal' && typeof closeDialogue === 'function') {
     closeDialogue();

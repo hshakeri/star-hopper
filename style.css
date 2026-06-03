@@ -1711,6 +1711,44 @@ html {
   display: none !important;
 }
 
+/* Mission objectives bubble — top-LEFT (mirrors the Coach bubble top-right) */
+.coach-bubble.mission-bubble {
+  left: 12px;
+  right: auto;
+  border-color: var(--neon-green);
+}
+.coach-bubble.mission-bubble .coach-bubble-head { background: rgba(74, 222, 128, 0.16); }
+.coach-bubble.mission-bubble .coach-chevron { color: var(--neon-green); }
+.mission-bubble-planet { font-size: 1rem; margin: 0 0 2px; font-family: var(--font-mono); }
+.mission-bubble .terminal-sub-header { padding: 0; }
+.mission-bubble .mode-save-row { margin-top: 8px; }
+.mission-bubble .mission-panel { margin-top: 8px; }
+
+/* Hide the canvas bubbles while flying the orbital navigator */
+body.navigator-active .coach-bubble { display: none !important; }
+
+/* ---- Slim right rail (collapsed): only inflate buttons show, game view widens ---- */
+#app-container.right-collapsed #game-section { flex: 1 1 auto; }
+#app-container.right-collapsed #main-pane-resizer { display: none; }
+#app-container.right-collapsed #terminal-section {
+  flex: 0 0 52px;
+  min-width: 52px;
+}
+#app-container.right-collapsed .mode-content { display: none !important; }
+#app-container.right-collapsed #support-project-btn { display: none; }
+#app-container.right-collapsed .main-mode-tabs {
+  flex-direction: column;
+  border-bottom: none;
+  padding: 8px 6px;
+  gap: 10px;
+}
+#app-container.right-collapsed .mode-tab { flex: 0 0 auto; padding: 12px 0; }
+#app-container.right-collapsed .mode-tab .mode-lbl { display: none; }
+#app-container.right-collapsed .mode-tab .mode-ico { font-size: 1.35rem; }
+
+.mode-tab .mode-ico { font-size: 1rem; }
+.mode-tab .mode-lbl { font-size: 0.72rem; }
+
 .mission-coach-summary {
   display: grid;
   gap: 5px;

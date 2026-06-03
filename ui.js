@@ -1250,15 +1250,17 @@ function setupUIBindings(game) {
     closeBtn.addEventListener("click", closeDialogue);
   }
 
-  // 3b. Mission Coach bubble — click the header to collapse / inflate.
-  const coachToggle = document.getElementById("coach-bubble-toggle");
-  const coachBubble = document.getElementById("pedagogical-mission-panel");
-  if (coachToggle && coachBubble) {
-    coachToggle.addEventListener("click", () => {
-      const collapsed = coachBubble.classList.toggle("collapsed");
-      coachToggle.setAttribute("aria-expanded", String(!collapsed));
-    });
-  }
+  // 3b. Mission Coach + Mission objectives bubbles — click the header to collapse / inflate.
+  [["coach-bubble-toggle", "pedagogical-mission-panel"], ["mission-bubble-toggle", "mission-bubble"]].forEach(([togId, bubId]) => {
+    const tog = document.getElementById(togId);
+    const bub = document.getElementById(bubId);
+    if (tog && bub) {
+      tog.addEventListener("click", () => {
+        const collapsed = bub.classList.toggle("collapsed");
+        tog.setAttribute("aria-expanded", String(!collapsed));
+      });
+    }
+  });
   
   // 4. Mute toggle
   const muteBtn = document.getElementById("mute-btn");
