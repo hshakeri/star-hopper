@@ -553,134 +553,219 @@ function getCoachFocusText(game, activeMission) {
   return "Move in the level and watch what changed.";
 }
 
+// Direction + live reading for the numeric tuners, so the coach can detect an
+// assignment the cadet has already made and skip past it.
+const COACH_SLOT_RULES = {
+  "antigravity":         { dir: ">=", live: (g) => (Compiler.env.antigravity || 0) * (9.8 / 0.6) },
+  "hopper.engine":       { dir: ">=", live: (g) => g.getEngineForce() },
+  "hopper.jump_power":   { dir: ">=", live: (g) => (g.player ? g.player.jumpPower : 0) },
+  "hopper.rocket_power": { dir: ">=", live: (g) => (g.player && Number.isFinite(g.player.rocketPower)) ? g.player.rocketPower : 0 },
+  "hopper.mass":         { dir: "<=", live: (g) => g.hopperMass }
+};
+
+function coachLineForSlot(scaffold, slotId) {
+  return (scaffold.template || "").split("\n").find(l => l.includes("{" + slotId + "}")) || "";
+}
+function coachVarName(scaffold, slotId) {
+  const line = coachLineForSlot(scaffold, slotId);
+  const eq = line.indexOf("=");
+  return eq > 0 ? line.slice(0, eq).trim() : "";
+}
+function coachAssignment(scaffold, slot, value) {
+  return coachLineForSlot(scaffold, slot.id).replace(new RegExp("\\{" + slot.id + "\\}", "g"), String(value));
+}
+function coachSetupLines(scaffold) {
+  return (scaffold.template || "").split("\n").filter(l => l.trim() && !/\{[^}]+\}/.test(l));
+}
+function isSlotAlreadySet(game, varName, target) {
+  const rule = COACH_SLOT_RULES[varName];
+  if (!rule || !Number.isFinite(target)) return false;
+  const live = rule.live(game);
+  if (!Number.isFinite(live)) return false;
+  if (rule.dir === ">=") return live >= target - 0.05;
+  if (rule.dir === "<=") return live <= target + 0.05;
+  return Math.abs(live - target) < 0.05;
+}
+
+// Mission Coach scaffold — friendly and ONE assignment at a time. The cadet picks
+// the prediction first, then tunes a single number, sees it run, and moves on. An
+// assignment already satisfied in the live game flashes "already set" and is skipped.
 function renderScaffoldEditor(game, mission) {
   const container = document.getElementById("mission-scaffold");
   if (!container) return;
-
-  const scaffold = mission && mission.fullMission ? mission.fullMission.scaffold : null;
-  if (!scaffold) {
-    container.innerHTML = "";
-    return;
-  }
-  const fullMission = mission.fullMission;
-  const selectedPrediction = game.coachPredictions ? game.coachPredictions[mission.id] : null;
-
+  const fullMission = mission && mission.fullMission;
+  const scaffold = fullMission ? fullMission.scaffold : null;
+  if (!scaffold) { container.innerHTML = ""; return; }
   container.innerHTML = "";
 
-  const card = document.createElement("div");
-  card.className = "try-code-card";
-
-  if (fullMission.prediction) {
+  // 1. Prediction gate — show ONLY the guess until it's picked.
+  const selectedPrediction = game.coachPredictions ? game.coachPredictions[mission.id] : null;
+  if (fullMission.prediction && !selectedPrediction) {
     const prediction = document.createElement("div");
-    prediction.className = "coach-prediction-card";
-    const selectedOption = getCoachPredictionOption(game, mission.id);
+    prediction.className = "coach-prediction-card coach-kid";
     prediction.innerHTML = `
-      <div class="coach-mini-title">Predict first</div>
+      <div class="coach-mini-title">🤔 Guess first</div>
       <p>${escapeHTML(fullMission.prediction.question)}</p>
       <div class="prediction-options">
         ${fullMission.prediction.options.map(option => `
-          <button type="button" class="prediction-option ${selectedPrediction === option.id ? "selected" : ""}" data-prediction-id="${escapeHTML(option.id)}">
-            ${escapeHTML(option.label)}
-          </button>
+          <button type="button" class="prediction-option" data-prediction-id="${escapeHTML(option.id)}">${escapeHTML(option.label)}</button>
         `).join("")}
-      </div>
-      <div class="prediction-feedback ${selectedOption ? "" : "hidden"}">${selectedOption ? escapeHTML(selectedOption.feedback) : ""}</div>
-    `;
+      </div>`;
     prediction.querySelectorAll("[data-prediction-id]").forEach(button => {
       button.addEventListener("click", () => {
         game.coachPredictions = game.coachPredictions || {};
         game.coachPredictions[mission.id] = button.dataset.predictionId;
         if (game.currentMissionSteps) game.currentMissionSteps.predict = true;
         const option = fullMission.prediction.options.find(item => item.id === button.dataset.predictionId);
-        if (option && typeof showDialogue === 'function') {
-          showDialogue(option.feedback, "predict");
-        }
+        if (option && typeof showDialogue === 'function') showDialogue(option.feedback, "predict");
         updatePedagogicalGuide(game);
         updateParentMissionSummary(game);
       });
     });
     container.appendChild(prediction);
+    return;
   }
 
-  const header = document.createElement("div");
-  header.className = "try-code-header";
-  header.innerHTML = `<span>Try this code</span><span>${escapeHTML(getScaffoldModeLabel(scaffold.mode))}</span>`;
-  card.appendChild(header);
+  const slots = scaffold.slots || [];
 
-  if (scaffold.commandChoices && scaffold.commandChoices.length) {
-    const choices = document.createElement("div");
-    choices.className = "command-choice-row";
-    choices.innerHTML = scaffold.commandChoices.map(choice => `<span>${escapeHTML(choice)}</span>`).join("");
-    card.appendChild(choices);
+  // Fallback for scaffolds without tunable number slots: one simple Run button.
+  if (!slots.length) {
+    const simple = document.createElement("div");
+    simple.className = "try-code-card coach-kid";
+    simple.innerHTML = `<div class="coach-one-num">Try this code</div><pre class="try-code-preview">${escapeHTML(scaffold.template || "")}</pre>`;
+    const run = document.createElement("button");
+    run.className = "notebook-btn run-scaffold-btn";
+    run.textContent = "Run it!";
+    run.addEventListener("click", () => runCoachCode(game, scaffold.template || ""));
+    simple.appendChild(run);
+    container.appendChild(simple);
+    return;
   }
 
-  const slots = document.createElement("div");
-  slots.className = "scaffold-slot-grid";
-  scaffold.slots.forEach(slot => {
-    const label = document.createElement("label");
-    label.className = "scaffold-slot";
-    label.title = slot.hint || "";
+  // 2. One assignment at a time.
+  if (!game.coachSlot || game.coachSlot.missionId !== mission.id) {
+    game.coachSlot = { missionId: mission.id, index: 0, setupDone: false, advancing: false };
+  }
+  const state = game.coachSlot;
 
-    const name = document.createElement("span");
-    name.textContent = slot.label;
-
-    const input = document.createElement("input");
-    input.type = "text";
-    input.value = slot.value;
-    input.dataset.scaffoldSlot = slot.id;
-    input.autocomplete = "off";
-    input.spellcheck = false;
-
-    label.appendChild(name);
-    label.appendChild(input);
-    slots.appendChild(label);
-  });
-  card.appendChild(slots);
-
-  const explanation = document.createElement("p");
-  explanation.className = "try-code-explain";
-  explanation.textContent = scaffold.explain;
-  card.appendChild(explanation);
-
-  const preview = document.createElement("pre");
-  preview.className = "try-code-preview";
-  const refreshPreview = () => {
-    preview.textContent = buildScaffoldCode(scaffold, getScaffoldValues(card));
+  const makeDots = () => {
+    const dots = document.createElement("div");
+    dots.className = "coach-step-dots";
+    slots.forEach((s, i) => {
+      const dot = document.createElement("span");
+      dot.className = "coach-dot" + (i < state.index ? " done" : (i === state.index ? " active" : ""));
+      dots.appendChild(dot);
+    });
+    return dots;
   };
-  refreshPreview();
-  card.appendChild(preview);
 
-  slots.addEventListener("input", refreshPreview);
+  // 2a. Already satisfied? Flash "already set" and auto-skip to the next tweak.
+  if (state.index < slots.length) {
+    const cur = slots[state.index];
+    if (isSlotAlreadySet(game, coachVarName(scaffold, cur.id), Number(cur.value))) {
+      const skip = document.createElement("div");
+      skip.className = "try-code-card coach-kid coach-skip";
+      skip.appendChild(makeDots());
+      const note = document.createElement("div");
+      note.className = "coach-skip-note";
+      note.innerHTML = `✓ <code>${escapeHTML(coachVarName(scaffold, cur.id))}</code> is already set — skipping!`;
+      skip.appendChild(note);
+      container.appendChild(skip);
+      if (!state.advancing) {
+        state.advancing = true;
+        setTimeout(() => { state.advancing = false; state.index += 1; updatePedagogicalGuide(game); }, 850);
+      }
+      return;
+    }
+  }
+
+  // 2b. All tweaks done.
+  if (state.index >= slots.length) {
+    const done = document.createElement("div");
+    done.className = "try-code-card coach-kid coach-done";
+    done.appendChild(makeDots());
+    const msg = document.createElement("div");
+    msg.className = "coach-done-msg";
+    msg.textContent = "🎉 All tuned! Watch your gauge climb, then collect the gems.";
+    done.appendChild(msg);
+    const actions = document.createElement("div");
+    actions.className = "try-code-actions";
+    const again = document.createElement("button");
+    again.className = "notebook-btn";
+    again.textContent = "↺ Start over";
+    again.addEventListener("click", () => { state.index = 0; state.setupDone = false; updatePedagogicalGuide(game); });
+    const edit = document.createElement("button");
+    edit.className = "notebook-btn edit-scaffold-btn";
+    edit.textContent = "Edit in terminal";
+    edit.addEventListener("click", () => {
+      const inp = document.getElementById("console-input");
+      if (inp) { inp.value = buildScaffoldCode(scaffold, getCorrectedScaffoldValues(scaffold)); autoGrowConsoleInput(inp); inp.focus(); }
+    });
+    actions.appendChild(again); actions.appendChild(edit);
+    done.appendChild(actions);
+    container.appendChild(done);
+    return;
+  }
+
+  // 2c. The current single assignment.
+  const slot = slots[state.index];
+  const varName = coachVarName(scaffold, slot.id);
+  const card = document.createElement("div");
+  card.className = "try-code-card coach-kid coach-one";
+  card.appendChild(makeDots());
+
+  const num = document.createElement("div");
+  num.className = "coach-one-num";
+  num.textContent = `Tweak ${state.index + 1} of ${slots.length}`;
+  card.appendChild(num);
+
+  const line = document.createElement("div");
+  line.className = "coach-one-line";
+  const varSpan = document.createElement("span");
+  varSpan.className = "coach-one-var";
+  varSpan.textContent = varName + " = ";
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "coach-one-input";
+  input.value = slot.value;
+  input.autocomplete = "off";
+  input.spellcheck = false;
+  line.appendChild(varSpan);
+  line.appendChild(input);
+  card.appendChild(line);
+
+  if (slot.hint) {
+    const hint = document.createElement("p");
+    hint.className = "coach-one-hint";
+    hint.textContent = slot.hint;
+    card.appendChild(hint);
+  }
 
   const actions = document.createElement("div");
   actions.className = "try-code-actions";
-
-  const runBtn = document.createElement("button");
-  runBtn.className = "notebook-btn run-scaffold-btn";
-  runBtn.type = "button";
-  const predictionRequired = !!fullMission.prediction && !selectedPrediction;
-  runBtn.disabled = predictionRequired;
-  runBtn.textContent = predictionRequired ? "Pick Prediction First" : "Run Code";
-  runBtn.addEventListener("click", () => {
-    const code = buildScaffoldCode(scaffold, getScaffoldValues(card));
+  const setBtn = document.createElement("button");
+  setBtn.className = "notebook-btn run-scaffold-btn";
+  setBtn.textContent = "Set it! →";
+  setBtn.addEventListener("click", () => {
+    let code = coachAssignment(scaffold, slot, input.value);
+    if (!state.setupDone) {
+      const setup = coachSetupLines(scaffold);
+      if (setup.length) code = setup.join("\n") + "\n" + code;
+      state.setupDone = true;
+    }
     runCoachCode(game, code);
+    state.index += 1;
+    updatePedagogicalGuide(game);
   });
-
   const editBtn = document.createElement("button");
   editBtn.className = "notebook-btn edit-scaffold-btn";
-  editBtn.type = "button";
   editBtn.textContent = "Edit in terminal";
   editBtn.addEventListener("click", () => {
-    const input = document.getElementById("console-input");
-    if (input) {
-      input.value = buildScaffoldCode(scaffold, getScaffoldValues(card));
-      autoGrowConsoleInput(input);
-      input.focus();
-    }
+    const inp = document.getElementById("console-input");
+    if (inp) { inp.value = coachAssignment(scaffold, slot, input.value); autoGrowConsoleInput(inp); inp.focus(); }
   });
-
   actions.appendChild(editBtn);
-  actions.appendChild(runBtn);
+  actions.appendChild(setBtn);
   card.appendChild(actions);
   container.appendChild(card);
 
@@ -1274,24 +1359,32 @@ function updatePedagogicalGuide(game) {
     focusEl.innerHTML = `<span>Next action</span><strong>${escapeHTML(getCoachFocusText(game, activeMission))}</strong>`;
   }
 
-  steps.forEach((step, index) => {
-    const isDone = game.currentMissionSteps[step.id];
-    const isActive = index === activeIndex;
-
-    const item = document.createElement("div");
-    item.className = `step-checklist-item ${isDone ? 'completed' : ''} ${isActive ? 'active' : ''}`;
-    
-    const icon = isDone ? "✓" : (isActive ? "▶" : "○");
-    
-    item.innerHTML = `
-      <span class="bullet" style="color: ${isDone ? 'var(--neon-green)' : (isActive ? 'var(--neon-cyan)' : 'var(--text-muted)')}; font-weight:bold;">${icon} ${index + 1}.</span>
-      <div style="flex-grow:1;">
-        <span class="step-text" style="color: ${isActive ? 'var(--text-primary)' : 'var(--text-muted)'}; font-weight: ${isActive ? 'bold' : 'normal'};">${step.prompt}</span>
-      </div>
-    `;
-
-    stepsContainer.appendChild(item);
+  // Show ONLY the current step (not the whole wall of 5) with a row of progress
+  // dots — much friendlier for an 8-year-old than the full checklist.
+  const dots = document.createElement("div");
+  dots.className = "coach-step-dots";
+  steps.forEach((s, i) => {
+    const done = game.currentMissionSteps[keys[i]];
+    const dot = document.createElement("span");
+    dot.className = "coach-dot" + (done ? " done" : (i === activeIndex ? " active" : ""));
+    dots.appendChild(dot);
   });
+  stepsContainer.appendChild(dots);
+
+  const activeStep = steps[activeIndex];
+  if (activeStep) {
+    // Split a "Observe: do the thing" prompt into a chip + friendly sentence.
+    const parts = activeStep.prompt.match(/^([A-Za-z]+):\s*([\s\S]*)$/);
+    const tag = parts ? parts[1] : `Step ${activeIndex + 1}`;
+    const body = parts ? parts[2] : activeStep.prompt;
+    const item = document.createElement("div");
+    item.className = "coach-active-step";
+    item.innerHTML = `
+      <div class="coach-step-num">Step ${activeIndex + 1} of ${steps.length} · <span class="coach-step-tag">${escapeHTML(tag)}</span></div>
+      <div class="coach-step-text">${escapeHTML(body)}</div>
+    `;
+    stepsContainer.appendChild(item);
+  }
 
   renderScaffoldEditor(game, activeMission);
 }

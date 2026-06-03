@@ -1,6 +1,6 @@
 /* style.css - Design System for Star Hopper (Physics & Coding Platformer) */
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Press+Start+2P&family=Share+Tech+Mono&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Outfit:wght@300;400;600;800&family=Press+Start+2P&family=Share+Tech+Mono&display=swap');
 
 :root {
   --bg-color: #030712;
@@ -18,6 +18,7 @@
   --font-sans: 'Outfit', sans-serif;
   --font-mono: 'Share Tech Mono', monospace;
   --font-retro: 'Press Start 2P', monospace;
+  --font-kid: 'Baloo 2', 'Outfit', sans-serif; /* rounded, friendly — used in the Mission Coach */
   --game-pane-width: 66%;
   --code-deck-height: 130px;
 }
@@ -358,6 +359,7 @@ body.resizing-panes * {
   gap: 8px;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   padding-top: 10px;
+  position: relative; /* anchor the autocomplete dropdown to the input, not the page */
 }
 
 .console-prompt {
@@ -1543,7 +1545,94 @@ html {
 .mission-coach-panel {
   border-color: rgba(56, 189, 248, 0.26);
   background: rgba(56, 189, 248, 0.035);
+  font-family: var(--font-kid); /* rounded, friendly font for young cadets */
 }
+
+.mission-coach-panel .mission-panel-title,
+.mission-coach-summary,
+.coach-active-step,
+.coach-kid {
+  font-family: var(--font-kid);
+}
+
+/* Progress dots for steps / tweaks */
+.coach-step-dots { display: flex; gap: 6px; margin: 2px 0 8px; }
+.coach-dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: rgba(148, 163, 184, 0.3);
+  transition: background 0.25s ease, transform 0.25s ease;
+}
+.coach-dot.active { background: var(--neon-cyan); transform: scale(1.25); box-shadow: 0 0 8px var(--neon-cyan); }
+.coach-dot.done { background: var(--neon-green); }
+
+/* One step shown at a time */
+.coach-active-step {
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(56, 189, 248, 0.26);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.coach-step-num {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+.coach-step-tag {
+  color: var(--neon-cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.coach-step-text {
+  font-size: 0.96rem;
+  line-height: 1.4;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* One assignment at a time */
+.coach-one, .coach-skip, .coach-done {
+  border-radius: 12px;
+  padding: 12px;
+}
+.coach-one-num { font-size: 0.72rem; color: var(--text-muted); font-weight: 700; margin-bottom: 6px; }
+.coach-one-line {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  background: rgba(2, 6, 23, 0.55);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.coach-one-var { font-family: var(--font-mono); font-size: 1.02rem; color: var(--neon-cyan); }
+.coach-one-input {
+  width: 92px;
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 2px solid var(--neon-cyan);
+  border-radius: 8px;
+  color: var(--text-primary);
+}
+.coach-one-input:focus { outline: none; box-shadow: 0 0 10px rgba(56, 189, 248, 0.5); }
+.coach-one-hint {
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--text-primary);
+  margin: 8px 0 0;
+}
+.run-scaffold-btn { background: var(--neon-green) !important; color: #042713 !important; font-weight: 700; }
+
+.coach-skip-note, .coach-done-msg {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--neon-green);
+  line-height: 1.4;
+}
+.coach-skip-note code { font-family: var(--font-mono); color: var(--neon-cyan); }
+.coach-skip { animation: coach-skip-pulse 0.85s ease; }
+@keyframes coach-skip-pulse { 0% { opacity: 0.4; } 30% { opacity: 1; } 100% { opacity: 0.85; } }
 
 .mission-coach-summary {
   display: grid;
@@ -2732,6 +2821,10 @@ html {
   height: auto;
   min-height: 0;
   overflow: visible;   /* let the open popover escape this slim toggle bar */
+  /* backdrop-filter (from .glass-panel) would make this a containing block and
+     trap the absolute popover here; drop it so the popover anchors to #game-section. */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .console-area.bash-shell {
@@ -2768,10 +2861,11 @@ html {
   position: absolute;
   left: 0;
   right: 0;
-  /* Float over the GAME VIEW, clearing the bash shell (~200px) + toggle below it,
-     so opening the dictionary never hides the terminal you type into. */
-  bottom: 268px;
-  max-height: min(48vh, 340px);
+  /* Anchor to the TOP of the game column so the dictionary overlays the (mostly empty)
+     upper game view — never the HUD gauges at the canvas bottom, nor the bash shell. */
+  top: 8px;
+  bottom: auto;
+  max-height: min(46vh, 330px);
   z-index: 85;
   background: rgba(15, 23, 42, 0.96);
   backdrop-filter: blur(12px);

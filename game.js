@@ -424,6 +424,7 @@ class StarHopperGame {
     this.currentPlanetIndex = index;
     this.currentPlanet = PLANETS[index];
     this._brakeHintShown = false; // re-arm the Glacies "raise friction to brake" hint per level
+    this.coachSlot = null; // restart the Mission Coach one-tweak-at-a-time walkthrough
 
     // On a same-level retry, keep the player's typed code tunings so progress
     // made one task at a time survives death/restart. Only the physical level
