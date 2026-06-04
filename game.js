@@ -33,6 +33,18 @@ class StarHopperGame {
     // Spawned entities from user terminal commands
     this.spawnedBoxes = [];
     this.spawnedSprings = [];
+
+    // Mob Survival mode
+    this.survivalMode = false;
+    this.mobs = [];
+    this.projectiles = [];
+    this.survivalScore = 0;
+    this.weaponLevel = 1;
+    this.raveImmuneTimer = 0;
+    this.mobSpawnTimer = 0;
+    this.shootCooldown = 0;
+    this.survivalHitCooldown = 0;
+    this._raveMilestone = 0;
     
     // Camera coordinates
     this.cameraX = 0;
@@ -468,6 +480,7 @@ class StarHopperGame {
     this.coachSlot = null; // restart the Mission Coach one-tweak-at-a-time walkthrough
     this.missionBalloon = null;   // clear any on-canvas mission balloon
     this.shownGemGateIds = new Set(); // re-arm gem-gate hints (bash + balloon) per level
+    this.mobs = []; this.projectiles = []; this.mobSpawnTimer = 50; // fresh critters per planet
 
     // On a same-level retry, keep the player's typed code tunings so progress
     // made one task at a time survives death/restart. Only the physical level
@@ -911,6 +924,7 @@ class StarHopperGame {
       ui_log_output(`📡 Closing on ${targetName} — prepare for landing!`, "info");
       this.navigationReturnTimer = setTimeout(() => {
         this.navigationReturnTimer = null;
+        if (window.Nav) window.Nav.cruising = false; // stop coasting; touchdown
         this.startLevel(targetIndex);
         if (typeof switchMainMode === 'function') {
           switchMainMode('terminal');
@@ -1102,6 +1116,9 @@ class StarHopperGame {
     // 12b. Idle banter: a quiet thought bubble after standing still a while (once per pause).
     this.updateIdleBanter();
 
+    // 12c. Mob Survival mini-mode (mobs, projectiles, score, rewards).
+    if (this.survivalMode) this.updateSurvival();
+
     // 13. Redraw HUD sidebar charts & variables
     updateHUD(this);
     if (typeof updateNotebook === 'function') {
@@ -1128,6 +1145,144 @@ class StarHopperGame {
       this._brakeHintShown = true;
       showDialogue("🧊 Sliding and can't brake? The ice has almost no friction. Type friction = 8 (or hopper.spikes = 1) in Mission Coach to grip and stop.", "slippery");
     }
+  }
+
+  // ---- MOB SURVIVAL ----------------------------------------------------------
+  toggleSurvival() {
+    this.survivalMode = !this.survivalMode;
+    this.mobs = []; this.projectiles = [];
+    this.survivalScore = 0; this.weaponLevel = 1; this.raveImmuneTimer = 0; this._raveMilestone = 0;
+    this.mobSpawnTimer = 50;
+    const btn = document.getElementById('survival-btn');
+    if (btn) btn.classList.toggle('survival-on', this.survivalMode);
+    if (this.survivalMode) {
+      ui_log_output("👾 MOB SURVIVAL on! Jump on critters or press F to shoot. Score → bigger guns + a rave shield.", "success");
+      if (this.player && typeof ComicBubbles !== 'undefined') {
+        ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y - 4, "SURVIVE!", "jagged", "#ef4444", -0.4, { maxLife: 75, scale: 1.4 });
+      }
+    } else {
+      ui_log_output("Mob Survival off — back to engineering.", "info");
+    }
+  }
+
+  spawnMob() {
+    if (!this.currentPlanet || !this.currentPlanet.map) return;
+    const theme = (typeof MOB_THEMES !== 'undefined' && MOB_THEMES[this.currentPlanetIndex]) || ["👾"];
+    const emoji = theme[Math.floor(Math.random() * theme.length)];
+    const mapW = this.currentPlanet.map[0].length * TILE_SIZE;
+    const fromLeft = Math.random() < 0.5;
+    let x = fromLeft ? this.cameraX - 20 : this.cameraX + this.canvas.width + 20;
+    x = Math.max(0, Math.min(mapW - 30, x));
+    const m = new Mob(x, 50, emoji);
+    m.say(SPEECH.pick('mobChatter'));
+    this.mobs.push(m);
+  }
+
+  killMob(index, cause) {
+    const m = this.mobs[index];
+    if (!m) return;
+    this.mobs.splice(index, 1);
+    this.survivalScore += (cause === 'stomp' ? 15 : cause === 'shot' ? 10 : 8);
+    if (typeof SFX !== 'undefined' && SFX.playStomp) SFX.playStomp();
+    if (typeof ComicBubbles !== 'undefined') ComicBubbles.spawn(m.x + m.w / 2, m.y, SPEECH.pick('mobDeath'), "jagged", "#fca5a5", -0.5, { maxLife: 50, scale: 1.1 });
+    Particles.spawnBurst(m.x + m.w / 2, m.y + m.h / 2, '#ef4444', 10, 2.5, 2.5, 'glow');
+    this.checkSurvivalRewards();
+  }
+
+  checkSurvivalRewards() {
+    const newWeapon = this.survivalScore >= 140 ? 3 : this.survivalScore >= 60 ? 2 : 1;
+    if (newWeapon > this.weaponLevel) {
+      this.weaponLevel = newWeapon;
+      if (typeof ComicBubbles !== 'undefined') ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y - 6, "GUN UP!", "jagged", "#4ade80", -0.5, { maxLife: 80, scale: 1.5 });
+      ui_log_output(`🔫 Weapon level ${this.weaponLevel}! ${this.weaponLevel >= 3 ? 'DOUBLE SHOT!' : 'Faster fire!'}`, "success");
+    }
+    const milestone = Math.floor(this.survivalScore / 100);
+    if (milestone > this._raveMilestone) {
+      this._raveMilestone = milestone;
+      this.raveImmuneTimer = 420; // ~7s shield
+      if (typeof Compiler !== 'undefined') { Compiler.env.raveMode = true; setTimeout(() => { Compiler.env.raveMode = false; }, 7000); }
+      if (typeof ComicBubbles !== 'undefined') ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y - 6, "RAVE SHIELD!", "jagged", "#ec4899", -0.5, { maxLife: 95, scale: 1.6 });
+      ui_log_output("🌈 RAVE SHIELD! For 7s, just touching mobs zaps them!", "success");
+    }
+  }
+
+  updateSurvival() {
+    if (!this.survivalMode || !this.player || !this.currentPlanet) return;
+    const tilemap = this.currentPlanet.map;
+    const mapW = tilemap[0].length * TILE_SIZE;
+    if (this.raveImmuneTimer > 0) this.raveImmuneTimer--;
+    if (this.shootCooldown > 0) this.shootCooldown--;
+    if (this.survivalHitCooldown > 0) this.survivalHitCooldown--;
+    const flee = this.raveImmuneTimer > 0;
+
+    // Shooting (hold F)
+    if ((this.keys['f'] || this.keys['F']) && this.shootCooldown <= 0) {
+      const dir = this.player.facing || 1;
+      this.shootCooldown = Math.max(6, 16 - this.weaponLevel * 3);
+      const px = this.player.x + this.player.w / 2, py = this.player.y + this.player.h / 2;
+      this.projectiles.push(new Projectile(px, py, dir * 7));
+      if (this.weaponLevel >= 3) this.projectiles.push(new Projectile(px, py - 9, dir * 7));
+      if (typeof SFX !== 'undefined' && SFX.playType) SFX.playType();
+      if (typeof ComicBubbles !== 'undefined' && Math.random() < 0.25) ComicBubbles.spawn(px + dir * 16, py - 6, "PEW!", "jagged", "#facc15", -0.2, { maxLife: 22, scale: 0.7 });
+    }
+
+    // Spawn cadence (ramps up with score)
+    if (--this.mobSpawnTimer <= 0 && this.mobs.length < 8) {
+      this.mobSpawnTimer = Math.max(45, 120 - Math.floor(this.survivalScore / 40) * 8);
+      this.spawnMob();
+    }
+
+    // Projectiles vs mobs
+    for (let i = this.projectiles.length - 1; i >= 0; i--) {
+      const p = this.projectiles[i];
+      p.update(tilemap);
+      if (p.dead) { this.projectiles.splice(i, 1); continue; }
+      for (let j = this.mobs.length - 1; j >= 0; j--) {
+        const m = this.mobs[j];
+        if (Math.abs(p.x - (m.x + m.w / 2)) < m.w / 2 + 5 && Math.abs(p.y - (m.y + m.h / 2)) < m.h / 2 + 6) {
+          this.killMob(j, 'shot');
+          this.projectiles.splice(i, 1);
+          break;
+        }
+      }
+    }
+
+    // Mobs vs player
+    for (let j = this.mobs.length - 1; j >= 0; j--) {
+      const m = this.mobs[j];
+      m.update(tilemap, this.player, flee);
+      if (m.y > 470 || m.x < -50 || m.x > mapW + 50) { this.mobs.splice(j, 1); continue; }
+      if (Physics.isOverlapping(this.player, m)) {
+        const isStomp = (this.player.vy > 0.5 && this.player.y + this.player.h - this.player.vy <= m.y + 9);
+        if (isStomp) { this.player.vy = -7; this.killMob(j, 'stomp'); }
+        else if (this.raveImmuneTimer > 0) { this.killMob(j, 'rave'); }
+        else if (this.survivalHitCooldown <= 0) {
+          this.survivalHitCooldown = 70;
+          this.player.vy = -5;
+          this.player.vx = (this.player.x < m.x ? -4 : 4);
+          this.survivalScore = Math.max(0, this.survivalScore - 5);
+          if (typeof SFX !== 'undefined' && SFX.playError) SFX.playError();
+          if (typeof ComicBubbles !== 'undefined') ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y, SPEECH.pick('bonk'), "jagged", "#ef4444", -0.3, { maxLife: 40 });
+        }
+      }
+    }
+  }
+
+  drawSurvival(ctx) {
+    if (!this.survivalMode) return;
+    for (const p of this.projectiles) p.draw(ctx, this.cameraX);
+    for (const m of this.mobs) m.draw(ctx, this.cameraX);
+    // Score readout, top-center (clear of the corner bubbles)
+    ctx.save();
+    ctx.font = "bold 13px 'Outfit', sans-serif";
+    const label = `👾 ${this.survivalScore}   🔫 L${this.weaponLevel}${this.raveImmuneTimer > 0 ? '   🌈 SHIELD ' + Math.ceil(this.raveImmuneTimer / 60) + 's' : ''}`;
+    const tw = ctx.measureText(label).width;
+    const cx = this.canvas.width / 2;
+    ctx.fillStyle = 'rgba(11,16,34,0.6)';
+    ctx.beginPath(); ctx.roundRect(cx - tw / 2 - 10, 8, tw + 20, 24, 8); ctx.fill();
+    ctx.fillStyle = '#facc15'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, cx, 20);
+    ctx.restore();
   }
 
   // A quiet cloud-thought bubble after the cadet stands still for a few seconds.
@@ -1233,6 +1388,10 @@ class StarHopperGame {
 
     // 9. Draw Particle systems
     Particles.draw(this.ctx, this.cameraX);
+
+    // 9b. Mob Survival: mobs, projectiles, and the score readout
+    this.drawSurvival(this.ctx);
+
     if (typeof ComicBubbles !== 'undefined') {
       ComicBubbles.draw(this.ctx, this.cameraX);
     }

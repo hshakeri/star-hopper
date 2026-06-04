@@ -760,6 +760,13 @@ body.resizing-panes * {
   transition: opacity 0.2s ease, background 0.2s ease, border-color 0.2s ease;
 }
 
+/* Mob Survival toggle lights up red while the mode is active */
+.survival-toggle.survival-on {
+  background: rgba(239, 68, 68, 0.85) !important;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.7);
+  border-radius: 6px;
+}
+
 .game-top-controls:hover,
 .game-top-controls:focus-within {
   opacity: 1;

@@ -811,6 +811,10 @@ const runtimeContext = {
       Compiler.env.raveMode = !Compiler.env.raveMode;
       return `rave mode is now ${Compiler.env.raveMode ? 'on' : 'off'}`;
     },
+    survival_mode: (game) => {
+      if (game && typeof game.toggleSurvival === 'function') game.toggleSurvival();
+      return `Mob Survival is now ${game && game.survivalMode ? 'ON — press F to shoot!' : 'off'}`;
+    },
     shrink_enemies: (game) => {
       game.shrinkAllEnemies();
       return "Enemies shrunk!";
@@ -885,7 +889,7 @@ class AutocompleteEngine {
       "star.mass",
       "hopper.engine", "hopper.jump_power", "hopper.mass", "hopper.rocket_power", "hopper.spikes", "hopper.pole",
       "spawn()", "spawn_gem()", "spawn_box()", "spawn_spring()",
-      "invert_gravity()", "rave_mode()", "shrink_enemies()", "bounce_up()", "reset()",
+      "invert_gravity()", "rave_mode()", "survival_mode()", "shrink_enemies()", "bounce_up()", "reset()",
       "use_hopper()", "use_rover()",
       "play_music()", "music"
     ];

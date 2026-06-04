@@ -274,8 +274,9 @@ function updateNavigator(game) {
   } else {
     if (!window.Nav.ship) return;
 
-    // Only update physics and time if there are commands in the queue or an action is currently executing
-    if (window.Nav.commandQueue.length > 0 || window.Nav.currentAction) {
+    // Step physics while a plan runs OR while cruising the destination orbit post-arrival,
+    // so the ship keeps gliding along its orbit before the landing call.
+    if (window.Nav.commandQueue.length > 0 || window.Nav.currentAction || window.Nav.cruising) {
       // Calculate timestep size dt
       const dt = 0.1 * window.Nav.timeWarpFactor;
 
@@ -293,9 +294,12 @@ function updateNavigator(game) {
       if (activeMission && !window.Nav.orbitalMissionsCompleted.has(activeMission.id)) {
         if (activeMission.validate(window.Nav.ship, window.Nav.ship.timeElapsed)) {
           window.Nav.orbitalMissionsCompleted.add(activeMission.id);
-          // Spacecraft settles into the destination orbit — give it a happy shout.
+          // Spacecraft settles into the destination orbit — keep coasting it for a beat
+          // (cruising) before the landing call, instead of freezing in place.
           window.Nav.ship.sayText = (typeof SPEECH !== 'undefined') ? SPEECH.pick("navCruise") : "Cruising now!";
           window.Nav.ship.sayTimer = 220;
+          window.Nav.cruising = true;
+          window.Nav.timeWarpFactor = 1; // gentle real-time cruise, no warp blur
           window.Nav.logConsole(`MISSION ACCOMPLISHED: ${activeMission.title}!`, "success");
           renderNavigatorMissionsSolar();
           if (typeof updateCertificateState === 'function') {

@@ -26,12 +26,12 @@ class Particle {
     ctx.save();
     ctx.globalAlpha = this.alpha;
     ctx.fillStyle = this.color;
-    
+
     if (this.type === 'glow') {
       ctx.shadowBlur = this.size * 2;
       ctx.shadowColor = this.color;
     }
-    
+
     ctx.beginPath();
     ctx.arc(this.x - cameraX, this.y, this.size, 0, Math.PI * 2);
     ctx.fill();
@@ -58,11 +58,11 @@ class ParticleEngine {
       const angle = Math.random() * Math.PI * 2;
       const mag = (0.3 + Math.random() * 0.7) * speed;
       this.spawn(
-        x, y, color, 
-        size * (0.5 + Math.random() * 0.5), 
-        Math.cos(angle) * mag, 
-        Math.sin(angle) * mag, 
-        15 + Math.random() * 20, 
+        x, y, color,
+        size * (0.5 + Math.random() * 0.5),
+        Math.cos(angle) * mag,
+        Math.sin(angle) * mag,
+        15 + Math.random() * 20,
         type
       );
     }
@@ -91,29 +91,165 @@ const Particles = new ParticleEngine();
 // the same one twice in a row, so the game keeps feeling fresh. Add freely.
 // ---------------------------------------------------------------------------
 const SPEECH_POOLS = {
-  jump:    ["BOING!", "HUP!", "WHEE!", "BOUNCE!", "SPRONG!", "UP UP!", "HOPPA!", "BWOMP!"],
-  stomp:   ["STOMP!", "SPLAT!", "BONK!", "POW!", "SQUISH!", "GOTCHA!", "BAM!", "YEET!"],
-  get:     ["GET!", "NICE!", "SHINY!", "GRAB!", "YOINK!", "OOH!", "SWEET!", "GEM-TASTIC!", "MINE!"],
-  powerup: ["POWER UP!", "LEVEL UP!", "BOOSTED!", "SUPERCHARGED!", "KA-CHING!", "MAX POWER!", "UPGRADE!"],
-  zap:     ["ZAP!", "BZZT!", "CLING!", "MAGNET-O!", "SNAP!", "KRZZT!", "STICKY!"],
-  whoosh:  ["WHOOSH!", "VROOM!", "BLAST!", "FWOOSH!", "ZOOM!", "BRRRAP!", "TO THE MOON!"],
-  grip:    ["GRIP!", "CLANK!", "DIG IN!", "HOLD ON!", "CRUNCH!", "TRACTION!", "BITE!"],
-  bonk:    ["BONK!", "OOF!", "OW!", "THWAP!", "DOINK!", "OUCH!", "WALL!"],
-  bump:    ["BUMP!", "TONK!", "CLONK!", "DUNK!", "HEAD!", "CEILING!"],
-  land:    ["TMP!", "THUD!", "TAP!", "THWMP!", "*dust*", "STICK!"],
-  kaboom:  ["KABOOM!", "BOOM!", "CRASH!", "SMASH!", "WIPEOUT!", "SPLAT!", "OW-CH!"],
-  arrive:  ["HERE WE GO!", "LET'S HOP!", "GAME ON!", "LIFTOFF!", "READY!", "ADVENTURE TIME!", "BOUNCE PARTY!"],
-  idle:    ["Hmm…", "Any signals?", "So quiet…", "Snack time?", "Pretty stars.", "Now what?", "*yawns*",
-            "Is it lunch?", "I spy a comet.", "Boop.", "Just vibing.", "Cosmic, man.", "Beep boop?",
-            "Whistle…", "Counting stars.", "Tum te tum…", "Space is big.", "Wiggle wiggle."],
+  jump: [
+    "BOING!", "HUP!", "WHEE!", "BOUNCE!", "SPRONG!", "UP UP!", "HOPPA!", "BWOMP!",
+    "SKY BOOP!", "LEG DAY!", "TOES AWAY!", "ANTI-GRAV!", "MOON KNEES!", "HOPSCOTCH!",
+    "FLY-ish!", "UPSY-DAISY!", "GRAVITY WHO?", "JUMP.exe!", "BOOTS GO BRR!", "LAUNCH LEGS!",
+    "YOINK UP!", "KNEE BLAST!", "AIR TIME!", "I BELIEVE!", "SPROING-O!", "CLOUD TICKLE!"
+  ],
+
+  stomp: [
+    "STOMP!", "SPLAT!", "BONK!", "POW!", "SQUISH!", "GOTCHA!", "BAM!", "YEET!",
+    "BOOT TAX!", "DOWN YOU GO!", "FEET JUSTICE!", "SNEAKER SMASH!", "OOPS, BOOT!",
+    "GRAVITY HELPED!", "PANCaked!", "TINY THUNDER!", "SOLE POWER!", "TOE-TALED!",
+    "STOMP-O-MATIC!", "BUG REPORT!", "BONK RECEIPT!", "SURPRISE FLOOR!", "NOPE!", "SQUISHY MATH!"
+  ],
+
+  get: [
+    "GET!", "NICE!", "SHINY!", "GRAB!", "YOINK!", "OOH!", "SWEET!", "GEM-TASTIC!", "MINE!",
+    "SPACE LOOT!", "POCKETED!", "CHA-CHING!", "COSMIC COIN!", "GIMME!", "SPARKLE TAX!",
+    "STAR SNACK!", "LOOT SCOOT!", "COLLECTED!", "TREASURE BOOP!", "OINK? COIN!", "SHINY ACQUIRED!",
+    "RICH-ish!", "GALAXY TIP!", "THANKS, SPACE!", "FINDERS KEEPERS!", "SPARKLE GET!"
+  ],
+
+  powerup: [
+    "POWER UP!", "LEVEL UP!", "BOOSTED!", "SUPERCHARGED!", "KA-CHING!", "MAX POWER!", "UPGRADE!",
+    "JUICE MODE!", "BUFFED!", "BIG HOP ENERGY!", "SCIENCE!", "LIMIT BROKEN!", "HYPER HOP!",
+    "ROCKET SOCKS!", "POWER SNACK!", "STATS GO UP!", "PATCHED!", "UNFAIR!", "TURBO BEANS!",
+    "GLITCH? NAH!", "HOPPER 2.0!", "COSMIC SAUCE!", "FULL BATTERY!", "SPICY PHYSICS!", "CHARGED!"
+  ],
+
+  zap: [
+    "ZAP!", "BZZT!", "CLING!", "MAGNET-O!", "SNAP!", "KRZZT!", "STICKY!",
+    "SPARK SNACK!", "STATIC HUG!", "MAG-NICE!", "POLARITY PARTY!", "CURRENT MOOD!",
+    "FIELD TRIP!", "BZZZAP!", "ION KNOW!", "SHOCKING!", "ELECTRO-BOOP!", "CLINGY!",
+    "SCIENCE ZOT!", "WATT?!", "OHM MY!", "ATTRACTED!", "MAGNET HUG!", "BEEP-ZAP!", "ZORT!"
+  ],
+
+  whoosh: [
+    "WHOOSH!", "VROOM!", "BLAST!", "FWOOSH!", "ZOOM!", "BRRRAP!", "TO THE MOON!",
+    "NYOOM!", "FAST FEET!", "SPEEDY BEAN!", "COMET MODE!", "BYE FLOOR!", "AIR MAIL!",
+    "WARP-ish!", "ZOOMIES!", "TURBO TUSH!", "DUST WHO?", "SPEED TAX!", "METEOR MOOD!",
+    "FLOOR CANCELLED!", "ORBITS FEAR ME!", "GAS GAS!", "SPACE WIND!", "WHIZZ!", "FWOOM!"
+  ],
+
+  grip: [
+    "GRIP!", "CLANK!", "DIG IN!", "HOLD ON!", "CRUNCH!", "TRACTION!", "BITE!",
+    "STICKY BOOTS!", "NO SLIP!", "ICE WHO?", "CLING MODE!", "BOOT BRAKES!", "FRICTION FRIEND!",
+    "ANCHOR FEET!", "GRABBY SOLES!", "LOCKED!", "SURFACE HUG!", "SKID DENIED!", "TREAD LIGHTLY!",
+    "GRIPTASTIC!", "CLAW BOOTS!", "STAY PUT!", "NOPE, SLIDE!", "FLOOR FRIEND!", "BOOT GLUE!"
+  ],
+
+  bonk: [
+    "BONK!", "OOF!", "OW!", "THWAP!", "DOINK!", "OUCH!", "WALL!",
+    "HELMET TEST!", "FACE MEET WALL!", "NOTED!", "DATA POINT!", "SCIENCE HURTS!",
+    "BOOPED TOO HARD!", "WALL SAYS HI!", "HEAD FIRST!", "MY BAD!", "THAT'S SOLID!",
+    "CRANI-YUM!", "BRAIN BOUNCE!", "NO ENTRY!", "OOPSIE!", "STRUCTURAL YES!", "PAIN PING!"
+  ],
+
+  bump: [
+    "BUMP!", "TONK!", "CLONK!", "DUNK!", "HEAD!", "CEILING!",
+    "UPPER BONK!", "SKY SAID NO!", "CEILING TAX!", "LOW BRIDGE!", "HELMET BONK!",
+    "TOPSIDE OOF!", "HEIGHT CHECK!", "NO FLY ZONE!", "DOME DOINK!", "ROOF BOOP!",
+    "UPPERCUT WALL!", "BONK ABOVE!", "TOO TALL!", "SKULL TAP!", "CEILING HUG!", "AIRBRAKE!"
+  ],
+
+  land: [
+    "TMP!", "THUD!", "TAP!", "THWMP!", "*dust*", "STICK!",
+    "LANDED!", "FLOOR TIME!", "BOOT PRINT!", "NICE TOUCHDOWN!", "GRAVITY WON!", "SOFT-ish!",
+    "DUST PUFF!", "FEET ONLINE!", "HELLO GROUND!", "SAFE-ish!", "TINY QUAKE!", "KNEES OK!",
+    "STOMP-LITE!", "TOUCHDOWN!", "FLOOR HUG!", "PLANTED!", "BOOTS DOWN!", "SURFACE GET!"
+  ],
+
+  kaboom: [
+    "KABOOM!", "BOOM!", "CRASH!", "SMASH!", "WIPEOUT!", "SPLAT!", "OW-CH!",
+    "MISSION OOPS!", "BIG OOF!", "PHYSICS WON!", "SEND HELP!", "RESPAWN TIME!", "CHAOS!",
+    "NOT IDEAL!", "RIP BOOTS!", "HOUSTON, OW!", "ERROR: OUCH!", "MY TRAJECTORY!", "CRATER MODE!",
+    "SPICY LANDING!", "CALCULATED? NO!", "BOOM WITH FEELING!", "DUST NAP!", "BONKAGEDDON!", "RESET ME!"
+  ],
+
+  arrive: [
+    "HERE WE GO!", "LET'S HOP!", "GAME ON!", "LIFTOFF!", "READY!", "ADVENTURE TIME!", "BOUNCE PARTY!",
+    "STAR TIME!", "MISSION START!", "BOOTS READY!", "SPACE FACE ON!", "HOP TO IT!", "CADET MODE!",
+    "FUEL? MAYBE!", "HELLO, COSMOS!", "GRAVITY LOADED!", "VECTOR CHECK!", "SCIENCE HAT ON!",
+    "LET'S YEET!", "PLANET, PLEASE!", "ORBITS AHOY!", "START THE SPROING!", "BOOT SEQUENCE!", "GO TIME!"
+  ],
+
+  idle: [
+    "Hmm…", "Any signals?", "So quiet…", "Snack time?", "Pretty stars.", "Now what?", "*yawns*",
+    "Is it lunch?", "I spy a comet.", "Boop.", "Just vibing.", "Cosmic, man.", "Beep boop?",
+    "Whistle…", "Counting stars.", "Tum te tum…", "Space is big.", "Wiggle wiggle.",
+    "Gravity called.", "Still floating.", "Tiny orbit thoughts.", "I miss snacks.", "Helmet hair day.",
+    "Do stars sneeze?", "Math is lurking.", "Boots are bored.", "Any asteroids?", "Hopper waiting.",
+    "Space smells purple.", "Blink blink.", "Comet or crumb?", "Thinking noises.", "Boop pending.",
+    "Standing by-ish.", "Orbitally awkward.", "My socks echo.", "No thoughts, just stars.",
+    "Can I eat moon?", "Astro-napping.", "Void check.", "Still cute.", "Tiny space pause.",
+    "404: snacks not found.", "Did I save?", "Gravity is clingy.", "Friction gossip.", "Starstruck."
+  ],
+
   // Navigator — astronaut lingo
-  navAim:       ["Locked on!", "Nose on target!", "Aligning, over.", "Pointy end that way!", "Target acquired!", "On the money!"],
-  navThrust:    ["Burnin' fuel!", "Punch it!", "Full burn, baby!", "Throttle up!", "Engines HOT!", "Pushin' tin!", "Hold my space-juice!"],
-  navWait:      ["Coastin'…", "Just driftin'.", "Ridin' the void.", "Patience, cadet.", "Tick tock in space.", "Zero-G nap.", "Wheee, no gravity!"],
-  navCruise:    ["Cruising now!", "Smooth orbit!", "In the groove!", "Orbit locked, baby!", "Nice and steady.", "Feet up, coasting."],
-  navLanding:   ["Prepare for landing!", "Brace, brace!", "Touchdown soon!", "Landing gear — deploy!", "Hold your helmet!", "Comin' in hot!"],
-  navLightspeed:["Closing on light speed!", "Ludicrous speed!", "We're warpin'!", "Einstein would faint!", "Time's gettin' weird!", "Almost plaid!", "Whoa — relativity!"],
-  navDeepSpace: ["Whoa — deep space!", "Lost the planets!", "Re-aim, cadet!", "Out in the big black!", "Where'd everybody go?", "Too far, too far!"]
+  navAim: [
+    "Locked on!", "Nose on target!", "Aligning, over.", "Pointy end that way!", "Target acquired!", "On the money!",
+    "Vector vibes!", "Aim-ish!", "Compass says yep!", "Face the rock!", "Planet in sights!", "Trajectory tea!",
+    "Pointy mode!", "Bearing acquired!", "Line it up!", "Math points there!", "Nose knows!", "Target booped!",
+    "Orbit says hi!", "Angle wrangled!", "Rotation rationed!", "Aim juice ready!", "Coordinates cuddled!", "Bullseye-ish!"
+  ],
+
+  navThrust: [
+    "Burnin' fuel!", "Punch it!", "Full burn, baby!", "Throttle up!", "Engines HOT!", "Pushin' tin!", "Hold my space-juice!",
+    "Fire the spicy end!", "Newton time!", "Boost beans!", "Delta-v me!", "Thrust issues!", "Engine sneeze!",
+    "Zoom budget spent!", "Fuel confetti!", "Rocket socks!", "Burn, baby!", "Pushy physics!", "Acceleration nation!",
+    "No brakes, vibes!", "Exhaust party!", "Main engine: YES!", "Orbital shove!", "Fuel go whoosh!", "Speed soup!"
+  ],
+
+  navWait: [
+    "Coastin'…", "Just driftin'.", "Ridin' the void.", "Patience, cadet.", "Tick tock in space.", "Zero-G nap.", "Wheee, no gravity!",
+    "Let math cook.", "Orbit simmering.", "Waiting in style.", "Void lounge.", "Snack window?", "Coast toast.",
+    "Hands off, hero.", "Drift responsibly.", "Space patience.", "Trajectory loading…", "Momentum babysitting.",
+    "Nothing to see.", "Time soup.", "Floating politely.", "Physics buffering.", "Tiny orbit nap.", "Still calculating vibes."
+  ],
+
+  navCruise: [
+    "Cruising now!", "Smooth orbit!", "In the groove!", "Orbit locked, baby!", "Nice and steady.", "Feet up, coasting.",
+    "Glide mode!", "Silky space!", "Stable-ish!", "Orbital oatmeal!", "Zero drama!", "Smooth like moonbutter!",
+    "Course is cozy.", "Comfy trajectory.", "Velocity behaved!", "Cruise juice!", "Orbit purrs.", "No wobble!",
+    "Space highway!", "Drift deluxe!", "Cadet approved!", "Vector velvet!", "We vibin'.", "Steady spaghetti!"
+  ],
+
+  navLanding: [
+    "Prepare for landing!", "Brace, brace!", "Touchdown soon!", "Landing gear — deploy!", "Hold your helmet!", "Comin' in hot!",
+    "Ground incoming!", "Knees, prepare!", "Dust forecast!", "Boots to dirt!", "Careful-ish!", "Aim for soft!",
+    "Planet hug soon!", "Surface RSVP!", "Gravity pickup!", "Helmet down!", "Tiny crash maybe!", "Touchdown tango!",
+    "Lower the snacks!", "Descent party!", "Don’t lick the planet!", "Landing vibes!", "Floor appointment!", "Boots first!"
+  ],
+
+  navLightspeed: [
+    "Closing on light speed!", "Ludicrous speed!", "We're warpin'!", "Einstein would faint!", "Time's gettin' weird!", "Almost plaid!", "Whoa — relativity!",
+    "Causality who?", "Photon envy!", "Clock melted!", "Speed limit? cute.", "Time noodles!", "Mass says nope!",
+    "Warp sprinkles!", "Relativity snack!", "Calendar drift!", "Fast enough-ish!", "Light says hey!", "Space streaks!",
+    "Helmet stretching!", "Physics squints!", "Too fast for pants!", "Velocity goblin!", "Temporal boop!", "Zoom beyond zoom!"
+  ],
+
+  navDeepSpace: [
+    "Whoa — deep space!", "Lost the planets!", "Re-aim, cadet!", "Out in the big black!", "Where'd everybody go?", "Too far, too far!",
+    "Map got nervous!", "Signal is soup!", "Stars everywhere!", "Void says hi.", "Planet? Planet?", "Compass crying!",
+    "Coordinates sneezed!", "Big empty energy.", "Return receipt?", "Deep whoops!", "Cosmic oopsie!", "Space got bigger!",
+    "Echo location?", "Mission got spicy!", "Lost but stylish.", "Hello, nothing!", "Too much universe!", "Bring snacks!"
+  ],
+
+  // Mob Survival — the critters trash-talk
+  mobChatter: [
+    "GRRR!", "ROAR!", "SNARL!", "BLORP!", "BEEP BEEP!", "RAWR!", "HISS!", "SKREE!", "ZZT!", "MUNCH?",
+    "HOWL!", "CHOMP!", "GROWL!", "SQUEAK!", "GNAR!", "BORK!", "HONK!", "SCREECH!", "feed me!", "intruder!",
+    "snack o'clock!", "you look tasty!", "rawr means hi!", "my planet!", "boop you!", "grr-eetings!"
+  ],
+  mobDeath: [
+    "OOF!", "SPLAT!", "BYE!", "DEFEATED!", "K.O.!", "POP!", "NOOO!", "*poof*", "X_X", "GG!",
+    "OW-CH!", "ZONK!", "DOWN I GO!", "YEET'D!", "RIP me!", "well, rude!", "see ya!", "blub…", "*sparkles*", "respawn?"
+  ],
+  mobRave: [
+    "AAH, DISCO!", "TOO SHINY!", "RETREAT!", "NOPE NOPE!", "MY EYES!", "FLEE!", "rave bad!", "spooky lights!", "abort!", "run away!"
+  ]
 };
 
 const SPEECH = {
@@ -153,7 +289,7 @@ class ComicBubble {
 
   draw(ctx, cameraX) {
     ctx.save();
-    
+
     // Comic popup animation scale profile
     let s = 1.0;
     if (this.life < 6) {
@@ -162,7 +298,7 @@ class ComicBubble {
       s = (this.maxLife - this.life) / 8; // scale out
     }
     if (s <= 0) s = 0.01;
-    
+
     ctx.translate(this.x - cameraX, this.y);
     ctx.scale(s * this.scaleMul, s * this.scaleMul);
     ctx.rotate(this.angle);
@@ -195,11 +331,11 @@ class ComicBubble {
 
       // Draw bubble trailing links
       ctx.beginPath();
-      ctx.arc(-8, h/2 + 6, 3.5, 0, Math.PI * 2);
+      ctx.arc(-8, h / 2 + 6, 3.5, 0, Math.PI * 2);
       ctx.fill(); ctx.stroke();
 
       ctx.beginPath();
-      ctx.arc(-14, h/2 + 11, 2, 0, Math.PI * 2);
+      ctx.arc(-14, h / 2 + 11, 2, 0, Math.PI * 2);
       ctx.fill(); ctx.stroke();
     }
 
@@ -243,13 +379,13 @@ class ComicBubble {
     } else if (this.type === 'cloud') {
       // Soft puffy thought pill sized to the text (the thought-trail dots are
       // drawn separately in draw()). Stadium radius keeps it readable at any width.
-      ctx.roundRect(ox - w/2, oy - h/2, w, h, h/2);
+      ctx.roundRect(ox - w / 2, oy - h / 2, w, h, h / 2);
     } else {
       // Rounded chat box with short center pointer tail
-      ctx.roundRect(ox - w/2, oy - h/2, w, h, 6);
-      ctx.moveTo(ox - 6, oy + h/2 - 1);
-      ctx.lineTo(ox - 2, oy + h/2 + 5);
-      ctx.lineTo(ox + 4, oy + h/2 - 1);
+      ctx.roundRect(ox - w / 2, oy - h / 2, w, h, 6);
+      ctx.moveTo(ox - 6, oy + h / 2 - 1);
+      ctx.lineTo(ox - 2, oy + h / 2 + 5);
+      ctx.lineTo(ox + 4, oy + h / 2 - 1);
     }
   }
 }
@@ -286,6 +422,101 @@ class ComicBubbleEngine {
 
 const ComicBubbles = new ComicBubbleEngine();
 
+// ---------------------------------------------------------------------------
+// MOB SURVIVAL: planet-themed critters you stomp/shoot for points. Emoji-drawn
+// so each world feels distinct, with their own little trash-talk balloons.
+// ---------------------------------------------------------------------------
+const MOB_THEMES = [
+  ["🐯", "🐺", "🦂", "🐗", "🐍"],   // 0 Earth — beasts
+  ["👾", "🛸", "🌚", "🦠"],          // 1 Moon — aliens
+  ["👹", "🐲", "🔥", "👺"],          // 2 Jupiter — storm demons
+  ["🐧", "🦭", "❄️", "🐻‍❄️"],         // 3 Glacies — frost things
+  ["🤖", "🧲", "⚡", "👁️"]           // 4 Mag-Net — machines
+];
+
+class Mob {
+  constructor(x, y, emoji) {
+    this.x = x; this.y = y; this.w = 26; this.h = 26;
+    this.vy = 0;
+    this.dir = (Math.random() < 0.5 ? -1 : 1);
+    this.speed = 0.7 + Math.random() * 0.8;
+    this.emoji = emoji;
+    this.onGround = false;
+    this.hopTimer = 40 + Math.random() * 90;
+    this.sayText = ""; this.sayTimer = 0;
+    this.hitFlash = 0;
+  }
+  say(t) { this.sayText = t; this.sayTimer = 70; }
+  _solid(tilemap, x, y) {
+    const cL = Math.floor(x / TILE_SIZE), cR = Math.floor((x + this.w) / TILE_SIZE);
+    const rT = Math.floor(y / TILE_SIZE), rB = Math.floor((y + this.h) / TILE_SIZE);
+    if (cL < 0 || !tilemap[0] || cR >= tilemap[0].length || rB >= tilemap.length) return true;
+    if (rT < 0) return false;
+    for (let r = rT; r <= rB; r++) for (let c = cL; c <= cR; c++) if (tilemap[r] && tilemap[r][c] === 1) return true;
+    return false;
+  }
+  update(tilemap, player, flee) {
+    const toward = (player.x > this.x ? 1 : -1);
+    this.dir = flee ? -toward : toward;
+    this.vy += 0.5;
+    // horizontal (turn at walls)
+    const nx = this.x + this.dir * this.speed;
+    if (!this._solid(tilemap, nx, this.y)) this.x = nx; else this.dir *= -1;
+    // vertical
+    this.y += this.vy;
+    this.onGround = false;
+    if (this._solid(tilemap, this.x, this.y)) {
+      if (this.vy > 0) { this.y = Math.floor((this.y + this.h) / TILE_SIZE) * TILE_SIZE - this.h; this.onGround = true; }
+      else if (this.vy < 0) { this.y = (Math.floor(this.y / TILE_SIZE) + 1) * TILE_SIZE; }
+      this.vy = 0;
+    }
+    // hops toward the cadet (not while fleeing a rave shield)
+    if (--this.hopTimer <= 0) { this.hopTimer = 50 + Math.random() * 100; if (this.onGround && !flee) this.vy = -6.5; }
+    if (this.sayTimer > 0) this.sayTimer--;
+    if (this.hitFlash > 0) this.hitFlash--;
+    if (this.sayTimer <= 0 && Math.random() < 0.004) this.say(SPEECH.pick(flee ? 'mobRave' : 'mobChatter'));
+  }
+  draw(ctx, cameraX) {
+    const sx = this.x + this.w / 2 - cameraX, sy = this.y + this.h / 2;
+    ctx.save();
+    ctx.globalAlpha = 0.22; ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.ellipse(sx, this.y + this.h, this.w * 0.42, 4, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = this.hitFlash > 0 ? 0.5 : 1;
+    ctx.font = "23px serif"; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(this.emoji, sx, sy);
+    ctx.restore();
+    if (this.sayTimer > 0 && this.sayText) {
+      ctx.save();
+      ctx.font = "7px 'Press Start 2P', monospace";
+      const tw = ctx.measureText(this.sayText).width, bw = tw + 10, bh = 13;
+      const bx = sx - bw / 2, by = this.y - bh - 5;
+      ctx.fillStyle = '#0b1022'; ctx.beginPath(); ctx.roundRect(bx - 2, by - 2, bw + 4, bh + 4, 4); ctx.fill();
+      ctx.fillStyle = '#fde68a'; ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 3); ctx.fill();
+      ctx.fillStyle = '#15233e'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(this.sayText, sx, by + bh / 2 + 0.5);
+      ctx.restore();
+    }
+  }
+}
+
+class Projectile {
+  constructor(x, y, vx) { this.x = x; this.y = y; this.vx = vx; this.life = 0; this.maxLife = 60; this.dead = false; }
+  update(tilemap) {
+    this.x += this.vx; this.life++;
+    const c = Math.floor(this.x / TILE_SIZE), r = Math.floor(this.y / TILE_SIZE);
+    if (tilemap[r] && tilemap[r][c] === 1) this.dead = true;
+    if (this.life >= this.maxLife) this.dead = true;
+  }
+  draw(ctx, cameraX) {
+    ctx.save();
+    ctx.fillStyle = '#facc15'; ctx.shadowBlur = 8; ctx.shadowColor = '#f59e0b';
+    ctx.beginPath(); ctx.arc(this.x - cameraX, this.y, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 0.4;
+    ctx.beginPath(); ctx.arc(this.x - cameraX - Math.sign(this.vx) * 6, this.y, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+}
+
 // The Main Player Class (Swappable between Star & Hopper)
 class Player {
   constructor(x, y) {
@@ -293,18 +524,18 @@ class Player {
     this.y = y;
     this.vx = 0;
     this.vy = 0;
-    
+
     this.charType = 'star'; // 'star' or 'hopper'
     this.onGround = false;
     this.isJumping = false;
-    
+
     // Character dimensions
     this.w = 20;
     this.h = 32;
     this.scale = 1.0;
     this.mass = 1.0;
     this.jumpPower = 15;
-    
+
     // Hopper specifics
     this.fuel = 100;
     this.maxFuel = 100;
@@ -312,7 +543,7 @@ class Player {
     this.magnetActive = false;
     this.isBraking = false; // Spiked boots engaged
     this.spikes = false;
-    
+
     // Event flags for conditional engine
     this.hitEnemyThisFrame = false;
     this.touchingGroundType = 'earth';
@@ -351,7 +582,7 @@ class Player {
     if (kind === 'ice') {
       return this.touchingGroundType === 'ice';
     }
-    
+
     // Scan active interactives list
     if (game && game.interactiveObjects) {
       for (const obj of game.interactiveObjects) {
@@ -360,7 +591,7 @@ class Player {
         }
       }
     }
-    
+
     if (kind === 'magnet' && game && game.interactiveObjects) {
       for (const obj of game.interactiveObjects) {
         if ((obj.type === 'pos_node' || obj.type === 'neg_node') && Physics.isOverlapping(this, obj)) {
@@ -368,13 +599,13 @@ class Player {
         }
       }
     }
-    
+
     return false;
   }
 
   swap(game) {
     if (!game) return;
-    
+
     // Switch active state inside the single player object!
     if (this.charType === 'star') {
       this.charType = 'hopper';
@@ -387,7 +618,7 @@ class Player {
       this.h = 32;
       this.mass = game.starMass !== undefined ? game.starMass : 1.0;
     }
-    
+
     // Visual pop on swap
     const color = (this.charType === 'star') ? '#38bdf8' : '#f97316';
     Particles.spawnBurst(this.x + this.w / 2, this.y + this.h / 2, color, 15, 3, 4, 'glow');
@@ -411,7 +642,7 @@ class Player {
     const isCustomF = Compiler.env.friction !== null;
     const baseFriction = isCustomF ? Compiler.env.friction : currentPlanet.physics.friction;
     const airResistance = currentPlanet.physics.airResistance ?? 0.99;
-    
+
     // Top speed and jump launch are DERIVED from force / mass (F = m·a): a stronger
     // engine OR a lighter rover both go faster and jump higher.
     const engineForce = Compiler.env.engine ?? currentPlanet.physics.speed;
@@ -474,9 +705,9 @@ class Player {
       // Walking dust particles
       if (this.onGround && Math.random() < 0.15) {
         Particles.spawn(
-          this.x + this.w / 2, this.y + this.h, 
-          'rgba(255, 255, 255, 0.4)', 1.5, 
-          0.5 + Math.random(), -Math.random() * 0.5, 
+          this.x + this.w / 2, this.y + this.h,
+          'rgba(255, 255, 255, 0.4)', 1.5,
+          0.5 + Math.random(), -Math.random() * 0.5,
           10
         );
       }
@@ -486,9 +717,9 @@ class Player {
       if (this.vx > speedMultiplier) this.vx = speedMultiplier;
       if (this.onGround && Math.random() < 0.15) {
         Particles.spawn(
-          this.x + this.w / 2, this.y + this.h, 
-          'rgba(255, 255, 255, 0.4)', 1.5, 
-          -0.5 - Math.random(), -Math.random() * 0.5, 
+          this.x + this.w / 2, this.y + this.h,
+          'rgba(255, 255, 255, 0.4)', 1.5,
+          -0.5 - Math.random(), -Math.random() * 0.5,
           10
         );
       }
@@ -498,7 +729,7 @@ class Player {
         const visualFriction = Compiler.env.friction; // 0 to 10
         horizontalFriction = 0.999 - (visualFriction / 10) * 0.299;
       }
-      
+
       // Hopper spiked boots activation (holding S or Down arrow increases friction)
       if (this.charType === 'hopper' && (downPressed || this.spikes) && this.onGround) {
         horizontalFriction = 0.65; // High grip!
@@ -506,9 +737,9 @@ class Player {
         // Spark particles under boots
         if (Math.abs(this.vx) > 0.5) {
           Particles.spawn(
-            this.x + this.w / 2, this.y + this.h, 
-            '#facc15', 2, 
-            -this.vx * 0.5 + (Math.random() - 0.5), -1 - Math.random(), 
+            this.x + this.w / 2, this.y + this.h,
+            '#facc15', 2,
+            -this.vx * 0.5 + (Math.random() - 0.5), -1 - Math.random(),
             12, 'glow'
           );
           if (Math.abs(this.vx) > 0.8) {
@@ -544,7 +775,7 @@ class Player {
       if (typeof ComicBubbles !== 'undefined') {
         ComicBubbles.spawn(this.x + this.w / 2, this.y + this.h, SPEECH.pick("jump"), "rounded", "#38bdf8");
       }
-      
+
       // Guided tutorial hook
       if (typeof handleGuidedJumpHook === 'function') {
         handleGuidedJumpHook();
@@ -562,9 +793,9 @@ class Player {
           // Spawn glide sparkles
           if (Math.random() < 0.25) {
             Particles.spawn(
-              this.x + Math.random() * this.w, this.y + this.h, 
-              '#38bdf8', 1.5, 
-              (Math.random() - 0.5) * 0.5, 0.5, 
+              this.x + Math.random() * this.w, this.y + this.h,
+              '#38bdf8', 1.5,
+              (Math.random() - 0.5) * 0.5, 0.5,
               20, 'glow'
             );
           }
@@ -580,13 +811,13 @@ class Player {
           this.fuel -= 1.5;
           // Rocket exhaust particles
           Particles.spawn(
-            this.x + (Math.random() * 6) + 4, this.y + this.h, 
-            '#f97316', 2.5, 
-            (Math.random() - 0.5) * 0.8, 1.5 + Math.random() * 1.5, 
+            this.x + (Math.random() * 6) + 4, this.y + this.h,
+            '#f97316', 2.5,
+            (Math.random() - 0.5) * 0.8, 1.5 + Math.random() * 1.5,
             15, 'glow'
           );
           if (Math.random() < 0.2) SFX.playJump(); // soft thrust hum
-          
+
           this.rocketBubbleTimer = (this.rocketBubbleTimer || 0) + 1;
           if (this.rocketBubbleTimer % 35 === 1 && typeof ComicBubbles !== 'undefined') {
             ComicBubbles.spawn(this.x + this.w / 2, this.y + this.h, SPEECH.pick("whoosh"), "jagged", "#f97316");
@@ -635,7 +866,7 @@ class Player {
     const cx = this.x + this.w / 2 - cameraX;
     const footY = this.y + this.h;
     const bob = Math.sin(Date.now() / 170 + this.x * 0.03) * (this.onGround ? 0.7 : 0.25);
-    
+
     ctx.save();
 
     // Make inactive companion slightly translucent
@@ -796,7 +1027,7 @@ class Player {
       ctx.beginPath();
       ctx.arc(midX, y + 21 * s, 2.2 * s, 0, Math.PI * 2);
       ctx.fill();
-      
+
       // Spiked boots spikes
       if (this.isBraking) {
         ctx.fillStyle = '#e2e8f0';
@@ -817,7 +1048,7 @@ class Player {
       ctx.roundRect(x + 3 * s, y + this.h - 5 * s, 7 * s, 4 * s, 2 * s);
       ctx.roundRect(x + this.w - 10 * s, y + this.h - 5 * s, 7 * s, 4 * s, 2 * s);
       ctx.fill();
-      
+
       // Fuel gauge
       if (isActive) {
         ctx.fillStyle = 'rgba(15, 23, 42, 0.68)';
@@ -907,7 +1138,7 @@ class Enemy {
     // Hover variables
     this.baseY = y;
     this.time = Math.random() * 100;
-    
+
     // Crusher states
     this.state = 'idle'; // 'idle', 'drop', 'ground', 'rise'
     this.crushTimer = 0;
@@ -923,7 +1154,7 @@ class Enemy {
       case 'bug': // Earth: Patrol walking
         this.vy += 0.5;
         this.x += this.vx * this.dir;
-        
+
         // Horizontal wall collisions / ledge detection
         if (this.checkTileCollision(tilemap, this.x + (this.vx * this.dir), this.y)) {
           this.dir *= -1;
@@ -939,7 +1170,7 @@ class Enemy {
       case 'spore': // Moon: Floating spore
         this.x += this.vx;
         this.y += this.vy;
-        
+
         if (this.y < 32 || this.y > 400 || this.checkTileCollision(tilemap, this.x, this.y)) {
           this.vy *= -1;
         }
@@ -950,7 +1181,7 @@ class Enemy {
 
       case 'crusher': // Jupiter: Crusher
         this.time += 0.05;
-        
+
         if (this.state === 'idle') {
           this.y = this.baseY + Math.sin(this.time) * 5;
           if (Math.abs(player.x - this.x) < 80 && player.y > this.y) {
@@ -965,7 +1196,7 @@ class Enemy {
             this.vy = 0;
             this.crushTimer = 30;
             SFX.playStomp();
-            Particles.spawnBurst(this.x + this.w/2, this.y + this.h, '#ea580c', 8, 2, 2.5);
+            Particles.spawnBurst(this.x + this.w / 2, this.y + this.h, '#ea580c', 8, 2, 2.5);
           }
         } else if (this.state === 'ground') {
           this.crushTimer--;
@@ -985,7 +1216,7 @@ class Enemy {
         this.x += this.vx * 2.5 * this.dir;
         if (this.checkTileCollision(tilemap, this.x + (this.vx * this.dir * 2), this.y)) {
           this.dir *= -1;
-          Particles.spawnBurst(this.x + this.w/2, this.y + this.h/2, '#a78bfa', 6, 1.5, 2);
+          Particles.spawnBurst(this.x + this.w / 2, this.y + this.h / 2, '#a78bfa', 6, 1.5, 2);
         }
         break;
 
@@ -993,7 +1224,7 @@ class Enemy {
         this.time += 0.08;
         this.x += this.vx * 0.8 * this.dir;
         this.y = this.baseY + Math.sin(this.time) * 20;
-        
+
         if (this.checkTileCollision(tilemap, this.x + (this.vx * this.dir), this.y)) {
           this.dir *= -1;
         }
@@ -1020,21 +1251,21 @@ class Enemy {
   draw(ctx, cameraX) {
     ctx.save();
     ctx.shadowBlur = 6;
-    
+
     if (this.type === 'bug') {
       ctx.fillStyle = '#ef4444';
       ctx.shadowColor = '#ef4444';
       ctx.beginPath();
-      ctx.arc(this.x + this.w/2 - cameraX, this.y + this.h/2, this.w/2, 0, Math.PI * 2);
+      ctx.arc(this.x + this.w / 2 - cameraX, this.y + this.h / 2, this.w / 2, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#000000';
-      ctx.fillRect(this.x + this.w/2 - 5 - cameraX, this.y + 6, 2, 3);
-      ctx.fillRect(this.x + this.w/2 + 3 - cameraX, this.y + 6, 2, 3);
+      ctx.fillRect(this.x + this.w / 2 - 5 - cameraX, this.y + 6, 2, 3);
+      ctx.fillRect(this.x + this.w / 2 + 3 - cameraX, this.y + 6, 2, 3);
     } else if (this.type === 'spore') {
       ctx.fillStyle = '#38bdf8';
       ctx.shadowColor = '#38bdf8';
       ctx.beginPath();
-      ctx.arc(this.x + this.w/2 - cameraX, this.y + this.h/2, this.w/2, 0, Math.PI * 2);
+      ctx.arc(this.x + this.w / 2 - cameraX, this.y + this.h / 2, this.w / 2, 0, Math.PI * 2);
       ctx.fill();
     } else if (this.type === 'crusher') {
       ctx.fillStyle = '#64748b';
@@ -1046,13 +1277,13 @@ class Enemy {
       ctx.fillStyle = '#8b5cf6';
       ctx.shadowColor = '#8b5cf6';
       ctx.beginPath();
-      ctx.ellipse(this.x + this.w/2 - cameraX, this.y + this.h/2, this.w/2, this.h/2, 0, 0, Math.PI*2);
+      ctx.ellipse(this.x + this.w / 2 - cameraX, this.y + this.h / 2, this.w / 2, this.h / 2, 0, 0, Math.PI * 2);
       ctx.fill();
     } else {
       ctx.fillStyle = '#f5d0fe';
       ctx.shadowColor = '#ec4899';
       ctx.beginPath();
-      ctx.arc(this.x + this.w/2 - cameraX, this.y + this.h/2, this.w/3, 0, Math.PI*2);
+      ctx.arc(this.x + this.w / 2 - cameraX, this.y + this.h / 2, this.w / 3, 0, Math.PI * 2);
       ctx.fill();
     }
 
@@ -1089,7 +1320,7 @@ class InteractiveObject {
 
   draw(ctx, cameraX, game) {
     if (this.collected) return;
-    
+
     ctx.save();
     ctx.shadowBlur = 6;
 
@@ -1163,7 +1394,7 @@ class InteractiveObject {
       ctx.beginPath();
       ctx.roundRect(x, this.y + this.h - 4, this.w, 4, 2);
       ctx.fill();
-      
+
       ctx.strokeStyle = '#cbd5e1';
       ctx.lineWidth = 1.4;
       ctx.beginPath();
@@ -1205,7 +1436,7 @@ class InteractiveObject {
       ctx.fillStyle = '#ffffff';
       ctx.font = '20px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('+', this.x + this.w/2 - cameraX, this.y + 24);
+      ctx.fillText('+', this.x + this.w / 2 - cameraX, this.y + 24);
     } else if (this.type === 'neg_node') {
       const x = this.x - cameraX;
       ctx.fillStyle = '#3b82f6';
@@ -1218,7 +1449,7 @@ class InteractiveObject {
       ctx.fillStyle = '#ffffff';
       ctx.font = '20px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('-', this.x + this.w/2 - cameraX, this.y + 22);
+      ctx.fillText('-', this.x + this.w / 2 - cameraX, this.y + 22);
     } else if (this.type === 'portal') {
       const status = game && typeof game.getLevelObjectiveStatus === 'function' ? game.getLevelObjectiveStatus() : { readyForPortal: true };
       const ready = status.readyForPortal;

@@ -42,6 +42,7 @@ window.Nav = window.Nav || {};
     Nav.currentAction = null;
     Nav.actionTimeRemaining = 0;
     Nav.timeWarpFactor = 1.0;
+    Nav.cruising = false; // not yet arrived — set true on capture to coast the orbit
     Nav.lastCommandString = "";
     Nav.exhaustParticles = [];
   };
