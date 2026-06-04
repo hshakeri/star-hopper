@@ -121,18 +121,19 @@ class SoundEngine {
     this.resume();
     if (this.isMuted || !this.ctx) return;
 
-    // Small mechanic click
+    // Retro JRPG voice chime: triangle wave with slightly randomized pitch
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.connect(gain);
     gain.connect(this.ctx.destination);
-    osc.type = 'sine';
+    osc.type = 'triangle';
     const now = this.ctx.currentTime;
-    osc.frequency.setValueAtTime(800, now);
-    gain.gain.setValueAtTime(0.02, now);
-    gain.gain.linearRampToValueAtTime(0.001, now + 0.03);
+    const freq = 550 + Math.random() * 250;
+    osc.frequency.setValueAtTime(freq, now);
+    gain.gain.setValueAtTime(0.025, now);
+    gain.gain.linearRampToValueAtTime(0.001, now + 0.045);
     osc.start(now);
-    osc.stop(now + 0.03);
+    osc.stop(now + 0.045);
   }
 
   playSuccess() {

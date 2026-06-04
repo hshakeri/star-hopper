@@ -924,12 +924,48 @@ let currentDialogueTimer = null;
 function showDialogue(text, trigger = "start") {
   const bubble = document.getElementById("dialogue-bubble");
   const textContainer = document.getElementById("dialogue-text");
+  const portraitContainer = document.getElementById("dialogue-portrait");
+  const speakerContainer = document.getElementById("dialogue-speaker-name");
+  const nextIndicator = bubble ? bubble.querySelector(".dialogue-next-indicator") : null;
+
   if (!bubble || !textContainer) return;
 
   bubble.style.display = "flex";
   // Comic-book ink outline (matches the speech tail). Alerts get a red ink outline.
   bubble.style.borderColor = trigger === "start" ? "#15233e" : "#7f1d1d";
   
+  if (nextIndicator) {
+    nextIndicator.style.display = "none"; // hide cursor while typing
+  }
+
+  // Determine speaker and portrait from trigger/text content
+  let speaker = "VECTOR";
+  let portrait = "🤖";
+
+  if (trigger === "code") {
+    speaker = "SYSTEM";
+    portrait = "⚙️";
+  } else if (trigger === "badge") {
+    speaker = "ENGINEER";
+    portrait = "🛠️";
+  } else if (text.startsWith("🔧") || text.includes("Badge") || text.includes("Nice engineering")) {
+    speaker = "BRIDGE";
+    portrait = "🛰️";
+  } else if (text.includes("Star:") || text.includes("Rover:")) {
+    speaker = "STAR";
+    portrait = "🪐";
+  } else if (text.includes("Hopper:")) {
+    speaker = "HOPPER";
+    portrait = "🚀";
+  }
+
+  if (speakerContainer) {
+    speakerContainer.textContent = speaker;
+  }
+  if (portraitContainer) {
+    portraitContainer.textContent = portrait;
+  }
+
   // Clear previous typing intervals
   if (currentDialogueTimer) {
     clearInterval(currentDialogueTimer);
@@ -942,12 +978,17 @@ function showDialogue(text, trigger = "start") {
     if (i < text.length) {
       textContainer.textContent += text.charAt(i);
       i++;
-      if (Math.random() < 0.25) SFX.playType(); // ticking sound
+      if (Math.random() < 0.35 && typeof SFX !== 'undefined' && SFX.playType) {
+        SFX.playType(); // play retro 8-bit voice sound chime
+      }
     } else {
       clearInterval(currentDialogueTimer);
       currentDialogueTimer = null;
+      if (nextIndicator) {
+        nextIndicator.style.display = "inline"; // show blinking indicator once fully typed
+      }
     }
-  }, 25);
+  }, 22);
 }
 
 function closeDialogue() {

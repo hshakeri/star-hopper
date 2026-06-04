@@ -86,6 +86,164 @@ class ParticleEngine {
 
 const Particles = new ParticleEngine();
 
+// Comic Onomatopoeia Word Bubble Class (Hilo comic-strip style)
+class ComicBubble {
+  constructor(x, y, text, type = 'rounded', color = '#fbf3da', vy = -0.75) {
+    this.x = x;
+    this.y = y;
+    this.text = text;
+    this.type = type; // 'rounded', 'jagged', 'cloud'
+    this.color = color;
+    this.vx = (Math.random() - 0.5) * 0.5;
+    this.vy = vy;
+    this.life = 0;
+    this.maxLife = 45; // ~0.75s
+    this.angle = (Math.random() - 0.5) * 0.16; // dynamic hand-drawn tilt angle
+  }
+
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.life++;
+  }
+
+  draw(ctx, cameraX) {
+    ctx.save();
+    
+    // Comic popup animation scale profile
+    let s = 1.0;
+    if (this.life < 6) {
+      s = this.life / 6; // scale in
+    } else if (this.life > this.maxLife - 8) {
+      s = (this.maxLife - this.life) / 8; // scale out
+    }
+    if (s <= 0) s = 0.01;
+    
+    ctx.translate(this.x - cameraX, this.y);
+    ctx.scale(s, s);
+    ctx.rotate(this.angle);
+
+    ctx.font = "bold 9px 'Press Start 2P', monospace";
+    const textWidth = ctx.measureText(this.text).width;
+    const w = textWidth + 16;
+    const h = 20;
+
+    // 1. Dynamic comic drop shadow (offset offset)
+    ctx.fillStyle = 'rgba(11, 16, 34, 0.45)';
+    ctx.beginPath();
+    this.drawPath(ctx, w, h, 2.5, 2.5);
+    ctx.fill();
+
+    // 2. Thick Ink outer border
+    ctx.strokeStyle = '#15233e';
+    ctx.lineWidth = 3;
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    this.drawPath(ctx, w, h);
+    ctx.fill();
+    ctx.stroke();
+
+    // Extra bubble details for Cloud thought type
+    if (this.type === 'cloud') {
+      ctx.fillStyle = this.color;
+      ctx.strokeStyle = '#15233e';
+      ctx.lineWidth = 2.5;
+
+      // Draw bubble trailing links
+      ctx.beginPath();
+      ctx.arc(-8, h/2 + 6, 3.5, 0, Math.PI * 2);
+      ctx.fill(); ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(-14, h/2 + 11, 2, 0, Math.PI * 2);
+      ctx.fill(); ctx.stroke();
+    }
+
+    // 3. Inner JRPG thin accent line
+    ctx.strokeStyle = 'rgba(21, 35, 62, 0.22)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    this.drawPath(ctx, w - 3, h - 3);
+    ctx.stroke();
+
+    // 4. Centered block text
+    ctx.fillStyle = '#15233e';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(this.text, 0, 1.5);
+
+    ctx.restore();
+  }
+
+  drawPath(ctx, w, h, dx = 0, dy = 0) {
+    const ox = dx;
+    const oy = dy;
+
+    if (this.type === 'jagged') {
+      // Exploding Starburst path for actions like STOMP, ZAP, BONK
+      const points = 12;
+      const innerW = w * 0.42;
+      const innerH = h * 0.42;
+      const outerW = w * 0.65;
+      const outerH = h * 0.65;
+      for (let i = 0; i < points * 2; i++) {
+        const theta = (i * Math.PI) / points;
+        const rx = (i % 2 === 0) ? outerW : innerW;
+        const ry = (i % 2 === 0) ? outerH : innerH;
+        const px = ox + Math.cos(theta) * rx;
+        const py = oy + Math.sin(theta) * ry;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+    } else if (this.type === 'cloud') {
+      // Fluffy thought bubble circles
+      ctx.arc(ox - w/4, oy - h/12, h * 0.45, 0, Math.PI*2);
+      ctx.arc(ox + w/4, oy - h/12, h * 0.45, 0, Math.PI*2);
+      ctx.arc(ox, oy - h/3, h * 0.48, 0, Math.PI*2);
+      ctx.arc(ox, oy + h/6, h * 0.4, 0, Math.PI*2);
+    } else {
+      // Rounded chat box with short center pointer tail
+      ctx.roundRect(ox - w/2, oy - h/2, w, h, 6);
+      ctx.moveTo(ox - 6, oy + h/2 - 1);
+      ctx.lineTo(ox - 2, oy + h/2 + 5);
+      ctx.lineTo(ox + 4, oy + h/2 - 1);
+    }
+  }
+}
+
+// Global Comic Onomatopoeia Manager
+class ComicBubbleEngine {
+  constructor() {
+    this.bubbles = [];
+  }
+
+  clear() {
+    this.bubbles = [];
+  }
+
+  spawn(x, y, text, type = 'rounded', color = '#fbf3da', vy = -0.75) {
+    this.bubbles.push(new ComicBubble(x, y, text, type, color, vy));
+  }
+
+  update() {
+    for (let i = this.bubbles.length - 1; i >= 0; i--) {
+      this.bubbles[i].update();
+      if (this.bubbles[i].life >= this.bubbles[i].maxLife) {
+        this.bubbles.splice(i, 1);
+      }
+    }
+  }
+
+  draw(ctx, cameraX) {
+    for (const cb of this.bubbles) {
+      cb.draw(ctx, cameraX);
+    }
+  }
+}
+
+const ComicBubbles = new ComicBubbleEngine();
+
 // The Main Player Class (Swappable between Star & Hopper)
 class Player {
   constructor(x, y) {
@@ -311,7 +469,19 @@ class Player {
             -this.vx * 0.5 + (Math.random() - 0.5), -1 - Math.random(), 
             12, 'glow'
           );
+          if (Math.abs(this.vx) > 0.8) {
+            this.gripBubbleTimer = (this.gripBubbleTimer || 0) + 1;
+            if (this.gripBubbleTimer % 35 === 1 && typeof ComicBubbles !== 'undefined') {
+              ComicBubbles.spawn(this.x + this.w / 2, this.y + this.h, "GRIP!", "rounded", "#bae6fd");
+            }
+          } else {
+            this.gripBubbleTimer = 0;
+          }
+        } else {
+          this.gripBubbleTimer = 0;
         }
+      } else {
+        this.gripBubbleTimer = 0;
       }
 
       this.vx *= this.onGround ? horizontalFriction : airResistance;
@@ -329,6 +499,9 @@ class Player {
       this.isJumping = true;
       SFX.playJump();
       Particles.spawnBurst(this.x + this.w / 2, this.y + this.h, 'rgba(255,255,255,0.6)', 8, 1.5, 2);
+      if (typeof ComicBubbles !== 'undefined') {
+        ComicBubbles.spawn(this.x + this.w / 2, this.y + this.h, "BOING!", "rounded", "#38bdf8");
+      }
       
       // Guided tutorial hook
       if (typeof handleGuidedJumpHook === 'function') {
@@ -371,6 +544,13 @@ class Player {
             15, 'glow'
           );
           if (Math.random() < 0.2) SFX.playJump(); // soft thrust hum
+          
+          this.rocketBubbleTimer = (this.rocketBubbleTimer || 0) + 1;
+          if (this.rocketBubbleTimer % 35 === 1 && typeof ComicBubbles !== 'undefined') {
+            ComicBubbles.spawn(this.x + this.w / 2, this.y + this.h, "WHOOSH!", "jagged", "#f97316");
+          }
+        } else {
+          this.rocketBubbleTimer = 0;
         }
       }
     } else {
@@ -382,6 +562,12 @@ class Player {
     this.magnetActive = false;
     if (this.charType === 'hopper' && !this.onGround && downPressed) {
       this.magnetActive = true;
+      this.magnetBubbleTimer = (this.magnetBubbleTimer || 0) + 1;
+      if (this.magnetBubbleTimer % 40 === 1 && typeof ComicBubbles !== 'undefined') {
+        ComicBubbles.spawn(this.x + this.w / 2, this.y, "ZAP!", "jagged", "#ec4899");
+      }
+    } else {
+      this.magnetBubbleTimer = 0;
     }
 
     // 6b. Downward thrust: hold Down in mid-air to push down — essential for steering

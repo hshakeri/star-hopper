@@ -540,6 +540,9 @@ class StarHopperGame {
     this._lastPortalLockMsg = null;     // reset portal-lock message de-duplication
     // Keep global completed missions across planet switches
     Particles.clear();
+    if (typeof ComicBubbles !== 'undefined') {
+      ComicBubbles.clear();
+    }
 
     // Set variable accent colors in UI
     document.documentElement.style.setProperty('--active-neon', this.currentPlanet.color);
@@ -1003,7 +1006,9 @@ class StarHopperGame {
           this.player.vy = -6;
           this.player.hitEnemyThisFrame = true;
           SFX.playStomp();
-          this.player.say("STOMP!", { shout: true, timer: 70 });
+          if (typeof ComicBubbles !== 'undefined') {
+            ComicBubbles.spawn(enemy.x + enemy.w/2, enemy.y, "STOMP!", "jagged", "#f97316");
+          }
           Particles.spawnBurst(enemy.x + enemy.w/2, enemy.y + enemy.h/2, '#ef4444', 12, 3, 3, 'glow');
           this.enemies = this.enemies.filter(e => e !== enemy);
         } else {
@@ -1034,8 +1039,9 @@ class StarHopperGame {
           Particles.spawnBurst(obj.x + 8, obj.y + 8, gem.color, 10, 2, 2.5, 'glow');
           const collectedAllSamples = obj.requiredCollectible && this.requiredCollectiblesTotal > 0 &&
             this.requiredCollectiblesCollected >= this.requiredCollectiblesTotal;
-          this.player.say(collectedAllSamples ? "POWER UP!" : "GET!",
-            { emoji: collectedAllSamples ? "⚡" : "✦", shout: true, timer: collectedAllSamples ? 110 : 70 });
+          if (typeof ComicBubbles !== 'undefined') {
+            ComicBubbles.spawn(obj.x + 8, obj.y, collectedAllSamples ? "POWER UP!" : "GET!", collectedAllSamples ? "jagged" : "rounded", collectedAllSamples ? "#4ade80" : "#facc15");
+          }
           if (obj.requiredCollectible) {
             ui_log_output(`◆ ${gem.name} gem collected: ${this.requiredCollectiblesCollected}/${this.requiredCollectiblesTotal}`, "success");
             updateMissionList(this);
@@ -1071,6 +1077,9 @@ class StarHopperGame {
 
     // 12. Update particle systems
     Particles.update();
+    if (typeof ComicBubbles !== 'undefined') {
+      ComicBubbles.update();
+    }
 
     // 13. Redraw HUD sidebar charts & variables
     updateHUD(this);
@@ -1104,6 +1113,9 @@ class StarHopperGame {
     this.state = 'gameover';
     SFX.playError();
     SFX.stopBGM();
+    if (typeof ComicBubbles !== 'undefined' && this.player) {
+      ComicBubbles.spawn(this.player.x + this.player.w/2, this.player.y + this.player.h/2, "KABOOM!", "jagged", "#ef4444", -0.2);
+    }
     const goScr = document.getElementById("gameover-screen");
     if (goScr) goScr.classList.remove("hidden");
     ui_log_output(`⚠ Star Hopper critical damage: ${cause}`, "error");
@@ -1181,6 +1193,9 @@ class StarHopperGame {
 
     // 9. Draw Particle systems
     Particles.draw(this.ctx, this.cameraX);
+    if (typeof ComicBubbles !== 'undefined') {
+      ComicBubbles.draw(this.ctx, this.cameraX);
+    }
 
     // 10. Mission/objective speech balloon (screen-space, top-center)
     this.drawMissionBalloon(this.ctx);
