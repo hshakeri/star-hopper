@@ -921,6 +921,16 @@ function updateParentMissionSummary(game) {
 // Typing effect helper for robot dialogues
 let currentDialogueTimer = null;
 
+// Tiny 16x16 CSS/SVG pixel-art faces per speaker (crisp-edged, retro JRPG avatars).
+const PORTRAIT_ART = {
+  VECTOR: `<svg viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="7" y="1" width="2" height="2" fill="#94a3b8"/><rect x="3" y="3" width="10" height="10" fill="#64748b"/><rect x="4" y="5" width="8" height="4" fill="#0b1022"/><rect x="5" y="6" width="2" height="2" fill="#38bdf8"/><rect x="9" y="6" width="2" height="2" fill="#38bdf8"/><rect x="5" y="11" width="6" height="1" fill="#0b1022"/></svg>`,
+  STAR: `<svg viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="4" y="2" width="8" height="2" fill="#38bdf8"/><rect x="3" y="3" width="10" height="9" fill="#0e7490"/><rect x="4" y="5" width="3" height="3" fill="#e0f2fe"/><rect x="9" y="5" width="3" height="3" fill="#e0f2fe"/><rect x="5" y="6" width="1" height="1" fill="#0b1022"/><rect x="10" y="6" width="1" height="1" fill="#0b1022"/><rect x="6" y="10" width="4" height="1" fill="#38bdf8"/></svg>`,
+  HOPPER: `<svg viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="3" y="3" width="10" height="10" fill="#9a3412"/><rect x="2" y="5" width="1" height="3" fill="#f97316"/><rect x="13" y="5" width="1" height="3" fill="#f97316"/><rect x="4" y="4" width="8" height="6" fill="#fdba74"/><rect x="5" y="6" width="2" height="2" fill="#0b1022"/><rect x="9" y="6" width="2" height="2" fill="#0b1022"/><rect x="6" y="9" width="4" height="1" fill="#9a3412"/></svg>`,
+  BRIDGE: `<svg viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="6" y="6" width="4" height="7" fill="#64748b"/><rect x="3" y="3" width="6" height="6" fill="#94a3b8"/><rect x="5" y="5" width="2" height="2" fill="#38bdf8"/><rect x="10" y="4" width="3" height="2" fill="#facc15"/><rect x="10" y="9" width="3" height="2" fill="#facc15"/></svg>`,
+  ENGINEER: `<svg viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="3" y="3" width="10" height="2" fill="#f97316"/><rect x="2" y="5" width="12" height="1" fill="#ea580c"/><rect x="4" y="6" width="8" height="6" fill="#fcd34d"/><rect x="5" y="8" width="2" height="2" fill="#0b1022"/><rect x="9" y="8" width="2" height="2" fill="#0b1022"/></svg>`,
+  SYSTEM: `<svg viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="6" y="2" width="4" height="12" fill="#94a3b8"/><rect x="2" y="6" width="12" height="4" fill="#94a3b8"/><rect x="4" y="4" width="8" height="8" fill="#94a3b8"/><rect x="6" y="6" width="4" height="4" fill="#0b1022"/></svg>`
+};
+
 function showDialogue(text, trigger = "start") {
   const bubble = document.getElementById("dialogue-bubble");
   const textContainer = document.getElementById("dialogue-text");
@@ -963,7 +973,9 @@ function showDialogue(text, trigger = "start") {
     speakerContainer.textContent = speaker;
   }
   if (portraitContainer) {
-    portraitContainer.textContent = portrait;
+    // Pixel-art face if we have one for this speaker, else the emoji fallback.
+    if (PORTRAIT_ART[speaker]) portraitContainer.innerHTML = PORTRAIT_ART[speaker];
+    else portraitContainer.textContent = portrait;
   }
 
   // Clear previous typing intervals

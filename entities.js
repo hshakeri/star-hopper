@@ -88,7 +88,7 @@ const Particles = new ParticleEngine();
 
 // Comic Onomatopoeia Word Bubble Class (Hilo comic-strip style)
 class ComicBubble {
-  constructor(x, y, text, type = 'rounded', color = '#fbf3da', vy = -0.75) {
+  constructor(x, y, text, type = 'rounded', color = '#fbf3da', vy = -0.75, opts = {}) {
     this.x = x;
     this.y = y;
     this.text = text;
@@ -97,7 +97,8 @@ class ComicBubble {
     this.vx = (Math.random() - 0.5) * 0.5;
     this.vy = vy;
     this.life = 0;
-    this.maxLife = 45; // ~0.75s
+    this.maxLife = opts.maxLife || 45; // default ~0.75s; big hits (KABOOM) linger longer
+    this.scaleMul = opts.scale || 1;   // size multiplier for emphasis
     this.angle = (Math.random() - 0.5) * 0.16; // dynamic hand-drawn tilt angle
   }
 
@@ -120,7 +121,7 @@ class ComicBubble {
     if (s <= 0) s = 0.01;
     
     ctx.translate(this.x - cameraX, this.y);
-    ctx.scale(s, s);
+    ctx.scale(s * this.scaleMul, s * this.scaleMul);
     ctx.rotate(this.angle);
 
     ctx.font = "bold 9px 'Press Start 2P', monospace";
@@ -222,8 +223,8 @@ class ComicBubbleEngine {
     this.bubbles = [];
   }
 
-  spawn(x, y, text, type = 'rounded', color = '#fbf3da', vy = -0.75) {
-    this.bubbles.push(new ComicBubble(x, y, text, type, color, vy));
+  spawn(x, y, text, type = 'rounded', color = '#fbf3da', vy = -0.75, opts = {}) {
+    this.bubbles.push(new ComicBubble(x, y, text, type, color, vy, opts));
   }
 
   update() {
