@@ -4,16 +4,17 @@
 // enough to clear that planet; collecting a planet's samples (gems) unlocks the
 // "extreme" cap so kids can engineer further. (mass uses base/extreme as a FLOOR.)
 const HOPPER_UPGRADES = {
-  engine:      { base: 8,   extreme: 20,  planet: 0, gem: "Emerald Core", part: "engine",            cmd: "hopper.engine" },
-  jump:        { base: 22,  extreme: 45,  planet: 1, gem: "Moon Quartz",  part: "jump springs",      cmd: "hopper.jump_power" },
-  rocket:      { base: 80,  extreme: 120, planet: 2, gem: "Amber Storm",  part: "rockets",           cmd: "hopper.rocket_power" },
-  mass:        { base: 1.0, extreme: 0.4, planet: 3, gem: "Violet Ice",   part: "lightweight alloy", cmd: "hopper.mass", isFloor: true },
-  antigravity: { base: 6,   extreme: 14,  planet: 4, gem: "Magenta Flux", part: "antigravity coil",  cmd: "antigravity" }
+  engine:      { base: 8,   extreme: 20,  planet: 0, gem: "Emerald Core", part: "engine",            cmd: "hopper.engine",       short: "ENGINE" },
+  jump:        { base: 22,  extreme: 45,  planet: 1, gem: "Moon Quartz",  part: "jump springs",      cmd: "hopper.jump_power",   short: "JUMP" },
+  rocket:      { base: 80,  extreme: 120, planet: 2, gem: "Amber Storm",  part: "rockets",           cmd: "hopper.rocket_power", short: "ROCKET" },
+  mass:        { base: 1.0, extreme: 0.4, planet: 3, gem: "Violet Ice",   part: "lightweight alloy", cmd: "hopper.mass", isFloor: true, short: "LIGHTNESS" },
+  antigravity: { base: 6,   extreme: 14,  planet: 4, gem: "Magenta Flux", part: "antigravity coil",  cmd: "antigravity",         short: "ANTIGRAV" }
 };
 
 class StarHopperGame {
   constructor() {
-    this.unlockedUpgrades = new Set(); // sample-unlocked engineering limits (persists in profile)
+    this.unlockedUpgrades = new Set(); // legacy fully-unlocked limits (persists in profile)
+    this.upgradeLevels = {}; // per-upgrade unlock fraction 0..1, ticks up with each gem (persisted)
     this.canvas = null;
     this.ctx = null;
     this.currentPlanetIndex = 0;
@@ -98,12 +99,44 @@ class StarHopperGame {
     return Math.max(0.02, base - anti);
   }
 
-  // The active cap for a tuner: "base" until that planet's samples are collected,
-  // then "extreme". For mass this value is the lowest allowed (a floor).
+  // How far a tuner is unlocked, 0..1. Starts at 0 (base cap) and ticks up with each
+  // gem collected on that upgrade's home planet; 1 == fully reinforced (extreme cap).
+  getUpgradeLevel(key) {
+    if (this.unlockedUpgrades && this.unlockedUpgrades.has(key)) return 1; // legacy full unlocks
+    const lv = this.upgradeLevels ? this.upgradeLevels[key] : 0;
+    return Math.max(0, Math.min(1, lv || 0));
+  }
+
+  // The active cap for a tuner. It starts at the minimal "base" that just lets you
+  // clear the stage, and climbs toward "extreme" as you collect that planet's gems.
+  // For mass this value is the lowest allowed (a floor that drops as you progress).
   getUpgradeCap(key) {
     const u = HOPPER_UPGRADES[key];
     if (!u) return Infinity;
-    return (this.unlockedUpgrades && this.unlockedUpgrades.has(key)) ? u.extreme : u.base;
+    const raw = u.base + (u.extreme - u.base) * this.getUpgradeLevel(key);
+    return u.isFloor ? Math.round(raw * 10) / 10 : Math.round(raw);
+  }
+
+  // Each required gem nudges its planet's signature cap up one notch and pops a small
+  // green "max increased" balloon, so the reward is visible and incremental.
+  applyGemUpgradeProgress(planetIndex) {
+    const key = Object.keys(HOPPER_UPGRADES).find(k => HOPPER_UPGRADES[k].planet === planetIndex);
+    const total = this.requiredCollectiblesTotal;
+    if (!key || !total) return;
+    this.upgradeLevels = this.upgradeLevels || {};
+    const prevCap = this.getUpgradeCap(key);
+    // Monotonic: a retry that re-collects gems never lowers a cap you already earned.
+    this.upgradeLevels[key] = Math.max(this.upgradeLevels[key] || 0, this.requiredCollectiblesCollected / total);
+    const newCap = this.getUpgradeCap(key);
+    if (newCap !== prevCap) {
+      const u = HOPPER_UPGRADES[key];
+      const word = u.isFloor ? 'MIN' : 'MAX';
+      this.showMissionBalloon(`⬆ ${u.short} ${word} ${newCap}!`, { color: '#4ade80', timer: 150 });
+      if (typeof ui_log_output === 'function') {
+        ui_log_output(`⬆ Gem boost: ${u.cmd} can now reach ${u.isFloor ? '≥' : '≤'} ${newCap}.`, "success");
+      }
+      if (typeof saveLocalProgress === 'function') saveLocalProgress();
+    }
   }
 
   // Tells the cadet WHY a tuner clamped — "X can't go higher than N now, unless you …".
@@ -1006,7 +1039,9 @@ class StarHopperGame {
           if (obj.requiredCollectible) {
             ui_log_output(`◆ ${gem.name} gem collected: ${this.requiredCollectiblesCollected}/${this.requiredCollectiblesTotal}`, "success");
             updateMissionList(this);
-            // Collecting all of a planet's samples reinforces the Hopper (raises a limit).
+            // Each gem nudges this planet's cap up one notch (green balloon).
+            this.applyGemUpgradeProgress(this.currentPlanetIndex);
+            // Collecting ALL of a planet's samples fully reinforces the part (extreme cap).
             if (this.requiredCollectiblesTotal > 0 && this.requiredCollectiblesCollected >= this.requiredCollectiblesTotal) {
               this.unlockUpgradeForPlanet(this.currentPlanetIndex);
             }
