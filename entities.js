@@ -86,6 +86,49 @@ class ParticleEngine {
 
 const Particles = new ParticleEngine();
 
+// ---------------------------------------------------------------------------
+// Speech variety: every callout pulls a RANDOM line from a themed pool, never
+// the same one twice in a row, so the game keeps feeling fresh. Add freely.
+// ---------------------------------------------------------------------------
+const SPEECH_POOLS = {
+  jump:    ["BOING!", "HUP!", "WHEE!", "BOUNCE!", "SPRONG!", "UP UP!", "HOPPA!", "BWOMP!"],
+  stomp:   ["STOMP!", "SPLAT!", "BONK!", "POW!", "SQUISH!", "GOTCHA!", "BAM!", "YEET!"],
+  get:     ["GET!", "NICE!", "SHINY!", "GRAB!", "YOINK!", "OOH!", "SWEET!", "GEM-TASTIC!", "MINE!"],
+  powerup: ["POWER UP!", "LEVEL UP!", "BOOSTED!", "SUPERCHARGED!", "KA-CHING!", "MAX POWER!", "UPGRADE!"],
+  zap:     ["ZAP!", "BZZT!", "CLING!", "MAGNET-O!", "SNAP!", "KRZZT!", "STICKY!"],
+  whoosh:  ["WHOOSH!", "VROOM!", "BLAST!", "FWOOSH!", "ZOOM!", "BRRRAP!", "TO THE MOON!"],
+  grip:    ["GRIP!", "CLANK!", "DIG IN!", "HOLD ON!", "CRUNCH!", "TRACTION!", "BITE!"],
+  bonk:    ["BONK!", "OOF!", "OW!", "THWAP!", "DOINK!", "OUCH!", "WALL!"],
+  bump:    ["BUMP!", "TONK!", "CLONK!", "DUNK!", "HEAD!", "CEILING!"],
+  land:    ["TMP!", "THUD!", "TAP!", "THWMP!", "*dust*", "STICK!"],
+  kaboom:  ["KABOOM!", "BOOM!", "CRASH!", "SMASH!", "WIPEOUT!", "SPLAT!", "OW-CH!"],
+  arrive:  ["HERE WE GO!", "LET'S HOP!", "GAME ON!", "LIFTOFF!", "READY!", "ADVENTURE TIME!", "BOUNCE PARTY!"],
+  idle:    ["Hmm…", "Any signals?", "So quiet…", "Snack time?", "Pretty stars.", "Now what?", "*yawns*",
+            "Is it lunch?", "I spy a comet.", "Boop.", "Just vibing.", "Cosmic, man.", "Beep boop?",
+            "Whistle…", "Counting stars.", "Tum te tum…", "Space is big.", "Wiggle wiggle."],
+  // Navigator — astronaut lingo
+  navAim:       ["Locked on!", "Nose on target!", "Aligning, over.", "Pointy end that way!", "Target acquired!", "On the money!"],
+  navThrust:    ["Burnin' fuel!", "Punch it!", "Full burn, baby!", "Throttle up!", "Engines HOT!", "Pushin' tin!", "Hold my space-juice!"],
+  navWait:      ["Coastin'…", "Just driftin'.", "Ridin' the void.", "Patience, cadet.", "Tick tock in space.", "Zero-G nap.", "Wheee, no gravity!"],
+  navCruise:    ["Cruising now!", "Smooth orbit!", "In the groove!", "Orbit locked, baby!", "Nice and steady.", "Feet up, coasting."],
+  navLanding:   ["Prepare for landing!", "Brace, brace!", "Touchdown soon!", "Landing gear — deploy!", "Hold your helmet!", "Comin' in hot!"],
+  navLightspeed:["Closing on light speed!", "Ludicrous speed!", "We're warpin'!", "Einstein would faint!", "Time's gettin' weird!", "Almost plaid!", "Whoa — relativity!"],
+  navDeepSpace: ["Whoa — deep space!", "Lost the planets!", "Re-aim, cadet!", "Out in the big black!", "Where'd everybody go?", "Too far, too far!"]
+};
+
+const SPEECH = {
+  _last: {},
+  pick(pool) {
+    const arr = SPEECH_POOLS[pool];
+    if (!arr || !arr.length) return pool;
+    if (arr.length === 1) return arr[0];
+    let idx, tries = 0;
+    do { idx = Math.floor(Math.random() * arr.length); tries++; } while (arr[idx] === this._last[pool] && tries < 8);
+    this._last[pool] = arr[idx];
+    return arr[idx];
+  }
+};
+
 // Comic Onomatopoeia Word Bubble Class (Hilo comic-strip style)
 class ComicBubble {
   constructor(x, y, text, type = 'rounded', color = '#fbf3da', vy = -0.75, opts = {}) {
@@ -198,11 +241,9 @@ class ComicBubble {
       }
       ctx.closePath();
     } else if (this.type === 'cloud') {
-      // Fluffy thought bubble circles
-      ctx.arc(ox - w/4, oy - h/12, h * 0.45, 0, Math.PI*2);
-      ctx.arc(ox + w/4, oy - h/12, h * 0.45, 0, Math.PI*2);
-      ctx.arc(ox, oy - h/3, h * 0.48, 0, Math.PI*2);
-      ctx.arc(ox, oy + h/6, h * 0.4, 0, Math.PI*2);
+      // Soft puffy thought pill sized to the text (the thought-trail dots are
+      // drawn separately in draw()). Stadium radius keeps it readable at any width.
+      ctx.roundRect(ox - w/2, oy - h/2, w, h, h/2);
     } else {
       // Rounded chat box with short center pointer tail
       ctx.roundRect(ox - w/2, oy - h/2, w, h, 6);
@@ -473,7 +514,7 @@ class Player {
           if (Math.abs(this.vx) > 0.8) {
             this.gripBubbleTimer = (this.gripBubbleTimer || 0) + 1;
             if (this.gripBubbleTimer % 35 === 1 && typeof ComicBubbles !== 'undefined') {
-              ComicBubbles.spawn(this.x + this.w / 2, this.y + this.h, "GRIP!", "rounded", "#bae6fd");
+              ComicBubbles.spawn(this.x + this.w / 2, this.y + this.h, SPEECH.pick("grip"), "rounded", "#bae6fd");
             }
           } else {
             this.gripBubbleTimer = 0;
@@ -501,7 +542,7 @@ class Player {
       SFX.playJump();
       Particles.spawnBurst(this.x + this.w / 2, this.y + this.h, 'rgba(255,255,255,0.6)', 8, 1.5, 2);
       if (typeof ComicBubbles !== 'undefined') {
-        ComicBubbles.spawn(this.x + this.w / 2, this.y + this.h, "BOING!", "rounded", "#38bdf8");
+        ComicBubbles.spawn(this.x + this.w / 2, this.y + this.h, SPEECH.pick("jump"), "rounded", "#38bdf8");
       }
       
       // Guided tutorial hook
@@ -548,7 +589,7 @@ class Player {
           
           this.rocketBubbleTimer = (this.rocketBubbleTimer || 0) + 1;
           if (this.rocketBubbleTimer % 35 === 1 && typeof ComicBubbles !== 'undefined') {
-            ComicBubbles.spawn(this.x + this.w / 2, this.y + this.h, "WHOOSH!", "jagged", "#f97316");
+            ComicBubbles.spawn(this.x + this.w / 2, this.y + this.h, SPEECH.pick("whoosh"), "jagged", "#f97316");
           }
         } else {
           this.rocketBubbleTimer = 0;
@@ -565,7 +606,7 @@ class Player {
       this.magnetActive = true;
       this.magnetBubbleTimer = (this.magnetBubbleTimer || 0) + 1;
       if (this.magnetBubbleTimer % 40 === 1 && typeof ComicBubbles !== 'undefined') {
-        ComicBubbles.spawn(this.x + this.w / 2, this.y, "ZAP!", "jagged", "#ec4899");
+        ComicBubbles.spawn(this.x + this.w / 2, this.y, SPEECH.pick("zap"), "jagged", "#ec4899");
       }
     } else {
       this.magnetBubbleTimer = 0;

@@ -602,7 +602,7 @@ class StarHopperGame {
       this.triggerTutorialDialogue("start");
       // Retro arcade arrival shout as a comic bubble (one onomatopoeia system).
       if (this.player && typeof ComicBubbles !== 'undefined') {
-        ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y - 4, "HERE WE GO!", "rounded", "#a7f3d0", -0.5, { maxLife: 80, scale: 1.2 });
+        ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y - 4, SPEECH.pick("arrive"), "rounded", "#a7f3d0", -0.5, { maxLife: 80, scale: 1.2 });
       }
     }
     // Draw initial mission list
@@ -902,13 +902,21 @@ class StarHopperGame {
 
     ui_log_output(`✓ Spacecraft arrived at ${targetName}. Rover deployment ready.`, "success");
 
+    // Cruise the destination orbit for a beat, then call the landing before deploying.
     this.navigationReturnTimer = setTimeout(() => {
-      this.navigationReturnTimer = null;
-      this.startLevel(targetIndex);
-      if (typeof switchMainMode === 'function') {
-        switchMainMode('terminal');
+      if (window.Nav && window.Nav.ship && typeof SPEECH !== 'undefined') {
+        window.Nav.ship.sayText = SPEECH.pick("navLanding");
+        window.Nav.ship.sayTimer = 150;
       }
-    }, 1200);
+      ui_log_output(`📡 Closing on ${targetName} — prepare for landing!`, "info");
+      this.navigationReturnTimer = setTimeout(() => {
+        this.navigationReturnTimer = null;
+        this.startLevel(targetIndex);
+        if (typeof switchMainMode === 'function') {
+          switchMainMode('terminal');
+        }
+      }, 2000);
+    }, 2400);
   }
 
   resetLevel() {
@@ -981,7 +989,7 @@ class StarHopperGame {
     const _wasAirborne = !this.player.onGround;
     Physics.resolveWorldCollisions(this.player, this.currentPlanet.map, this.spawnedBoxes, this);
     if (_wasAirborne && this.player.onGround && _preFallVy > 4 && typeof ComicBubbles !== 'undefined') {
-      ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y + this.player.h, "TMP!", "rounded", "#d6d3d1", -0.3, { maxLife: 34, scale: 0.8 });
+      ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y + this.player.h, SPEECH.pick("land"), "rounded", "#d6d3d1", -0.3, { maxLife: 34, scale: 0.8 });
       Particles.spawnBurst(this.player.x + this.player.w / 2, this.player.y + this.player.h, '#cbd5e1', 6, 1.4, 2);
     }
 
@@ -1015,7 +1023,7 @@ class StarHopperGame {
           this.player.hitEnemyThisFrame = true;
           SFX.playStomp();
           if (typeof ComicBubbles !== 'undefined') {
-            ComicBubbles.spawn(enemy.x + enemy.w/2, enemy.y, "STOMP!", "jagged", "#f97316");
+            ComicBubbles.spawn(enemy.x + enemy.w/2, enemy.y, SPEECH.pick("stomp"), "jagged", "#f97316");
           }
           Particles.spawnBurst(enemy.x + enemy.w/2, enemy.y + enemy.h/2, '#ef4444', 12, 3, 3, 'glow');
           this.enemies = this.enemies.filter(e => e !== enemy);
@@ -1048,7 +1056,7 @@ class StarHopperGame {
           const collectedAllSamples = obj.requiredCollectible && this.requiredCollectiblesTotal > 0 &&
             this.requiredCollectiblesCollected >= this.requiredCollectiblesTotal;
           if (typeof ComicBubbles !== 'undefined') {
-            ComicBubbles.spawn(obj.x + 8, obj.y, collectedAllSamples ? "POWER UP!" : "GET!",
+            ComicBubbles.spawn(obj.x + 8, obj.y, collectedAllSamples ? SPEECH.pick("powerup") : SPEECH.pick("get"),
               collectedAllSamples ? "jagged" : "rounded", collectedAllSamples ? "#4ade80" : "#facc15",
               -0.75, collectedAllSamples ? { maxLife: 85, scale: 1.6 } : {});
           }
@@ -1122,22 +1130,22 @@ class StarHopperGame {
     }
   }
 
-  // A quiet cloud-thought bubble after the cadet stands still for a few seconds —
-  // once per idle session so it never nags.
+  // A quiet cloud-thought bubble after the cadet stands still for a few seconds.
+  // A long cooldown plus a random, never-repeating line keeps it from going stale.
   updateIdleBanter() {
     if (!this.player) return;
+    if (this.idleBanterCooldown > 0) this.idleBanterCooldown--;
     const k = this.keys || {};
     const pressing = k['a'] || k['A'] || k['d'] || k['D'] || k['ArrowLeft'] || k['arrowleft'] ||
       k['ArrowRight'] || k['arrowright'] || k[' '] || k['w'] || k['W'] || k['ArrowUp'] || k['arrowup'] ||
       k['s'] || k['S'] || k['ArrowDown'] || k['arrowdown'];
     const busy = pressing || !this.player.onGround || Math.abs(this.player.vx) > 0.12 || this.player.sayTimer > 0;
-    if (busy) { this.idleTimer = 0; this.idleBantered = false; return; }
+    if (busy) { this.idleTimer = 0; return; }
     this.idleTimer = (this.idleTimer || 0) + 1;
-    if (this.idleTimer >= 360 && !this.idleBantered && typeof ComicBubbles !== 'undefined') {
-      this.idleBantered = true;
-      const lines = ["Hmm…", "Any signals?", "So quiet…", "Snack time?", "Stars are pretty.", "Now what?"];
-      const line = lines[Math.floor(Math.random() * lines.length)];
-      ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y - 2, line, "cloud", "#e0f2fe", -0.25, { maxLife: 150 });
+    if (this.idleTimer >= 360 && this.idleBanterCooldown <= 0 && typeof ComicBubbles !== 'undefined') {
+      this.idleTimer = 0;
+      this.idleBanterCooldown = 1500; // ~25s before another musing, so it never nags
+      ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y - 2, SPEECH.pick("idle"), "cloud", "#e0f2fe", -0.25, { maxLife: 150 });
     }
   }
 
@@ -1146,7 +1154,7 @@ class StarHopperGame {
     SFX.playError();
     SFX.stopBGM();
     if (typeof ComicBubbles !== 'undefined' && this.player) {
-      ComicBubbles.spawn(this.player.x + this.player.w/2, this.player.y + this.player.h/2, "KABOOM!", "jagged", "#ef4444", -0.2, { maxLife: 95, scale: 1.9 });
+      ComicBubbles.spawn(this.player.x + this.player.w/2, this.player.y + this.player.h/2, SPEECH.pick("kaboom"), "jagged", "#ef4444", -0.2, { maxLife: 95, scale: 1.9 });
     }
     const goScr = document.getElementById("gameover-screen");
     if (goScr) goScr.classList.remove("hidden");

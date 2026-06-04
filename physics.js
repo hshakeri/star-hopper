@@ -30,7 +30,7 @@ class PhysicsEngine {
             entity.vx = 0;
           }
           if (Math.abs(totalVx) > 1.2 && typeof ComicBubbles !== 'undefined') {
-            ComicBubbles.spawn(entity.x + entity.w/2, entity.y + entity.h/2, "BONK!", "jagged", "#f87171");
+            ComicBubbles.spawn(entity.x + entity.w/2, entity.y + entity.h/2, SPEECH.pick("bonk"), "jagged", "#f87171");
           }
         }
 
@@ -72,7 +72,7 @@ class PhysicsEngine {
             entity.y = (t.r + 1) * TILE_SIZE;
             entity.vy = 0;
             if (Math.abs(totalVy) > 1.5 && typeof ComicBubbles !== 'undefined') {
-              ComicBubbles.spawn(entity.x + entity.w/2, entity.y, "BUMP!", "rounded", "#bae6fd");
+              ComicBubbles.spawn(entity.x + entity.w/2, entity.y, SPEECH.pick("bump"), "rounded", "#bae6fd");
             }
           }
         }

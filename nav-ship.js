@@ -185,6 +185,7 @@ window.Nav = window.Nav || {};
           const targetAngle = Math.atan2(bState.y - Nav.ship.y, bState.x - Nav.ship.x);
           Nav.ship.angle = targetAngle;
           Nav.logConsole(`Thrusters aligned. Oriented pointing at ${targetBody.name}.`, "info");
+          if (typeof SPEECH !== 'undefined') { Nav.ship.sayText = SPEECH.pick("navAim"); Nav.ship.sayTimer = 95; }
         } else {
           Nav.logConsole(`Steering error: body '${Nav.currentAction.target}' not found.`, "error");
         }
@@ -198,13 +199,16 @@ window.Nav = window.Nav || {};
           Nav.ship.thrustPower = (Nav.currentAction.power * 0.15) / 592.26; // Scaled for new physical year scale
           Nav.actionTimeRemaining = Nav.currentAction.duration;
           Nav.logConsole(`Thrust burn engaged: power=${Nav.currentAction.power}, duration=${Nav.currentAction.duration} days`, "info");
+          if (typeof SPEECH !== 'undefined') { Nav.ship.sayText = SPEECH.pick("navThrust"); Nav.ship.sayTimer = 110; }
         }
       } else if (Nav.currentAction.type === 'wait') {
         Nav.actionTimeRemaining = Nav.currentAction.duration;
         Nav.logConsole(`Drifting: waiting for ${Nav.currentAction.duration} days`, "info");
+        if (typeof SPEECH !== 'undefined') { Nav.ship.sayText = SPEECH.pick("navWait"); Nav.ship.sayTimer = 110; }
       } else if (Nav.currentAction.type === 'warp') {
         Nav.timeWarpFactor = Math.max(1.0, Math.min(20.0, Nav.currentAction.factor));
         Nav.logConsole(`Time warp factor updated to ${Nav.timeWarpFactor}x`, "info");
+        if (typeof SPEECH !== 'undefined' && Nav.timeWarpFactor >= 4) { Nav.ship.sayText = SPEECH.pick("navLightspeed"); Nav.ship.sayTimer = 120; }
         Nav.currentAction = null;
       }
     }

@@ -241,6 +241,29 @@ function runNavigatorCommands(commandString) {
 }
 
 /**
+ * In-flight banter: a light-speed gag at high warp, and a "we've gone too far!"
+ * nudge when the ship coasts out past the planets (the outer-system / Glacies cue).
+ * Throttled so it never spams, and yields to cruise/landing announcements.
+ */
+function navFlightChatter(ship) {
+  if (!ship || typeof SPEECH === 'undefined') return;
+  const Nav = window.Nav;
+  Nav._chatterCd = (Nav._chatterCd || 0) - 1;
+  if (Nav._chatterCd > 0) return;
+  if (ship.sayTimer && ship.sayTimer > 60) return; // don't talk over a current line
+  const distFromSun = Math.hypot(ship.x || 0, ship.y || 0);
+  if (distFromSun > 4.2) {              // past Mag-Net's orbit (~3.55 SU): lost in the black
+    ship.sayText = SPEECH.pick("navDeepSpace");
+    ship.sayTimer = 150;
+    Nav._chatterCd = 420;               // ~7s
+  } else if ((Nav.timeWarpFactor || 1) >= 4) {
+    ship.sayText = SPEECH.pick("navLightspeed");
+    ship.sayTimer = 130;
+    Nav._chatterCd = 360;               // ~6s
+  }
+}
+
+/**
  * Runs updates for either Classic or Solar spaceflight solvers.
  */
 function updateNavigator(game) {
@@ -262,13 +285,16 @@ function updateNavigator(game) {
       // Step physics Verlet math integration
       window.Nav.ship.timeElapsed = window.Nav.stepSolarShip(window.Nav.ship, dt, window.Nav.ship.timeElapsed);
 
+      // Chatter while flying: light-speed gags at high warp, "lost the planets!" out deep.
+      navFlightChatter(window.Nav.ship);
+
       // Validate if current mission goals have been met
       const activeMission = window.Nav.Missions[window.Nav.activeMissionIndex];
       if (activeMission && !window.Nav.orbitalMissionsCompleted.has(activeMission.id)) {
         if (activeMission.validate(window.Nav.ship, window.Nav.ship.timeElapsed)) {
           window.Nav.orbitalMissionsCompleted.add(activeMission.id);
           // Spacecraft settles into the destination orbit — give it a happy shout.
-          window.Nav.ship.sayText = "Cruising now!";
+          window.Nav.ship.sayText = (typeof SPEECH !== 'undefined') ? SPEECH.pick("navCruise") : "Cruising now!";
           window.Nav.ship.sayTimer = 220;
           window.Nav.logConsole(`MISSION ACCOMPLISHED: ${activeMission.title}!`, "success");
           renderNavigatorMissionsSolar();
