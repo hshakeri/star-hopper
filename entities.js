@@ -254,14 +254,25 @@ const SPEECH_POOLS = {
 
 const SPEECH = {
   _last: {},
+  // "Slow" moments (standing idle, watching the navigator) can read longer, funnier
+  // lines; everything else is fast platformer action that wants a snappy short word.
+  _slow: new Set(["idle", "navAim", "navThrust", "navWait", "navCruise", "navLanding", "navLightspeed", "navDeepSpace"]),
   pick(pool) {
     const arr = SPEECH_POOLS[pool];
     if (!arr || !arr.length) return pool;
     if (arr.length === 1) return arr[0];
-    let idx, tries = 0;
-    do { idx = Math.floor(Math.random() * arr.length); tries++; } while (arr[idx] === this._last[pool] && tries < 8);
-    this._last[pool] = arr[idx];
-    return arr[idx];
+    const slow = this._slow.has(pool);
+    // Sample a few candidates (never the last line) and keep the shortest for fast
+    // action / the longest for calm moments — a soft length bias that keeps variety.
+    let best = null;
+    for (let s = 0; s < 3; s++) {
+      let idx, tries = 0;
+      do { idx = Math.floor(Math.random() * arr.length); tries++; } while (arr[idx] === this._last[pool] && tries < 6);
+      const cand = arr[idx];
+      if (best === null || (slow ? cand.length > best.length : cand.length < best.length)) best = cand;
+    }
+    this._last[pool] = best;
+    return best;
   }
 };
 
