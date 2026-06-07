@@ -3378,6 +3378,25 @@ select:focus-visible,
   gap: 12px;
 }
 
+.touch-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* FIRE only appears while Mob Survival is on (toggled on #touch-controls) */
+.touch-btn.touch-fire {
+  color: #facc15;
+  border-color: rgba(250, 204, 21, 0.5);
+  display: none;
+}
+.touch-controls.survival .touch-fire { display: inline-flex; }
+.touch-btn.touch-fire.pressed,
+.touch-btn.touch-fire:active {
+  background: rgba(250, 204, 21, 0.22);
+  box-shadow: 0 0 16px rgba(250, 204, 21, 0.45);
+}
+
 .touch-btn {
   display: inline-flex;
   align-items: center;

@@ -1155,6 +1155,8 @@ class StarHopperGame {
     this.mobSpawnTimer = 50;
     const btn = document.getElementById('survival-btn');
     if (btn) btn.classList.toggle('survival-on', this.survivalMode);
+    const touch = document.getElementById('touch-controls');
+    if (touch) touch.classList.toggle('survival', this.survivalMode); // reveal the FIRE button
     if (this.survivalMode) {
       ui_log_output("👾 MOB SURVIVAL on! Jump on critters or press F to shoot. Score → bigger guns + a rave shield.", "success");
       if (this.player && typeof ComicBubbles !== 'undefined') {
