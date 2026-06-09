@@ -1044,6 +1044,100 @@ function logMissionStat(game) {
   }
 }
 
+// ---- Engineering Bench: linked design sliders -------------------------------
+// Input sliders set the real game values; the derived OUTPUT bars (speed, jump,
+// agility, thrust, gravity, fuel burn) animate in response — showing F = m·a live.
+const ENG_G = 9.8 / 0.6; // m/s² per game-unit of gravity
+
+const ENG_INPUTS = [
+  { key: 'mass',     label: 'Mass',        lower: true, step: 0.1, min: (g) => g.getUpgradeCap('mass'), max: () => 10,
+    get: (g) => g.hopperMass, set: (g, v) => { g.hopperMass = v; if (g.player && g.player.charType === 'hopper') g.player.mass = v; } },
+  { key: 'engine',   label: 'Engine force', step: 0.5, min: () => 1, max: (g) => g.getUpgradeCap('engine'),
+    get: (g) => g.getEngineForce(), set: (g, v) => { Compiler.env.engine = v; } },
+  { key: 'jump',     label: 'Jump force',   step: 0.5, min: () => 1, max: (g) => g.getUpgradeCap('jump'),
+    get: (g) => (g.player ? g.player.jumpPower : 10), set: (g, v) => { if (g.player) g.player.jumpPower = v; } },
+  { key: 'rocket',   label: 'Rocket power', step: 1, min: () => 0, max: (g) => g.getUpgradeCap('rocket'),
+    get: (g) => (g.player && Number.isFinite(g.player.rocketPower)) ? g.player.rocketPower : 40, set: (g, v) => { if (g.player) g.player.rocketPower = v; } },
+  { key: 'antigrav', label: 'Antigravity',  step: 0.1, min: () => 0, max: (g) => g.getUpgradeCap('antigravity'),
+    get: () => (Compiler.env.antigravity || 0) * ENG_G, set: (g, v) => { Compiler.env.antigravity = v / ENG_G; } }
+];
+
+function engStats(g) {
+  const m = Math.max(0.05, g.hopperMass || 1);
+  const eng = g.getEngineForce();
+  const jf = g.player ? g.player.jumpPower : 10;
+  const rocket = (g.player && Number.isFinite(g.player.rocketPower)) ? g.player.rocketPower : 40;
+  const felt = g.getCurrentGravity();
+  const speed = eng / m, jumpV = jf / m;
+  return {
+    speed, jumpV,
+    agility: (speed + jumpV) * 0.6 / Math.max(0.05, felt),
+    thrust: rocket * (2.5 / m) + speed,
+    gravity: felt * ENG_G,
+    fuel: Math.max(0.7, 1.5 * (rocket / 40))
+  };
+}
+
+const ENG_OUTPUTS = [
+  { key: 'speed',   label: 'Top speed',    pick: (s) => s.speed,   maxRef: 24,  fmt: (v) => v.toFixed(1) },
+  { key: 'jumpV',   label: 'Jump height',  pick: (s) => s.jumpV,   maxRef: 40,  fmt: (v) => v.toFixed(1) },
+  { key: 'agility', label: 'Agility',      pick: (s) => s.agility, maxRef: 60,  fmt: (v) => String(Math.round(v)), goal: 30 },
+  { key: 'thrust',  label: 'Thrust',       pick: (s) => s.thrust,  maxRef: 220, fmt: (v) => String(Math.round(v)), goal: 45 },
+  { key: 'gravity', label: 'Felt gravity', pick: (s) => s.gravity, maxRef: 30,  fmt: (v) => v.toFixed(1) + ' m/s²' },
+  { key: 'fuel',    label: 'Fuel burn',    pick: (s) => s.fuel,    maxRef: 5,   fmt: (v) => v.toFixed(1) + '/f', warn: true }
+];
+
+function refreshEngOutputs(game) {
+  const s = engStats(game);
+  ENG_OUTPUTS.forEach((o) => {
+    const v = o.pick(s);
+    const fill = document.getElementById('eng-out-' + o.key);
+    const val = document.getElementById('eng-val-' + o.key);
+    if (fill) fill.style.width = Math.max(2, Math.min(100, (v / o.maxRef) * 100)) + '%';
+    if (val) {
+      val.textContent = o.fmt(v) + (o.goal ? ' / ' + o.goal : '');
+      if (o.goal) val.classList.toggle('eng-met', v >= o.goal);
+    }
+  });
+}
+
+function renderEngineerPanel(game) {
+  if (!game) return;
+  const inWrap = document.getElementById('eng-inputs');
+  const outWrap = document.getElementById('eng-outputs');
+  if (!inWrap || !outWrap) return;
+
+  inWrap.innerHTML = '';
+  ENG_INPUTS.forEach((cfg) => {
+    const lo = cfg.min(game), hi = cfg.max(game);
+    const cur = Math.max(lo, Math.min(hi, cfg.get(game)));
+    const row = document.createElement('div');
+    row.className = 'eng-slider';
+    row.innerHTML = `<div class="eng-slider-head"><span>${cfg.label}</span><span class="eng-slider-val" id="eng-in-${cfg.key}">${Math.round(cur * 10) / 10}</span></div>`;
+    const range = document.createElement('input');
+    range.type = 'range';
+    range.min = lo; range.max = hi; range.step = cfg.step; range.value = cur;
+    range.className = 'eng-range' + (cfg.lower ? ' eng-range-lower' : '');
+    range.addEventListener('input', () => {
+      const v = parseFloat(range.value);
+      cfg.set(game, v);
+      const lab = document.getElementById('eng-in-' + cfg.key);
+      if (lab) lab.textContent = Math.round(v * 10) / 10;
+      refreshEngOutputs(game);
+      if (typeof updateHUD === 'function') updateHUD(game);
+    });
+    row.appendChild(range);
+    inWrap.appendChild(row);
+  });
+
+  outWrap.innerHTML = ENG_OUTPUTS.map((o) => `
+    <div class="eng-output${o.warn ? ' eng-warn' : ''}">
+      <div class="eng-out-head"><span>${o.label}</span><span class="eng-out-val" id="eng-val-${o.key}">–</span></div>
+      <div class="eng-bar"><div class="eng-bar-fill" id="eng-out-${o.key}"></div></div>
+    </div>`).join('');
+  refreshEngOutputs(game);
+}
+
 // Binds UI controls, terminal input, and cards
 function setupUIBindings(game) {
   setupResizablePanes();

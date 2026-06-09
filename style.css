@@ -2564,6 +2564,30 @@ body.navigator-active .coach-bubble { display: none !important; }
   display: flex;
 }
 
+/* Engineering Bench — linked design sliders */
+#main-content-engineer { padding: 14px; }
+.eng-hint { font-size: 0.78rem; color: var(--text-muted); line-height: 1.45; margin: 4px 0 14px; }
+.eng-hint em { color: var(--neon-green); font-style: normal; font-weight: 700; }
+.eng-slider { margin-bottom: 13px; }
+.eng-slider-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.82rem; color: var(--text-primary); margin-bottom: 4px; }
+.eng-slider-val { font-family: var(--font-mono); color: var(--neon-cyan); font-weight: 700; }
+.eng-range { -webkit-appearance: none; appearance: none; width: 100%; height: 8px; border-radius: 999px; background: rgba(56, 189, 248, 0.18); outline: none; cursor: pointer; }
+.eng-range::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: var(--neon-cyan); border: 2px solid #0b1022; cursor: pointer; box-shadow: 0 0 8px rgba(56, 189, 248, 0.55); }
+.eng-range::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: var(--neon-cyan); border: 2px solid #0b1022; cursor: pointer; }
+.eng-range-lower { background: rgba(74, 222, 128, 0.18); }
+.eng-range-lower::-webkit-slider-thumb { background: var(--neon-green); box-shadow: 0 0 8px rgba(74, 222, 128, 0.55); }
+.eng-range-lower::-moz-range-thumb { background: var(--neon-green); }
+.eng-divider { text-align: center; font-size: 0.68rem; color: var(--text-muted); letter-spacing: 0.5px; margin: 16px 0 10px; }
+.eng-output { margin-bottom: 10px; }
+.eng-out-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.8rem; color: var(--text-primary); margin-bottom: 3px; }
+.eng-out-val { font-family: var(--font-mono); color: var(--neon-yellow); font-weight: 700; transition: color 0.2s ease; }
+.eng-out-val.eng-met { color: var(--neon-green); }
+.eng-bar { height: 11px; border-radius: 999px; background: rgba(255, 255, 255, 0.06); overflow: hidden; }
+/* the width transition is what makes the linked results visibly MOVE as you drag */
+.eng-bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple)); transition: width 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.eng-warn .eng-bar-fill { background: linear-gradient(90deg, #f97316, #ef4444); }
+.eng-warn .eng-out-val { color: #fb923c; }
+
 /* Scrollbar customization for content containers */
 .mode-content::-webkit-scrollbar {
   width: 6px;

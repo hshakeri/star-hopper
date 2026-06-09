@@ -384,6 +384,9 @@ function switchMainMode(mode) {
   if (typeof updateCertificateState === 'function') {
     updateCertificateState();
   }
+  if (mode === 'engineer' && typeof renderEngineerPanel === 'function' && window.Game) {
+    renderEngineerPanel(window.Game);
+  }
   if (typeof updateParentMissionSummary === 'function' && window.Game) {
     updateParentMissionSummary(window.Game);
   }
