@@ -1115,10 +1115,37 @@ class Player {
       const bubbleW = Math.min(maxW, Math.max(...lines.map((l) => ctx.measureText(l).width)) + padX * 2);
       const bubbleH = lines.length * lineH + (shout ? 11 : 9);
       const cx = this.x + this.w / 2 - cameraX;
-      const bx = cx - bubbleW / 2;
+      const canvasW = (game && game.canvas) ? game.canvas.width : 720;
+      // Vertical placement first, so we can test whether the balloon overlaps the panel.
       let by = this.y - bubbleH - 16;
       let below = false;
       if (by < 4) { by = this.y + this.h + 12; below = true; } // flip under the cadet near the top edge
+      // Keep the whole balloon on-screen AND clear of the top-left 🎯 Mission overlay.
+      // The cadet spawns at the very-left edge, right under that panel, so a player-centred
+      // box would both clip the margin and hide behind the panel. Push it right of the panel
+      // (only while they actually overlap); the full text always lives in the Mission box,
+      // and the tail still leans back toward the cadet.
+      let leftBound = 6;
+      try {
+        const panel = (typeof document !== 'undefined') && document.getElementById('mission-bubble');
+        const cv = game && game.canvas;
+        if (panel && cv) {
+          const pr = panel.getBoundingClientRect();
+          const cr = cv.getBoundingClientRect();
+          if (pr.width && cr.width) {
+            const sx = cv.width / cr.width;          // canvas px per screen px
+            const sy = cv.height / cr.height;
+            const panelRight = (pr.right - cr.left) * sx;
+            const panelTop = (pr.top - cr.top) * sy;
+            const panelBottom = (pr.bottom - cr.top) * sy;
+            const overlapsV = (by + bubbleH) > panelTop && by < panelBottom;
+            if (overlapsV && panelRight > leftBound) leftBound = Math.min(panelRight + 10, canvasW - bubbleW - 6);
+          }
+        }
+      } catch (e) { /* draw must never throw */ }
+      const bx = Math.max(leftBound, Math.min(canvasW - bubbleW - 6, cx - bubbleW / 2));
+      const centerX = bx + bubbleW / 2;
+      const tailX = Math.max(bx + 12, Math.min(bx + bubbleW - 12, cx));
 
       ctx.shadowBlur = 0;
       ctx.fillStyle = accent;
@@ -1130,8 +1157,8 @@ class Player {
 
       // Blocky stepped pointer tail (points down to the cadet, or up if flipped below).
       ctx.fillStyle = accent;
-      if (below) { ctx.fillRect(cx - 6, by - 3, 12, 4); ctx.fillStyle = '#fbf3da'; ctx.fillRect(cx - 4, by - 1, 8, 3); ctx.fillRect(cx - 2, by - 4, 4, 3); }
-      else { ctx.fillRect(cx - 6, by + bubbleH - 1, 12, 4); ctx.fillStyle = '#fbf3da'; ctx.fillRect(cx - 4, by + bubbleH - 1, 8, 3); ctx.fillRect(cx - 2, by + bubbleH + 2, 4, 3); }
+      if (below) { ctx.fillRect(tailX - 6, by - 3, 12, 4); ctx.fillStyle = '#fbf3da'; ctx.fillRect(tailX - 4, by - 1, 8, 3); ctx.fillRect(tailX - 2, by - 4, 4, 3); }
+      else { ctx.fillRect(tailX - 6, by + bubbleH - 1, 12, 4); ctx.fillStyle = '#fbf3da'; ctx.fillRect(tailX - 4, by + bubbleH - 1, 8, 3); ctx.fillRect(tailX - 2, by + bubbleH + 2, 4, 3); }
 
       // Text (dark navy ink on cream), revealed across the wrapped lines.
       ctx.fillStyle = '#15233e';
@@ -1141,7 +1168,7 @@ class Player {
       for (let i = 0; i < lines.length; i++) {
         const fl = lines[i];
         const remain = Math.max(0, shown.length - used);
-        ctx.fillText(fl.slice(0, remain), cx, by + (shout ? 6 : 5) + i * lineH + lineH / 2 - 2);
+        ctx.fillText(fl.slice(0, remain), centerX, by + (shout ? 6 : 5) + i * lineH + lineH / 2 - 2);
         used += fl.length + 1;
       }
       ctx.restore();

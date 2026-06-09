@@ -1614,6 +1614,32 @@ html {
   padding-bottom: 6px;
 }
 
+/* Briefing log inside the Mission bubble — the persistent copy of every narration line */
+.mission-briefing {
+  margin-top: 10px;
+}
+.mission-briefing-log {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  max-height: 150px;
+  overflow-y: auto;
+}
+.mission-briefing-item {
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--text-primary);
+  background: rgba(56, 189, 248, 0.07);
+  border-left: 3px solid var(--neon-cyan);
+  border-radius: 0 6px 6px 0;
+  padding: 6px 8px;
+}
+.mission-briefing-item:first-child {
+  border-left-color: var(--neon-green);
+  background: rgba(74, 222, 128, 0.09);
+}
+
 .mission-list {
   display: flex;
   flex-direction: column;

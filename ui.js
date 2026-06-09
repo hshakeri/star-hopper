@@ -938,9 +938,31 @@ function showDialogue(text, trigger = "start") {
   if (!text) return;
   // Strip the old "Vector here — " framing now that there's no robot speaking.
   const line = String(text).replace(/^\s*Vector here\s*[—–-]\s*/i, "");
-  if (window.Game && window.Game.player && typeof window.Game.player.say === "function") {
-    window.Game.player.say(line, { dialogue: true, timer: 340 });
+  // The arrival line on each planet starts a fresh briefing and lingers a bit longer.
+  if (trigger === "start") {
+    const log = document.getElementById("mission-briefing-log");
+    if (log) { log.innerHTML = ""; log._last = null; }
   }
+  // Brief, in-world balloon (longer pause on the first/arrival show)...
+  if (window.Game && window.Game.player && typeof window.Game.player.say === "function") {
+    window.Game.player.say(line, { dialogue: true, timer: trigger === "start" ? 540 : 360 });
+  }
+  // ...and the COMPLETE message is kept in the 🎯 Mission box for re-reading.
+  logMissionBriefing(line);
+}
+
+// Keep every narration line in the Mission box (newest on top), so the transient
+// balloon is just a heads-up and the full text is always there to refer back to.
+function logMissionBriefing(text) {
+  const log = document.getElementById("mission-briefing-log");
+  if (!log || !text) return;
+  if (log._last === text) return; // skip consecutive duplicates
+  log._last = text;
+  const item = document.createElement("div");
+  item.className = "mission-briefing-item";
+  item.textContent = text;
+  log.insertBefore(item, log.firstChild);
+  while (log.children.length > 8) log.removeChild(log.lastChild);
 }
 
 function closeDialogue() {
