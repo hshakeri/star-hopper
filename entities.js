@@ -568,13 +568,14 @@ class Player {
     this.facing = 1;
   }
 
-  // Retro 80s-style speech balloon. opts: { emoji, shout, timer }
+  // Retro 80s-style speech balloon. opts: { emoji, shout, timer, dialogue }
   say(text, opts) {
     opts = opts || {};
     this.sayText = text;
     this.sayEmoji = opts.emoji || "";
     this.sayShout = !!opts.shout;       // big pixel-font arcade shout (e.g. "GET!")
-    this.sayTimer = opts.timer || 150;  // ~2.5s at 60fps
+    this.sayDialogue = !!opts.dialogue; // multi-line instruction bubble (wraps, lingers)
+    this.sayTimer = opts.timer || (opts.dialogue ? 320 : 150);
     this.sayReveal = 0;                 // chars revealed so far (typewriter effect)
     this.sayPrevLen = 0;
   }
@@ -819,7 +820,9 @@ class Player {
           const rocketRiseLimit = Math.max(speedMultiplier, tunedRocketPower / 12);
           this.vy -= rocketAcceleration;
           if (this.vy < -rocketRiseLimit) this.vy = -rocketRiseLimit;
-          this.fuel -= 1.5;
+          // Trade-off: a stronger rocket burns fuel proportionally faster (40 power ≈ 1.5/frame,
+          // so doubling the power empties the tank in half the time).
+          this.fuel -= Math.max(0.7, 1.5 * (tunedRocketPower / 40));
           // Rocket exhaust particles
           Particles.spawn(
             this.x + (Math.random() * 6) + 4, this.y + this.h,
@@ -1088,46 +1091,59 @@ class Player {
       }
       this.sayPrevLen = shownCount;
 
-      const accent = (this.charType === 'star') ? '#38bdf8' : '#f97316';
+      const accent = this.sayDialogue ? '#38bdf8' : ((this.charType === 'star') ? '#38bdf8' : '#f97316');
       const shout = this.sayShout;
+      const dialogue = this.sayDialogue;
       const prefix = this.sayEmoji ? this.sayEmoji + ' ' : '';
-      const fullLabel = prefix + this.sayText;
-      const shownLabel = prefix + this.sayText.slice(0, shownCount);
+      const full = prefix + this.sayText;
+      const shown = prefix + this.sayText.slice(0, shownCount);
 
       ctx.save();
-      ctx.font = shout ? "13px 'Press Start 2P', monospace" : "bold 12px 'Outfit', sans-serif";
-      // Measure with the FULL text so the window keeps a steady size while typing.
-      const textWidth = ctx.measureText(fullLabel).width;
+      ctx.font = shout ? "13px 'Press Start 2P', monospace" : (dialogue ? "600 11px 'Baloo 2', 'Outfit', sans-serif" : "bold 12px 'Outfit', sans-serif");
+      // Word-wrap (single line for short shouts; multiple for dialogue).
+      const maxW = dialogue ? 250 : 232;
       const padX = shout ? 12 : 10;
-      const bubbleW = Math.min(232, textWidth + padX * 2);
-      const bubbleH = shout ? 28 : 23;
+      const lines = [];
+      let line = '';
+      full.split(' ').forEach((w) => {
+        const t = line ? line + ' ' + w : w;
+        if (ctx.measureText(t).width > maxW - padX * 2 && line) { lines.push(line); line = w; }
+        else line = t;
+      });
+      if (line) lines.push(line);
+      const lineH = shout ? 17 : (dialogue ? 15 : 14);
+      const bubbleW = Math.min(maxW, Math.max(...lines.map((l) => ctx.measureText(l).width)) + padX * 2);
+      const bubbleH = lines.length * lineH + (shout ? 11 : 9);
       const cx = this.x + this.w / 2 - cameraX;
       const bx = cx - bubbleW / 2;
-      const by = this.y - bubbleH - 16;
+      let by = this.y - bubbleH - 16;
+      let below = false;
+      if (by < 4) { by = this.y + this.h + 12; below = true; } // flip under the cadet near the top edge
 
       ctx.shadowBlur = 0;
-      // 1. Outer character-colored frame (the retro "window" border).
       ctx.fillStyle = accent;
       ctx.beginPath(); ctx.roundRect(bx - 3, by - 3, bubbleW + 6, bubbleH + 6, 6); ctx.fill();
-      // 2. Thin dark keyline for that crisp pixel-window edge.
       ctx.fillStyle = '#0b1022';
       ctx.beginPath(); ctx.roundRect(bx - 1.5, by - 1.5, bubbleW + 3, bubbleH + 3, 5); ctx.fill();
-      // 3. Cream parchment panel.
       ctx.fillStyle = '#fbf3da';
       ctx.beginPath(); ctx.roundRect(bx, by, bubbleW, bubbleH, 4); ctx.fill();
 
-      // 4. Blocky stepped pointer (pixel tail) under the window.
+      // Blocky stepped pointer tail (points down to the cadet, or up if flipped below).
       ctx.fillStyle = accent;
-      ctx.fillRect(cx - 6, by + bubbleH - 1, 12, 4);
-      ctx.fillStyle = '#fbf3da';
-      ctx.fillRect(cx - 4, by + bubbleH - 1, 8, 3);
-      ctx.fillRect(cx - 2, by + bubbleH + 2, 4, 3);
+      if (below) { ctx.fillRect(cx - 6, by - 3, 12, 4); ctx.fillStyle = '#fbf3da'; ctx.fillRect(cx - 4, by - 1, 8, 3); ctx.fillRect(cx - 2, by - 4, 4, 3); }
+      else { ctx.fillRect(cx - 6, by + bubbleH - 1, 12, 4); ctx.fillStyle = '#fbf3da'; ctx.fillRect(cx - 4, by + bubbleH - 1, 8, 3); ctx.fillRect(cx - 2, by + bubbleH + 2, 4, 3); }
 
-      // 5. Text (dark navy ink on cream).
+      // Text (dark navy ink on cream), revealed across the wrapped lines.
       ctx.fillStyle = '#15233e';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(shownLabel, cx, by + bubbleH / 2 + 1);
+      let used = 0;
+      for (let i = 0; i < lines.length; i++) {
+        const fl = lines[i];
+        const remain = Math.max(0, shown.length - used);
+        ctx.fillText(fl.slice(0, remain), cx, by + (shout ? 6 : 5) + i * lineH + lineH / 2 - 2);
+        used += fl.length + 1;
+      }
       ctx.restore();
     }
   }

@@ -931,85 +931,20 @@ const PORTRAIT_ART = {
   SYSTEM: `<svg viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="6" y="2" width="4" height="12" fill="#94a3b8"/><rect x="2" y="6" width="12" height="4" fill="#94a3b8"/><rect x="4" y="4" width="8" height="8" fill="#94a3b8"/><rect x="6" y="6" width="4" height="4" fill="#0b1022"/></svg>`
 };
 
+// Vector is gone: narration/tutorial lines now appear as the cadet's own in-world
+// speech balloon (multi-line, lingering). The full objectives live in the 🎯 Mission
+// panel for anyone who wants the detail.
 function showDialogue(text, trigger = "start") {
-  const bubble = document.getElementById("dialogue-bubble");
-  const textContainer = document.getElementById("dialogue-text");
-  const portraitContainer = document.getElementById("dialogue-portrait");
-  const speakerContainer = document.getElementById("dialogue-speaker-name");
-  const nextIndicator = bubble ? bubble.querySelector(".dialogue-next-indicator") : null;
-
-  if (!bubble || !textContainer) return;
-
-  bubble.style.display = "flex";
-  // Comic-book ink outline (matches the speech tail). Alerts get a red ink outline.
-  bubble.style.borderColor = trigger === "start" ? "#15233e" : "#7f1d1d";
-  
-  if (nextIndicator) {
-    nextIndicator.style.display = "none"; // hide cursor while typing
+  if (!text) return;
+  // Strip the old "Vector here — " framing now that there's no robot speaking.
+  const line = String(text).replace(/^\s*Vector here\s*[—–-]\s*/i, "");
+  if (window.Game && window.Game.player && typeof window.Game.player.say === "function") {
+    window.Game.player.say(line, { dialogue: true, timer: 340 });
   }
-
-  // Determine speaker and portrait from trigger/text content
-  let speaker = "VECTOR";
-  let portrait = "🤖";
-
-  if (trigger === "code") {
-    speaker = "SYSTEM";
-    portrait = "⚙️";
-  } else if (trigger === "badge") {
-    speaker = "ENGINEER";
-    portrait = "🛠️";
-  } else if (text.startsWith("🔧") || text.includes("Badge") || text.includes("Nice engineering")) {
-    speaker = "BRIDGE";
-    portrait = "🛰️";
-  } else if (text.includes("Star:") || text.includes("Rover:")) {
-    speaker = "STAR";
-    portrait = "🪐";
-  } else if (text.includes("Hopper:")) {
-    speaker = "HOPPER";
-    portrait = "🚀";
-  }
-
-  if (speakerContainer) {
-    speakerContainer.textContent = speaker;
-  }
-  if (portraitContainer) {
-    // Pixel-art face if we have one for this speaker, else the emoji fallback.
-    if (PORTRAIT_ART[speaker]) portraitContainer.innerHTML = PORTRAIT_ART[speaker];
-    else portraitContainer.textContent = portrait;
-  }
-
-  // Clear previous typing intervals
-  if (currentDialogueTimer) {
-    clearInterval(currentDialogueTimer);
-  }
-
-  textContainer.textContent = "";
-  let i = 0;
-  
-  currentDialogueTimer = setInterval(() => {
-    if (i < text.length) {
-      textContainer.textContent += text.charAt(i);
-      i++;
-      if (Math.random() < 0.35 && typeof SFX !== 'undefined' && SFX.playType) {
-        SFX.playType(); // play retro 8-bit voice sound chime
-      }
-    } else {
-      clearInterval(currentDialogueTimer);
-      currentDialogueTimer = null;
-      if (nextIndicator) {
-        nextIndicator.style.display = "inline"; // show blinking indicator once fully typed
-      }
-    }
-  }, 22);
 }
 
 function closeDialogue() {
-  const bubble = document.getElementById("dialogue-bubble");
-  if (bubble) bubble.style.display = "none";
-  if (currentDialogueTimer) {
-    clearInterval(currentDialogueTimer);
-    currentDialogueTimer = null;
-  }
+  if (window.Game && window.Game.player) window.Game.player.sayTimer = 0;
 }
 
 // Resize the console textarea to fit its content (capped, then it scrolls).

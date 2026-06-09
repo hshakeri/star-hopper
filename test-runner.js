@@ -311,7 +311,7 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Physics: spike hazard tiles are detected", false, err.message);
   }
 
-  // Test 14: the engine/speed knob writes the engine drive force (top speed = engine / mass)
+  // Test 14: the engine knob writes the engine drive force (top speed = engine / mass)
   try {
     Compiler.reset();
     const mockGame = {
@@ -319,9 +319,9 @@ function runEngineTests() {
       player: {}
     };
 
-    const res = Compiler.runCommand("player.speed = 5.5", mockGame);
+    const res = Compiler.runCommand("hopper.engine = 5.5", mockGame);
     assertEquals(true, res.success);
-    assertEquals(5.5, Compiler.env.engine, "player.speed should set the engine drive force");
+    assertEquals(5.5, Compiler.env.engine, "hopper.engine should set the engine drive force");
 
     const res2 = Compiler.runCommand("hopper.engine = 7", mockGame);
     assertEquals(true, res2.success);

@@ -143,9 +143,19 @@ class StarHopperGame {
     if (newCap !== prevCap) {
       const u = HOPPER_UPGRADES[key];
       const word = u.isFloor ? 'MIN' : 'MAX';
-      this.showMissionBalloon(`⬆ ${u.short} ${word} ${newCap}!`, { color: '#4ade80', timer: 150 });
+      // Exciting cap-up: a big green starburst balloon above the cadet + a particle
+      // pop + a success chime, so every upgrade feels like a real power spike.
+      if (this.player) {
+        if (typeof ComicBubbles !== 'undefined') {
+          ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y - 12,
+            `⬆ ${u.short} ${word} ${newCap}!`, "jagged", "#4ade80", -0.55, { maxLife: 100, scale: 1.7 });
+        }
+        Particles.spawnBurst(this.player.x + this.player.w / 2, this.player.y + this.player.h / 2, '#4ade80', 18, 3.5, 3, 'glow');
+        Particles.spawnBurst(this.player.x + this.player.w / 2, this.player.y + this.player.h / 2, '#bbf7d0', 10, 2.2, 2, 'glow');
+      }
+      if (typeof SFX !== 'undefined' && SFX.playSuccess) SFX.playSuccess();
       if (typeof ui_log_output === 'function') {
-        ui_log_output(`⬆ Gem boost: ${u.cmd} can now reach ${u.isFloor ? '≥' : '≤'} ${newCap}.`, "success");
+        ui_log_output(`⬆ POWER SPIKE! ${u.cmd} can now reach ${u.isFloor ? '≥' : '≤'} ${newCap}.`, "success");
       }
       if (typeof saveLocalProgress === 'function') saveLocalProgress();
     }

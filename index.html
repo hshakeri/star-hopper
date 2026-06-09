@@ -6,16 +6,16 @@
   <title>Star Hopper - Physics & Coding Game</title>
   <meta name="description" content="A 2D platformer physics sandbox game for kids to learn programming constructs (loops, conditionals, assignments) and physics forces (gravity, friction, magnetism) by coding the level rules in real-time.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%2338bdf8'/%3E%3Cstop offset='100%25' stop-color='%23a855f7'/%3E%3C/linearGradient%3E%3Cfilter id='glow'%3E%3CfeGaussianBlur stdDeviation='1' result='blur'/%3E%3CfeMerge%3E%3CfeMergeNode in='blur'/%3E%3CfeMergeNode in='SourceGraphic'/%3E%3C/feMerge%3E%3C/filter%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='%230f172a'/%3E%3Cpath d='M 6,26 Q 16,22 18,14' stroke='%23e11d48' stroke-width='2' stroke-linecap='round' fill='none' opacity='0.8'/%3E%3Cpath d='M 8,24 Q 14,20 16,16' stroke='%23fb923c' stroke-width='1.5' stroke-linecap='round' fill='none' opacity='0.8'/%3E%3Cpath d='M 22,6 L 24,11 L 29,12 L 25,16 L 26,21 L 22,18 L 18,21 L 19,16 L 15,12 L 20,11 Z' fill='url(%23grad)' filter='url(%23glow)'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="style.css?v=coach-v33">
+  <link rel="stylesheet" href="style.css?v=coach-v34">
 
   <!-- PWA / installable iOS app -->
-  <link rel="manifest" href="manifest.json?v=coach-v33">
+  <link rel="manifest" href="manifest.json?v=coach-v34">
   <meta name="theme-color" content="#030712">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Star Hopper">
-  <link rel="apple-touch-icon" href="icons/icon-180.png?v=coach-v33">
+  <link rel="apple-touch-icon" href="icons/icon-180.png?v=coach-v34">
 </head>
 <body>
 
@@ -39,16 +39,8 @@
       <!-- Canvas Wrapper containing canvas and overlay menus -->
       <div id="canvas-wrapper">
         
-        <!-- Helper Robot Dialogue Bubble (Vector) -->
-        <div id="dialogue-bubble" style="display: none;">
-          <div id="dialogue-portrait" class="retro-portrait">🤖</div>
-          <div class="dialogue-content">
-            <div id="dialogue-speaker-name" class="speaker-name">VECTOR</div>
-            <div class="dialogue-text" id="dialogue-text">Initializing boot sequences...</div>
-          </div>
-          <span class="dialogue-next-indicator">▼</span>
-          <button class="dialogue-close" id="dialogue-close-btn">✖ CLOSE</button>
-        </div>
+        <!-- (Vector removed — narration now shows as the cadet's in-world speech balloon;
+             full detail lives in the 🎯 Mission bubble.) -->
 
         <!-- Mission objectives bubble (collapsible) — top-left dashboard overlay -->
         <div id="mission-bubble" class="coach-bubble mission-bubble">
@@ -317,14 +309,11 @@
               <div class="code-card category-math" data-code="hopper.jump_power = 14" title="Starter jump impulse. Edit the number upward for taller arcs.">
                 <span class="variable">hopper.jump_power</span> = <span class="keyword">14</span>
               </div>
-              <div class="code-card category-math" data-code="player.speed = 4.4" title="Starter run speed. Edit the number for longer horizontal reach.">
-                <span class="variable">player.speed</span> = <span class="keyword">4.4</span>
-              </div>
               <div class="deck-group-header">Hopper Upgrades</div>
               <div class="code-card category-math" data-code="hopper.mass = 1.6" title="Starter Hopper mass. Edit lower to reduce gravity load.">
                 <span class="variable">hopper.mass</span> = <span class="keyword">1.6</span>
               </div>
-              <div class="code-card category-math" data-code="hopper.rocket_power = 55" title="Starter rocket thrust. Edit higher for Jupiter escapes.">
+              <div class="code-card category-math" data-code="hopper.rocket_power = 55" title="Rocket thrust for Jupiter escapes. Trade-off: more power burns fuel faster, so the tank empties sooner.">
                 <span class="variable">hopper.rocket_power</span> = <span class="keyword">55</span>
               </div>
               <div class="code-card category-math" data-code="hopper.spikes = 1" title="Deploy Hopper grip spikes for icy terrain.">
@@ -680,33 +669,33 @@
   </div>
 
   <!-- Import JS Modules sequentially -->
-  <script src="missions.js?v=coach-v33"></script>
-  <script src="planets.js?v=coach-v33"></script>
-  <script src="audio.js?v=coach-v33"></script>
-  <script src="interpreter.js?v=coach-v33"></script>
-  <script src="entities.js?v=coach-v33"></script>
-  <script src="physics.js?v=coach-v33"></script>
-  <script src="ui.js?v=coach-v33"></script>
-  <script src="game.js?v=coach-v33"></script>
-  <script src="touch-controls.js?v=coach-v33"></script>
-  <script src="notebook.js?v=coach-v33"></script>
-  <script src="navigator-classic.js?v=coach-v33"></script>
-  <script src="nav-core.js?v=coach-v33"></script>
-  <script src="nav-bodies.js?v=coach-v33"></script>
-  <script src="nav-physics.js?v=coach-v33"></script>
-  <script src="nav-ship.js?v=coach-v33"></script>
-  <script src="nav-transfer.js?v=coach-v33"></script>
-  <script src="nav-renderer.js?v=coach-v33"></script>
-  <script src="nav-missions.js?v=coach-v33"></script>
-  <script src="navigator.js?v=coach-v33"></script>
-  <script src="github-sync.js?v=coach-v33"></script>
-  <script src="profiles.js?v=coach-v33"></script>
-  <script src="guided-mode.js?v=coach-v33"></script>
+  <script src="missions.js?v=coach-v34"></script>
+  <script src="planets.js?v=coach-v34"></script>
+  <script src="audio.js?v=coach-v34"></script>
+  <script src="interpreter.js?v=coach-v34"></script>
+  <script src="entities.js?v=coach-v34"></script>
+  <script src="physics.js?v=coach-v34"></script>
+  <script src="ui.js?v=coach-v34"></script>
+  <script src="game.js?v=coach-v34"></script>
+  <script src="touch-controls.js?v=coach-v34"></script>
+  <script src="notebook.js?v=coach-v34"></script>
+  <script src="navigator-classic.js?v=coach-v34"></script>
+  <script src="nav-core.js?v=coach-v34"></script>
+  <script src="nav-bodies.js?v=coach-v34"></script>
+  <script src="nav-physics.js?v=coach-v34"></script>
+  <script src="nav-ship.js?v=coach-v34"></script>
+  <script src="nav-transfer.js?v=coach-v34"></script>
+  <script src="nav-renderer.js?v=coach-v34"></script>
+  <script src="nav-missions.js?v=coach-v34"></script>
+  <script src="navigator.js?v=coach-v34"></script>
+  <script src="github-sync.js?v=coach-v34"></script>
+  <script src="profiles.js?v=coach-v34"></script>
+  <script src="guided-mode.js?v=coach-v34"></script>
   <script>
     // Register the service worker for offline play + installable iOS/Android app.
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('sw.js?v=coach-v33').catch(function () {});
+        navigator.serviceWorker.register('sw.js?v=coach-v34').catch(function () {});
       });
     }
   </script>

@@ -693,27 +693,14 @@ const runtimeContext = {
       get: (game) => game.player.mass,
       set: (game, val) => { game.player.mass = val; }
     },
-    // Engine drive force. Actual top speed is DERIVED as engine / mass (F = m·a),
-    // so a stronger engine OR a lighter rover both raise the speed you reach.
+    // Engine drive force. Top speed is DERIVED as engine / mass (F = m·a) — there's no
+    // separate "speed" knob; raise hopper.engine (or drop hopper.mass) to go faster.
     engine: {
-      get: (game) => game.getEngineForce(),
-      set: (game, val) => _setEngineForce(game, val)
-    },
-    "player.engine": {
       get: (game) => game.getEngineForce(),
       set: (game, val) => _setEngineForce(game, val)
     },
     "hopper.engine": {
       get: (game) => game.getEngineForce(),
-      set: (game, val) => _setEngineForce(game, val)
-    },
-    // Legacy "speed" knob: now sets the engine force (speed itself is a read-only result).
-    "player.speed": {
-      get: (game) => game.getCurrentSpeed(),
-      set: (game, val) => _setEngineForce(game, val)
-    },
-    speed: {
-      get: (game) => game.getCurrentSpeed(),
       set: (game, val) => _setEngineForce(game, val)
     },
     "star.mass": {
@@ -885,7 +872,7 @@ class AutocompleteEngine {
   constructor() {
     this.choices = [
       "antigravity", "gravity", "friction", "jump_power", "scale",
-      "player.jump_power", "player.mass", "player.speed", "player.say()", "player.touching()",
+      "player.jump_power", "player.mass", "player.say()", "player.touching()",
       "star.mass",
       "hopper.engine", "hopper.jump_power", "hopper.mass", "hopper.rocket_power", "hopper.spikes", "hopper.pole",
       "spawn()", "spawn_gem()", "spawn_box()", "spawn_spring()",
