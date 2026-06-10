@@ -1255,6 +1255,17 @@ function setupUIBindings(game) {
       // Enter runs the program; Shift+Enter inserts a newline so kids can enter
       // multi-line code (e.g. the whole Mission Coach block) in one go.
       if (e.key === "Enter" && !e.shiftKey) {
+        // If the autocomplete dropdown is open with a Tab-chosen suggestion, the first
+        // Enter ACCEPTS it (just like clicking the row) instead of running — so the cadet
+        // can keep editing (e.g. add " = 2.0"). The dropdown closes; a second Enter runs.
+        const boxOpen = suggestBox && suggestBox.style.display !== "none";
+        if (boxOpen && tabIdx >= 0) {
+          e.preventDefault();
+          suggestBox.style.display = "none";
+          tabBase = null; tabIdx = -1; tabLast = input.value;
+          try { input.setSelectionRange(input.value.length, input.value.length); } catch (_) {}
+          return;
+        }
         e.preventDefault();
         const val = input.value;
         if (val.trim()) {
