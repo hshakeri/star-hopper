@@ -861,6 +861,39 @@ function runRetryRemixTests() {
   } catch (err) {
     renderTestResult(SUITE, "Variant: Mag-Net remix flips pole polarity", false, err.message);
   }
+
+  // Test R7: flavors rotate — Earth retry 2 is the "no antigravity" constraint
+  try {
+    const v1 = buildPlanetVariant(PLANETS[0], 0, 1); // flavor 0: geometry/target
+    const v2 = buildPlanetVariant(PLANETS[0], 0, 2); // flavor 1: constraint
+    assertEquals(null, v1.constraint, "Earth retry 1 should be a geometry/target flavor (no constraint)");
+    assertEquals("earth-no-antigravity", v2.constraint && v2.constraint.id, "Earth retry 2 should be the no-antigravity constraint");
+    assertEquals(true, v2.constraint.banAntigravity, "No-antigravity constraint should ban antigravity");
+    assertEquals(26, v2.targetOverrides.agility, "No-antigravity Agility target should be the feasible 26");
+    renderTestResult(SUITE, "Variant: Earth flavor rotation surfaces the no-antigravity run", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Variant: Earth flavor rotation surfaces the no-antigravity run", false, err.message);
+  }
+
+  // Test R8: Moon retry 2 is the loop "spring budget" constraint
+  try {
+    const v = buildPlanetVariant(PLANETS[1], 1, 2);
+    assertEquals("moon-spring-budget", v.constraint && v.constraint.id, "Moon retry 2 should be the spring-budget constraint");
+    assertEquals(true, Number.isFinite(v.constraint.springCount) && v.constraint.springCount >= 2, "Spring budget should set a loop count");
+    renderTestResult(SUITE, "Variant: Moon flavor rotation surfaces a loop spring-budget", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Variant: Moon flavor rotation surfaces a loop spring-budget", false, err.message);
+  }
+
+  // Test R9: Glacies retry 2 is the "event-only" constraint (forces the ice rule)
+  try {
+    const v = buildPlanetVariant(PLANETS[3], 3, 2);
+    assertEquals("glacies-event-only", v.constraint && v.constraint.id, "Glacies retry 2 should be the event-only constraint");
+    assertEquals(true, v.constraint.requireIceRule, "Event-only constraint should require the ice rule");
+    renderTestResult(SUITE, "Variant: Glacies flavor rotation surfaces an event-only run", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Variant: Glacies flavor rotation surfaces an event-only run", false, err.message);
+  }
 }
 
 // Main execution entry point

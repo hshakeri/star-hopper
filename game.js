@@ -315,6 +315,42 @@ class StarHopperGame {
   }
 
   getGemGateForCollectible(planetIndex, row, col) {
+    // --- Retry Remix constraint gates: same concept, a new rule on HOW to clear it.
+    const c = this.currentVariant && this.currentVariant.constraint;
+
+    // Earth, "no antigravity": ALL gems use the Agility gate (so the otherwise
+    // antigravity-only low gems stay solvable) and antigravity must stay off.
+    if (c && c.id === "earth-no-antigravity" && planetIndex === 0) {
+      const at = this.getAgilityTarget();
+      return {
+        id: "earth-no-antigravity-gems",
+        label: `reach Agility ${at}+ using ONLY hopper.mass, hopper.engine and hopper.jump_power — NO antigravity this run`,
+        short: `AGILITY ${at}+ · NO ANTIGRAV!`,
+        validate: (game) => game.isEarthHopperEngineered() && !(typeof Compiler !== 'undefined' && Compiler.env && Compiler.env.antigravity)
+      };
+    }
+    // Moon, "loop budget": every gem now needs jump 18+ AND a repeat loop of N springs
+    // (interleaves arithmetic with loops). Applied to all gems so the constraint always
+    // bites, regardless of which rows this planet's gems happen to occupy.
+    if (c && c.id === "moon-spring-budget" && planetIndex === 1) {
+      const n = c.springCount;
+      return {
+        id: "moon-spring-budget-gems",
+        label: `boost jump_power to 18+ and use a repeat loop to spawn ${n} springs`,
+        short: `JUMP 18+ & ${n} SPRINGS!`,
+        validate: (game) => game.player && game.player.jumpPower >= 18 && game.spawnedSprings.length >= n
+      };
+    }
+    // Glacies, "event-only": every gem requires the when player.touching('ice') rule.
+    if (c && c.id === "glacies-event-only" && planetIndex === 3) {
+      return {
+        id: "glacies-event-only-gems",
+        label: "add a when player.touching('ice') rule to recover grip — an event rule is required this run",
+        short: "USE A when touching('ice') RULE!",
+        validate: (game) => game.hasIceTouchRule()
+      };
+    }
+
     if (planetIndex === 0) {
       if (row >= 6) {
         return {
