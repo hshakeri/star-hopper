@@ -985,6 +985,66 @@ function runDiagnosticsTests() {
   }
 }
 
+// Suite 7: Experiment Log — the notebook's per-attempt table
+function runExperimentLogTests() {
+  const SUITE = "experiment-suite";
+  const makeLogGame = (planet = 0, attempt = 0, remix = null) => ({
+    currentPlanetIndex: planet,
+    retryAttempt: attempt,
+    currentVariant: remix ? { isRemix: true, variantLabel: remix } : { isRemix: false }
+  });
+
+  // Test E1: attempt lifecycle — open row, record code, close with result
+  try {
+    AttemptLog.byPlanet = {}; AttemptLog.pendingPrediction = null;
+    const g = makeLogGame(0, 0);
+    attemptLogStart(g);
+    attemptLogCode(g, "hopper.mass = 1");
+    attemptLogCode(g, "hopper.jump_power = 22");
+    attemptLogFinish(g, "hazard");
+    const row = AttemptLog.byPlanet[0][0];
+    assertEquals(1, AttemptLog.byPlanet[0].length, "One row after one attempt");
+    assertEquals(1, row.attempt, "Attempt numbering is 1-based");
+    assertEquals(2, row.code.length, "Both commands recorded");
+    assertEquals("hazard", row.result, "Result stamped on finish");
+    attemptLogCode(g, "late command");
+    assertEquals(2, row.code.length, "Closed rows reject further code");
+    renderTestResult(SUITE, "Experiment log: attempt lifecycle records code + result", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Experiment log: attempt lifecycle records code + result", false, err.message);
+  }
+
+  // Test E2: hypothesis verdicts are gentle and tolerance-based (±8px = same)
+  try {
+    assertEquals("✓ confirmed", attemptPredictionVerdict("higher", 50, 120), "Higher + rose → confirmed");
+    assertEquals("💡 surprise!", attemptPredictionVerdict("higher", 120, 50), "Higher + fell → gentle surprise");
+    assertEquals("✓ confirmed", attemptPredictionVerdict("same", 100, 104), "Within ±8px counts as same");
+    assertEquals(null, attemptPredictionVerdict(null, 50, 120), "No hypothesis → no verdict");
+    assertEquals("~", attemptPredictionVerdict("lower", null, 80), "No baseline → ~");
+    renderTestResult(SUITE, "Experiment log: hypothesis verdicts (confirmed/surprise/~)", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Experiment log: hypothesis verdicts (confirmed/surprise/~)", false, err.message);
+  }
+
+  // Test E3: crash-lab prediction lands on the NEXT attempt; mid-run reload = retried
+  try {
+    AttemptLog.byPlanet = {}; AttemptLog.pendingPrediction = null;
+    predictNextAttempt("higher");
+    const g = makeLogGame(0, 0);
+    attemptLogStart(g);
+    assertEquals("higher", AttemptLog.byPlanet[0][0].prediction, "Pending hypothesis attaches to the next attempt");
+    assertEquals(null, AttemptLog.pendingPrediction, "Pending hypothesis is consumed");
+    const g2 = makeLogGame(0, 1, "gems shifted +1");
+    attemptLogStart(g2); // first row never finished → auto-closed as retried
+    assertEquals("retried", AttemptLog.byPlanet[0][0].result, "Unfinished row auto-closes as retried");
+    assertEquals("gems shifted +1", AttemptLog.byPlanet[0][1].remix, "Remix label captured on the row");
+    assertEquals(null, AttemptLog.byPlanet[0][1].prediction, "No stale hypothesis leaks to later attempts");
+    renderTestResult(SUITE, "Experiment log: hypothesis staging + retried auto-close", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Experiment log: hypothesis staging + retried auto-close", false, err.message);
+  }
+}
+
 // Main execution entry point
 window.addEventListener("load", () => {
   runCompilerTests();
@@ -993,4 +1053,5 @@ window.addEventListener("load", () => {
   runSolarTests();
   runRetryRemixTests();
   runDiagnosticsTests();
+  runExperimentLogTests();
 });

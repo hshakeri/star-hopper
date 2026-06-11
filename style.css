@@ -1488,6 +1488,85 @@ body.resizing-panes * {
   text-align: center;
 }
 
+/* One-tap hypothesis row in the crash lab (logged onto the next attempt) */
+.failure-hypothesis {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(56, 189, 248, 0.25);
+}
+.hypothesis-label {
+  font-size: 0.72rem;
+  color: var(--neon-cyan);
+  font-weight: 700;
+}
+.hypothesis-btn {
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.hypothesis-btn:hover { background: rgba(56, 189, 248, 0.2); }
+.hypothesis-btn.selected {
+  background: var(--neon-cyan);
+  color: #030712;
+  font-weight: 700;
+}
+
+/* Experiment Log — the notebook's per-attempt cards (attempt-log.js). The pane is
+   narrow (~330px), so each attempt is a stacked card, not a rigid table row. */
+.attempt-log-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 190px;
+  overflow-y: auto;
+  margin-top: 4px;
+}
+.attempt-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.7rem;
+  padding: 5px 7px;
+  background: rgba(56, 189, 248, 0.05);
+  border-left: 3px solid rgba(56, 189, 248, 0.45);
+  border-radius: 0 6px 6px 0;
+}
+.attempt-row-cleared {
+  background: rgba(74, 222, 128, 0.08);
+  border-left-color: var(--neon-green);
+}
+.attempt-row-top {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.attempt-cell-num { color: var(--neon-cyan); font-weight: 700; flex-shrink: 0; }
+.attempt-cell-pred { color: var(--neon-yellow); min-width: 0; }
+.attempt-cell-result { font-weight: 700; margin-left: auto; flex-shrink: 0; }
+.attempt-cell-code {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.attempt-cell-stats { font-family: var(--font-mono); font-size: 0.64rem; color: var(--text-muted); }
+.attempt-log-empty {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  padding: 6px;
+  text-align: center;
+}
+
 /* Mute Button HUD alignment */
 .mute-button {
   background: transparent;

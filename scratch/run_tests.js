@@ -103,6 +103,7 @@ const files = [
   'navigator.js',
   'retry-variants.js',
   'diagnostics.js',
+  'attempt-log.js',
   'game.js',
   'guided-mode.js',
   'test-runner.js'

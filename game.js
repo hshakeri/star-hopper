@@ -715,6 +715,12 @@ class StarHopperGame {
       updateHUD(this);
     }
 
+    // Open a fresh row in the Science Notebook's experiment table (and reset the
+    // per-attempt telemetry maxima) — but only for real attempts, not the menu preload.
+    if (this.state === 'playing' && typeof attemptLogStart === 'function') {
+      attemptLogStart(this);
+    }
+
     // Start Guided tutorial check if Earth index 0 loaded
     if (this.state === 'playing' && typeof checkStartGuidedMode === 'function') {
       checkStartGuidedMode(index);
@@ -1406,6 +1412,8 @@ class StarHopperGame {
       x: this.player ? this.player.x : 0,
       y: this.player ? this.player.y : 0
     };
+    // Close this attempt's experiment-log row with the measured telemetry.
+    if (typeof attemptLogFinish === 'function') attemptLogFinish(this, this.lastFailure.tag);
     SFX.playError();
     SFX.stopBGM();
     if (typeof ComicBubbles !== 'undefined' && this.player) {
@@ -1422,6 +1430,8 @@ class StarHopperGame {
 
   clearLevel() {
     this.state = 'clear';
+    // A cleared run is an experiment too — log it with its telemetry.
+    if (typeof attemptLogFinish === 'function') attemptLogFinish(this, 'cleared');
     SFX.playSuccess();
     SFX.stopBGM();
     const clearScr = document.getElementById("clear-screen");

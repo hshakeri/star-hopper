@@ -1306,6 +1306,8 @@ function setupUIBindings(game) {
           if (res.success) {
             ui_log_output(res.msg, "success");
             SFX.playSuccess();
+            // Record the change on this attempt's experiment-log row.
+            if (typeof attemptLogCode === 'function') attemptLogCode(game, val);
             if (typeof handleGuidedCodeHook === 'function') {
               handleGuidedCodeHook(val);
             }
