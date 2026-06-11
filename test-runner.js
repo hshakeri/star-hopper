@@ -139,6 +139,19 @@ function runCompilerTests() {
   } catch (err) {
     renderTestResult("compiler-suite", "Graceful failure for unrecognized commands", false, err.message);
   }
+
+  // Test 5: Autocomplete Enter accepts the active suggestion, or the top row by default
+  try {
+    const matches = ["gravity", "grip", "grow"];
+    assertEquals(0, getAutocompleteAcceptIndex(matches, -1), "No active row should default to the top suggestion");
+    assertEquals(2, getAutocompleteAcceptIndex(matches, 2), "Active row should be accepted when present");
+    assertEquals(-1, getAutocompleteAcceptIndex([], -1), "Empty matches should not produce a pick");
+    assertEquals("hopper.mass", completeAutocompleteText("hopper.ma", "hopper.ma", "hopper.mass"));
+    assertEquals("repeat 3: spawn_spring", completeAutocompleteText("repeat 3: spa", "spa", "spawn_spring"));
+    renderTestResult("compiler-suite", "Autocomplete: Enter accepts highlighted or top suggestion", true);
+  } catch (err) {
+    renderTestResult("compiler-suite", "Autocomplete: Enter accepts highlighted or top suggestion", false, err.message);
+  }
 }
 
 // Suite 2: Infinite Loop & Crash Safety Limits
@@ -585,7 +598,72 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: Mission Coach copy avoids hidden tabs", false, err.message);
   }
 
-  // Test 24: Hopper pole assignment controls magnetic polarity state
+  // Test 24: Guided tutorial clears in-world speech and restores hidden state
+  let oldGetElementById;
+  let oldLocalStorage;
+  let oldGame;
+  try {
+    oldGetElementById = document.getElementById;
+    oldLocalStorage = window.localStorage;
+    oldGame = window.Game;
+
+    const makeClassList = (initial = []) => {
+      const values = new Set(initial);
+      return {
+        add: (name) => values.add(name),
+        remove: (name) => values.delete(name),
+        contains: (name) => values.has(name)
+      };
+    };
+    const genericEl = () => ({
+      style: {},
+      textContent: "",
+      querySelectorAll: () => [],
+      classList: makeClassList()
+    });
+    const hud = {
+      style: { display: "none" },
+      classList: makeClassList(["hidden"])
+    };
+    const elements = {
+      "guided-mode-hud": hud,
+      "guided-step-label": genericEl(),
+      "guided-step-desc": genericEl(),
+      "guided-next-btn": genericEl(),
+      "guided-dots": genericEl(),
+      "game-canvas": genericEl(),
+      "mode-btn-notebook": genericEl()
+    };
+    const player = new Player(0, 0);
+    player.say("Tutorial line should not freeze on screen.", { dialogue: true, timer: 100 });
+
+    window.Game = { player };
+    window.localStorage = {
+      getItem: () => null,
+      setItem: () => {}
+    };
+    document.getElementById = (id) => elements[id] || genericEl();
+
+    checkStartGuidedMode(0);
+    assertEquals("", player.sayText, "Guided mode should clear any queued in-world speech");
+    assertEquals(0, player.sayTimer, "Guided mode should stop the speech timer");
+    assertEquals(false, hud.classList.contains("hidden"), "Guided HUD should be visible while active");
+
+    completeGuidedMode();
+    assertEquals(true, hud.classList.contains("hidden"), "Guided HUD should regain hidden class on completion");
+
+    document.getElementById = oldGetElementById;
+    window.localStorage = oldLocalStorage;
+    window.Game = oldGame;
+    renderTestResult("engine-suite", "Guided mode: clears stale speech and restores hidden state", true);
+  } catch (err) {
+    if (oldGetElementById) document.getElementById = oldGetElementById;
+    window.localStorage = oldLocalStorage;
+    window.Game = oldGame;
+    renderTestResult("engine-suite", "Guided mode: clears stale speech and restores hidden state", false, err.message);
+  }
+
+  // Test 25: Hopper pole assignment controls magnetic polarity state
   try {
     Compiler.reset();
     const game = makeScaffoldMockGame(4);

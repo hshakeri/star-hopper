@@ -562,6 +562,8 @@ class Player {
     // Say bubble
     this.sayText = "";
     this.sayTimer = 0;
+    this.sayReveal = 0;
+    this.sayPrevLen = 0;
 
     // Split/Co-op coordinates control
     this.isStationary = false;
@@ -578,6 +580,36 @@ class Player {
     this.sayTimer = opts.timer || (opts.dialogue ? 320 : 150);
     this.sayReveal = 0;                 // chars revealed so far (typewriter effect)
     this.sayPrevLen = 0;
+  }
+
+  clearSpeech() {
+    this.sayText = "";
+    this.sayTimer = 0;
+    this.sayReveal = 0;
+    this.sayPrevLen = 0;
+  }
+
+  updateSpeech() {
+    if (this.sayTimer <= 0 || !this.sayText) return;
+
+    this.sayTimer--;
+    this.sayReveal = Math.min(this.sayText.length, (this.sayReveal || 0) + 0.55);
+    const shownCount = Math.ceil(this.sayReveal);
+
+    // Soft "blip" as each new glyph appears, classic JRPG textbox feel.
+    if (shownCount > 0 && shownCount > (this.sayPrevLen || 0) && typeof SFX !== 'undefined' && SFX.playType) {
+      if (Math.random() < 0.6) SFX.playType();
+    }
+    this.sayPrevLen = shownCount;
+  }
+
+  shouldSuppressSpeech() {
+    try {
+      const hud = (typeof document !== 'undefined') && document.getElementById('guided-mode-hud');
+      return !!(hud && !hud.classList.contains('hidden') && hud.style.display !== 'none');
+    } catch (e) {
+      return false;
+    }
   }
 
   stay() {
@@ -638,6 +670,8 @@ class Player {
   }
 
   update(keys, currentPlanet, game) {
+    this.updateSpeech();
+
     if (game) {
       if (this.charType === 'star') {
         this.mass = game.starMass !== undefined ? game.starMass : 1.0;
@@ -1080,16 +1114,8 @@ class Player {
 
     // Draw retro 80s-arcade speech balloon (cream "message window" with a thick
     // character-colored frame, blocky pointer, and a typewriter character reveal).
-    if (this.sayTimer > 0 && this.sayText) {
-      this.sayTimer--;
-      if (this.sayReveal === undefined) this.sayReveal = this.sayText.length;
-      this.sayReveal = Math.min(this.sayText.length, (this.sayReveal || 0) + 0.55);
+    if (this.sayTimer > 0 && this.sayText && !this.shouldSuppressSpeech()) {
       const shownCount = Math.ceil(this.sayReveal);
-      // Soft "blip" as each new glyph appears, classic JRPG textbox feel.
-      if (shownCount > (this.sayPrevLen || 0) && typeof SFX !== 'undefined' && SFX.playType) {
-        if (Math.random() < 0.6) SFX.playType();
-      }
-      this.sayPrevLen = shownCount;
 
       const accent = this.sayDialogue ? '#38bdf8' : ((this.charType === 'star') ? '#38bdf8' : '#f97316');
       const shout = this.sayShout;

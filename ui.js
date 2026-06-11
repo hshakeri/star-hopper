@@ -1016,6 +1016,16 @@ function consoleRecall(input, value, suggestBox) {
   if (suggestBox) suggestBox.style.display = "none";
 }
 
+function getAutocompleteAcceptIndex(matches, activeIdx) {
+  if (!matches || !matches.length) return -1;
+  return activeIdx >= 0 && activeIdx < matches.length ? activeIdx : 0;
+}
+
+function completeAutocompleteText(text, cur, suggestion) {
+  const idx = cur ? text.lastIndexOf(cur) : -1;
+  return (idx >= 0 ? text.slice(0, idx) : text) + suggestion;
+}
+
 // After a property is entered, echo the world's composite stat so the player can
 // watch one number climb toward the target instead of guessing four thresholds.
 function logMissionStat(game) {
@@ -1171,13 +1181,22 @@ function setupUIBindings(game) {
   // Tab-completion cycle state: tabLast is the last value we wrote programmatically,
   // so a repeated Tab keeps cycling the same base prefix while any real typing resets.
   let tabBase = null, tabIdx = -1, tabLast = null;
+  let suggestMatches = [];
+  let suggestCur = "";
 
   // Render the autocomplete dropdown with EVERY match (so the cadet sees all the
   // options, e.g. all hopper.* names), highlighting activeIdx and letting a click
   // insert a choice by replacing the trailing word `cur`.
   function renderSuggestBox(matches, activeIdx, cur) {
     if (!suggestBox) return;
-    if (!matches || !matches.length) { suggestBox.style.display = "none"; return; }
+    if (!matches || !matches.length) {
+      suggestMatches = [];
+      suggestCur = "";
+      suggestBox.style.display = "none";
+      return;
+    }
+    suggestMatches = matches.slice();
+    suggestCur = cur || "";
     suggestBox.innerHTML = "";
     suggestBox.style.display = "flex";
     matches.forEach((s, i) => {
@@ -1199,9 +1218,7 @@ function setupUIBindings(game) {
         opt.appendChild(hintEl);
       }
       opt.addEventListener("mousedown", (ev) => {
-        const text = input.value;
-        const idx = cur ? text.lastIndexOf(cur) : -1;
-        input.value = (idx >= 0 ? text.slice(0, idx) : text) + s;
+        input.value = completeAutocompleteText(input.value, cur, s);
         input.focus();
         suggestBox.style.display = "none";
         tabLast = input.value;
@@ -1259,12 +1276,17 @@ function setupUIBindings(game) {
         // Enter ACCEPTS it (just like clicking the row) instead of running — so the cadet
         // can keep editing (e.g. add " = 2.0"). The dropdown closes; a second Enter runs.
         const boxOpen = suggestBox && suggestBox.style.display !== "none";
-        if (boxOpen && tabIdx >= 0) {
-          e.preventDefault();
-          suggestBox.style.display = "none";
-          tabBase = null; tabIdx = -1; tabLast = input.value;
-          try { input.setSelectionRange(input.value.length, input.value.length); } catch (_) {}
-          return;
+        if (boxOpen && suggestMatches.length) {
+          const acceptIdx = getAutocompleteAcceptIndex(suggestMatches, tabIdx);
+          if (acceptIdx >= 0) {
+            e.preventDefault();
+            input.value = completeAutocompleteText(input.value, suggestCur, suggestMatches[acceptIdx]);
+            suggestBox.style.display = "none";
+            tabBase = null; tabIdx = -1; tabLast = input.value;
+            autoGrowConsoleInput(input);
+            try { input.setSelectionRange(input.value.length, input.value.length); } catch (_) {}
+            return;
+          }
         }
         e.preventDefault();
         const val = input.value;

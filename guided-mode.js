@@ -17,7 +17,7 @@ const MissionCoachGuidedCopy = [
   {
     label: "Step 3 of 5: Code",
     text: "Return to Play and use Mission Coach. Change the blanks in Try this code, then run it.",
-    highlight: "mode-btn-terminal"
+    highlight: "game-canvas"
   },
   {
     label: "Step 4 of 5: Test",
@@ -36,11 +36,23 @@ function getGuidedStepCopy() {
   return MissionCoachGuidedCopy.map(step => `${step.label} ${step.text}`);
 }
 
+function clearGuidedSpeech() {
+  if (typeof window !== 'undefined' && window.Game && window.Game.player) {
+    if (typeof window.Game.player.clearSpeech === 'function') {
+      window.Game.player.clearSpeech();
+    } else {
+      window.Game.player.sayText = "";
+      window.Game.player.sayTimer = 0;
+    }
+  }
+}
+
 // Initialize guided tutorial on Earth load
 function checkStartGuidedMode(planetIndex) {
   if (planetIndex === 0 && localStorage.getItem('star_hopper_guided_completed') !== 'true') {
     guidedModeActive = true;
     currentGuidedStep = 1;
+    clearGuidedSpeech();
     const hud = document.getElementById('guided-mode-hud');
     if (hud) {
       hud.style.display = 'flex';
@@ -51,7 +63,10 @@ function checkStartGuidedMode(planetIndex) {
     // If not Earth, hide guided mode
     guidedModeActive = false;
     const hud = document.getElementById('guided-mode-hud');
-    if (hud) hud.style.display = 'none';
+    if (hud) {
+      hud.style.display = 'none';
+      hud.classList.add('hidden');
+    }
   }
 }
 
@@ -100,7 +115,7 @@ function highlightElement(id) {
 
 // Clear active tutorial highlights
 function clearHighlights() {
-  ['game-canvas', 'mode-btn-notebook', 'mode-btn-terminal'].forEach(id => {
+  ['game-canvas', 'mode-btn-notebook'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
       el.style.outline = "";
@@ -125,8 +140,12 @@ function nextGuidedStep() {
 function completeGuidedMode() {
   guidedModeActive = false;
   clearHighlights();
+  clearGuidedSpeech();
   const hud = document.getElementById('guided-mode-hud');
-  if (hud) hud.style.display = 'none';
+  if (hud) {
+    hud.style.display = 'none';
+    hud.classList.add('hidden');
+  }
   localStorage.setItem('star_hopper_guided_completed', 'true');
   if (typeof SFX !== 'undefined' && typeof SFX.playSuccess === 'function') {
     SFX.playSuccess();

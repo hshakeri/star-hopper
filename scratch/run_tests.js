@@ -14,6 +14,7 @@ global.document = {
         add: () => {},
         remove: () => {}
       },
+      querySelectorAll: () => [],
       style: {},
       scrollTop: 0,
       scrollHeight: 0,
@@ -28,6 +29,7 @@ global.document = {
         add: () => {},
         remove: () => {}
       },
+      querySelectorAll: () => [],
       style: {}
     };
   },
@@ -80,6 +82,7 @@ const files = [
   'planets.js',
   'entities.js',
   'physics.js',
+  'ui.js',
   'nav-core.js',
   'nav-bodies.js',
   'nav-physics.js',
