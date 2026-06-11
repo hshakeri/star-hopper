@@ -261,6 +261,14 @@ class StarHopperGame {
     return rocket * (2.5 / this.getActiveMass()) + this.getCurrentSpeed();
   }
 
+  // The tilemap the world is ACTUALLY built from this attempt: the Retry Remix variant
+  // when one is active, else the canonical planet map. Physics, rendering, and spawning
+  // must all read this one (never currentPlanet.map directly) so a remix can never
+  // disagree with collisions or visuals.
+  getActiveMap() {
+    return (this.currentVariant && this.currentVariant.map) || (this.currentPlanet && this.currentPlanet.map);
+  }
+
   // Numeric goals — a Retry Remix can retune these via currentVariant.targetOverrides,
   // so everything (gauge, HUD, gem gate, gate label) reads ONE source and stays consistent.
   getAgilityTarget() {
@@ -1084,33 +1092,33 @@ class StarHopperGame {
     // 5. Resolve rigid body collisions (capture pre-collision fall to detect a hard landing)
     const _preFallVy = this.player.vy;
     const _wasAirborne = !this.player.onGround;
-    Physics.resolveWorldCollisions(this.player, this.currentPlanet.map, this.spawnedBoxes, this);
+    Physics.resolveWorldCollisions(this.player, this.getActiveMap(), this.spawnedBoxes, this);
     if (_wasAirborne && this.player.onGround && _preFallVy > 4 && typeof ComicBubbles !== 'undefined') {
       ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y + this.player.h, SPEECH.pick("land"), "rounded", "#d6d3d1", -0.3, { maxLife: 34, scale: 0.8 });
       Particles.spawnBurst(this.player.x + this.player.w / 2, this.player.y + this.player.h, '#cbd5e1', 6, 1.4, 2);
     }
 
     // 6. Terrain hazards use separate collision from solid ground so spikes remain dangerous.
-    if (Physics.getHazardCollisions(this.player, this.currentPlanet.map).length > 0) {
-      this.killPlayer("contact with terrain hazard!");
+    if (Physics.getHazardCollisions(this.player, this.getActiveMap()).length > 0) {
+      this.killPlayer("contact with terrain hazard!", "hazard");
       return;
     }
 
     // 7. Check if player fell out of bounds (dead)
     if (this.player.y > 450) {
-      this.killPlayer("fell out of bounds!");
+      this.killPlayer("fell out of bounds!", "fall");
       return;
     }
 
     // 8. Update camera positioning (lerp horizontal viewport centering)
     const targetCamX = this.player.x - this.canvas.width / 2;
-    const maxCamX = (this.currentPlanet.map[0].length * TILE_SIZE) - this.canvas.width;
+    const maxCamX = (this.getActiveMap()[0].length * TILE_SIZE) - this.canvas.width;
     this.cameraX += (targetCamX - this.cameraX) * 0.1;
     this.cameraX = Math.max(0, Math.min(maxCamX, this.cameraX));
 
     // 9. Update active level entities
     for (const enemy of this.enemies) {
-      enemy.update(this.currentPlanet.map, this.player);
+      enemy.update(this.getActiveMap(), this.player);
       
       // Enemy collision check (only active character takes damage)
       if (Physics.isOverlapping(this.player, enemy)) {
@@ -1125,7 +1133,7 @@ class StarHopperGame {
           Particles.spawnBurst(enemy.x + enemy.w/2, enemy.y + enemy.h/2, '#ef4444', 12, 3, 3, 'glow');
           this.enemies = this.enemies.filter(e => e !== enemy);
         } else {
-          this.killPlayer("collision damage from alien life form!");
+          this.killPlayer("collision damage from alien life form!", "enemy");
           return;
         }
       }
@@ -1254,7 +1262,7 @@ class StarHopperGame {
     if (!this.currentPlanet || !this.currentPlanet.map) return;
     const theme = (typeof MOB_THEMES !== 'undefined' && MOB_THEMES[this.currentPlanetIndex]) || ["👾"];
     const emoji = theme[Math.floor(Math.random() * theme.length)];
-    const mapW = this.currentPlanet.map[0].length * TILE_SIZE;
+    const mapW = this.getActiveMap()[0].length * TILE_SIZE;
     const fromLeft = Math.random() < 0.5;
     let x = fromLeft ? this.cameraX - 20 : this.cameraX + this.canvas.width + 20;
     x = Math.max(0, Math.min(mapW - 30, x));
@@ -1293,7 +1301,7 @@ class StarHopperGame {
 
   updateSurvival() {
     if (!this.survivalMode || !this.player || !this.currentPlanet) return;
-    const tilemap = this.currentPlanet.map;
+    const tilemap = this.getActiveMap();
     const mapW = tilemap[0].length * TILE_SIZE;
     if (this.raveImmuneTimer > 0) this.raveImmuneTimer--;
     if (this.shootCooldown > 0) this.shootCooldown--;
@@ -1389,8 +1397,15 @@ class StarHopperGame {
     }
   }
 
-  killPlayer(cause) {
+  killPlayer(cause, tag) {
     this.state = 'gameover';
+    // Remember WHY for the lab report (diagnostics.js reads live telemetry + this).
+    this.lastFailure = {
+      tag: tag || 'unknown',
+      cause,
+      x: this.player ? this.player.x : 0,
+      y: this.player ? this.player.y : 0
+    };
     SFX.playError();
     SFX.stopBGM();
     if (typeof ComicBubbles !== 'undefined' && this.player) {
@@ -1398,7 +1413,10 @@ class StarHopperGame {
     }
     const goScr = document.getElementById("gameover-screen");
     if (goScr) goScr.classList.remove("hidden");
+    // Crash → diagnosis: fill the overlay with a specific lab report + one-tap fixes.
+    const diag = (typeof renderFailureLab === 'function') ? renderFailureLab(this) : null;
     ui_log_output(`⚠ Star Hopper critical damage: ${cause}`, "error");
+    if (diag) ui_log_output(`⚗️ Lab report: ${diag.title}`, "info");
     ui_log_output(`Initializing rescue pod... Click Retry to launch.`, "info");
   }
 
@@ -1528,7 +1546,7 @@ class StarHopperGame {
   }
 
   drawTilemap() {
-    const map = this.currentPlanet.map;
+    const map = this.getActiveMap();
     const planetId = this.currentPlanetIndex;
     const palettes = [
       { top: "#5eea7f", body: "#a16207", shade: "#78350f", detail: "#bbf7d0" },
@@ -1599,7 +1617,7 @@ class StarHopperGame {
   }
 
   drawTrajectory() {
-    const dots = Physics.calculateTrajectory(this.player, this.currentPlanet.map, this.spawnedBoxes, this.currentPlanet);
+    const dots = Physics.calculateTrajectory(this.player, this.getActiveMap(), this.spawnedBoxes, this.currentPlanet);
     
     this.ctx.save();
     this.ctx.fillStyle = 'rgba(74, 222, 128, 0.6)';

@@ -896,6 +896,95 @@ function runRetryRemixTests() {
   }
 }
 
+// Suite 6: Attempt diagnostics — crash → specific lab report with staged fixes
+function runDiagnosticsTests() {
+  const SUITE = "diag-suite";
+  // Pure mock: just the telemetry surface diagnoseFailure reads.
+  const makeDiagGame = (over = {}) => Object.assign({
+    currentPlanetIndex: 0,
+    currentVariant: { constraint: null },
+    lastFailure: { tag: "hazard", cause: "contact with terrain hazard!" },
+    player: { charType: "hopper", spikes: false },
+    getMissionStat: () => null,
+    getActiveMass: () => 1.0,
+    getJumpForce: () => 22,
+    getCurrentGravity: () => 0.6,
+    getCurrentFriction: () => 5,
+    getUpgradeCap: (k) => ({ mass: 1.0, jump: 22, engine: 8, rocket: 80, antigravity: 6 }[k])
+  }, over);
+
+  // Test D1: below-target stat is diagnosed first, with concrete one-tap levers
+  try {
+    const d = diagnoseFailure(makeDiagGame({
+      getMissionStat: () => ({ key: "agility", label: "Agility", value: 12.4, target: 33 })
+    }));
+    assertEquals(true, /Agility 12\.4 \/ 33/.test(d.title), "Title should read the stat and target: " + d.title);
+    assertEquals(true, d.choices.length >= 3, "Should offer at least 3 levers");
+    assertEquals(true, d.choices.some((c) => c.command.indexOf("hopper.mass") === 0), "Should offer a mass fix");
+    assertEquals(true, d.choices.some((c) => c.command.indexOf("antigravity") === 0), "Unconstrained run should offer antigravity");
+    renderTestResult(SUITE, "Diagnosis: below-target stat names the gap + levers", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Diagnosis: below-target stat names the gap + levers", false, err.message);
+  }
+
+  // Test D2: the no-antigravity remix never suggests antigravity (and says why)
+  try {
+    const d = diagnoseFailure(makeDiagGame({
+      currentVariant: { constraint: { id: "earth-no-antigravity", banAntigravity: true } },
+      getMissionStat: () => ({ key: "agility", label: "Agility", value: 10, target: 26 })
+    }));
+    assertEquals(false, d.choices.some((c) => /antigravity/.test(c.command)), "Banned remix must not stage antigravity");
+    assertEquals(true, /antigravity/i.test(d.message), "Message should explain the antigravity ban");
+    renderTestResult(SUITE, "Diagnosis: remix constraint removes banned levers", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Diagnosis: remix constraint removes banned levers", false, err.message);
+  }
+
+  // Test D3: short jump arc → h ≈ J²/(2·g·m²) report with the squared-mass insight
+  try {
+    const d = diagnoseFailure(makeDiagGame({
+      getActiveMass: () => 2.5,
+      getJumpForce: () => 10,
+      lastFailure: { tag: "fall", cause: "fell out of bounds!" }
+    }));
+    // v0 = 10/2.5 = 4 → h = 16/(2·0.6) ≈ 13px < 120 → jump-arc diagnosis.
+    assertEquals(true, /Jump arc too short/.test(d.title), "Short arc should be diagnosed: " + d.title);
+    assertEquals(true, /J²\/\(2·g·m²\)/.test(d.formula), "Formula line should show h ≈ J²/(2·g·m²)");
+    assertEquals(true, d.choices.some((c) => /jump_power/.test(c.command)), "Should stage a jump_power fix");
+    renderTestResult(SUITE, "Diagnosis: short jump arc shows the height formula", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Diagnosis: short jump arc shows the height formula", false, err.message);
+  }
+
+  // Test D4: Glacies slide → friction OR an ice event rule, staged with real syntax
+  try {
+    const d = diagnoseFailure(makeDiagGame({
+      currentPlanetIndex: 3,
+      getCurrentFriction: () => 0.5,
+      lastFailure: { tag: "hazard", cause: "contact with terrain hazard!" }
+    }));
+    assertEquals(true, /slid|grip/i.test(d.title), "Slide should be diagnosed: " + d.title);
+    assertEquals(true, d.choices.some((c) => c.command === "friction = 8"), "Should stage a friction fix");
+    assertEquals(true, d.choices.some((c) => c.command.indexOf("when player.touching('ice')") === 0), "Should stage the ice event rule");
+    renderTestResult(SUITE, "Diagnosis: Glacies slide offers friction or event rule", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Diagnosis: Glacies slide offers friction or event rule", false, err.message);
+  }
+
+  // Test D5: healthy physics falls back to route/timing (enemy → stomp coaching)
+  try {
+    const dEnemy = diagnoseFailure(makeDiagGame({ lastFailure: { tag: "enemy", cause: "collision damage!" } }));
+    const dOk = diagnoseFailure(makeDiagGame({ lastFailure: { tag: "hazard", cause: "hazard!" } }));
+    // jump 22 / mass 1.0 → h ≈ 403px, no stat gap → not a physics problem.
+    assertEquals(true, /timing/i.test(dEnemy.title), "Enemy death should coach timing: " + dEnemy.title);
+    assertEquals(true, /stomp/i.test(dEnemy.message), "Enemy death should mention stomping");
+    assertEquals(true, /Control or timing/i.test(dOk.title), "Strong build should fall back to route/timing: " + dOk.title);
+    renderTestResult(SUITE, "Diagnosis: healthy build falls back to timing advice", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Diagnosis: healthy build falls back to timing advice", false, err.message);
+  }
+}
+
 // Main execution entry point
 window.addEventListener("load", () => {
   runCompilerTests();
@@ -903,4 +992,5 @@ window.addEventListener("load", () => {
   runEngineTests();
   runSolarTests();
   runRetryRemixTests();
+  runDiagnosticsTests();
 });
