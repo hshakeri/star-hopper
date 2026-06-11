@@ -36,6 +36,16 @@ global.document = {
   addEventListener: () => {}
 };
 
+// Map-backed localStorage so guided-mode tests behave like a real browser
+// (getItem/setItem/removeItem), instead of being undefined under node.
+const __lsStore = new Map();
+global.localStorage = {
+  getItem: (k) => (__lsStore.has(k) ? __lsStore.get(k) : null),
+  setItem: (k, v) => { __lsStore.set(k, String(v)); },
+  removeItem: (k) => { __lsStore.delete(k); },
+  clear: () => { __lsStore.clear(); }
+};
+
 global.SFX = {
   playJump: () => {},
   playSuccess: () => {},
@@ -91,6 +101,7 @@ const files = [
   'nav-renderer.js',
   'nav-missions.js',
   'navigator.js',
+  'retry-variants.js',
   'game.js',
   'guided-mode.js',
   'test-runner.js'

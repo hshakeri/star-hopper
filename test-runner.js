@@ -599,12 +599,13 @@ function runEngineTests() {
   }
 
   // Test 24: Guided tutorial clears in-world speech and restores hidden state
+  const GUIDED_FLAG = "star_hopper_guided_completed";
   let oldGetElementById;
-  let oldLocalStorage;
+  let oldGuidedFlag = null;
   let oldGame;
   try {
     oldGetElementById = document.getElementById;
-    oldLocalStorage = window.localStorage;
+    try { oldGuidedFlag = localStorage.getItem(GUIDED_FLAG); } catch (e) {}
     oldGame = window.Game;
 
     const makeClassList = (initial = []) => {
@@ -638,10 +639,9 @@ function runEngineTests() {
     player.say("Tutorial line should not freeze on screen.", { dialogue: true, timer: 100 });
 
     window.Game = { player };
-    window.localStorage = {
-      getItem: () => null,
-      setItem: () => {}
-    };
+    // Force "guided tutorial not completed" so checkStartGuidedMode actually starts it.
+    // (Reassigning window.localStorage is a no-op in browsers — clear the real flag instead.)
+    try { localStorage.removeItem(GUIDED_FLAG); } catch (e) {}
     document.getElementById = (id) => elements[id] || genericEl();
 
     checkStartGuidedMode(0);
@@ -653,12 +653,12 @@ function runEngineTests() {
     assertEquals(true, hud.classList.contains("hidden"), "Guided HUD should regain hidden class on completion");
 
     document.getElementById = oldGetElementById;
-    window.localStorage = oldLocalStorage;
+    try { if (oldGuidedFlag === null) localStorage.removeItem(GUIDED_FLAG); else localStorage.setItem(GUIDED_FLAG, oldGuidedFlag); } catch (e) {}
     window.Game = oldGame;
     renderTestResult("engine-suite", "Guided mode: clears stale speech and restores hidden state", true);
   } catch (err) {
     if (oldGetElementById) document.getElementById = oldGetElementById;
-    window.localStorage = oldLocalStorage;
+    try { if (oldGuidedFlag === null) localStorage.removeItem(GUIDED_FLAG); else localStorage.setItem(GUIDED_FLAG, oldGuidedFlag); } catch (e) {}
     window.Game = oldGame;
     renderTestResult("engine-suite", "Guided mode: clears stale speech and restores hidden state", false, err.message);
   }
@@ -789,10 +789,85 @@ function runSolarTests() {
   }
 }
 
+// Suite 5: Retry Remix — seeded procedural variation (same lesson, new instance)
+function runRetryRemixTests() {
+  const SUITE = "remix-suite";
+  const countTile = (m, val) => m.reduce((n, row) => n + row.filter((t) => t === val).length, 0);
+
+  // Test R1: mulberry32 is deterministic for a given seed
+  try {
+    const a = mulberry32(12345), b = mulberry32(12345);
+    assertEquals(a(), b(), "Same seed should produce the same first value");
+    renderTestResult(SUITE, "PRNG: mulberry32 is deterministic per seed", true);
+  } catch (err) {
+    renderTestResult(SUITE, "PRNG: mulberry32 is deterministic per seed", false, err.message);
+  }
+
+  // Test R2: attempt 0 is the canonical layout (no remix), map unchanged
+  try {
+    const v = buildPlanetVariant(PLANETS[0], 0, 0);
+    assertEquals(false, !!v.isRemix, "Attempt 0 must not be a remix");
+    assertEquals("standard", v.variantLabel, "Attempt 0 label should be 'standard'");
+    assertEquals(JSON.stringify(PLANETS[0].map), JSON.stringify(v.map), "Attempt 0 map must equal the canonical map");
+    renderTestResult(SUITE, "Variant: first attempt is the canonical layout", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Variant: first attempt is the canonical layout", false, err.message);
+  }
+
+  // Test R3: same (planet, attempt) is deterministic (reproducible / shareable)
+  try {
+    const a = buildPlanetVariant(PLANETS[0], 0, 1);
+    const b = buildPlanetVariant(PLANETS[0], 0, 1);
+    assertEquals(a.variantLabel, b.variantLabel, "Same seed should give the same label");
+    assertEquals(JSON.stringify(a.map), JSON.stringify(b.map), "Same seed should give the same map");
+    renderTestResult(SUITE, "Variant: a given retry is reproducible (seeded)", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Variant: a given retry is reproducible (seeded)", false, err.message);
+  }
+
+  // Test R4: a remix NEVER changes the required-gem count (saved progress stays valid)
+  try {
+    for (let p = 0; p < 5; p++) {
+      const base = countTile(PLANETS[p].map, 3);
+      for (let att = 1; att <= 3; att++) {
+        const v = buildPlanetVariant(PLANETS[p], p, att);
+        assertEquals(base, countTile(v.map, 3), `Planet ${p} attempt ${att} must keep ${base} gems`);
+      }
+    }
+    renderTestResult(SUITE, "Variant: remixes preserve the required-gem count", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Variant: remixes preserve the required-gem count", false, err.message);
+  }
+
+  // Test R5: Earth remix retunes the Agility target into 28..34 and flags as a remix
+  try {
+    const v = buildPlanetVariant(PLANETS[0], 0, 1);
+    const t = v.targetOverrides.agility;
+    assertEquals(true, Number.isFinite(t) && t >= 28 && t <= 34, `Earth Agility target ${t} should be 28..34`);
+    assertEquals(true, v.isRemix, "Earth attempt 1 should be a remix");
+    renderTestResult(SUITE, "Variant: Earth remix retunes Agility target (28-34)", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Variant: Earth remix retunes Agility target (28-34)", false, err.message);
+  }
+
+  // Test R6: Mag-Net remix flips poles — the +pole and -pole counts swap
+  try {
+    const basePos = countTile(PLANETS[4].map, 5);
+    const baseNeg = countTile(PLANETS[4].map, 6);
+    const v = buildPlanetVariant(PLANETS[4], 4, 1);
+    assertEquals(baseNeg, countTile(v.map, 5), "After flip, +pole count should equal old -pole count");
+    assertEquals(basePos, countTile(v.map, 6), "After flip, -pole count should equal old +pole count");
+    renderTestResult(SUITE, "Variant: Mag-Net remix flips pole polarity", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Variant: Mag-Net remix flips pole polarity", false, err.message);
+  }
+}
+
 // Main execution entry point
 window.addEventListener("load", () => {
   runCompilerTests();
   runSafetyTests();
   runEngineTests();
   runSolarTests();
+  runRetryRemixTests();
 });

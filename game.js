@@ -186,8 +186,8 @@ class StarHopperGame {
   // worlds (Agility + Thrust always visible). `active` marks the current gate.
   getGauges() {
     return [
-      { key: 'agility', label: 'Agility', value: this.getAgility(),       target: 30, active: this.currentPlanetIndex === 0 },
-      { key: 'thrust',  label: 'Thrust',  value: this.getJupiterThrust(), target: 45, active: this.currentPlanetIndex === 2 }
+      { key: 'agility', label: 'Agility', value: this.getAgility(),       target: this.getAgilityTarget(), active: this.currentPlanetIndex === 0 },
+      { key: 'thrust',  label: 'Thrust',  value: this.getJupiterThrust(), target: this.getThrustTarget(), active: this.currentPlanetIndex === 2 }
     ];
   }
 
@@ -261,10 +261,21 @@ class StarHopperGame {
     return rocket * (2.5 / this.getActiveMass()) + this.getCurrentSpeed();
   }
 
+  // Numeric goals — a Retry Remix can retune these via currentVariant.targetOverrides,
+  // so everything (gauge, HUD, gem gate, gate label) reads ONE source and stays consistent.
+  getAgilityTarget() {
+    const o = this.currentVariant && this.currentVariant.targetOverrides;
+    return (o && Number.isFinite(o.agility)) ? o.agility : 30;
+  }
+  getThrustTarget() {
+    const o = this.currentVariant && this.currentVariant.targetOverrides;
+    return (o && Number.isFinite(o.thrust)) ? o.thrust : 45;
+  }
+
   // The composite stat + target for the current world (null if it has no stat gate).
   getMissionStat() {
-    if (this.currentPlanetIndex === 0) return { key: 'agility', label: 'Agility', value: this.getAgility(), target: 30 };
-    if (this.currentPlanetIndex === 2) return { key: 'thrust', label: 'Thrust', value: this.getJupiterThrust(), target: 45 };
+    if (this.currentPlanetIndex === 0) return { key: 'agility', label: 'Agility', value: this.getAgility(), target: this.getAgilityTarget() };
+    if (this.currentPlanetIndex === 2) return { key: 'thrust', label: 'Thrust', value: this.getJupiterThrust(), target: this.getThrustTarget() };
     return null;
   }
 
@@ -281,11 +292,11 @@ class StarHopperGame {
   }
 
   isEarthHopperEngineered() {
-    return !!(this.player && this.player.charType === 'hopper' && this.getAgility() >= 30);
+    return !!(this.player && this.player.charType === 'hopper' && this.getAgility() >= this.getAgilityTarget());
   }
 
   isJupiterHopperEngineered() {
-    return !!(this.player && this.player.charType === 'hopper' && this.getJupiterThrust() >= 45);
+    return !!(this.player && this.player.charType === 'hopper' && this.getJupiterThrust() >= this.getThrustTarget());
   }
 
   hasIceTouchRule() {
@@ -313,10 +324,11 @@ class StarHopperGame {
           validate: (game) => game.getCurrentGravity() <= 0.35
         };
       }
+      const at = this.getAgilityTarget();
       return {
         id: "earth-hopper-engineering-gems",
-        label: "engineer Hopper to Agility 30+ — lower hopper.mass, add antigravity, and/or raise hopper.engine and hopper.jump_power (any mix that pushes Agility over 30)",
-        short: "GET AGILITY 30+!",
+        label: `engineer Hopper to Agility ${at}+ — lower hopper.mass, add antigravity, and/or raise hopper.engine and hopper.jump_power (any mix that pushes Agility over ${at})`,
+        short: `GET AGILITY ${at}+!`,
         validate: (game) => game.isEarthHopperEngineered()
       };
     }
@@ -339,10 +351,11 @@ class StarHopperGame {
     }
 
     if (planetIndex === 2) {
+      const tt = this.getThrustTarget();
       return {
         id: "jupiter-thrust-gems",
-        label: "engineer Hopper to Thrust 45+ (raise hopper.rocket_power or hopper.engine, lower hopper.mass)",
-        short: "GET THRUST 45+!",
+        label: `engineer Hopper to Thrust ${tt}+ (raise hopper.rocket_power or hopper.engine, lower hopper.mass)`,
+        short: `GET THRUST ${tt}+!`,
         validate: (game) => game.isJupiterHopperEngineered()
       };
     }
@@ -486,6 +499,18 @@ class StarHopperGame {
   loadPlanet(index, preserveTunings = false) {
     this.currentPlanetIndex = index;
     this.currentPlanet = PLANETS[index];
+
+    // Retry Remix: a fresh load (new planet / first visit) is the canonical, hand-built
+    // layout; each same-level retry (preserveTunings) bumps the attempt so the world is
+    // procedurally re-spun — same lesson, new instance. Deterministic per (planet, attempt).
+    this.planetAttempts = this.planetAttempts || {};
+    if (preserveTunings) this.planetAttempts[index] = (this.planetAttempts[index] || 0) + 1;
+    else this.planetAttempts[index] = 0;
+    this.retryAttempt = this.planetAttempts[index];
+    this.currentVariant = (typeof buildPlanetVariant === 'function')
+      ? buildPlanetVariant(this.currentPlanet, index, this.retryAttempt)
+      : { map: this.currentPlanet.map, variantLabel: 'standard', targetOverrides: {}, isRemix: false };
+
     this._brakeHintShown = false; // re-arm the Glacies "raise friction to brake" hint per level
     this.coachSlot = null; // restart the Mission Coach one-tweak-at-a-time walkthrough
     this.missionBalloon = null;   // clear any on-canvas mission balloon
@@ -570,8 +595,8 @@ class StarHopperGame {
     // Set variable accent colors in UI
     document.documentElement.style.setProperty('--active-neon', this.currentPlanet.color);
     
-    // Load Enemies and Interactive items from tilemap
-    const map = this.currentPlanet.map;
+    // Load Enemies and Interactive items from tilemap (Retry Remix variant of it).
+    const map = this.currentVariant.map;
     for (let r = 0; r < map.length; r++) {
       for (let c = 0; c < map[r].length; c++) {
         const val = map[r][c];
@@ -626,6 +651,18 @@ class StarHopperGame {
       // Retro arcade arrival shout as a comic bubble (one onomatopoeia system).
       if (this.player && typeof ComicBubbles !== 'undefined') {
         ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y - 4, SPEECH.pick("arrive"), "rounded", "#a7f3d0", -0.5, { maxLife: 80, scale: 1.2 });
+      }
+    }
+
+    // Retry Remix banner: on a re-spun attempt, tell the cadet what changed — in the
+    // shell and the Mission-box briefing (full detail), plus a transient comic pop — but
+    // WITHOUT clobbering the arrival speech balloon. Same lesson, new instance.
+    if (this.state === 'playing' && this.currentVariant && this.currentVariant.isRemix) {
+      const rlabel = this.currentVariant.variantLabel;
+      if (typeof ui_log_output === 'function') ui_log_output(`🌀 Retry Remix #${this.retryAttempt}: ${rlabel}`, "info");
+      if (typeof logMissionBriefing === 'function') logMissionBriefing(`🌀 Remix #${this.retryAttempt}: ${rlabel}`);
+      if (this.player && typeof ComicBubbles !== 'undefined') {
+        ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y - 22, "🌀 REMIX!", "rounded", "#c4b5fd", -0.6, { maxLife: 95, scale: 1.25 });
       }
     }
     // Draw initial mission list
