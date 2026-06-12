@@ -23,6 +23,19 @@ class Particle {
   }
 
   draw(ctx, cameraX) {
+    // Glow particles use a pre-rendered radial sprite (render-cache.js) — softer
+    // falloff than the old shadowBlur, at a tiny fraction of the cost (shadowBlur
+    // runs a gaussian per draw call; bursts spawn dozens of these per frame).
+    if (this.type === 'glow' && typeof RenderCache !== 'undefined') {
+      const spr = RenderCache.glowSprite(this.color, 8);
+      if (spr) {
+        const d = this.size * 4.5;
+        ctx.globalAlpha = this.alpha;
+        ctx.drawImage(spr, this.x - cameraX - d / 2, this.y - d / 2, d, d);
+        ctx.globalAlpha = 1;
+        return;
+      }
+    }
     ctx.save();
     ctx.globalAlpha = this.alpha;
     ctx.fillStyle = this.color;
@@ -1421,8 +1434,23 @@ class InteractiveObject {
       ctx.rotate(Math.sin(this.angle) * 0.24);
       ctx.scale(pulse, pulse);
       ctx.globalAlpha = locked ? 0.42 : 1;
-      ctx.shadowColor = color;
-      ctx.shadowBlur = 14;
+      // Halo from a cached sprite instead of per-frame shadowBlur (same look,
+      // softer falloff, ~free). Falls back to shadowBlur without a canvas cache.
+      ctx.shadowBlur = 0;
+      if (typeof RenderCache !== 'undefined') {
+        const halo = RenderCache.glowSprite(color, 12);
+        if (halo) {
+          ctx.globalAlpha = (locked ? 0.42 : 1) * 0.85;
+          ctx.drawImage(halo, -19, -19, 38, 38);
+          ctx.globalAlpha = locked ? 0.42 : 1;
+        } else {
+          ctx.shadowColor = color;
+          ctx.shadowBlur = 14;
+        }
+      } else {
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 14;
+      }
       ctx.fillStyle = color;
       drawGemShape(ctx, 0, 0, 9, 12);
       ctx.fill();

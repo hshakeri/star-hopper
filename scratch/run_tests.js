@@ -90,6 +90,7 @@ const files = [
   'interpreter.js',
   'missions.js',
   'planets.js',
+  'render-cache.js',
   'entities.js',
   'physics.js',
   'ui.js',

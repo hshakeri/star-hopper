@@ -1095,6 +1095,77 @@ function runExperimentLogTests() {
   }
 }
 
+// Suite 8: Render cache — pre-baked layers and sprites (graphics fast path)
+function runRenderCacheTests() {
+  const SUITE = "render-suite";
+  const supported = RenderCache.canvasSupported();
+  const T = (typeof TILE_SIZE !== "undefined") ? TILE_SIZE : 32;
+  const makeRenderGame = (planet = 0, attempt = 0) => ({
+    currentPlanetIndex: planet,
+    retryAttempt: attempt,
+    currentPlanet: PLANETS[planet],
+    canvas: { width: 720, height: 448 },
+    getActiveMap() { return PLANETS[planet].map; }
+  });
+
+  // Test G1: the tile layer bakes to full level size and re-uses until the key changes
+  try {
+    RenderCache.invalidate();
+    const g = makeRenderGame(0, 0);
+    const layer = RenderCache.tileLayer(g);
+    if (!supported) {
+      assertEquals(null, layer, "Without canvas support the cache must return null");
+    } else {
+      assertEquals(PLANETS[0].map[0].length * T, layer.width, "Layer width = map cols × tile");
+      assertEquals(PLANETS[0].map.length * T, layer.height, "Layer height = map rows × tile");
+      assertEquals(true, layer === RenderCache.tileLayer(g), "Same layout must reuse the same canvas");
+      const remixed = RenderCache.tileLayer(makeRenderGame(0, 1));
+      assertEquals(false, layer === remixed, "A remix attempt must rebake the layer");
+    }
+    renderTestResult(SUITE, "Render cache: tile layer sizes, reuses, and rebakes per layout", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Render cache: tile layer sizes, reuses, and rebakes per layout", false, err.message);
+  }
+
+  // Test G2: glow sprites are memoized per color+radius (shadowBlur replacement)
+  try {
+    const a = RenderCache.glowSprite("#facc15", 10);
+    const b = RenderCache.glowSprite("#facc15", 10);
+    const c = RenderCache.glowSprite("#facc15", 12);
+    if (!supported) {
+      assertEquals(null, a, "Without canvas support glow sprites are null (callers fall back)");
+    } else {
+      assertEquals(true, a === b, "Same color+radius must return the cached sprite");
+      assertEquals(false, a === c, "A different radius is a different sprite");
+      assertEquals(40, a.width, "Sprite canvas is 4×radius");
+    }
+    renderTestResult(SUITE, "Render cache: glow sprites memoize per color+radius", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Render cache: glow sprites memoize per color+radius", false, err.message);
+  }
+
+  // Test G3: sky/vignette key on planet (and canvas width); deterministic tile hash
+  try {
+    const h1 = RenderCache._hash(3, 7), h2 = RenderCache._hash(3, 7), h3 = RenderCache._hash(7, 3);
+    assertEquals(h1, h2, "Tile hash must be deterministic");
+    assertEquals(true, h1 !== h3, "Tile hash should vary by position");
+    assertEquals(true, h1 >= 0 && h1 < 1, "Tile hash stays in [0,1)");
+    if (supported) {
+      RenderCache.invalidate();
+      const earth = RenderCache.sky(makeRenderGame(0, 0));
+      const earthAgain = RenderCache.sky(makeRenderGame(0, 0));
+      assertEquals(true, earth === earthAgain, "Same planet reuses the sky");
+      const moon = RenderCache.sky(makeRenderGame(1, 0));
+      assertEquals(false, earth === moon, "A different planet rebakes the sky");
+      const vig = RenderCache.vignette(makeRenderGame(1, 0));
+      assertEquals(720, vig.width, "Vignette matches the canvas size");
+    }
+    renderTestResult(SUITE, "Render cache: deterministic hash + per-planet sky/vignette keys", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Render cache: deterministic hash + per-planet sky/vignette keys", false, err.message);
+  }
+}
+
 // Main execution entry point
 window.addEventListener("load", () => {
   runCompilerTests();
@@ -1104,4 +1175,5 @@ window.addEventListener("load", () => {
   runRetryRemixTests();
   runDiagnosticsTests();
   runExperimentLogTests();
+  runRenderCacheTests();
 });

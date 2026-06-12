@@ -779,6 +779,15 @@ class StarHopperGame {
       updateHUD(this);
     }
 
+    // Rebake the pre-rendered layers for this layout NOW (terrain/sky/vignette),
+    // so the first frame never pays the build cost mid-play.
+    if (typeof RenderCache !== 'undefined') {
+      RenderCache.invalidate();
+      RenderCache.tileLayer(this);
+      RenderCache.sky(this);
+      RenderCache.vignette(this);
+    }
+
     // Open a fresh row in the Science Notebook's experiment table (and reset the
     // per-attempt telemetry maxima) — but only for real attempts, not the menu preload.
     if (this.state === 'playing' && typeof attemptLogStart === 'function') {
@@ -1579,11 +1588,54 @@ class StarHopperGame {
       ComicBubbles.draw(this.ctx, this.cameraX);
     }
 
+    // 9c. Soft planet-tinted vignette over the world (cached; one drawImage),
+    // under the screen-space balloon so UI text stays at full brightness.
+    if (typeof RenderCache !== 'undefined') {
+      const vig = RenderCache.vignette(this);
+      if (vig) this.ctx.drawImage(vig, 0, 0);
+    }
+
     // 10. Mission/objective speech balloon (screen-space, top-center)
     this.drawMissionBalloon(this.ctx);
   }
 
   drawSpaceBackground() {
+    // Fast path: cached sky + two wrapped parallax starfields + a dozen live
+    // twinkles — ~5 drawImage calls instead of a gradient and 80 shimmer arcs.
+    if (typeof RenderCache !== 'undefined') {
+      const sky = RenderCache.sky(this);
+      if (sky) {
+        const W = this.canvas.width, H = this.canvas.height;
+        this.ctx.drawImage(sky, 0, 0);
+        const layers = RenderCache.starLayers(W, H);
+        if (layers) {
+          const wrap = (img, speed) => {
+            let off = (this.cameraX * speed) % W;
+            if (off < 0) off += W;
+            this.ctx.drawImage(img, -off, 0);
+            this.ctx.drawImage(img, W - off, 0);
+          };
+          wrap(layers.far, 0.06);
+          wrap(layers.near, 0.16);
+        }
+        const tw = RenderCache.twinkles(W, H);
+        const t = Date.now() / 700;
+        for (const s of tw) {
+          this.ctx.globalAlpha = 0.35 + Math.abs(Math.sin(t + s.ph)) * 0.6;
+          this.ctx.fillStyle = '#f8fafc';
+          this.ctx.beginPath();
+          this.ctx.arc(((s.x - this.cameraX * 0.1) % W + W) % W, s.y, s.s, 0, Math.PI * 2);
+          this.ctx.fill();
+        }
+        this.ctx.globalAlpha = 1;
+        return;
+      }
+    }
+    this.drawSpaceBackgroundDirect();
+  }
+
+  // Direct background painting — kept as the no-canvas/test fallback.
+  drawSpaceBackgroundDirect() {
     const skyAccent = ["#14532d", "#0e7490", "#7c2d12", "#4c1d95", "#831843"][this.currentPlanetIndex] || "#0f172a";
     const skyGradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
     skyGradient.addColorStop(0, skyAccent);
@@ -1626,6 +1678,20 @@ class StarHopperGame {
   }
 
   drawTilemap() {
+    // Fast path: the whole level is pre-rendered once per layout (see render-cache.js),
+    // so a frame pays ONE drawImage instead of a gradient+stroke per visible tile.
+    if (typeof RenderCache !== 'undefined') {
+      const layer = RenderCache.tileLayer(this);
+      if (layer) {
+        this.ctx.drawImage(layer, -Math.round(this.cameraX), 0);
+        return;
+      }
+    }
+    this.drawTilemapDirect();
+  }
+
+  // Direct per-tile painting — kept as the no-canvas/test fallback.
+  drawTilemapDirect() {
     const map = this.getActiveMap();
     const planetId = this.currentPlanetIndex;
     const palettes = [
