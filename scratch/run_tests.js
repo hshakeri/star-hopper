@@ -104,6 +104,7 @@ const files = [
   'retry-variants.js',
   'diagnostics.js',
   'attempt-log.js',
+  'profiles.js',
   'game.js',
   'guided-mode.js',
   'test-runner.js'

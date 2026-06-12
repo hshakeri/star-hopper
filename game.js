@@ -72,6 +72,7 @@ class StarHopperGame {
 
     // Completed missions list
     this.completedMissions = new Set();
+    this.planetClears = {}; // per-planet clear count (persisted) — drives mastery remixes
     this.coachPredictions = {};
     this.coachLastResults = {};
     this.lastCoachCodeByMission = {};
@@ -269,6 +270,42 @@ class StarHopperGame {
     return (this.currentVariant && this.currentVariant.map) || (this.currentPlanet && this.currentPlanet.map);
   }
 
+  // --- Daily Signal: one shared, date-seeded remix per real-world day. ---
+
+  // The highest world today's signal may use: one past the furthest clear (so the
+  // daily can tease the next world), Earth only until the first clear.
+  getDailySignalPool() {
+    const cleared = Object.keys(this.planetClears || {}).map(Number).filter((k) => (this.planetClears[k] || 0) > 0);
+    const furthest = cleared.length ? Math.max(...cleared) : -1;
+    return Math.max(0, Math.min(4, furthest + 1));
+  }
+
+  getDailySignal() {
+    if (typeof getDailySignal !== 'function' || typeof PLANETS === 'undefined') return null;
+    const dateStr = new Date().toISOString().slice(0, 10);
+    return getDailySignal(PLANETS, dateStr, this.getDailySignalPool());
+  }
+
+  startDailySignal() {
+    const daily = this.getDailySignal();
+    if (!daily) return;
+    this.dailyInfo = daily;
+    this._pendingAttemptOverride = daily.attempt; // consumed by loadPlanet
+    this.startLevel(daily.planetIndex);
+    if (typeof ui_log_output === 'function') {
+      ui_log_output(`📡 Daily Signal accepted — beat it and share your code: ${daily.shareCode}`, "success");
+    }
+  }
+
+  // Keep the start screen's signal strip current (called at init and after clears).
+  refreshDailySignalBanner() {
+    const label = document.getElementById('daily-signal-label');
+    if (!label) return;
+    const daily = this.getDailySignal();
+    if (!daily) return;
+    label.textContent = `📡 Daily Signal ${daily.dateStr} — ${daily.label}`;
+  }
+
   // Numeric goals — a Retry Remix can retune these via currentVariant.targetOverrides,
   // so everything (gauge, HUD, gem gate, gate label) reads ONE source and stays consistent.
   getAgilityTarget() {
@@ -450,6 +487,7 @@ class StarHopperGame {
 
     this.setupControls();
     this.loadPlanet(0);
+    this.refreshDailySignalBanner();
     setupUIBindings(this);
     
     // Begin Loop
@@ -544,12 +582,26 @@ class StarHopperGame {
     this.currentPlanetIndex = index;
     this.currentPlanet = PLANETS[index];
 
-    // Retry Remix: a fresh load (new planet / first visit) is the canonical, hand-built
-    // layout; each same-level retry (preserveTunings) bumps the attempt so the world is
+    // Retry Remix: the FIRST exposure to a world is the canonical, hand-built layout;
+    // each same-level retry (preserveTunings) bumps the attempt so the world is
     // procedurally re-spun — same lesson, new instance. Deterministic per (planet, attempt).
+    // Two more ways into a remix:
+    //   • MASTERY: a fresh visit to a world you've already cleared starts remixed (the
+    //     clear count picks the flavor), so replays are a new angle, never a rerun.
+    //   • DAILY SIGNAL: an explicit attempt override seeded from today's date.
     this.planetAttempts = this.planetAttempts || {};
-    if (preserveTunings) this.planetAttempts[index] = (this.planetAttempts[index] || 0) + 1;
-    else this.planetAttempts[index] = 0;
+    if (preserveTunings) {
+      this.planetAttempts[index] = (this.planetAttempts[index] || 0) + 1;
+      this.remixContext = 'retry';
+    } else if (this._pendingAttemptOverride != null) {
+      this.planetAttempts[index] = this._pendingAttemptOverride;
+      this._pendingAttemptOverride = null;
+      this.remixContext = 'daily';
+    } else {
+      const clears = (this.planetClears && this.planetClears[index]) || 0;
+      this.planetAttempts[index] = clears > 0 ? clears : 0;
+      this.remixContext = clears > 0 ? 'mastery' : 'first';
+    }
     this.retryAttempt = this.planetAttempts[index];
     this.currentVariant = (typeof buildPlanetVariant === 'function')
       ? buildPlanetVariant(this.currentPlanet, index, this.retryAttempt)
@@ -698,15 +750,27 @@ class StarHopperGame {
       }
     }
 
-    // Retry Remix banner: on a re-spun attempt, tell the cadet what changed — in the
-    // shell and the Mission-box briefing (full detail), plus a transient comic pop — but
-    // WITHOUT clobbering the arrival speech balloon. Same lesson, new instance.
+    // Remix banner: on a re-spun attempt, tell the cadet what changed — in the shell
+    // and the Mission-box briefing (full detail), plus a transient comic pop — but
+    // WITHOUT clobbering the arrival speech balloon. The wording follows how you got
+    // here: a retry, a mastery replay, or today's Daily Signal.
     if (this.state === 'playing' && this.currentVariant && this.currentVariant.isRemix) {
       const rlabel = this.currentVariant.variantLabel;
-      if (typeof ui_log_output === 'function') ui_log_output(`🌀 Retry Remix #${this.retryAttempt}: ${rlabel}`, "info");
-      if (typeof logMissionBriefing === 'function') logMissionBriefing(`🌀 Remix #${this.retryAttempt}: ${rlabel}`);
+      let headline, pop;
+      if (this.remixContext === 'daily' && this.dailyInfo) {
+        headline = `📡 Daily Signal ${this.dailyInfo.dateStr}: ${rlabel} · share code ${this.dailyInfo.shareCode}`;
+        pop = "📡 SIGNAL!";
+      } else if (this.remixContext === 'mastery') {
+        headline = `🏆 Mastery Remix (clear ${(this.planetClears && this.planetClears[index]) || 1}): you beat this world — new angle: ${rlabel}`;
+        pop = "🏆 NEW ANGLE!";
+      } else {
+        headline = `🌀 Retry Remix #${this.retryAttempt}: ${rlabel}`;
+        pop = "🌀 REMIX!";
+      }
+      if (typeof ui_log_output === 'function') ui_log_output(headline, "info");
+      if (typeof logMissionBriefing === 'function') logMissionBriefing(headline);
       if (this.player && typeof ComicBubbles !== 'undefined') {
-        ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y - 22, "🌀 REMIX!", "rounded", "#c4b5fd", -0.6, { maxLife: 95, scale: 1.25 });
+        ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y - 22, pop, "rounded", "#c4b5fd", -0.6, { maxLife: 95, scale: 1.25 });
       }
     }
     // Draw initial mission list
@@ -1432,6 +1496,12 @@ class StarHopperGame {
     this.state = 'clear';
     // A cleared run is an experiment too — log it with its telemetry.
     if (typeof attemptLogFinish === 'function') attemptLogFinish(this, 'cleared');
+    // Count the clear (persisted): future fresh visits to this world start REMIXED
+    // (mastery), and the Daily Signal pool can grow to the next world.
+    this.planetClears = this.planetClears || {};
+    this.planetClears[this.currentPlanetIndex] = (this.planetClears[this.currentPlanetIndex] || 0) + 1;
+    if (typeof saveLocalProgress === 'function') saveLocalProgress();
+    this.refreshDailySignalBanner();
     SFX.playSuccess();
     SFX.stopBGM();
     const clearScr = document.getElementById("clear-screen");

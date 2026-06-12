@@ -894,6 +894,56 @@ function runRetryRemixTests() {
   } catch (err) {
     renderTestResult(SUITE, "Variant: Glacies flavor rotation surfaces an event-only run", false, err.message);
   }
+
+  // Test R10: Daily Signal is deterministic per date and always a playable remix
+  try {
+    const a = getDailySignal(PLANETS, "2026-06-11", 4);
+    const b = getDailySignal(PLANETS, "2026-06-11", 4);
+    assertEquals(a.seed, b.seed, "Same date must give the same seed");
+    assertEquals(a.planetIndex, b.planetIndex, "Same date must give the same planet");
+    assertEquals(a.variant.variantLabel, b.variant.variantLabel, "Same date must give the same remix");
+    assertEquals(true, a.variant.isRemix, "The daily is always a remix (attempt >= 1)");
+    assertEquals(true, /^[A-Z]+-\d+$/.test(a.shareCode), "Share code format WORLD-NNNN: " + a.shareCode);
+    assertEquals(true, dateSeed("2026-06-11") !== dateSeed("2026-06-12"), "Different dates should hash differently");
+    renderTestResult(SUITE, "Daily Signal: deterministic per date, always a remix", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Daily Signal: deterministic per date, always a remix", false, err.message);
+  }
+
+  // Test R11: Daily Signal pool clamps to unlocked worlds (Earth-only until a clear)
+  try {
+    ["2026-06-11", "2026-06-12", "2026-06-13", "2026-07-04"].forEach((d) => {
+      assertEquals(0, getDailySignal(PLANETS, d, 0).planetIndex, "Pool 0 must always pick Earth (" + d + ")");
+      const wide = getDailySignal(PLANETS, d, 4).planetIndex;
+      assertEquals(true, wide >= 0 && wide <= 4, "Pool 4 stays within the 5 worlds");
+    });
+    renderTestResult(SUITE, "Daily Signal: pool clamps to unlocked worlds", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Daily Signal: pool clamps to unlocked worlds", false, err.message);
+  }
+
+  // Test R12: planetClears persists through the cadet-profile snapshot/apply cycle.
+  // NOTE: game.js declares a top-level `let Game`, which SHADOWS window.Game — so the
+  // mock must be assigned to the bare identifier, not just the window property.
+  const oldGameR12 = (typeof Game !== "undefined") ? Game : undefined;
+  try {
+    Game = {
+      completedMissions: new Set(["m1"]), earnedBadges: new Set(), unlockedUpgrades: new Set(),
+      upgradeLevels: { engine: 0.5 }, planetClears: { 0: 2, 1: 1 }
+    };
+    window.Game = Game;
+    const snap = shCaptureProgress();
+    assertEquals(2, snap.planetClears[0], "Snapshot should capture Earth's clear count");
+    Game.planetClears = {};
+    shApplyProgress(snap);
+    assertEquals(2, Game.planetClears[0], "Apply should restore Earth's clear count");
+    assertEquals(1, Game.planetClears[1], "Apply should restore Moon's clear count");
+    Game = oldGameR12; window.Game = oldGameR12;
+    renderTestResult(SUITE, "Mastery: planetClears survives the profile save/load cycle", true);
+  } catch (err) {
+    Game = oldGameR12; window.Game = oldGameR12;
+    renderTestResult(SUITE, "Mastery: planetClears survives the profile save/load cycle", false, err.message);
+  }
 }
 
 // Suite 6: Attempt diagnostics — crash → specific lab report with staged fixes

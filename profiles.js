@@ -62,7 +62,8 @@ function shCaptureProgress() {
     notebookEntries: (typeof notebookEntries !== 'undefined' && notebookEntries) ? notebookEntries : {},
     earnedBadges: (window.Game && Game.earnedBadges) ? Array.from(Game.earnedBadges) : [],
     unlockedUpgrades: (window.Game && Game.unlockedUpgrades) ? Array.from(Game.unlockedUpgrades) : [],
-    upgradeLevels: (window.Game && Game.upgradeLevels) ? { ...Game.upgradeLevels } : {}
+    upgradeLevels: (window.Game && Game.upgradeLevels) ? { ...Game.upgradeLevels } : {},
+    planetClears: (window.Game && Game.planetClears) ? { ...Game.planetClears } : {}
   };
 }
 
@@ -73,6 +74,7 @@ function shApplyProgress(progress) {
   Game.earnedBadges = new Set(progress.earnedBadges || []);
   Game.unlockedUpgrades = new Set(progress.unlockedUpgrades || []);
   Game.upgradeLevels = progress.upgradeLevels ? { ...progress.upgradeLevels } : {};
+  Game.planetClears = progress.planetClears ? { ...progress.planetClears } : {};
   try {
     if (typeof notebookEntries !== 'undefined' && notebookEntries) {
       Object.keys(notebookEntries).forEach(k => delete notebookEntries[k]);
@@ -87,7 +89,8 @@ function shApplyProgress(progress) {
     () => typeof renderNotebookHistory === 'function' && renderNotebookHistory(),
     () => typeof updateBadgeShelf === 'function' && updateBadgeShelf(Game),
     () => typeof updateLearningConceptProgress === 'function' && updateLearningConceptProgress(Game),
-    () => typeof updateCertificateState === 'function' && updateCertificateState()
+    () => typeof updateCertificateState === 'function' && updateCertificateState(),
+    () => Game.refreshDailySignalBanner && Game.refreshDailySignalBanner()
   ].forEach(fn => { try { fn(); } catch (e) { /* panel not ready at this stage */ } });
 }
 

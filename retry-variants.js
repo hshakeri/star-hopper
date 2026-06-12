@@ -208,12 +208,50 @@ function buildPlanetVariant(planet, planetIndex, attemptNumber) {
   };
 }
 
+// ---- Daily Signal: one seeded remix per real-world day, same for everyone. ----
+// No servers needed: the date hashes to a seed, the seed picks a playable world and
+// an attempt number, and buildPlanetVariant does the rest. Deterministic, shareable.
+
+// FNV-1a over 'YYYY-MM-DD' — stable across sessions and machines.
+function dateSeed(dateStr) {
+  const s = String(dateStr);
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+// Build today's signal. `planets` = PLANETS array; `maxPlanetIndex` = the highest
+// world this cadet can play (0 until they clear Earth), so the daily is never locked.
+function getDailySignal(planets, dateStr, maxPlanetIndex) {
+  const seed = dateSeed(dateStr);
+  const pool = Math.max(0, Math.min(4, maxPlanetIndex == null ? 0 : maxPlanetIndex));
+  const planetIndex = seed % (pool + 1);
+  const attempt = 1 + (seed % 97); // >= 1, so it's always a remix
+  const planet = planets[planetIndex];
+  const variant = buildPlanetVariant(planet, planetIndex, attempt);
+  const codeName = (planet.name || "WORLD").split(" ")[0].toUpperCase().replace(/[^A-Z]/g, "");
+  return {
+    dateStr,
+    seed,
+    planetIndex,
+    attempt,
+    variant,
+    shareCode: `${codeName}-${seed % 10000}`,
+    label: `${planet.name} remix #${seed % 10000}: ${variant.variantLabel}`
+  };
+}
+
 // Make available to the non-module browser globals + node test harness.
 if (typeof window !== "undefined") {
   window.mulberry32 = mulberry32;
   window.cloneMap = cloneMap;
   window.buildPlanetVariant = buildPlanetVariant;
+  window.dateSeed = dateSeed;
+  window.getDailySignal = getDailySignal;
 }
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { mulberry32, cloneMap, buildPlanetVariant };
+  module.exports = { mulberry32, cloneMap, buildPlanetVariant, dateSeed, getDailySignal };
 }
