@@ -95,7 +95,7 @@ const smoke = `
 `;
 eval(bundle + '\n' + smoke);
 
-check('pop-text draws without throwing and caps at 3', () => { if (global.__popCap !== 3) throw new Error('pop cap was ' + global.__popCap + ', expected 3'); });
+check('pop-text draws without throwing and caps at 2', () => { if (global.__popCap !== 2) throw new Error('pop cap was ' + global.__popCap + ', expected 2'); });
 check('player + gem + start backdrop drew without throwing', () => { if (!global.__ok) throw new Error('smoke did not complete'); });
 
 console.log(`\nSmoke: ${pass} ok, ${fail} threw.`);
