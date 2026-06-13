@@ -330,7 +330,7 @@ class ComicBubble {
     // Big comic IMPACT lettering — no speech box, just bold outlined onomatopoeia over a
     // starburst flash. The signature "POW!" pop, reserved for high-reward moments.
     if (this.type === 'pop') {
-      ctx.font = "bold 16px 'Press Start 2P', monospace";
+      ctx.font = "bold 13px 'Press Start 2P', monospace";
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       const tw = ctx.measureText(this.text).width;
@@ -465,10 +465,10 @@ class ComicBubbleEngine {
 
   // Big impact pop-text (type 'pop'). Capped so a frantic moment can't stack a wall of
   // letters on screen — at most a few live at once; extra triggers fall back to particles.
-  pop(x, y, text, color = '#facc15', scale = 1.5) {
+  pop(x, y, text, color = '#facc15', scale = 1.15) {
     let live = 0;
     for (const b of this.bubbles) if (b.type === 'pop') live++;
-    if (live >= 3) return;
+    if (live >= 2) return;
     this.bubbles.push(new ComicBubble(x, y, text, 'pop', color, -0.9, { maxLife: 60, scale }));
   }
 
@@ -849,7 +849,7 @@ class Player {
           );
           if (Math.abs(this.vx) > 0.8) {
             this.gripBubbleTimer = (this.gripBubbleTimer || 0) + 1;
-            if (this.gripBubbleTimer % 35 === 1 && typeof ComicBubbles !== 'undefined') {
+            if (this.gripBubbleTimer % 80 === 1 && typeof ComicBubbles !== 'undefined') {
               ComicBubbles.spawn(this.x + this.w / 2, this.y + this.h, SPEECH.pick("grip"), "rounded", "#bae6fd");
             }
           } else {
@@ -936,7 +936,7 @@ class Player {
           if (Math.random() < 0.22 && SFX.playRocket) SFX.playRocket(); // distinct rocket whoosh
 
           this.rocketBubbleTimer = (this.rocketBubbleTimer || 0) + 1;
-          if (this.rocketBubbleTimer % 35 === 1 && typeof ComicBubbles !== 'undefined') {
+          if (this.rocketBubbleTimer % 80 === 1 && typeof ComicBubbles !== 'undefined') {
             ComicBubbles.spawn(this.x + this.w / 2, this.y + this.h, SPEECH.pick("whoosh"), "jagged", "#f97316");
           }
         } else {
@@ -953,7 +953,7 @@ class Player {
     if (this.charType === 'hopper' && !this.onGround && downPressed) {
       this.magnetActive = true;
       this.magnetBubbleTimer = (this.magnetBubbleTimer || 0) + 1;
-      if (this.magnetBubbleTimer % 40 === 1) {
+      if (this.magnetBubbleTimer % 80 === 1) {
         if (typeof ComicBubbles !== 'undefined') {
           ComicBubbles.spawn(this.x + this.w / 2, this.y, SPEECH.pick("zap"), "jagged", "#ec4899");
         }

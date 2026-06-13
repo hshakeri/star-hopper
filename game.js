@@ -875,26 +875,41 @@ class StarHopperGame {
     }
   }
 
+  // A loop like `repeat 3: spawn_spring()` runs in ONE frame, so every call spawns at the
+  // same spot — without spreading, 3 springs pile onto one pixel and look/work like ONE.
+  // This fans same-spot spawns into a small row centered on the player so each is usable.
+  spawnStackOffset(list, px, py) {
+    let near = 0;
+    for (const o of list) {
+      if (o && !o.collected && Math.abs(o.x - px) < 80 && Math.abs(o.y - py) < 48) near++;
+    }
+    const dir = (near % 2 === 0) ? 1 : -1;   // offsets fan out: 0, +1, -1, +2, -2 …
+    return dir * Math.ceil(near / 2) * 36;
+  }
+
   // Spawns items above player (called via compiler terminal functions)
   spawnItemAbovePlayer(type) {
     const px = this.player.x;
     const py = this.player.y - 48; // Spawn 48px above helmet
 
     if (type === 'coin' || type === 'gem') {
-      const coin = new InteractiveObject(px, py, 'coin');
+      const ox = this.spawnStackOffset(this.interactiveObjects.filter(o => o.type === 'coin'), px, py);
+      const coin = new InteractiveObject(px + ox, py, 'coin');
       coin.requiredCollectible = false;
       coin.gem = this.getGemConfig();
       this.interactiveObjects.push(coin);
-      Particles.spawnBurst(px + 10, py + 10, coin.gem.color, 8, 2, 2, 'glow');
+      Particles.spawnBurst(px + ox + 10, py + 10, coin.gem.color, 8, 2, 2, 'glow');
     } else if (type === 'box') {
-      const box = new InteractiveObject(px, py, 'box');
+      const ox = this.spawnStackOffset(this.spawnedBoxes, px, py);
+      const box = new InteractiveObject(px + ox, py, 'box');
       this.spawnedBoxes.push(box);
-      Particles.spawnBurst(px + 16, py + 16, '#ea580c', 10, 2.5, 3);
+      Particles.spawnBurst(px + ox + 16, py + 16, '#ea580c', 10, 2.5, 3);
     } else if (type === 'spring') {
-      const spring = new InteractiveObject(px, py, 'spring');
+      const ox = this.spawnStackOffset(this.spawnedSprings, px, py);
+      const spring = new InteractiveObject(px + ox, py, 'spring');
       this.spawnedSprings.push(spring);
       this.interactiveObjects.push(spring);
-      Particles.spawnBurst(px + 16, py + 16, '#f87171', 8, 2, 2.5);
+      Particles.spawnBurst(px + ox + 16, py + 16, '#f87171', 8, 2, 2.5);
     }
   }
 
@@ -1297,7 +1312,7 @@ class StarHopperGame {
           this.player.hitEnemyThisFrame = true;
           SFX.playStomp();
           if (typeof ComicBubbles !== 'undefined') {
-            ComicBubbles.pop(enemy.x + enemy.w/2, enemy.y - 4, SPEECH.pick("stomp"), "#fb7185", 1.5);
+            ComicBubbles.pop(enemy.x + enemy.w/2, enemy.y - 4, SPEECH.pick("stomp"), "#fb7185", 1.2);
           }
           Particles.spawnBurst(enemy.x + enemy.w/2, enemy.y + enemy.h/2, '#ef4444', 12, 3, 3, 'glow');
           this.enemies = this.enemies.filter(e => e !== enemy);
@@ -1332,10 +1347,10 @@ class StarHopperGame {
           if (typeof ComicBubbles !== 'undefined') {
             if (collectedAllSamples) {
               // Milestone: every sample on the world collected — biggest comic pop.
-              ComicBubbles.pop(obj.x + 8, obj.y - 4, SPEECH.pick("powerup"), "#4ade80", 1.9);
+              ComicBubbles.pop(obj.x + 8, obj.y - 4, SPEECH.pick("powerup"), "#4ade80", 1.35);
             } else if (obj.requiredCollectible) {
               // Mission gem — a satisfying impact pop (these are limited per world).
-              ComicBubbles.pop(obj.x + 8, obj.y - 4, SPEECH.pick("get"), "#facc15", 1.4);
+              ComicBubbles.pop(obj.x + 8, obj.y - 4, SPEECH.pick("get"), "#facc15", 1.1);
             } else {
               // Bonus gems are frequent — keep them as the lighter small balloon.
               ComicBubbles.spawn(obj.x + 8, obj.y, SPEECH.pick("get"), "rounded", "#facc15");
@@ -1453,7 +1468,7 @@ class StarHopperGame {
     this.mobs.splice(index, 1);
     this.survivalScore += (cause === 'stomp' ? 15 : cause === 'shot' ? 10 : 8);
     if (typeof SFX !== 'undefined' && SFX.playStomp) SFX.playStomp();
-    if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(m.x + m.w / 2, m.y - 4, SPEECH.pick('mobDeath'), "#fb7185", 1.2);
+    if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(m.x + m.w / 2, m.y - 4, SPEECH.pick('mobDeath'), "#fb7185", 1.0);
     Particles.spawnBurst(m.x + m.w / 2, m.y + m.h / 2, '#ef4444', 10, 2.5, 2.5, 'glow');
     this.checkSurvivalRewards();
   }

@@ -29,7 +29,11 @@ class PhysicsEngine {
             entity.x = (t.c + 1) * TILE_SIZE;
             entity.vx = 0;
           }
-          if (Math.abs(totalVx) > 1.2 && typeof ComicBubbles !== 'undefined') {
+          // Throttle: this runs once PER collided tile PER substep, so without a gate a
+          // kid holding into a wall would machine-gun "BONK!" bubbles every frame.
+          const nowBonk = Date.now();
+          if (Math.abs(totalVx) > 1.2 && typeof ComicBubbles !== 'undefined' && (!entity._bonkBubbleAt || nowBonk - entity._bonkBubbleAt > 600)) {
+            entity._bonkBubbleAt = nowBonk;
             ComicBubbles.spawn(entity.x + entity.w/2, entity.y + entity.h/2, SPEECH.pick("bonk"), "jagged", "#f87171");
           }
         }
@@ -71,7 +75,9 @@ class PhysicsEngine {
           } else if (totalVy < 0) {
             entity.y = (t.r + 1) * TILE_SIZE;
             entity.vy = 0;
-            if (Math.abs(totalVy) > 1.5 && typeof ComicBubbles !== 'undefined') {
+            const nowBump = Date.now();
+            if (Math.abs(totalVy) > 1.5 && typeof ComicBubbles !== 'undefined' && (!entity._bumpBubbleAt || nowBump - entity._bumpBubbleAt > 600)) {
+              entity._bumpBubbleAt = nowBump;
               ComicBubbles.spawn(entity.x + entity.w/2, entity.y, SPEECH.pick("bump"), "rounded", "#bae6fd");
             }
           }
