@@ -63,6 +63,25 @@ function rvShiftTilesH(map, tileVal, dx) {
   return map;
 }
 
+// Shift every tile equal to `tileVal` VERTICALLY by `dy`, but ONLY into empty (0) cells
+// and within bounds — a blocked tile stays put. Mirrors rvShiftTilesH: keeps collectibles
+// in open air (reachable) and PRESERVES the tile count (so required-gem totals stay valid;
+// any collision/out-of-bounds just restores the original cell).
+function rvShiftTilesV(map, tileVal, dy) {
+  if (!dy) return map;
+  const pos = [];
+  for (let r = 0; r < map.length; r++)
+    for (let c = 0; c < map[r].length; c++)
+      if (map[r][c] === tileVal) pos.push([r, c]);
+  for (const [r, c] of pos) map[r][c] = 0; // lift them out first
+  for (const [r, c] of pos) {
+    const nr = r + dy;
+    if (nr >= 0 && nr < map.length && map[nr][c] === 0) map[nr][c] = tileVal;
+    else map[r][c] = tileVal; // out of bounds or occupied — restore original
+  }
+  return map;
+}
+
 // Swap all `a` tiles with `b` tiles (e.g. flip +/- magnetic poles).
 function rvSwapTiles(map, a, b) {
   for (let r = 0; r < map.length; r++)
@@ -163,14 +182,91 @@ function magnetPoleFlip(planet, rng) {
   return { map, variantLabel: "poles flipped — re-check attraction vs repulsion!", targetOverrides: {}, constraint: null };
 }
 
+// ---- Phase 2: additional GEOMETRY/TARGET flavors (constraint: null) ----
+// These add deep run-to-run variety with ZERO new enforcement code (they only move
+// collectibles and/or retune the numeric target), so they can never soft-lock a level.
+// They specifically give Jupiter and Mag-Net (previously 1 flavor each = identical
+// retries) a real rotation. All preserve the gem count via the buildPlanetVariant safety net.
+
+// EARTH — vertical + mixed gem drift, and harder/easier Agility targets.
+function earthVerticalShift(planet, rng) {
+  const map = cloneMap(planet.map);
+  const dy = rvPick(rng, [-1, 1]);
+  rvShiftTilesV(map, 3, dy);
+  const target = 29 + Math.floor(rng() * 5); // 29..33
+  return { map, variantLabel: `gems drift ${dy < 0 ? "up" : "down"} · Agility target ${target}`, targetOverrides: { agility: target }, constraint: null };
+}
+function earthMixedShift(planet, rng) {
+  const map = cloneMap(planet.map);
+  const dx = rvPick(rng, [-1, 1]);
+  const dy = rvPick(rng, [-1, 1]);
+  rvShiftTilesH(map, 3, dx);
+  rvShiftTilesV(map, 3, dy);
+  const target = 27 + Math.floor(rng() * 8); // 27..34
+  return { map, variantLabel: `gems shifted ${rvSign(dx)}${dx}h ${rvSign(dy)}${dy}v · Agility ${target}`, targetOverrides: { agility: target }, constraint: null };
+}
+
+// MOON — vertical gem drift and a trampoline+gem reshuffle.
+function moonVerticalGems(planet, rng) {
+  const map = cloneMap(planet.map);
+  rvShiftTilesV(map, 3, rvPick(rng, [-1, 1]));
+  return { map, variantLabel: "canyon gems re-floated · new heights", targetOverrides: {}, constraint: null };
+}
+function moonTrampolineMixer(planet, rng) {
+  const map = cloneMap(planet.map);
+  rvShiftTilesH(map, 3, rvPick(rng, [-2, -1, 1, 2]));
+  rvShiftTilesH(map, 4, rvPick(rng, [-1, 1]));
+  rvShiftTilesV(map, 3, rvPick(rng, [-1, 1]));
+  return { map, variantLabel: "gems and launchpads scattered · plan a new route", targetOverrides: {}, constraint: null };
+}
+
+// JUPITER — was a single flavor. Add vertical drift + a tougher thrust push.
+function jupiterVerticalCrates(planet, rng) {
+  const map = cloneMap(planet.map);
+  rvShiftTilesV(map, 3, rvPick(rng, [-1, 1]));
+  const target = 43 + Math.floor(rng() * 6); // 43..48
+  return { map, variantLabel: `samples re-stacked · Thrust target ${target}`, targetOverrides: { thrust: target }, constraint: null };
+}
+function jupiterThrustPush(planet, rng) {
+  const map = cloneMap(planet.map);
+  rvShiftTilesH(map, 3, rvPick(rng, [-2, -1, 1, 2]));
+  const target = 49 + Math.floor(rng() * 4); // 49..52 — a real engineering stretch
+  return { map, variantLabel: `⚡ Heavy haul — push Thrust to ${target} (lighter mass + more rocket)`, targetOverrides: { thrust: target }, constraint: null };
+}
+
+// GLACIES — vertical drift on the slippery slopes.
+function glaciesVerticalSlide(planet, rng) {
+  const map = cloneMap(planet.map);
+  rvShiftTilesV(map, 3, rvPick(rng, [-1, 1]));
+  rvShiftTilesH(map, 3, rvPick(rng, [-1, 1]));
+  return { map, variantLabel: "ice gems re-placed · re-read the slide", targetOverrides: {}, constraint: null };
+}
+
+// MAG-NET — was a single flavor. Add a maybe-flip and a gem drift (poles stay put so the
+// magnetic puzzle structure remains solvable).
+function magnetDoubleFlip(planet, rng) {
+  const map = cloneMap(planet.map);
+  if (rvPick(rng, [true, false])) rvSwapTiles(map, 5, 6);
+  rvShiftTilesH(map, 3, rvPick(rng, [-1, 1]));
+  return { map, variantLabel: "field may be inverted — re-check attraction vs repulsion", targetOverrides: {}, constraint: null };
+}
+function magnetGemDrift(planet, rng) {
+  const map = cloneMap(planet.map);
+  rvShiftTilesH(map, 3, rvPick(rng, [-1, 1]));
+  rvShiftTilesV(map, 3, rvPick(rng, [-1, 1]));
+  return { map, variantLabel: "magenta shard relocated along the tracks", targetOverrides: {}, constraint: null };
+}
+
 // Flavor rotation per planet. Retry N (1-based) uses flavor (N-1) % flavors.length, so
-// consecutive retries deal out DIFFERENT challenge types, then cycle.
+// consecutive retries deal out DIFFERENT challenge types, then cycle. Ordering: hand-tuned
+// constraint flavors stay early (they match existing tutorial prose); pure procedural
+// geometry/target flavors fill out the rotation for depth.
 const PLANET_FLAVORS = {
-  0: [earthGeometry, earthNoAntigrav],
-  1: [moonGeometry, moonSpringBudget],
-  2: [jupiterGeometry],
-  3: [glaciesGeometry, glaciesEventOnly],
-  4: [magnetPoleFlip]
+  0: [earthGeometry, earthNoAntigrav, earthVerticalShift, earthMixedShift],
+  1: [moonGeometry, moonSpringBudget, moonVerticalGems, moonTrampolineMixer],
+  2: [jupiterGeometry, jupiterVerticalCrates, jupiterThrustPush],
+  3: [glaciesGeometry, glaciesEventOnly, glaciesVerticalSlide],
+  4: [magnetPoleFlip, magnetDoubleFlip, magnetGemDrift]
 };
 
 // Build the variant for a given planet + attempt.

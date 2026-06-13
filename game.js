@@ -73,6 +73,13 @@ class StarHopperGame {
     // Completed missions list
     this.completedMissions = new Set();
     this.planetClears = {}; // per-planet clear count (persisted) — drives mastery remixes
+    // Phase-2 progression state (persisted via profiles.js; default-safe for old saves).
+    this.bestClearTimes = {};   // { planetIndex: fastest clear seconds }
+    this.masteryCleared = {};   // { planetIndex: true } — mastery challenge beaten
+    this.masteryMeters = {};    // { planetIndex: {...} } — reserved for per-world XP
+    this.dailySignalClears = 0; // count of Daily Signal challenges beaten
+    this.lastPlayedDate = null; // ISO 'YYYY-MM-DD' of last session (return-streak)
+    this.streakCount = 0;       // consecutive-day return streak
     this.coachPredictions = {};
     this.coachLastResults = {};
     this.lastCoachCodeByMission = {};
@@ -304,6 +311,59 @@ class StarHopperGame {
     const daily = this.getDailySignal();
     if (!daily) return;
     label.textContent = `📡 Daily Signal ${daily.dateStr} — ${daily.label}`;
+  }
+
+  // Single source of "today" (browser local). Used by the return-streak; the Daily Signal
+  // builds its own ISO day string the same way.
+  getTodayDateStr() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  // Gentle return-streak: +1 on a new consecutive calendar day, hold on the same day, and
+  // SILENTLY reset to 1 after a gap (never shame a kid for taking a break).
+  computeStreakIncrement() {
+    const today = this.getTodayDateStr();
+    if (!this.lastPlayedDate) return 1;
+    if (this.lastPlayedDate === today) return this.streakCount || 1;
+    const dayMs = 86400000;
+    const diff = Math.round((Date.parse(today) - Date.parse(this.lastPlayedDate)) / dayMs);
+    if (diff === 1) return (this.streakCount || 0) + 1;
+    return 1; // gap of 2+ days (or clock moved back) — reset, no penalty
+  }
+
+  // Roll the streak forward once per real-world day, then persist.
+  updateReturnStreak() {
+    const today = this.getTodayDateStr();
+    if (this.lastPlayedDate === today) return;
+    this.streakCount = this.computeStreakIncrement();
+    this.lastPlayedDate = today;
+    if (typeof saveLocalProgress === 'function') saveLocalProgress();
+  }
+
+  // Show the celebratory streak chip on the start screen (hidden until there's a streak).
+  refreshStreakBanner() {
+    const banner = document.getElementById('return-streak-banner');
+    if (!banner) return;
+    const countEl = document.getElementById('return-streak-count');
+    if (this.streakCount > 0) {
+      if (countEl) countEl.textContent = this.streakCount;
+      banner.style.display = 'flex';
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+
+  // Animate a planet node from locked → available on the start-screen galaxy map.
+  unlockNextPlanetNode(targetIndex) {
+    if (targetIndex == null) return;
+    const nodeBtn = document.querySelector(".planet-node[data-level='" + targetIndex + "']");
+    if (!nodeBtn || !nodeBtn.classList.contains('locked')) return;
+    nodeBtn.classList.remove('locked');
+    nodeBtn.classList.add('unlocking');
+    nodeBtn.disabled = false;
+    const meta = nodeBtn.querySelector('.mission-meta');
+    if (meta && meta.textContent === 'Locked') meta.textContent = 'Unlocked!';
+    setTimeout(() => { nodeBtn.classList.remove('unlocking'); }, 900);
   }
 
   // Numeric goals — a Retry Remix can retune these via currentVariant.targetOverrides,
@@ -923,6 +983,24 @@ class StarHopperGame {
     return obj && obj.gemGate ? obj.gemGate : null;
   }
 
+  // Fired on EVERY bump of a still-locked gem (not just the first): a red pulse + wobble
+  // on the gem and a throttled buzz, so the stat-gate requirement is felt at the moment
+  // of contact. The one-time detailed text still comes from showGemGateHint.
+  rejectLockedGem(obj) {
+    if (obj) obj.rejectPulse = 1;
+    if (this.gemGateNoticeCooldown <= 0) {
+      if (typeof SFX !== 'undefined' && SFX.playError) SFX.playError();
+      if (obj && typeof Particles !== 'undefined') {
+        Particles.spawnBurst(obj.x + obj.w / 2, obj.y + obj.h / 2, '#ef4444', 8, 1.8, 2, 'glow');
+      }
+      if (obj && typeof ComicBubbles !== 'undefined') {
+        ComicBubbles.spawn(obj.x + obj.w / 2, obj.y - 2, "LOCKED!", "jagged", "#fca5a5", -0.5, { maxLife: 40, scale: 1.0 });
+      }
+      this.gemGateNoticeCooldown = 45; // ~0.75s between buzzes so it never machine-guns
+    }
+    this.showGemGateHint(obj);
+  }
+
   showGemGateHint(obj) {
     if (!obj || !obj.gemGate) return;
     const gateId = obj.gemGate.id || "gem-gate";
@@ -1138,6 +1216,13 @@ class StarHopperGame {
     } else {
       this.lastFrameTime = timestamp;
       this.physicsAccumulator = 0;
+      // Paint the animated space backdrop behind the start menu so the FIRST frame a
+      // new cadet sees is the dark, twinkling starfield — not a blank canvas. No game
+      // logic (update) runs in the start state; this is draw-only. (Fixes the
+      // blank-canvas-on-boot bug: the loop previously skipped draw() until 'playing'.)
+      if (this.state === 'start' && this.ctx) {
+        this.draw();
+      }
     }
     requestAnimationFrame((t) => this.loop(t));
   }
@@ -1172,9 +1257,14 @@ class StarHopperGame {
     const _preFallVy = this.player.vy;
     const _wasAirborne = !this.player.onGround;
     Physics.resolveWorldCollisions(this.player, this.getActiveMap(), this.spawnedBoxes, this);
-    if (_wasAirborne && this.player.onGround && _preFallVy > 4 && typeof ComicBubbles !== 'undefined') {
-      ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y + this.player.h, SPEECH.pick("land"), "rounded", "#d6d3d1", -0.3, { maxLife: 34, scale: 0.8 });
-      Particles.spawnBurst(this.player.x + this.player.w / 2, this.player.y + this.player.h, '#cbd5e1', 6, 1.4, 2);
+    if (_wasAirborne && this.player.onGround) {
+      // Soft "tick" on any real landing closes the jump loop; the bigger dust + bubble
+      // only fire on a hard landing so light hops stay subtle.
+      if (_preFallVy > 1.2 && typeof SFX !== 'undefined' && SFX.playLanding) SFX.playLanding();
+      if (_preFallVy > 4 && typeof ComicBubbles !== 'undefined') {
+        ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y + this.player.h, SPEECH.pick("land"), "rounded", "#d6d3d1", -0.3, { maxLife: 34, scale: 0.8 });
+        Particles.spawnBurst(this.player.x + this.player.w / 2, this.player.y + this.player.h, '#cbd5e1', 6, 1.4, 2);
+      }
     }
 
     // 6. Terrain hazards use separate collision from solid ground so spikes remain dangerous.
@@ -1207,7 +1297,7 @@ class StarHopperGame {
           this.player.hitEnemyThisFrame = true;
           SFX.playStomp();
           if (typeof ComicBubbles !== 'undefined') {
-            ComicBubbles.spawn(enemy.x + enemy.w/2, enemy.y, SPEECH.pick("stomp"), "jagged", "#f97316");
+            ComicBubbles.pop(enemy.x + enemy.w/2, enemy.y - 4, SPEECH.pick("stomp"), "#fb7185", 1.5);
           }
           Particles.spawnBurst(enemy.x + enemy.w/2, enemy.y + enemy.h/2, '#ef4444', 12, 3, 3, 'glow');
           this.enemies = this.enemies.filter(e => e !== enemy);
@@ -1226,7 +1316,7 @@ class StarHopperGame {
       if (Physics.isOverlapping(this.player, obj)) {
         if (obj.type === 'coin') {
           if (!this.canCollectGem(obj)) {
-            this.showGemGateHint(obj);
+            this.rejectLockedGem(obj);
             continue;
           }
           obj.collected = true;
@@ -1240,9 +1330,16 @@ class StarHopperGame {
           const collectedAllSamples = obj.requiredCollectible && this.requiredCollectiblesTotal > 0 &&
             this.requiredCollectiblesCollected >= this.requiredCollectiblesTotal;
           if (typeof ComicBubbles !== 'undefined') {
-            ComicBubbles.spawn(obj.x + 8, obj.y, collectedAllSamples ? SPEECH.pick("powerup") : SPEECH.pick("get"),
-              collectedAllSamples ? "jagged" : "rounded", collectedAllSamples ? "#4ade80" : "#facc15",
-              -0.75, collectedAllSamples ? { maxLife: 85, scale: 1.6 } : {});
+            if (collectedAllSamples) {
+              // Milestone: every sample on the world collected — biggest comic pop.
+              ComicBubbles.pop(obj.x + 8, obj.y - 4, SPEECH.pick("powerup"), "#4ade80", 1.9);
+            } else if (obj.requiredCollectible) {
+              // Mission gem — a satisfying impact pop (these are limited per world).
+              ComicBubbles.pop(obj.x + 8, obj.y - 4, SPEECH.pick("get"), "#facc15", 1.4);
+            } else {
+              // Bonus gems are frequent — keep them as the lighter small balloon.
+              ComicBubbles.spawn(obj.x + 8, obj.y, SPEECH.pick("get"), "rounded", "#facc15");
+            }
           }
           if (obj.requiredCollectible) {
             ui_log_output(`◆ ${gem.name} gem collected: ${this.requiredCollectiblesCollected}/${this.requiredCollectiblesTotal}`, "success");
@@ -1356,7 +1453,7 @@ class StarHopperGame {
     this.mobs.splice(index, 1);
     this.survivalScore += (cause === 'stomp' ? 15 : cause === 'shot' ? 10 : 8);
     if (typeof SFX !== 'undefined' && SFX.playStomp) SFX.playStomp();
-    if (typeof ComicBubbles !== 'undefined') ComicBubbles.spawn(m.x + m.w / 2, m.y, SPEECH.pick('mobDeath'), "jagged", "#fca5a5", -0.5, { maxLife: 50, scale: 1.1 });
+    if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(m.x + m.w / 2, m.y - 4, SPEECH.pick('mobDeath'), "#fb7185", 1.2);
     Particles.spawnBurst(m.x + m.w / 2, m.y + m.h / 2, '#ef4444', 10, 2.5, 2.5, 'glow');
     this.checkSurvivalRewards();
   }
@@ -1511,7 +1608,9 @@ class StarHopperGame {
     this.planetClears[this.currentPlanetIndex] = (this.planetClears[this.currentPlanetIndex] || 0) + 1;
     if (typeof saveLocalProgress === 'function') saveLocalProgress();
     this.refreshDailySignalBanner();
-    SFX.playSuccess();
+    // Distinct portal fanfare (not the generic success chime) so clearing a world lands
+    // as a real milestone moment.
+    if (SFX.playPortalUnlock) SFX.playPortalUnlock(); else SFX.playSuccess();
     SFX.stopBGM();
     const clearScr = document.getElementById("clear-screen");
     if (clearScr) clearScr.classList.remove("hidden");
@@ -1519,18 +1618,28 @@ class StarHopperGame {
     const clearSubtitle = document.getElementById("clear-subtitle");
     const nextBtn = document.getElementById("btn-next-level");
     const nextIndex = this.getNextPlanetIndex();
+    // Animate the just-unlocked planet node on the galaxy map (no-op if already open).
+    if (nextIndex !== null) this.unlockNextPlanetNode(nextIndex);
     const payoff = this.currentPlanet && this.currentPlanet.story ? this.currentPlanet.story.payoff : "";
+    const dailyBtn = document.getElementById("btn-clear-daily");
     if (nextIndex === null) {
-      // Final playable world cleared: the star-map is complete, but the trail leads
-      // on to the teased worlds (Asteroid Forge / Dark Matter Lab / Quantum Gate).
+      // Final playable world cleared: the star-map is complete. Rather than dead-end on
+      // "three worlds inbound", point the cadet at the Daily Signal — a fresh seeded
+      // remix every day — so there's a real reason to come back tomorrow.
+      const daily = this.getDailySignal();
       if (clearTitle) clearTitle.textContent = "STAR-MAP COMPLETE! 🛰️";
-      if (clearSubtitle) clearSubtitle.textContent = `${payoff ? payoff + " " : ""}Three more worlds are inbound. Open the Log to print your Scientist Certificate.`;
+      if (clearSubtitle) clearSubtitle.textContent = `${payoff ? payoff + " " : ""}A new Daily Signal arrives every day — accept today's to keep your skills sharp while worlds 6–8 are built. Print your Scientist Certificate from the Log.`;
       if (nextBtn) nextBtn.textContent = "OPEN LOG";
+      if (dailyBtn) {
+        dailyBtn.style.display = daily ? "inline-flex" : "none";
+        if (daily) dailyBtn.textContent = `📡 TODAY'S SIGNAL`;
+      }
     } else {
       const targetName = PLANETS[nextIndex] ? PLANETS[nextIndex].name : "next planet";
       if (clearTitle) clearTitle.textContent = "SHARD RECOVERED! 🚀";
       if (clearSubtitle) clearSubtitle.textContent = `${payoff ? payoff + " " : "Rover has returned to the spacecraft. "}Run a launch plan to reach ${targetName}.`;
       if (nextBtn) nextBtn.textContent = "RUN LAUNCH PLAN";
+      if (dailyBtn) dailyBtn.style.display = "none";
     }
     ui_log_output(`✓ Level cleared! Target coordinates secured.`, "success");
     ui_log_output(`Rover returning to spacecraft docking bay...`, "info");
@@ -1542,6 +1651,16 @@ class StarHopperGame {
       if (typeof drawNavigator === 'function') {
         drawNavigator(this);
       }
+      return;
+    }
+
+    // Start menu: paint only the parallax space backdrop behind the DOM overlay.
+    // drawSpaceBackground() null-guards its cached layers and falls back to a direct
+    // gradient, so this is safe even before the render cache is warm.
+    if (this.state === 'start') {
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      this.drawSpaceBackground();
+      this.drawStartBackdrop();
       return;
     }
 
@@ -1632,6 +1751,67 @@ class StarHopperGame {
       }
     }
     this.drawSpaceBackgroundDirect();
+  }
+
+  // A calm, comic-styled planet horizon + glow drawn ONLY behind the start menu, so the
+  // landing screen feels like a real place rather than an empty void. Cheap (a few arcs),
+  // sits low/right of the centered menu, and uses a thick ink rim for the comic look.
+  drawStartBackdrop() {
+    const ctx = this.ctx;
+    const W = this.canvas.width, H = this.canvas.height;
+    const t = Date.now() / 1000;
+
+    // Big home planet rising at the bottom-left — mostly off-screen so only its arc shows.
+    const px = W * 0.22, py = H * 1.32, pr = H * 0.95;
+    ctx.save();
+    const planetGrad = ctx.createRadialGradient(px - pr * 0.4, py - pr * 0.5, pr * 0.1, px, py, pr);
+    planetGrad.addColorStop(0, '#3b82f6');
+    planetGrad.addColorStop(0.55, '#1d4ed8');
+    planetGrad.addColorStop(1, '#0b1f4d');
+    ctx.fillStyle = planetGrad;
+    ctx.beginPath();
+    ctx.arc(px, py, pr, 0, Math.PI * 2);
+    ctx.fill();
+    // Atmospheric glow rim
+    ctx.globalAlpha = 0.5;
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = 'rgba(125, 211, 252, 0.7)';
+    ctx.stroke();
+    // Thick comic ink rim
+    ctx.globalAlpha = 0.85;
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#0b1224';
+    ctx.stroke();
+    // A couple of continent blobs for character
+    ctx.globalAlpha = 0.28;
+    ctx.fillStyle = '#22c55e';
+    ctx.beginPath();
+    ctx.ellipse(px - pr * 0.25, py - pr * 0.62, pr * 0.22, pr * 0.1, -0.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(px + pr * 0.18, py - pr * 0.5, pr * 0.15, pr * 0.08, 0.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // A small moon drifting top-right, with its own ink outline.
+    const mx = W * 0.84 + Math.sin(t * 0.2) * 6, my = H * 0.22, mr = 26;
+    ctx.save();
+    const moonGrad = ctx.createRadialGradient(mx - 8, my - 8, 4, mx, my, mr);
+    moonGrad.addColorStop(0, '#e2e8f0');
+    moonGrad.addColorStop(1, '#64748b');
+    ctx.fillStyle = moonGrad;
+    ctx.beginPath();
+    ctx.arc(mx, my, mr, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = '#0b1224';
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(100,116,139,0.5)';
+    ctx.beginPath();
+    ctx.arc(mx + 7, my - 5, 5, 0, Math.PI * 2);
+    ctx.arc(mx - 6, my + 7, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
 
   // Direct background painting — kept as the no-canvas/test fallback.

@@ -205,6 +205,86 @@ class SoundEngine {
     osc.stop(now + 0.15);
   }
 
+  // Soft landing "tick" — fires on the airborne→grounded transition so a jump-and-land
+  // cycle closes with a satisfying confirmation. Quiet and brief so it never nags.
+  playLanding() {
+    this.resume();
+    if (this.isMuted || !this.ctx) return;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.type = 'sine';
+    const now = this.ctx.currentTime;
+
+    osc.frequency.setValueAtTime(440, now);
+    osc.frequency.exponentialRampToValueAtTime(180, now + 0.07);
+
+    gain.gain.setValueAtTime(0.06, now);
+    gain.gain.linearRampToValueAtTime(0.001, now + 0.08);
+
+    osc.start(now);
+    osc.stop(now + 0.09);
+  }
+
+  // Rocket thrust whoosh — a breathy sawtooth the Hopper's rocket fires while burning.
+  // The caller throttles it (every few frames) so it sustains without clipping. Distinct
+  // from playJump so the marquee rocket upgrade actually sounds like a rocket.
+  playRocket() {
+    this.resume();
+    if (this.isMuted || !this.ctx) return;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const filterIsh = this.ctx.createGain(); // simple two-stage gain for a softer attack
+    osc.connect(gain);
+    gain.connect(filterIsh);
+    filterIsh.connect(this.ctx.destination);
+
+    osc.type = 'sawtooth';
+    const now = this.ctx.currentTime;
+
+    osc.frequency.setValueAtTime(170 + Math.random() * 70, now);
+    osc.frequency.linearRampToValueAtTime(330, now + 0.12);
+
+    gain.gain.setValueAtTime(0.05, now);
+    gain.gain.linearRampToValueAtTime(0.001, now + 0.14);
+    filterIsh.gain.setValueAtTime(0.8, now);
+
+    osc.start(now);
+    osc.stop(now + 0.15);
+  }
+
+  // Portal unlock fanfare — a bright rising arpeggio for the level-clear / portal moment,
+  // deliberately grander than playSuccess so progression lands as a real event.
+  playPortalUnlock() {
+    this.resume();
+    if (this.isMuted || !this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const playTone = (freq, start, duration, type) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.type = type || 'triangle';
+      osc.frequency.setValueAtTime(freq, start);
+      gain.gain.setValueAtTime(0.12, start);
+      gain.gain.linearRampToValueAtTime(0.001, start + duration);
+      osc.start(start);
+      osc.stop(start + duration);
+    };
+
+    // Rising C-major climb, then a shimmering high octave on top.
+    playTone(523.25, now, 0.12);                 // C5
+    playTone(659.25, now + 0.1, 0.12);           // E5
+    playTone(783.99, now + 0.2, 0.12);           // G5
+    playTone(1046.50, now + 0.3, 0.35);          // C6
+    playTone(1567.98, now + 0.34, 0.4, 'sine');  // G6 shimmer
+  }
+
   // Loopable Background Chiptune Tracks
   startBGM(planetId) {
     this.resume();
