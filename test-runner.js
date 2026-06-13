@@ -368,6 +368,49 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Physics: Hopper rocket power scales lift", false, err.message);
   }
 
+  // Test 15b: Free-fall is mass-independent (Galileo). A light Rover and a heavy Hopper
+  // must gain the SAME downward velocity per frame under the same gravity — guarding
+  // against the old ×0.7 / ×1.3 character scaling that taught "heavy falls faster".
+  try {
+    Compiler.reset();
+    const planetG = { physics: { gravity: 0.5, friction: 0.9, airResistance: 1, speed: 4 } };
+
+    const light = new Player(0, 0);
+    light.charType = 'star'; light.onGround = false; light.vy = 0;
+    light.update({}, planetG, { player: light, starMass: 1.0, hopperMass: 2.5 });
+
+    const heavy = new Player(0, 0);
+    heavy.charType = 'hopper'; heavy.onGround = false; heavy.vy = 0;
+    heavy.update({}, planetG, { player: heavy, starMass: 1.0, hopperMass: 2.5 });
+
+    assertClose(light.vy, heavy.vy, 0.0001, "Light and heavy suits must fall at the same rate (mass-independent gravity)");
+    assertClose(0.5, heavy.vy, 0.0001, "Free-fall gain equals planet gravity, unscaled by character type");
+    renderTestResult("engine-suite", "Physics: free-fall is mass-independent (no heavy-falls-faster)", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Physics: free-fall is mass-independent (no heavy-falls-faster)", false, err.message);
+  }
+
+  // Test 15c: Mass still matters — it resists the jump impulse (F = m·a), so a heavier
+  // suit launches with LESS upward velocity from the same jump_power. This is the honest
+  // channel for the heavy-vs-floaty feel, replacing the removed gravity scaling.
+  try {
+    Compiler.reset();
+    const planetJ = { physics: { gravity: 0.5, friction: 0.9, airResistance: 1, speed: 4 } };
+
+    const jLight = new Player(0, 0);
+    jLight.charType = 'star'; jLight.onGround = true; jLight.vy = 0; jLight.jumpPower = 15;
+    jLight.update({ " ": true }, planetJ, { player: jLight, starMass: 1.0, hopperMass: 2.5 });
+
+    const jHeavy = new Player(0, 0);
+    jHeavy.charType = 'hopper'; jHeavy.onGround = true; jHeavy.vy = 0; jHeavy.jumpPower = 15;
+    jHeavy.update({ " ": true }, planetJ, { player: jHeavy, starMass: 1.0, hopperMass: 2.5 });
+
+    assertEquals(true, jLight.vy < jHeavy.vy, "Lighter suit jumps with more upward velocity (mass resists the impulse)");
+    renderTestResult("engine-suite", "Physics: mass resists the jump impulse (F = m·a)", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Physics: mass resists the jump impulse (F = m·a)", false, err.message);
+  }
+
   // Test 16: Portal readiness requires all mission tasks and required collectibles
   try {
     const game = new StarHopperGame();
@@ -943,6 +986,74 @@ function runRetryRemixTests() {
   } catch (err) {
     Game = oldGameR12; window.Game = oldGameR12;
     renderTestResult(SUITE, "Mastery: planetClears survives the profile save/load cycle", false, err.message);
+  }
+
+  // Test R13: Jupiter and Mag-Net (previously 1 flavor each = identical retries) now rotate
+  // through >= 3 DISTINCT variant labels — the core non-repeatability fix.
+  try {
+    const distinctLabels = (planetIndex, attempts) => {
+      const s = new Set();
+      for (let a = 1; a <= attempts; a++) s.add(buildPlanetVariant(PLANETS[planetIndex], planetIndex, a).variantLabel);
+      return s.size;
+    };
+    assertEquals(true, distinctLabels(2, 3) >= 3, "Jupiter should rotate >= 3 distinct flavors (was 1)");
+    assertEquals(true, distinctLabels(4, 3) >= 3, "Mag-Net should rotate >= 3 distinct flavors (was 1)");
+    renderTestResult(SUITE, "Variant: Jupiter & Mag-Net now have a real flavor rotation", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Variant: Jupiter & Mag-Net now have a real flavor rotation", false, err.message);
+  }
+
+  // Test R14: the new vertical-shift flavors still preserve gem count over a deep attempt
+  // range (1..10) for every world — the safety net + count-preserving shifts hold.
+  try {
+    for (let p = 0; p < 5; p++) {
+      const base = countTile(PLANETS[p].map, 3);
+      for (let att = 1; att <= 10; att++) {
+        assertEquals(base, countTile(buildPlanetVariant(PLANETS[p], p, att).map, 3), `Planet ${p} attempt ${att} keeps ${base} gems`);
+      }
+    }
+    renderTestResult(SUITE, "Variant: deep rotation (incl. vertical shifts) preserves gem count", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Variant: deep rotation (incl. vertical shifts) preserves gem count", false, err.message);
+  }
+
+  // Test R15: rvShiftTilesV preserves count and only moves tiles into empty cells.
+  try {
+    const m = [[0,0,0],[3,1,0],[0,0,0]];
+    const before = countTile(m, 3);
+    rvShiftTilesV(m, 3, 1); // the gem at (1,0) can drop to (2,0) which is empty
+    assertEquals(before, countTile(m, 3), "Vertical shift preserves gem count");
+    assertEquals(3, m[2][0], "Gem dropped one row into the empty cell");
+    const m2 = [[1,0],[3,0]]; // gem at (1,0) blocked above by wall -> stays
+    rvShiftTilesV(m2, 3, -1);
+    assertEquals(3, m2[1][0], "Blocked vertical shift restores the original cell");
+    renderTestResult(SUITE, "Helper: rvShiftTilesV preserves count and respects blockers", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Helper: rvShiftTilesV preserves count and respects blockers", false, err.message);
+  }
+
+  // Test R16: the new Phase-2 progression fields round-trip through the profile snapshot.
+  try {
+    const oldGameR16 = (typeof Game !== "undefined") ? Game : undefined;
+    Game = {
+      completedMissions: new Set(), earnedBadges: new Set(), unlockedUpgrades: new Set(),
+      upgradeLevels: {}, planetClears: {},
+      bestClearTimes: { 0: 12.4 }, masteryCleared: { 1: true }, masteryMeters: {},
+      dailySignalClears: 3, lastPlayedDate: "2026-06-13", streakCount: 5
+    };
+    window.Game = Game;
+    const snap = shCaptureProgress();
+    Game.bestClearTimes = {}; Game.dailySignalClears = 0; Game.lastPlayedDate = null; Game.streakCount = 0; Game.masteryCleared = {};
+    shApplyProgress(snap);
+    assertEquals(12.4, Game.bestClearTimes[0], "best clear time round-trips");
+    assertEquals(true, Game.masteryCleared[1], "mastery-cleared flag round-trips");
+    assertEquals(3, Game.dailySignalClears, "daily-signal clears round-trip");
+    assertEquals("2026-06-13", Game.lastPlayedDate, "lastPlayedDate round-trips");
+    assertEquals(5, Game.streakCount, "streakCount round-trips");
+    Game = oldGameR16; window.Game = oldGameR16;
+    renderTestResult(SUITE, "Persistence: Phase-2 progression fields survive save/load", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Persistence: Phase-2 progression fields survive save/load", false, err.message);
   }
 }
 

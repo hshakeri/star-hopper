@@ -327,6 +327,41 @@ class ComicBubble {
     ctx.scale(s * this.scaleMul, s * this.scaleMul);
     ctx.rotate(this.angle);
 
+    // Big comic IMPACT lettering — no speech box, just bold outlined onomatopoeia over a
+    // starburst flash. The signature "POW!" pop, reserved for high-reward moments.
+    if (this.type === 'pop') {
+      ctx.font = "bold 16px 'Press Start 2P', monospace";
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const tw = ctx.measureText(this.text).width;
+      const outerR = tw * 0.6 + 16;
+      const innerR = outerR * 0.6;
+      const spikes = 14;
+      ctx.beginPath();
+      for (let i = 0; i < spikes * 2; i++) {
+        const theta = (i * Math.PI) / spikes - Math.PI / 2;
+        const r = (i % 2 === 0) ? outerR : innerR;
+        ctx.lineTo(Math.cos(theta) * r, Math.sin(theta) * r * 0.7);
+      }
+      ctx.closePath();
+      ctx.fillStyle = this.color;
+      ctx.strokeStyle = '#15233e';
+      ctx.lineWidth = 3;
+      ctx.lineJoin = 'round';
+      ctx.fill();
+      ctx.stroke();
+      // Drop shadow, then thick-ink outlined bright lettering on top of the burst.
+      ctx.fillStyle = 'rgba(11,16,34,0.5)';
+      ctx.fillText(this.text, 2.5, 3);
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = '#15233e';
+      ctx.strokeText(this.text, 0, 0);
+      ctx.fillStyle = '#fffbe6';
+      ctx.fillText(this.text, 0, 0);
+      ctx.restore();
+      return;
+    }
+
     ctx.font = "bold 9px 'Press Start 2P', monospace";
     const textWidth = ctx.measureText(this.text).width;
     const w = textWidth + 16;
@@ -426,6 +461,15 @@ class ComicBubbleEngine {
 
   spawn(x, y, text, type = 'rounded', color = '#fbf3da', vy = -0.75, opts = {}) {
     this.bubbles.push(new ComicBubble(x, y, text, type, color, vy, opts));
+  }
+
+  // Big impact pop-text (type 'pop'). Capped so a frantic moment can't stack a wall of
+  // letters on screen — at most a few live at once; extra triggers fall back to particles.
+  pop(x, y, text, color = '#facc15', scale = 1.5) {
+    let live = 0;
+    for (const b of this.bubbles) if (b.type === 'pop') live++;
+    if (live >= 3) return;
+    this.bubbles.push(new ComicBubble(x, y, text, 'pop', color, -0.9, { maxLife: 60, scale }));
   }
 
   update() {
@@ -552,6 +596,10 @@ class Player {
     this.charType = 'star'; // 'star' or 'hopper'
     this.onGround = false;
     this.isJumping = false;
+    // Coyote time: frames of grace after walking off a ledge during which a jump still
+    // fires. Invisible to skilled play, but removes the "I pressed jump and nothing
+    // happened" unfairness that frustrates younger players on narrow platforms.
+    this.coyoteFrames = 0;
 
     // Character dimensions
     this.w = 20;
@@ -712,17 +760,15 @@ class Player {
     this.w = 20 * this.scale;
     this.h = 32 * this.scale;
 
-    // 2. Character-specific Mass/Gravity adjustments
+    // 2. Mass & gravity. Gravity is a free-fall acceleration — INDEPENDENT of mass: a
+    // feather and a hammer fall together (Galileo's law). So BOTH suits feel the exact
+    // same gravityForce. The heavy-vs-floaty contrast comes from mass resisting
+    // acceleration instead — jumpMultiplier = jumpPower/mass and speedMultiplier =
+    // engine/mass (computed above) — which is the honest F = m·a this game teaches.
+    // (Previously gravity was scaled ×0.7 for Rover / ×1.3 for Hopper, which wrongly
+    // taught that heavier things fall faster — the classic misconception. Removed.)
     let gravityForce = baseGravity;
     let horizontalFriction = baseFriction;
-
-    // Gravity is a free-fall acceleration — independent of mass (a feather and a
-    // hammer fall together). Mass instead resists acceleration (speed/jump above).
-    if (this.charType === 'star') {
-      gravityForce = baseGravity * 0.7;
-    } else {
-      gravityForce = baseGravity * 1.3;
-    }
 
     // Check if this instance is the active player being controlled
     const isActive = (game && game.player === this);
@@ -824,11 +870,21 @@ class Player {
       this.vx *= airResistance;
     }
 
-    // 4. Jump movement inputs
-    if (jumpPressed && this.onGround) {
+    // Coyote-time bookkeeping: refill the grace window every grounded frame, then count
+    // it down once airborne. (this.onGround here is last frame's resolved value.)
+    if (this.onGround) {
+      this.coyoteFrames = 6;
+    } else if (this.coyoteFrames > 0) {
+      this.coyoteFrames--;
+    }
+
+    // 4. Jump movement inputs — fire while grounded OR within the coyote window just
+    // after stepping off a ledge. The !isJumping guard keeps it from becoming a double jump.
+    if (jumpPressed && (this.onGround || (this.coyoteFrames > 0 && !this.isJumping))) {
       this.vy = -jumpMultiplier;
       this.onGround = false;
       this.isJumping = true;
+      this.coyoteFrames = 0;
       SFX.playJump();
       Particles.spawnBurst(this.x + this.w / 2, this.y + this.h, 'rgba(255,255,255,0.6)', 8, 1.5, 2);
       if (typeof ComicBubbles !== 'undefined') {
@@ -877,7 +933,7 @@ class Player {
             (Math.random() - 0.5) * 0.8, 1.5 + Math.random() * 1.5,
             15, 'glow'
           );
-          if (Math.random() < 0.2) SFX.playJump(); // soft thrust hum
+          if (Math.random() < 0.22 && SFX.playRocket) SFX.playRocket(); // distinct rocket whoosh
 
           this.rocketBubbleTimer = (this.rocketBubbleTimer || 0) + 1;
           if (this.rocketBubbleTimer % 35 === 1 && typeof ComicBubbles !== 'undefined') {
@@ -897,8 +953,13 @@ class Player {
     if (this.charType === 'hopper' && !this.onGround && downPressed) {
       this.magnetActive = true;
       this.magnetBubbleTimer = (this.magnetBubbleTimer || 0) + 1;
-      if (this.magnetBubbleTimer % 40 === 1 && typeof ComicBubbles !== 'undefined') {
-        ComicBubbles.spawn(this.x + this.w / 2, this.y, SPEECH.pick("zap"), "jagged", "#ec4899");
+      if (this.magnetBubbleTimer % 40 === 1) {
+        if (typeof ComicBubbles !== 'undefined') {
+          ComicBubbles.spawn(this.x + this.w / 2, this.y, SPEECH.pick("zap"), "jagged", "#ec4899");
+        }
+        // Wire up the previously-dead playMagnet(): an electromagnetic hum on the same
+        // cadence as the zap bubble so the magnet upgrade finally has a voice.
+        if (typeof SFX !== 'undefined' && SFX.playMagnet) SFX.playMagnet();
       }
     } else {
       this.magnetBubbleTimer = 0;
@@ -920,6 +981,19 @@ class Player {
     // Apply gravity
     this.vy += gravityForce;
     if (this.vy > 12) this.vy = 12; // Terminal velocity
+  }
+
+  // Thick dark comic ink outline around the CURRENT path. Temporarily kills the glow
+  // shadow so the ink reads crisp, then restores it. This is the single trait that makes
+  // the characters look hand-inked like a comic rather than soft neon blobs.
+  inkStroke(ctx, s, width = 2.4) {
+    const sb = ctx.shadowBlur;
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = '#0b1224';
+    ctx.lineWidth = width * s;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+    ctx.shadowBlur = sb;
   }
 
   draw(ctx, cameraX, game) {
@@ -989,6 +1063,7 @@ class Player {
       ctx.beginPath();
       ctx.roundRect(x + 2 * s, y + 11 * s, this.w - 4 * s, 15 * s, 6 * s);
       ctx.fill();
+      this.inkStroke(ctx, s);
 
       ctx.fillStyle = '#0e7490';
       ctx.beginPath();
@@ -1002,6 +1077,7 @@ class Player {
       ctx.beginPath();
       ctx.roundRect(x + 3 * s, y + 2 * s, this.w - 6 * s, 13 * s, 7 * s);
       ctx.fill();
+      this.inkStroke(ctx, s, 2);
 
       ctx.fillStyle = '#082f49';
       ctx.beginPath();
@@ -1071,11 +1147,13 @@ class Player {
       ctx.beginPath();
       ctx.roundRect(x + 2 * s, y + 8 * s, this.w - 4 * s, 19 * s, 7 * s);
       ctx.fill();
+      this.inkStroke(ctx, s);
 
       ctx.fillStyle = '#fed7aa';
       ctx.beginPath();
       ctx.roundRect(x + 4 * s, y + 2 * s, this.w - 8 * s, 12 * s, 6 * s);
       ctx.fill();
+      this.inkStroke(ctx, s, 2);
 
       ctx.fillStyle = visorColor;
       ctx.beginPath();
@@ -1400,6 +1478,7 @@ class InteractiveObject {
     this.collected = false;
     this.bounceTimer = 0;
     this.angle = 0;
+    this.rejectPulse = 0; // >0 right after bumping a still-locked gem (drives a red pulse)
   }
 
   update() {
@@ -1408,6 +1487,9 @@ class InteractiveObject {
     }
     if (this.bounceTimer > 0) {
       this.bounceTimer--;
+    }
+    if (this.rejectPulse > 0) {
+      this.rejectPulse = Math.max(0, this.rejectPulse - 0.06);
     }
   }
 
@@ -1431,7 +1513,9 @@ class InteractiveObject {
         && !game.canCollectGem(this);
 
       ctx.translate(cx, cy);
-      ctx.rotate(Math.sin(this.angle) * 0.24);
+      // Add a quick shake on top of the idle spin when the gem was just bumped while locked.
+      const wobble = this.rejectPulse > 0 ? Math.sin(this.rejectPulse * 24) * this.rejectPulse * 0.4 : 0;
+      ctx.rotate(Math.sin(this.angle) * 0.24 + wobble);
       ctx.scale(pulse, pulse);
       ctx.globalAlpha = locked ? 0.42 : 1;
       // Halo from a cached sprite instead of per-frame shadowBlur (same look,
@@ -1455,7 +1539,13 @@ class InteractiveObject {
       drawGemShape(ctx, 0, 0, 9, 12);
       ctx.fill();
 
+      // Thick dark comic ink rim first, then the white sheen highlight on top — gives the
+      // gem a crisp inked facet edge that reads against any planet background.
       ctx.shadowBlur = 0;
+      ctx.strokeStyle = '#0b1224';
+      ctx.lineWidth = 2;
+      ctx.lineJoin = 'round';
+      ctx.stroke();
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
       ctx.lineWidth = 1.2;
       ctx.stroke();
@@ -1477,6 +1567,17 @@ class InteractiveObject {
       if (locked) {
         ctx.globalAlpha = 0.95;
         ctx.shadowBlur = 0;
+        // Expanding red "nope" ring when freshly bumped — unmissable for visual learners.
+        if (this.rejectPulse > 0) {
+          ctx.save();
+          ctx.globalAlpha = Math.min(1, this.rejectPulse);
+          ctx.strokeStyle = '#ef4444';
+          ctx.lineWidth = 2 + this.rejectPulse * 2;
+          ctx.beginPath();
+          ctx.arc(0, 0, 10 + (1 - this.rejectPulse) * 9, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
         ctx.lineWidth = 1.4;
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.92)';
         ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';

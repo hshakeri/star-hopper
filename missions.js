@@ -351,7 +351,7 @@ const PlatformerMissions = [
       mode: "assemble-events",
       template: "use_hopper()\nwhen hopper.rocket_on: antigravity = {gravity}\nwhen player.touching('magnet'): hopper.pole = '{pole}'",
       slots: [
-        { id: "gravity", label: "antigravity (m/s²)", value: "0.8", hint: "Mag-Net's gravity is fixed and tiny. Antigravity cancels the last bit so Hopper hangs perfectly still while the rocket is on." },
+        { id: "gravity", label: "antigravity (m/s²)", value: "0.8", hint: "Mag-Net's gravity is fixed and tiny. The antigravity thruster pushes up just enough to balance that last bit (thrust ≈ weight), so Hopper hovers while the rocket is on." },
         { id: "pole", label: "pole", value: "south", hint: "Changing pole changes how magnets push or pull." }
       ],
       explain: "Activate Hopper first; the event rules wait for rocket or magnet moments, then change physics.",

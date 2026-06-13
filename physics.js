@@ -236,12 +236,9 @@ class PhysicsEngine {
     let gravityForce = baseGravity;
     let horizontalFriction = baseFriction;
 
-    // Gravity is mass-independent free-fall (matches entities.js); mass affects speed/jump.
-    if (player.charType === 'star') {
-      gravityForce = baseGravity * 0.7;
-    } else {
-      gravityForce = baseGravity * 1.3;
-    }
+    // Gravity is mass-independent free-fall (matches entities.js): both suits fall at the
+    // SAME rate, so the predicted trajectory pulls down equally regardless of character.
+    // Mass changes the launch speed/jump (F = m·a), not the downward acceleration.
 
     const stepCount = 50;
     const saveFrequency = 2;
@@ -293,7 +290,9 @@ class PhysicsEngine {
     const py = player.y + player.h/2;
 
     const baseGravity = Math.max(0.02, (Compiler.env.gravity !== null ? Compiler.env.gravity : currentPlanet.physics.gravity) - (Compiler.env.antigravity || 0));
-    let gravityVal = (player.charType === 'star') ? baseGravity * 0.7 : baseGravity * 1.3;
+    // Free-fall is mass-independent, so the gravity arrow is the SAME length for both
+    // suits — the overlay must not imply a heavier rover is pulled harder.
+    let gravityVal = baseGravity;
 
     // 1. Gravity Vector (Green)
     this.drawArrow(ctx, px, py, px, py + (gravityVal * 40), '#4ade80', 2);

@@ -63,7 +63,16 @@ function shCaptureProgress() {
     earnedBadges: (window.Game && Game.earnedBadges) ? Array.from(Game.earnedBadges) : [],
     unlockedUpgrades: (window.Game && Game.unlockedUpgrades) ? Array.from(Game.unlockedUpgrades) : [],
     upgradeLevels: (window.Game && Game.upgradeLevels) ? { ...Game.upgradeLevels } : {},
-    planetClears: (window.Game && Game.planetClears) ? { ...Game.planetClears } : {}
+    planetClears: (window.Game && Game.planetClears) ? { ...Game.planetClears } : {},
+    // Phase-2 progression fields. All additive + backward-compatible (old saves simply lack
+    // them and shApplyProgress defaults them). NOT sent to the github-sync flat payload —
+    // the local profile store is authoritative (matches existing planetClears behavior).
+    bestClearTimes: (window.Game && Game.bestClearTimes) ? { ...Game.bestClearTimes } : {},
+    masteryCleared: (window.Game && Game.masteryCleared) ? { ...Game.masteryCleared } : {},
+    masteryMeters: (window.Game && Game.masteryMeters) ? { ...Game.masteryMeters } : {},
+    dailySignalClears: (window.Game && Game.dailySignalClears) || 0,
+    lastPlayedDate: (window.Game && Game.lastPlayedDate) ? Game.lastPlayedDate : null,
+    streakCount: (window.Game && Game.streakCount) || 0
   };
 }
 
@@ -75,12 +84,26 @@ function shApplyProgress(progress) {
   Game.unlockedUpgrades = new Set(progress.unlockedUpgrades || []);
   Game.upgradeLevels = progress.upgradeLevels ? { ...progress.upgradeLevels } : {};
   Game.planetClears = progress.planetClears ? { ...progress.planetClears } : {};
+  // Phase-2 fields — default for old saves that predate them.
+  Game.bestClearTimes = (progress.bestClearTimes && typeof progress.bestClearTimes === 'object') ? { ...progress.bestClearTimes } : {};
+  Game.masteryCleared = (progress.masteryCleared && typeof progress.masteryCleared === 'object') ? { ...progress.masteryCleared } : {};
+  Game.masteryMeters = (progress.masteryMeters && typeof progress.masteryMeters === 'object') ? { ...progress.masteryMeters } : {};
+  Game.dailySignalClears = progress.dailySignalClears || 0;
+  Game.lastPlayedDate = progress.lastPlayedDate || null;
+  Game.streakCount = progress.streakCount || 0;
   try {
     if (typeof notebookEntries !== 'undefined' && notebookEntries) {
       Object.keys(notebookEntries).forEach(k => delete notebookEntries[k]);
       Object.assign(notebookEntries, progress.notebookEntries || {});
     }
   } catch (e) { /* notebook store not ready yet */ }
+
+  // Roll the return-streak now that this cadet's lastPlayedDate/streakCount are loaded.
+  // (Must run AFTER the fields above are restored — Game.init ran before this apply, so
+  // doing it in init() would compute from defaults and then be overwritten here.)
+  if (typeof Game.updateReturnStreak === 'function') {
+    try { Game.updateReturnStreak(); } catch (e) { /* streak is non-critical */ }
+  }
 
   // Refresh each dependent panel independently — at startup some (e.g. the mission
   // list) may not be ready (no planet loaded yet), so one failure must not abort the rest.
@@ -90,7 +113,8 @@ function shApplyProgress(progress) {
     () => typeof updateBadgeShelf === 'function' && updateBadgeShelf(Game),
     () => typeof updateLearningConceptProgress === 'function' && updateLearningConceptProgress(Game),
     () => typeof updateCertificateState === 'function' && updateCertificateState(),
-    () => Game.refreshDailySignalBanner && Game.refreshDailySignalBanner()
+    () => Game.refreshDailySignalBanner && Game.refreshDailySignalBanner(),
+    () => Game.refreshStreakBanner && Game.refreshStreakBanner()
   ].forEach(fn => { try { fn(); } catch (e) { /* panel not ready at this stage */ } });
 }
 
