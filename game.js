@@ -289,7 +289,7 @@ class StarHopperGame {
 
   getDailySignal() {
     if (typeof getDailySignal !== 'function' || typeof PLANETS === 'undefined') return null;
-    const dateStr = new Date().toISOString().slice(0, 10);
+    const dateStr = this.getTodayDateStr();
     return getDailySignal(PLANETS, dateStr, this.getDailySignalPool());
   }
 
@@ -313,10 +313,13 @@ class StarHopperGame {
     label.textContent = `📡 Daily Signal ${daily.dateStr} — ${daily.label}`;
   }
 
-  // Single source of "today" (browser local). Used by the return-streak; the Daily Signal
-  // builds its own ISO day string the same way.
-  getTodayDateStr() {
-    return new Date().toISOString().slice(0, 10);
+  // Single source of "today" in the browser's LOCAL calendar, not UTC. That matters in
+  // US evening hours, where toISOString() has already rolled into tomorrow.
+  getTodayDateStr(date = new Date()) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }
 
   // Gentle return-streak: +1 on a new consecutive calendar day, hold on the same day, and
@@ -626,6 +629,7 @@ class StarHopperGame {
 
   startLevel(id, preserveTunings = false) {
     this.isPaused = false;
+    this.clearAction = null;
     if (typeof updatePauseControls === 'function') updatePauseControls();
     this.state = 'playing';
     const startScr = document.getElementById("start-screen");
@@ -1141,6 +1145,13 @@ class StarHopperGame {
   }
 
   beginNextPlanetNavigation() {
+    if (this.clearAction === 'log') {
+      if (typeof switchMainMode === 'function') {
+        switchMainMode('notebook');
+      }
+      return;
+    }
+
     const targetIndex = this.getNextPlanetIndex();
     if (targetIndex === null) {
       if (typeof switchMainMode === 'function') {
@@ -1617,10 +1628,20 @@ class StarHopperGame {
     this.state = 'clear';
     // A cleared run is an experiment too — log it with its telemetry.
     if (typeof attemptLogFinish === 'function') attemptLogFinish(this, 'cleared');
-    // Count the clear (persisted): future fresh visits to this world start REMIXED
-    // (mastery), and the Daily Signal pool can grow to the next world.
-    this.planetClears = this.planetClears || {};
-    this.planetClears[this.currentPlanetIndex] = (this.planetClears[this.currentPlanetIndex] || 0) + 1;
+    const isDailyRun = this.remixContext === 'daily'
+      && this.dailyInfo
+      && this.dailyInfo.planetIndex === this.currentPlanetIndex;
+
+    if (isDailyRun) {
+      // Daily Signal is a side challenge. It should persist its own clear count, but must
+      // not mark campaign planets as cleared or unlock later worlds out of order.
+      this.dailySignalClears = (this.dailySignalClears || 0) + 1;
+    } else {
+      // Count the campaign clear (persisted): future fresh visits to this world start
+      // REMIXED (mastery), and the Daily Signal pool can grow to the next world.
+      this.planetClears = this.planetClears || {};
+      this.planetClears[this.currentPlanetIndex] = (this.planetClears[this.currentPlanetIndex] || 0) + 1;
+    }
     if (typeof saveLocalProgress === 'function') saveLocalProgress();
     this.refreshDailySignalBanner();
     // Distinct portal fanfare (not the generic success chime) so clearing a world lands
@@ -1633,11 +1654,19 @@ class StarHopperGame {
     const clearSubtitle = document.getElementById("clear-subtitle");
     const nextBtn = document.getElementById("btn-next-level");
     const nextIndex = this.getNextPlanetIndex();
+    this.clearAction = null;
     // Animate the just-unlocked planet node on the galaxy map (no-op if already open).
-    if (nextIndex !== null) this.unlockNextPlanetNode(nextIndex);
+    if (!isDailyRun && nextIndex !== null) this.unlockNextPlanetNode(nextIndex);
     const payoff = this.currentPlanet && this.currentPlanet.story ? this.currentPlanet.story.payoff : "";
     const dailyBtn = document.getElementById("btn-clear-daily");
-    if (nextIndex === null) {
+    if (isDailyRun) {
+      const share = this.dailyInfo ? this.dailyInfo.shareCode : "today's code";
+      if (clearTitle) clearTitle.textContent = "DAILY SIGNAL CLEAR! 📡";
+      if (clearSubtitle) clearSubtitle.textContent = `Signal solved: ${share}. This counts toward Daily Signal practice, while campaign planet unlocks stay on the main mission path.`;
+      if (nextBtn) nextBtn.textContent = "OPEN LOG";
+      if (dailyBtn) dailyBtn.style.display = "none";
+      this.clearAction = 'log';
+    } else if (nextIndex === null) {
       // Final playable world cleared: the star-map is complete. Rather than dead-end on
       // "three worlds inbound", point the cadet at the Daily Signal — a fresh seeded
       // remix every day — so there's a real reason to come back tomorrow.

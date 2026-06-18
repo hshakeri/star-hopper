@@ -257,5 +257,7 @@ window.StarHopperProfiles = {
   renameActive: shRenameActive,
   deleteActive: shDeleteActive,
   renderUI: shRenderUI,
-  getActive: shGetActive
+  getActive: shGetActive,
+  captureProgress: shCaptureProgress,
+  applyProgress: shApplyProgress
 };

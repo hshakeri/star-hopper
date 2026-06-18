@@ -51,6 +51,185 @@ function markSynced() {
   updateSyncMeta();
 }
 
+function arrayUnion(a, b) {
+  return Array.from(new Set([...(Array.isArray(a) ? a : []), ...(Array.isArray(b) ? b : [])]));
+}
+
+function plainObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
+function mergeNumberMax(local, incoming) {
+  const out = { ...plainObject(local) };
+  Object.entries(plainObject(incoming)).forEach(([key, value]) => {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return;
+    const cur = Number(out[key]);
+    out[key] = Number.isFinite(cur) ? Math.max(cur, n) : n;
+  });
+  return out;
+}
+
+function mergeBestTimes(local, incoming) {
+  const out = { ...plainObject(local) };
+  Object.entries(plainObject(incoming)).forEach(([key, value]) => {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n <= 0) return;
+    const cur = Number(out[key]);
+    out[key] = Number.isFinite(cur) && cur > 0 ? Math.min(cur, n) : n;
+  });
+  return out;
+}
+
+function mergeBooleanObject(local, incoming) {
+  const out = { ...plainObject(local) };
+  Object.entries(plainObject(incoming)).forEach(([key, value]) => {
+    out[key] = !!out[key] || !!value;
+  });
+  return out;
+}
+
+function mergeNotebookEntries(local, incoming) {
+  const out = { ...plainObject(local) };
+  Object.entries(plainObject(incoming)).forEach(([key, value]) => {
+    const current = out[key];
+    const incomingAnswer = value && value.answer ? String(value.answer) : "";
+    const currentAnswer = current && current.answer ? String(current.answer) : "";
+    if (!current || incomingAnswer.length > currentAnswer.length) {
+      out[key] = value;
+    }
+  });
+  return out;
+}
+
+function latestDateString(a, b) {
+  if (!a) return b || null;
+  if (!b) return a || null;
+  return String(a) >= String(b) ? String(a) : String(b);
+}
+
+function normalizeProgress(progress) {
+  const p = plainObject(progress);
+  return {
+    completedMissions: Array.isArray(p.completedMissions) ? p.completedMissions : [],
+    notebookEntries: plainObject(p.notebookEntries),
+    earnedBadges: Array.isArray(p.earnedBadges) ? p.earnedBadges : [],
+    unlockedUpgrades: Array.isArray(p.unlockedUpgrades) ? p.unlockedUpgrades : [],
+    upgradeLevels: plainObject(p.upgradeLevels),
+    planetClears: plainObject(p.planetClears),
+    bestClearTimes: plainObject(p.bestClearTimes),
+    masteryCleared: plainObject(p.masteryCleared),
+    masteryMeters: plainObject(p.masteryMeters),
+    dailySignalClears: Number(p.dailySignalClears) || 0,
+    lastPlayedDate: p.lastPlayedDate || null,
+    streakCount: Number(p.streakCount) || 0
+  };
+}
+
+function getActiveProgressSnapshot() {
+  if (window.StarHopperProfiles && typeof window.StarHopperProfiles.captureProgress === 'function') {
+    return normalizeProgress(window.StarHopperProfiles.captureProgress());
+  }
+  return normalizeProgress({
+    completedMissions: typeof Game !== 'undefined' && Game.completedMissions ? Array.from(Game.completedMissions) : [],
+    notebookEntries: typeof notebookEntries !== 'undefined' ? notebookEntries : {},
+    earnedBadges: typeof Game !== 'undefined' && Game.earnedBadges ? Array.from(Game.earnedBadges) : [],
+    unlockedUpgrades: typeof Game !== 'undefined' && Game.unlockedUpgrades ? Array.from(Game.unlockedUpgrades) : [],
+    upgradeLevels: typeof Game !== 'undefined' && Game.upgradeLevels ? { ...Game.upgradeLevels } : {},
+    planetClears: typeof Game !== 'undefined' && Game.planetClears ? { ...Game.planetClears } : {},
+    bestClearTimes: typeof Game !== 'undefined' && Game.bestClearTimes ? { ...Game.bestClearTimes } : {},
+    masteryCleared: typeof Game !== 'undefined' && Game.masteryCleared ? { ...Game.masteryCleared } : {},
+    masteryMeters: typeof Game !== 'undefined' && Game.masteryMeters ? { ...Game.masteryMeters } : {},
+    dailySignalClears: typeof Game !== 'undefined' ? Game.dailySignalClears : 0,
+    lastPlayedDate: typeof Game !== 'undefined' ? Game.lastPlayedDate : null,
+    streakCount: typeof Game !== 'undefined' ? Game.streakCount : 0
+  });
+}
+
+function buildSavePayload() {
+  const progress = getActiveProgressSnapshot();
+  return {
+    schemaVersion: 2,
+    savedAt: new Date().toISOString(),
+    profileProgress: progress,
+    // Backward-compatible top-level fields for old exports/importers.
+    completedMissions: progress.completedMissions,
+    notebookEntries: progress.notebookEntries
+  };
+}
+
+function progressFromSavePayload(data) {
+  const raw = plainObject(data);
+  const hasVersionedProgress = !!(raw.profileProgress || raw.progress || raw.schemaVersion === 2);
+  const progress = raw.profileProgress || raw.progress || raw;
+  const normalized = normalizeProgress(progress);
+  if (!hasVersionedProgress &&
+      !normalized.completedMissions.length && !Object.keys(normalized.notebookEntries).length &&
+      !normalized.earnedBadges.length && !normalized.unlockedUpgrades.length &&
+      !Object.keys(normalized.upgradeLevels).length && !Object.keys(normalized.planetClears).length) {
+    throw new Error("Invalid save file structure");
+  }
+  return normalized;
+}
+
+function mergeProgress(localProgress, incomingProgress) {
+  const local = normalizeProgress(localProgress);
+  const incoming = normalizeProgress(incomingProgress);
+  const latestPlayed = latestDateString(local.lastPlayedDate, incoming.lastPlayedDate);
+  let streakCount = Math.max(local.streakCount || 0, incoming.streakCount || 0);
+  if (latestPlayed && local.lastPlayedDate !== incoming.lastPlayedDate) {
+    streakCount = latestPlayed === incoming.lastPlayedDate ? incoming.streakCount : local.streakCount;
+  }
+
+  return normalizeProgress({
+    completedMissions: arrayUnion(local.completedMissions, incoming.completedMissions),
+    notebookEntries: mergeNotebookEntries(local.notebookEntries, incoming.notebookEntries),
+    earnedBadges: arrayUnion(local.earnedBadges, incoming.earnedBadges),
+    unlockedUpgrades: arrayUnion(local.unlockedUpgrades, incoming.unlockedUpgrades),
+    upgradeLevels: mergeNumberMax(local.upgradeLevels, incoming.upgradeLevels),
+    planetClears: mergeNumberMax(local.planetClears, incoming.planetClears),
+    bestClearTimes: mergeBestTimes(local.bestClearTimes, incoming.bestClearTimes),
+    masteryCleared: mergeBooleanObject(local.masteryCleared, incoming.masteryCleared),
+    masteryMeters: { ...local.masteryMeters, ...incoming.masteryMeters },
+    dailySignalClears: Math.max(local.dailySignalClears || 0, incoming.dailySignalClears || 0),
+    lastPlayedDate: latestPlayed,
+    streakCount
+  });
+}
+
+function applyProgressSnapshot(progress) {
+  const normalized = normalizeProgress(progress);
+  if (window.StarHopperProfiles && typeof window.StarHopperProfiles.applyProgress === 'function') {
+    window.StarHopperProfiles.applyProgress(normalized);
+    return;
+  }
+
+  if (typeof Game !== 'undefined') {
+    Game.completedMissions = new Set(normalized.completedMissions);
+    Game.earnedBadges = new Set(normalized.earnedBadges);
+    Game.unlockedUpgrades = new Set(normalized.unlockedUpgrades);
+    Game.upgradeLevels = { ...normalized.upgradeLevels };
+    Game.planetClears = { ...normalized.planetClears };
+    Game.bestClearTimes = { ...normalized.bestClearTimes };
+    Game.masteryCleared = { ...normalized.masteryCleared };
+    Game.masteryMeters = { ...normalized.masteryMeters };
+    Game.dailySignalClears = normalized.dailySignalClears;
+    Game.lastPlayedDate = normalized.lastPlayedDate;
+    Game.streakCount = normalized.streakCount;
+  }
+  if (typeof notebookEntries !== 'undefined') {
+    Object.keys(notebookEntries).forEach(key => delete notebookEntries[key]);
+    Object.assign(notebookEntries, normalized.notebookEntries);
+  }
+}
+
+function mergeSaveDataIntoLocal(data) {
+  const incoming = progressFromSavePayload(data);
+  const merged = mergeProgress(getActiveProgressSnapshot(), incoming);
+  applyProgressSnapshot(merged);
+  return merged;
+}
+
 // Manual "Load from Cloud" — pull the latest cloud save and merge it in.
 async function pullFromCloud() {
   if (!gitHubSync.token || !gitHubSync.gistId) return;
@@ -116,11 +295,7 @@ function loadLocalProgress() {
 // Save local storage progress
 function saveLocalProgress() {
   try {
-    const completedList = typeof Game !== 'undefined' ? Array.from(Game.completedMissions) : [];
-    const payload = {
-      completedMissions: completedList,
-      notebookEntries: typeof notebookEntries !== 'undefined' ? notebookEntries : {}
-    };
+    const payload = buildSavePayload();
     localStorage.setItem('star_hopper_local_progress', JSON.stringify(payload));
     // Mirror into the active Cadet profile so progress auto-saves with no Save button.
     if (window.StarHopperProfiles && typeof window.StarHopperProfiles.autoSave === 'function') {
@@ -133,11 +308,7 @@ function saveLocalProgress() {
 
 // Export progress to a local JSON file
 function exportLocalSave() {
-  const completedList = typeof Game !== 'undefined' ? Array.from(Game.completedMissions) : [];
-  const payload = {
-    completedMissions: completedList,
-    notebookEntries: typeof notebookEntries !== 'undefined' ? notebookEntries : {}
-  };
+  const payload = buildSavePayload();
   
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
   const downloadAnchor = document.createElement('a');
@@ -166,20 +337,7 @@ function importLocalSave() {
       try {
         const importedData = JSON.parse(evt.target.result);
         
-        if (!importedData.completedMissions && !importedData.notebookEntries) {
-          throw new Error("Invalid save file structure");
-        }
-        
-        // Merge data
-        if (typeof Game !== 'undefined' && importedData.completedMissions) {
-          let localCompleted = Array.from(Game.completedMissions);
-          let mergedCompleted = Array.from(new Set([...localCompleted, ...importedData.completedMissions]));
-          Game.completedMissions = new Set(mergedCompleted);
-        }
-        
-        if (importedData.notebookEntries && typeof notebookEntries !== 'undefined') {
-          Object.assign(notebookEntries, importedData.notebookEntries);
-        }
+        mergeSaveDataIntoLocal(importedData);
         
         // Save to local storage and update UI
         saveLocalProgress();
@@ -397,11 +555,7 @@ async function findOrCreateGist() {
 
 // Create a new secret Gist on GitHub
 async function createNewGist() {
-  const completedList = typeof Game !== 'undefined' ? Array.from(Game.completedMissions) : [];
-  const payload = {
-    completedMissions: completedList,
-    notebookEntries: typeof notebookEntries !== 'undefined' ? notebookEntries : {}
-  };
+  const payload = buildSavePayload();
   
   try {
     const response = await fetch('https://api.github.com/gists', {
@@ -455,25 +609,7 @@ async function loadGistData() {
       const file = gistData.files["star_hopper_save.json"];
       if (file && file.content) {
         const cloudData = JSON.parse(file.content);
-        
-        // Merge completedMissions (Union of local and cloud)
-        let localCompleted = typeof Game !== 'undefined' ? Array.from(Game.completedMissions) : [];
-        let cloudCompleted = cloudData.completedMissions || [];
-        let mergedCompleted = Array.from(new Set([...localCompleted, ...cloudCompleted]));
-        
-        if (typeof Game !== 'undefined') {
-          Game.completedMissions = new Set(mergedCompleted);
-        }
-        
-        // Merge notebookEntries
-        let cloudNotebook = cloudData.notebookEntries || {};
-        if (typeof notebookEntries !== 'undefined') {
-          Object.keys(cloudNotebook).forEach(key => {
-            if (!notebookEntries[key] || (cloudNotebook[key].answer && cloudNotebook[key].answer.length > (notebookEntries[key].answer || '').length)) {
-              notebookEntries[key] = cloudNotebook[key];
-            }
-          });
-        }
+        mergeSaveDataIntoLocal(cloudData);
         
         // Save merged data locally
         saveLocalProgress();
@@ -508,11 +644,7 @@ async function syncGistData() {
     badge.className = 'badge-syncing';
   }
   
-  const completedList = typeof Game !== 'undefined' ? Array.from(Game.completedMissions) : [];
-  const payload = {
-    completedMissions: completedList,
-    notebookEntries: typeof notebookEntries !== 'undefined' ? notebookEntries : {}
-  };
+  const payload = buildSavePayload();
   
   try {
     const response = await fetch(`https://api.github.com/gists/${gitHubSync.gistId}`, {

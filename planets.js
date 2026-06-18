@@ -35,17 +35,17 @@ const PLANETS = [
     missions: [
       {
         id: "earth-gravity",
-        prompt: "Lower gravity to 0.35 or below before attempting the wall.",
-        validate: (game) => Compiler.env.gravity !== null && Compiler.env.gravity <= 0.35
+        prompt: "Lower felt gravity to 0.35 game-units or below before attempting the wall.",
+        validate: (game) => typeof game.getCurrentGravity === 'function' && game.getCurrentGravity() <= 0.35
       },
       {
         id: "earth-jump",
-        prompt: "Engineer Hopper: jump_power >= 17, hopper.mass <= 1.2, speed >= 4.8.",
+        prompt: "Engineer Hopper: jump_power >= 17, hopper.mass <= 1.2, derived speed >= 4.8.",
         validate: (game) => game.player.charType === 'hopper'
           && game.player.jumpPower >= 17
           && game.hopperMass <= 1.2
-          && Compiler.env.speed !== null
-          && Compiler.env.speed >= 4.8
+          && typeof game.getCurrentSpeed === 'function'
+          && game.getCurrentSpeed() >= 4.8
       }
     ],
     
@@ -157,12 +157,12 @@ const PLANETS = [
     missions: [
       {
         id: "jupiter-thrust",
-        prompt: "Engineer Hopper for Jupiter: hopper.rocket_power >= 70, hopper.mass <= 1.4, speed >= 4.5.",
+        prompt: "Engineer Hopper for Jupiter: hopper.rocket_power >= 70, hopper.mass <= 1.4, derived speed >= 4.5.",
         validate: (game) => game.player.charType === 'hopper'
           && game.player.rocketPower >= 70
           && game.hopperMass <= 1.4
-          && Compiler.env.speed !== null
-          && Compiler.env.speed >= 4.5
+          && typeof game.getCurrentSpeed === 'function'
+          && game.getCurrentSpeed() >= 4.5
       },
       {
         id: "jupiter-loop-boxes",

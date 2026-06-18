@@ -466,7 +466,38 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Objectives: Earth gems require progressive engineering gates", false, err.message);
   }
 
-  // Test 18: Every planet mission includes beginner curriculum scaffolding
+  // Test 18: Campaign mission validators read the same derived physics used by gates/HUD.
+  try {
+    Compiler.reset();
+    const earth = new StarHopperGame();
+    earth.currentPlanet = PLANETS[0];
+    earth.currentPlanetIndex = 0;
+    earth.player = { charType: 'hopper', jumpPower: 18, rocketPower: 40, mass: 1.2, spikes: false, x: 1201 };
+    earth.hopperMass = 1.2;
+    Compiler.env.antigravity = 4.9 / GRAVITY_MPS2_PER_UNIT;
+    Compiler.env.engine = 6; // derived speed = 6 / 1.2 = 5
+
+    const earthCampaign = PLANETS[0].missions.find(m => m.id === "earth-gravity-wall");
+    assertEquals(true, !!earthCampaign, "Earth should use the rich campaign mission wrapper");
+    assertEquals(true, earthCampaign.validate(earth), "Earth campaign task should accept felt gravity + derived speed from engine/mass");
+
+    Compiler.reset();
+    const jupiter = new StarHopperGame();
+    jupiter.currentPlanet = PLANETS[2];
+    jupiter.currentPlanetIndex = 2;
+    jupiter.player = { charType: 'hopper', jumpPower: 8, rocketPower: 75, mass: 1.2, spikes: false };
+    jupiter.hopperMass = 1.2;
+    Compiler.env.engine = 6; // derived speed = 6 / 1.2 = 5
+    const jupiterCampaign = PLANETS[2].missions.find(m => m.id === "jupiter-rocket-heavy");
+    assertEquals(true, !!jupiterCampaign, "Jupiter should use the rich campaign mission wrapper");
+    assertEquals(true, jupiterCampaign.validate(jupiter), "Jupiter campaign task should accept derived speed from engine/mass");
+
+    renderTestResult("engine-suite", "Objectives: campaign validators use felt gravity + derived speed", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Objectives: campaign validators use felt gravity + derived speed", false, err.message);
+  }
+
+  // Test 19: Every planet mission includes beginner curriculum scaffolding
   try {
     const missing = PlatformerMissions.filter(mission => {
       const scaffold = mission.scaffold;
@@ -965,7 +996,17 @@ function runRetryRemixTests() {
     renderTestResult(SUITE, "Daily Signal: pool clamps to unlocked worlds", false, err.message);
   }
 
-  // Test R12: planetClears persists through the cadet-profile snapshot/apply cycle.
+  // Test R12: Game-local date formatting uses the browser calendar, not UTC ISO rollover.
+  try {
+    const g = new StarHopperGame();
+    const localLateNight = new Date(2026, 0, 2, 0, 30, 0);
+    assertEquals("2026-01-02", g.getTodayDateStr(localLateNight), "Local constructor date should format as the same local calendar day");
+    renderTestResult(SUITE, "Daily Signal/Streak: local date avoids UTC rollover", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Daily Signal/Streak: local date avoids UTC rollover", false, err.message);
+  }
+
+  // Test R13: planetClears persists through the cadet-profile snapshot/apply cycle.
   // NOTE: game.js declares a top-level `let Game`, which SHADOWS window.Game — so the
   // mock must be assigned to the bare identifier, not just the window property.
   const oldGameR12 = (typeof Game !== "undefined") ? Game : undefined;
@@ -988,7 +1029,7 @@ function runRetryRemixTests() {
     renderTestResult(SUITE, "Mastery: planetClears survives the profile save/load cycle", false, err.message);
   }
 
-  // Test R13: Jupiter and Mag-Net (previously 1 flavor each = identical retries) now rotate
+  // Test R14: Jupiter and Mag-Net (previously 1 flavor each = identical retries) now rotate
   // through >= 3 DISTINCT variant labels — the core non-repeatability fix.
   try {
     const distinctLabels = (planetIndex, attempts) => {
@@ -1003,7 +1044,7 @@ function runRetryRemixTests() {
     renderTestResult(SUITE, "Variant: Jupiter & Mag-Net now have a real flavor rotation", false, err.message);
   }
 
-  // Test R14: the new vertical-shift flavors still preserve gem count over a deep attempt
+  // Test R15: the new vertical-shift flavors still preserve gem count over a deep attempt
   // range (1..10) for every world — the safety net + count-preserving shifts hold.
   try {
     for (let p = 0; p < 5; p++) {
@@ -1017,7 +1058,7 @@ function runRetryRemixTests() {
     renderTestResult(SUITE, "Variant: deep rotation (incl. vertical shifts) preserves gem count", false, err.message);
   }
 
-  // Test R15: rvShiftTilesV preserves count and only moves tiles into empty cells.
+  // Test R16: rvShiftTilesV preserves count and only moves tiles into empty cells.
   try {
     const m = [[0,0,0],[3,1,0],[0,0,0]];
     const before = countTile(m, 3);
@@ -1032,7 +1073,7 @@ function runRetryRemixTests() {
     renderTestResult(SUITE, "Helper: rvShiftTilesV preserves count and respects blockers", false, err.message);
   }
 
-  // Test R16: the new Phase-2 progression fields round-trip through the profile snapshot.
+  // Test R17: the new Phase-2 progression fields round-trip through the profile snapshot.
   try {
     const oldGameR16 = (typeof Game !== "undefined") ? Game : undefined;
     Game = {
@@ -1054,6 +1095,70 @@ function runRetryRemixTests() {
     renderTestResult(SUITE, "Persistence: Phase-2 progression fields survive save/load", true);
   } catch (err) {
     renderTestResult(SUITE, "Persistence: Phase-2 progression fields survive save/load", false, err.message);
+  }
+
+  // Test R18: Daily Signal clears are side-challenge progress, not campaign clears.
+  const oldSaveR18 = (typeof saveLocalProgress === 'function') ? saveLocalProgress : null;
+  const oldAttemptFinishR18 = (typeof attemptLogFinish === 'function') ? attemptLogFinish : null;
+  try {
+    saveLocalProgress = () => {};
+    attemptLogFinish = () => {};
+    const g = new StarHopperGame();
+    g.currentPlanet = PLANETS[1];
+    g.currentPlanetIndex = 1;
+    g.player = { x: 64, y: 200, w: 24, h: 32 };
+    g.planetClears = { 0: 1 };
+    g.dailySignalClears = 2;
+    g.remixContext = 'daily';
+    g.dailyInfo = { planetIndex: 1, shareCode: "MOON-1234" };
+    g.clearLevel();
+    assertEquals(3, g.dailySignalClears, "Daily clear count increments");
+    assertEquals(undefined, g.planetClears[1], "Daily clear should not mark Moon as campaign-cleared");
+    assertEquals("log", g.clearAction, "Daily clear button routes to log instead of next campaign planet");
+    if (oldSaveR18) saveLocalProgress = oldSaveR18;
+    if (oldAttemptFinishR18) attemptLogFinish = oldAttemptFinishR18;
+    renderTestResult(SUITE, "Daily Signal: clear does not advance campaign unlocks", true);
+  } catch (err) {
+    if (oldSaveR18) saveLocalProgress = oldSaveR18;
+    if (oldAttemptFinishR18) attemptLogFinish = oldAttemptFinishR18;
+    renderTestResult(SUITE, "Daily Signal: clear does not advance campaign unlocks", false, err.message);
+  }
+
+  // Test R19: backup/cloud payloads include the full profile progress schema.
+  const oldGameR19 = (typeof Game !== "undefined") ? Game : undefined;
+  try {
+    Game = {
+      completedMissions: new Set(["earth-gravity"]),
+      earnedBadges: new Set(["variables"]),
+      unlockedUpgrades: new Set(["engine"]),
+      upgradeLevels: { engine: 0.75 },
+      planetClears: { 0: 2 },
+      bestClearTimes: { 0: 38.2 },
+      masteryCleared: { 0: true },
+      masteryMeters: { 0: { xp: 5 } },
+      dailySignalClears: 4,
+      lastPlayedDate: "2026-06-18",
+      streakCount: 3
+    };
+    window.Game = Game;
+    const payload = buildSavePayload();
+    assertEquals(2, payload.schemaVersion, "Payload should be versioned");
+    assertEquals(0.75, payload.profileProgress.upgradeLevels.engine, "Upgrade levels should export");
+    assertEquals(2, payload.profileProgress.planetClears[0], "Campaign clear counts should export");
+    assertEquals(4, payload.profileProgress.dailySignalClears, "Daily Signal clears should export");
+    const merged = mergeProgress(
+      { unlockedUpgrades: ["jump"], upgradeLevels: { engine: 0.25 }, planetClears: { 0: 1 } },
+      progressFromSavePayload(payload)
+    );
+    assertEquals(true, merged.unlockedUpgrades.includes("engine"), "Incoming unlocked upgrade survives merge");
+    assertEquals(true, merged.unlockedUpgrades.includes("jump"), "Local unlocked upgrade survives merge");
+    assertEquals(0.75, merged.upgradeLevels.engine, "Merge keeps the higher upgrade level");
+    assertEquals(2, merged.planetClears[0], "Merge keeps the higher clear count");
+    Game = oldGameR19; window.Game = oldGameR19;
+    renderTestResult(SUITE, "Persistence: backup/cloud payload keeps rich profile progress", true);
+  } catch (err) {
+    Game = oldGameR19; window.Game = oldGameR19;
+    renderTestResult(SUITE, "Persistence: backup/cloud payload keeps rich profile progress", false, err.message);
   }
 }
 
