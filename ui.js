@@ -1244,7 +1244,11 @@ function setupUIBindings(game) {
         const sugg = Compiler.autocomplete.suggest(base);
         if (!sugg.length) return;
         tabBase = base;
-        tabIdx = continuing ? (tabIdx + 1) % sugg.length : 0;
+        if (!continuing && tabIdx >= 0 && tabIdx < sugg.length) {
+          // Keep tabIdx selected by arrow keys
+        } else {
+          tabIdx = continuing ? (tabIdx + 1) % sugg.length : 0;
+        }
         const pick = sugg[tabIdx];
         const idx = text.lastIndexOf(cur);
         input.value = text.slice(0, idx) + pick;
@@ -1253,6 +1257,32 @@ function setupUIBindings(game) {
         // Keep the dropdown open showing ALL matches with the current pick highlighted.
         renderSuggestBox(sugg, tabIdx, pick);
         try { input.setSelectionRange(input.value.length, input.value.length); } catch (_) {}
+        return;
+      }
+
+      // Autocomplete arrow navigation
+      if (e.key === "ArrowDown" && suggestBox && suggestBox.style.display !== "none" && suggestMatches.length > 0) {
+        e.preventDefault();
+        const text = input.value;
+        const m = text.match(/[\w\.]+$/);
+        const cur = m ? m[0] : "";
+        tabIdx = (tabIdx + 1) % suggestMatches.length;
+        tabBase = cur || tabBase;
+        renderSuggestBox(suggestMatches, tabIdx, cur);
+        const activeEl = suggestBox.querySelector(".autocomplete-item.active");
+        if (activeEl) activeEl.scrollIntoView({ block: "nearest" });
+        return;
+      }
+      if (e.key === "ArrowUp" && suggestBox && suggestBox.style.display !== "none" && suggestMatches.length > 0) {
+        e.preventDefault();
+        const text = input.value;
+        const m = text.match(/[\w\.]+$/);
+        const cur = m ? m[0] : "";
+        tabIdx = tabIdx <= 0 ? suggestMatches.length - 1 : tabIdx - 1;
+        tabBase = cur || tabBase;
+        renderSuggestBox(suggestMatches, tabIdx, cur);
+        const activeEl = suggestBox.querySelector(".autocomplete-item.active");
+        if (activeEl) activeEl.scrollIntoView({ block: "nearest" });
         return;
       }
 

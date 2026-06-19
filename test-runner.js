@@ -511,6 +511,25 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Objectives: Earth gems require progressive engineering gates", false, err.message);
   }
 
+  // Test 17b: Low Earth gems unlock if the Agility target is met (even if gravity is not lowered)
+  try {
+    Compiler.reset();
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[0];
+    game.currentPlanetIndex = 0;
+    game.player = { charType: 'hopper', jumpPower: 22, rocketPower: 40, mass: 1.0, spikes: false };
+    game.hopperMass = 1.0;
+    Compiler.env.engine = 8;
+
+    const lowGem = { type: 'coin', requiredCollectible: true, collected: false, gemGate: game.getGemGateForCollectible(0, 6, 5) };
+
+    assertEquals(true, game.isEarthHopperEngineered(), "Agility target of 30 met");
+    assertEquals(true, game.canCollectGem(lowGem), "Low Earth gems should unlock if agility target is met even if gravity is not");
+    renderTestResult("engine-suite", "Objectives: Earth low gems unlock upon meeting Agility target", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Objectives: Earth low gems unlock upon meeting Agility target", false, err.message);
+  }
+
   // Test 18: Campaign mission validators read the same derived physics used by gates/HUD.
   try {
     Compiler.reset();

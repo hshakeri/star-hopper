@@ -466,7 +466,7 @@ class StarHopperGame {
           id: "earth-gravity-gems",
           label: "lower the gravity force on Hopper to about 5.7 m/s² or below using antigravity (e.g. antigravity = 4.1)",
           short: "PUSH BACK GRAVITY!",
-          validate: (game) => game.getCurrentGravity() <= 0.35
+          validate: (game) => game.getCurrentGravity() <= 0.35 || game.isEarthHopperEngineered()
         };
       }
       const at = this.getAgilityTarget();
