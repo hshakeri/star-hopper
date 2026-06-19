@@ -171,20 +171,94 @@ window.Nav = window.Nav || {};
     const cx = sunScreen.x;
     const cy = sunScreen.y;
 
-    // Draw coordinate grids
-    ctx.strokeStyle = "rgba(56, 189, 248, 0.03)";
-    ctx.lineWidth = 1;
-    const gridSpacing = 50;
-    const gridStartX = ((cx % gridSpacing) + gridSpacing) % gridSpacing;
-    const gridStartY = ((cy % gridSpacing) + gridSpacing) % gridSpacing;
-    for (let x = gridStartX; x < canvas.width; x += gridSpacing) {
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
-    }
-    for (let y = gridStartY; y < canvas.height; y += gridSpacing) {
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+    const t = Nav.ship ? Nav.ship.timeElapsed : 0;
+
+    // Gather active celestial body screen coordinates and screen radii
+    const activeBodies = [];
+    for (const key in Nav.BODIES) {
+      const body = Nav.BODIES[key];
+      const state = Nav.bodyStateAt(body, t);
+      const bodyScreen = Nav.worldToScreen(state, canvas);
+      const rPx = Math.max(4, Nav.suToPx(body.radius));
+      activeBodies.push({
+        mass: body.mass,
+        screenX: bodyScreen.x,
+        screenY: bodyScreen.y,
+        screenRadius: rPx
+      });
     }
 
-    const t = Nav.ship ? Nav.ship.timeElapsed : 0;
+    // Draw coordinate grids (gravitational warping mesh)
+    ctx.strokeStyle = "rgba(56, 189, 248, 0.08)";
+    ctx.lineWidth = 1;
+    const gridSpacing = 60;
+    const gridStartX = ((cx % gridSpacing) + gridSpacing) % gridSpacing;
+    const gridStartY = ((cy % gridSpacing) + gridSpacing) % gridSpacing;
+    const sampleStep = 20;
+
+    // Draw vertical grid lines
+    for (let sx = gridStartX - gridSpacing; sx < canvas.width + gridSpacing; sx += gridSpacing) {
+      ctx.beginPath();
+      let first = true;
+      for (let sy = 0; sy <= canvas.height; sy += sampleStep) {
+        let dxSum = 0;
+        let dySum = 0;
+        for (const src of activeBodies) {
+          const rx = sx - src.screenX;
+          const ry = sy - src.screenY;
+          const distSq = rx * rx + ry * ry;
+          const dist = Math.sqrt(distSq);
+          
+          const epsilon = Math.max(15, src.screenRadius);
+          if (dist > 2) {
+            const pull = (src.mass * 800) / (distSq + epsilon * epsilon * 2);
+            dxSum += (rx / dist) * pull;
+            dySum += (ry / dist) * pull;
+          }
+        }
+        const drawX = sx - dxSum;
+        const drawY = sy - dySum;
+        if (first) {
+          ctx.moveTo(drawX, drawY);
+          first = false;
+        } else {
+          ctx.lineTo(drawX, drawY);
+        }
+      }
+      ctx.stroke();
+    }
+
+    // Draw horizontal grid lines
+    for (let sy = gridStartY - gridSpacing; sy < canvas.height + gridSpacing; sy += gridSpacing) {
+      ctx.beginPath();
+      let first = true;
+      for (let sx = 0; sx <= canvas.width; sx += sampleStep) {
+        let dxSum = 0;
+        let dySum = 0;
+        for (const src of activeBodies) {
+          const rx = sx - src.screenX;
+          const ry = sy - src.screenY;
+          const distSq = rx * rx + ry * ry;
+          const dist = Math.sqrt(distSq);
+          
+          const epsilon = Math.max(15, src.screenRadius);
+          if (dist > 2) {
+            const pull = (src.mass * 800) / (distSq + epsilon * epsilon * 2);
+            dxSum += (rx / dist) * pull;
+            dySum += (ry / dist) * pull;
+          }
+        }
+        const drawX = sx - dxSum;
+        const drawY = sy - dySum;
+        if (first) {
+          ctx.moveTo(drawX, drawY);
+          first = false;
+        } else {
+          ctx.lineTo(drawX, drawY);
+        }
+      }
+      ctx.stroke();
+    }
 
     // 2. Draw planet circular orbits around Sun
     for (const key in Nav.BODIES) {

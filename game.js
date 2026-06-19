@@ -894,17 +894,17 @@ class StarHopperGame {
   // A loop like `repeat 3: spawn_spring()` runs in ONE frame, so every call spawns at the
   // same spot — without spreading, 3 springs pile onto one pixel and look/work like ONE.
   // This fans same-spot spawns into a small row centered on the player so each is usable.
-  spawnStackOffset(list, px, py) {
+  spawnStackOffset(list, px, py, step = 36) {
     let near = 0;
     for (const o of list) {
-      if (o && !o.collected && Math.abs(o.x - px) < 80 && Math.abs(o.y - py) < 48) near++;
+      if (o && !o.collected && Math.abs(o.x - px) < 160 && Math.abs(o.y - py) < 48) near++;
     }
-    const dir = (near % 2 === 0) ? 1 : -1;   // offsets fan out: 0, +1, -1, +2, -2 …
-    return dir * Math.ceil(near / 2) * 36;
+    const facing = (this.player && this.player.facing) ? this.player.facing : 1;
+    return facing * near * step;
   }
 
   // Spawns items (called via compiler terminal functions, with optional position parameters)
-  spawnItemAbovePlayer(type, x, y) {
+  spawnItemAbovePlayer(type, x, y, options) {
     let px = this.player.x;
     let py = this.player.y - 48; // Spawn 48px above helmet
     let useCoords = false;
@@ -914,20 +914,23 @@ class StarHopperGame {
       useCoords = true;
     }
 
+    const opt = options || {};
+    const step = (opt.offset !== undefined) ? Number(opt.offset) : 36;
+
     if (type === 'coin' || type === 'gem') {
-      const ox = useCoords ? 0 : this.spawnStackOffset(this.interactiveObjects.filter(o => o.type === 'coin'), px, py);
+      const ox = useCoords ? 0 : this.spawnStackOffset(this.interactiveObjects.filter(o => o.type === 'coin'), px, py, step);
       const coin = new InteractiveObject(px + ox, py, 'coin');
       coin.requiredCollectible = false;
       coin.gem = this.getGemConfig();
       this.interactiveObjects.push(coin);
       Particles.spawnBurst(px + ox + 10, py + 10, coin.gem.color, 8, 2, 2, 'glow');
     } else if (type === 'box') {
-      const ox = useCoords ? 0 : this.spawnStackOffset(this.spawnedBoxes, px, py);
+      const ox = useCoords ? 0 : this.spawnStackOffset(this.spawnedBoxes, px, py, step);
       const box = new InteractiveObject(px + ox, py, 'box');
       this.spawnedBoxes.push(box);
       Particles.spawnBurst(px + ox + 16, py + 16, '#ea580c', 10, 2.5, 3);
     } else if (type === 'spring') {
-      const ox = useCoords ? 0 : this.spawnStackOffset(this.spawnedSprings, px, py);
+      const ox = useCoords ? 0 : this.spawnStackOffset(this.spawnedSprings, px, py, step);
       const spring = new InteractiveObject(px + ox, py, 'spring');
       this.spawnedSprings.push(spring);
       this.interactiveObjects.push(spring);

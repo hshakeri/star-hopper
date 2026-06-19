@@ -549,6 +549,11 @@ class KidCodeInterpreter {
 
           if (fnName === 'spawn') {
             return runtimeContext.functions[fnName](this.game, resolvedArgs[0], resolvedArgs[1], resolvedArgs[2], resolvedKwargs);
+          } else if (fnName.startsWith('spawn_')) {
+            const args = [...resolvedArgs];
+            while (args.length < 2) args.push(undefined);
+            args.push(resolvedKwargs);
+            return runtimeContext.functions[fnName](this.game, ...args);
           } else {
             return runtimeContext.functions[fnName](this.game, ...resolvedArgs);
           }
@@ -823,23 +828,27 @@ const runtimeContext = {
       }
 
       if (type === 'gem') type = 'coin';
-      game.spawnItemAbovePlayer(type, posX, posY);
+      game.spawnItemAbovePlayer(type, posX, posY, kw);
       return `Spawned ${type === 'coin' ? 'gem' : type}!`;
     },
-    spawn_coin: (game, x, y) => {
-      game.spawnItemAbovePlayer('coin', x, y);
+    spawn_coin: (game, x, y, kwargs) => {
+      const kw = (typeof x === 'object' && x !== null) ? x : (typeof y === 'object' && y !== null) ? y : kwargs;
+      game.spawnItemAbovePlayer('coin', typeof x === 'number' ? x : undefined, typeof y === 'number' ? y : undefined, kw);
       return "Spawned gem!";
     },
-    spawn_gem: (game, x, y) => {
-      game.spawnItemAbovePlayer('coin', x, y);
+    spawn_gem: (game, x, y, kwargs) => {
+      const kw = (typeof x === 'object' && x !== null) ? x : (typeof y === 'object' && y !== null) ? y : kwargs;
+      game.spawnItemAbovePlayer('coin', typeof x === 'number' ? x : undefined, typeof y === 'number' ? y : undefined, kw);
       return "Spawned gem!";
     },
-    spawn_box: (game, x, y) => {
-      game.spawnItemAbovePlayer('box', x, y);
+    spawn_box: (game, x, y, kwargs) => {
+      const kw = (typeof x === 'object' && x !== null) ? x : (typeof y === 'object' && y !== null) ? y : kwargs;
+      game.spawnItemAbovePlayer('box', typeof x === 'number' ? x : undefined, typeof y === 'number' ? y : undefined, kw);
       return "Spawned box!";
     },
-    spawn_spring: (game, x, y) => {
-      game.spawnItemAbovePlayer('spring', x, y);
+    spawn_spring: (game, x, y, kwargs) => {
+      const kw = (typeof x === 'object' && x !== null) ? x : (typeof y === 'object' && y !== null) ? y : kwargs;
+      game.spawnItemAbovePlayer('spring', typeof x === 'number' ? x : undefined, typeof y === 'number' ? y : undefined, kw);
       return "Spawned spring!";
     },
     invert_gravity: (game) => {

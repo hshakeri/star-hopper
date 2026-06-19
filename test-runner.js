@@ -235,6 +235,68 @@ function runSafetyTests() {
   } catch (err) {
     renderTestResult("safety-suite", "Spawn Functions: accept custom x and y coordinates (positional & keyword)", false, err.message);
   }
+
+  // Test 6c: Spawning objects with custom offset spacing
+  try {
+    Compiler.reset();
+    let spawnCount = 0;
+    let spawnedType = "";
+    let spawnedX = undefined;
+    let spawnedY = undefined;
+    let spawnedOpts = undefined;
+    const mockGame = {
+      spawnItemAbovePlayer: (type, x, y, options) => {
+        spawnCount++;
+        spawnedType = type;
+        spawnedX = x;
+        spawnedY = y;
+        spawnedOpts = options;
+      }
+    };
+
+    // 1) Test spawn_spring with keyword offset
+    let res = Compiler.runCommand("spawn_spring(offset=50)", mockGame);
+    assertEquals(true, res.success);
+    assertEquals(1, spawnCount);
+    assertEquals("spring", spawnedType);
+    assertEquals(undefined, spawnedX);
+    assertEquals(undefined, spawnedY);
+    assertEquals(50, spawnedOpts && spawnedOpts.offset);
+
+    // 2) Test generic spawn with keyword offset
+    res = Compiler.runCommand("spawn('box', offset=45)", mockGame);
+    assertEquals(true, res.success);
+    assertEquals(2, spawnCount);
+    assertEquals("box", spawnedType);
+    assertEquals(undefined, spawnedX);
+    assertEquals(undefined, spawnedY);
+    assertEquals(45, spawnedOpts && spawnedOpts.offset);
+
+    // 3) Test spawnStackOffset in a real/mock StarHopperGame
+    const realGame = new StarHopperGame();
+    realGame.player = { x: 100, y: 200, w: 32, h: 32, facing: 1 };
+    realGame.spawnedSprings = [];
+    
+    // First spring stack offset
+    let o1 = realGame.spawnStackOffset(realGame.spawnedSprings, 100, 152, 36);
+    assertEquals(0, o1, "First spring has 0 offset");
+    
+    // Push a spring
+    realGame.spawnedSprings.push({ x: 100, y: 152, collected: false });
+    
+    // Second spring stack offset (facing right -> offset should go right/forward)
+    let o2 = realGame.spawnStackOffset(realGame.spawnedSprings, 100, 152, 36);
+    assertEquals(36, o2, "Second spring offsets forward (+36)");
+    
+    // Change player facing to left
+    realGame.player.facing = -1;
+    let o2Left = realGame.spawnStackOffset(realGame.spawnedSprings, 100, 152, 36);
+    assertEquals(-36, o2Left, "Second spring offsets forward to the left (-36) when facing left");
+
+    renderTestResult("safety-suite", "Spawn Functions: support custom offset spacing and forward-spawning direction", true);
+  } catch (err) {
+    renderTestResult("safety-suite", "Spawn Functions: support custom offset spacing and forward-spawning direction", false, err.message);
+  }
 }
 
 // Suite 3: Mock Game Engine State Integration Tests
