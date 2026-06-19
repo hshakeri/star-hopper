@@ -307,13 +307,66 @@ const PLANETS = [
       [1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,1,1,1,1,1,1,1],
       [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
     ]
+  },
+  {
+    id: 5,
+    name: "Asteroid Forge",
+    tagline: "Momentum & Elastic Collisions",
+    color: "#fb923c", // Warm Orange
+    accentColor: "#ea580c",
+    skyColor: "#090d16", // Dark space gray/blue
+    ambientMusicType: "moon",
+
+    story: {
+      arrival: "We've entered the Asteroid Forge, cadet. The gravity is zero here, but space debris is blocking our path. Tune your suit's mass and the collision elasticity to push or bounce off these heavy boulders!",
+      payoff: "Incredible! By manipulating mass and elasticity, you cleared the debris and secured the Forge shard. We are tracing the signal further into the dark."
+    },
+
+    physics: {
+      gravity: 0.0, // Zero gravity!
+      friction: 0.99, // Very low resistance, glide forever
+      airResistance: 0.995,
+      jumpPower: 6,
+      speed: 3.5,
+      bounceForce: 8
+    },
+    
+    tutorial: [
+      { trigger: "start", text: "Welcome to the Asteroid Forge! In zero gravity, you float continuously. Use arrows to steer and Space/Up to jump/thrust." },
+      { trigger: "boulder", text: "The huge boulders ahead can be pushed! Try changing hopper.mass to be heavier than the boulders, or tune the collision elasticity to 1.0 to bounce off them." }
+    ],
+
+    missions: [
+      {
+        id: "asteroid-momentum",
+        prompt: "Tune elasticity to 1.0 (elasticity = 1.0) and make Hopper heavy (hopper.mass = 4.0) to shove the heavy boulders.",
+        validate: (game) => (typeof Compiler !== 'undefined' && Compiler.env && Compiler.env.elasticity >= 0.9) && game.player.mass >= 3.5
+      }
+    ],
+    
+    map: [
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8,0,0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,1,1,1,1,0,0,0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,8,0,0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,9,0,0,0,0,0,0,0,0,0,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,8,0,0,0,3,0,0,7,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+    ]
   }
 ];
 
 // Per-planet starting character — no manual swap; each world starts you in the suit
 // its lesson needs (Hopper for engineering/rocket/magnet worlds, Rover for the light
 // jump/friction worlds). Index matches the planet id.
-const PLANET_DEFAULT_CHAR = ['hopper', 'star', 'hopper', 'star', 'hopper'];
+const PLANET_DEFAULT_CHAR = ['hopper', 'star', 'hopper', 'star', 'hopper', 'hopper'];
 PLANETS.forEach((planet, i) => { planet.defaultChar = PLANET_DEFAULT_CHAR[i] || 'star'; });
 
 // Map rich missions from missions.js if they exist

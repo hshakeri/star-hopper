@@ -404,6 +404,82 @@ const PlatformerMissions = [
       "How does distance affect the strength of magnetic attraction?",
       "Where did the total energy of the system go?"
     ]
+  },
+  {
+    id: "asteroid-forge-momentum",
+    planetId: 5, // Asteroid Forge
+    title: "Forge Collisions",
+    ageRange: "8-12",
+    concept: "Conservation of momentum and elasticity. Heavy things push light things further. Elastic collisions transfer speed perfectly.",
+    beginnerConcept: "Zero gravity means you glide forever. Use collision elasticity and mass overrides to shove asteroids.",
+    codingConcept: "Tuning elasticity and character mass overrides",
+    starterCode: "use_hopper()\nhopper.mass = 4.0\nelasticity = 1.0",
+    objective: "Configure Hopper mass to 4.0 and elasticity to 1.0 (perfect bounce) to hit and bounce the heavy asteroids, clearing the path to the Orange core gems.",
+    steps: [
+      { id: "observe", prompt: "Observe: Moving off platforms in zero gravity means you drift endlessly. Heavy asteroids block your progress.", done: false },
+      { id: "predict", prompt: "Predict: Will a heavier Hopper push an asteroid faster or slower than a light Rover?", done: false },
+      { id: "code", prompt: "Code: Set hopper.mass = 4.0 and elasticity = 1.0 in the terminal.", done: false },
+      { id: "test", prompt: "Test: Drift into the asteroids to shove them out of the way or bounce off them to reach the Orange shard.", done: false },
+      { id: "explain", prompt: "Explain: Why does high elasticity make objects bounce back instead of sticking?", done: false },
+      { id: "challenge", prompt: "Challenge: Bounce off an asteroid at speed >= 5.0 without dropping velocity.", done: false }
+    ],
+    hints: [
+      "In zero gravity, your rover has no weight and slides with constant speed (Newton's 1st Law).",
+      "Raise elasticity to 1.0 to bounce perfectly. Set it to 0 to stick to the asteroid.",
+      "Hopper mass makes his momentum larger (p = m * v), so he shoves things harder."
+    ],
+    scaffold: {
+      mode: "fill-values",
+      template: "use_hopper()\nhopper.mass = {mass}\nelasticity = {elasticity}",
+      slots: [
+        { id: "mass", label: "mass override", value: "4.0", hint: "Make Hopper heavy so he transfers more momentum during hits." },
+        { id: "elasticity", label: "elasticity", value: "1.0", hint: "Set to 1.0 for bouncy collisions, or 0.0 for sticky collisions." }
+      ],
+      explain: "Tuning elasticity lets you bounce or slide, and mass gives you momentum to push space debris.",
+      parentPrompt: "What did you observe when the heavy Hopper collided with the asteroid?",
+      codeIdea: "Set hopper.mass = 4.0 and elasticity = 1.0.",
+      physicsIdea: "Momentum is mass times speed. Bigger mass = bigger push.",
+      success: "Hopper bounces the asteroids and clears the core path."
+    },
+    prediction: {
+      question: "Which setting will bounce the player away from an asteroid with the most speed?",
+      options: [
+        { id: "elastic", label: "Elasticity = 1.0", feedback: "Correct! Elasticity 1.0 is a perfect elastic bounce, keeping all kinetic energy.", correct: true },
+        { id: "sticky", label: "Elasticity = 0.0", feedback: "Elasticity 0 makes objects stick together, slowing you down." },
+        { id: "no-change", label: "Small mass", feedback: "A smaller mass will bounce back, but has less push power." }
+      ]
+    },
+    resultChecks: [
+      {
+        id: "asteroid-elasticity-check",
+        label: "Elasticity 1.0 set",
+        success: "Elasticity tuned to 1.0. All collision impulses conserve energy.",
+        waiting: "Set elasticity = 1.0 in the terminal.",
+        check: (game) => typeof Compiler !== 'undefined' && Compiler.env && Compiler.env.elasticity >= 0.9
+      },
+      {
+        id: "asteroid-mass-check",
+        label: "Hopper mass 3.5+",
+        success: "Hopper is heavy enough to shove asteroids.",
+        waiting: "Tune hopper.mass = 4.0 to increase momentum.",
+        check: (game) => game.player && game.player.mass >= 3.5
+      }
+    ],
+    badge: {
+      id: "momentum",
+      icon: "💥",
+      label: "Forge Shover",
+      description: "Balanced mass and elasticity to control momentum."
+    },
+    validate: (game, Compiler) => {
+      const el = Compiler.env.elasticity !== null ? Compiler.env.elasticity : 0.0;
+      return el >= 0.9 && game.player.mass >= 3.5 && game.player.x > 1200;
+    },
+    reflection: [
+      "Did you bounce further with high or low elasticity?",
+      "Why did the heavy Hopper push the asteroids so easily?",
+      "What did the speed vector show after a bounce?"
+    ]
   }
 ];
 

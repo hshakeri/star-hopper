@@ -348,6 +348,76 @@ class PhysicsEngine {
     
     ctx.restore();
   }
+
+  resolveElasticCollision(player, boulder) {
+    const m1 = player.mass || 1.0;
+    const m2 = boulder.mass || 2.0;
+
+    // Center coordinates
+    const pCenterX = player.x + player.w / 2;
+    const pCenterY = player.y + player.h / 2;
+    const bCenterX = boulder.x + boulder.w / 2;
+    const bCenterY = boulder.y + boulder.h / 2;
+
+    const dx = bCenterX - pCenterX;
+    const dy = bCenterY - pCenterY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist === 0) return;
+
+    // Normal vector
+    const nx = dx / dist;
+    const ny = dy / dist;
+
+    // Relative velocity along normal
+    const rvx = player.vx - boulder.vx;
+    const rvy = player.vy - boulder.vy;
+    const velAlongNormal = rvx * nx + rvy * ny;
+
+    // Do not resolve if velocities are separating
+    if (velAlongNormal < 0) return;
+
+    // Elasticity coefficient (derived from compiler environment)
+    const e = (typeof Compiler !== 'undefined' && Compiler.env && Compiler.env.elasticity !== null && Compiler.env.elasticity !== undefined)
+      ? Compiler.env.elasticity
+      : 0.8; // default to 0.8
+
+    // Calculate impulse scalar
+    const impulse = -(1 + e) * velAlongNormal / (1 / m1 + 1 / m2);
+
+    // Apply impulse to each object
+    player.vx += (impulse * nx) / m1;
+    player.vy += (impulse * ny) / m1;
+    boulder.vx -= (impulse * nx) / m2;
+    boulder.vy -= (impulse * ny) / m2;
+
+    // Prevent sticking: push them out of penetration using AABB boundaries
+    const overlapX = (player.w / 2 + boulder.w / 2) - Math.abs(dx);
+    const overlapY = (player.h / 2 + boulder.h / 2) - Math.abs(dy);
+    
+    if (overlapX > 0 && overlapY > 0) {
+      if (overlapX < overlapY) {
+        const signX = dx > 0 ? 1 : -1;
+        player.x -= signX * overlapX * 0.51;
+        boulder.x += signX * overlapX * 0.51;
+      } else {
+        const signY = dy > 0 ? 1 : -1;
+        player.y -= signY * overlapY * 0.51;
+        boulder.y += signY * overlapY * 0.51;
+      }
+    }
+
+    // Visual/Audio collision feedback
+    if (Math.abs(velAlongNormal) > 0.8) {
+      if (typeof SFX !== 'undefined' && SFX.playJump) {
+        SFX.playJump();
+      }
+      if (typeof ComicBubbles !== 'undefined') {
+        ComicBubbles.pop(boulder.x + boulder.w/2, boulder.y - 4, "BONK!", "#fb7185", 0.9);
+      }
+      Particles.spawnBurst(boulder.x + boulder.w / 2, boulder.y + boulder.h / 2, '#94a3b8', 6, 1.5, 2);
+    }
+  }
 }
 
 const Physics = new PhysicsEngine();

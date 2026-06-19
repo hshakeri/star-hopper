@@ -102,7 +102,8 @@ class StarHopperGame {
       { id: "moon", name: "Moon Quartz", shortName: "Quartz", color: "#93c5fd", glow: "rgba(147, 197, 253, 0.72)" },
       { id: "jupiter", name: "Amber Storm", shortName: "Amber", color: "#fb923c", glow: "rgba(251, 146, 60, 0.72)" },
       { id: "glacies", name: "Violet Ice", shortName: "Violet", color: "#a78bfa", glow: "rgba(167, 139, 250, 0.72)" },
-      { id: "magnet", name: "Magenta Flux", shortName: "Flux", color: "#ec4899", glow: "rgba(236, 72, 153, 0.72)" }
+      { id: "magnet", name: "Magenta Flux", shortName: "Flux", color: "#ec4899", glow: "rgba(236, 72, 153, 0.72)" },
+      { id: "forge", name: "Orange Forge", shortName: "Forge", color: "#fb923c", glow: "rgba(251, 146, 60, 0.72)" }
     ];
     return gems[index] || gems[0];
   }
@@ -530,6 +531,15 @@ class StarHopperGame {
       };
     }
 
+    if (planetIndex === 5) {
+      return {
+        id: "asteroid-momentum-gems",
+        label: "set elasticity to 1.0 (elasticity = 1.0) and make Hopper heavy (hopper.mass = 4.0) to bounce and push boulders",
+        short: "ELASTICITY 1.0 & MASS 4.0",
+        validate: (game) => (typeof Compiler !== 'undefined' && Compiler.env && Compiler.env.elasticity >= 0.9) && game.player.mass >= 3.5
+      };
+    }
+
     return null;
   }
 
@@ -780,6 +790,8 @@ class StarHopperGame {
           this.interactiveObjects.push(new InteractiveObject(tx, ty, 'neg_node'));
         } else if (val === 7) {
           this.interactiveObjects.push(new InteractiveObject(tx, ty, 'portal'));
+        } else if (val === 8) {
+          this.interactiveObjects.push(new InteractiveObject(tx, ty, 'boulder'));
         } else if (val === 9) {
           let eType = 'bug';
           if (index === 1) eType = 'spore';
@@ -891,25 +903,31 @@ class StarHopperGame {
     return dir * Math.ceil(near / 2) * 36;
   }
 
-  // Spawns items above player (called via compiler terminal functions)
-  spawnItemAbovePlayer(type) {
-    const px = this.player.x;
-    const py = this.player.y - 48; // Spawn 48px above helmet
+  // Spawns items (called via compiler terminal functions, with optional position parameters)
+  spawnItemAbovePlayer(type, x, y) {
+    let px = this.player.x;
+    let py = this.player.y - 48; // Spawn 48px above helmet
+    let useCoords = false;
+    if (typeof x === 'number' && typeof y === 'number') {
+      px = x;
+      py = y;
+      useCoords = true;
+    }
 
     if (type === 'coin' || type === 'gem') {
-      const ox = this.spawnStackOffset(this.interactiveObjects.filter(o => o.type === 'coin'), px, py);
+      const ox = useCoords ? 0 : this.spawnStackOffset(this.interactiveObjects.filter(o => o.type === 'coin'), px, py);
       const coin = new InteractiveObject(px + ox, py, 'coin');
       coin.requiredCollectible = false;
       coin.gem = this.getGemConfig();
       this.interactiveObjects.push(coin);
       Particles.spawnBurst(px + ox + 10, py + 10, coin.gem.color, 8, 2, 2, 'glow');
     } else if (type === 'box') {
-      const ox = this.spawnStackOffset(this.spawnedBoxes, px, py);
+      const ox = useCoords ? 0 : this.spawnStackOffset(this.spawnedBoxes, px, py);
       const box = new InteractiveObject(px + ox, py, 'box');
       this.spawnedBoxes.push(box);
       Particles.spawnBurst(px + ox + 16, py + 16, '#ea580c', 10, 2.5, 3);
     } else if (type === 'spring') {
-      const ox = this.spawnStackOffset(this.spawnedSprings, px, py);
+      const ox = useCoords ? 0 : this.spawnStackOffset(this.spawnedSprings, px, py);
       const spring = new InteractiveObject(px + ox, py, 'spring');
       this.spawnedSprings.push(spring);
       this.interactiveObjects.push(spring);
@@ -1328,15 +1346,24 @@ class StarHopperGame {
           Particles.spawnBurst(enemy.x + enemy.w/2, enemy.y + enemy.h/2, '#ef4444', 12, 3, 3, 'glow');
           this.enemies = this.enemies.filter(e => e !== enemy);
         } else {
-          this.killPlayer("collision damage from alien life form!", "enemy");
-          return;
+          if (typeof Compiler !== 'undefined' && Compiler.env && Compiler.env.enemyFriendly) {
+            this.player.vy = -5;
+            this.player.vx = (this.player.x < enemy.x ? -3 : 3);
+            SFX.playJump();
+            if (typeof ComicBubbles !== 'undefined') {
+              ComicBubbles.spawn(enemy.x + enemy.w/2, enemy.y, "HELLO!", "rounded", "#4ade80");
+            }
+          } else {
+            this.killPlayer("collision damage from alien life form!", "enemy");
+            return;
+          }
         }
       }
     }
 
     // 10. Update objects and check collisions
     for (const obj of this.interactiveObjects) {
-      obj.update();
+      obj.update(this);
       if (obj.collected) continue;
 
       if (Physics.isOverlapping(this.player, obj)) {
@@ -1379,6 +1406,8 @@ class StarHopperGame {
           } else {
             ui_log_output(`◆ Bonus ${gem.shortName} gem collected! Total: ${this.coinsCollected}`, "success");
           }
+        } else if (obj.type === 'boulder') {
+          Physics.resolveElasticCollision(this.player, obj);
         } else if (obj.type === 'trampoline' || obj.type === 'spring') {
           const isTopBounce = (this.player.vy > 0.1 && this.player.y + this.player.h - this.player.vy <= obj.y + 6);
           if (isTopBounce) {
@@ -1419,10 +1448,11 @@ class StarHopperGame {
     }
 
     // 14. Check tutorial spatial triggers
-    if (this.player.x > 320 && this.player.x < 420) {
-      if (this.currentPlanetIndex === 0) this.triggerTutorialDialogue("wall");
-      else if (this.currentPlanetIndex === 1) this.triggerTutorialDialogue("gap");
-      else if (this.currentPlanetIndex === 2) this.triggerTutorialDialogue("collapse");
+    if (this.player.x > 320 && this.player.x < 550) {
+      if (this.currentPlanetIndex === 0 && this.player.x < 420) this.triggerTutorialDialogue("wall");
+      else if (this.currentPlanetIndex === 1 && this.player.x < 420) this.triggerTutorialDialogue("gap");
+      else if (this.currentPlanetIndex === 2 && this.player.x < 420) this.triggerTutorialDialogue("collapse");
+      else if (this.currentPlanetIndex === 5) this.triggerTutorialDialogue("boulder");
     }
     if (this.player.x > 750 && this.player.x < 850) {
       if (this.currentPlanetIndex === 3) this.triggerTutorialDialogue("slippery");
@@ -1713,6 +1743,9 @@ class StarHopperGame {
     // 1. Draw Parallax Space Background
     this.drawSpaceBackground();
 
+    // 1b. Draw Spacetime Warping Mesh
+    this.drawSpacetimeMesh();
+
     // 2. Draw active platform level tilemap
     this.drawTilemap();
 
@@ -1795,6 +1828,115 @@ class StarHopperGame {
       }
     }
     this.drawSpaceBackgroundDirect();
+  }
+
+  // Draw spacetime warping coordinate grid mesh (general relativity grid)
+  drawSpacetimeMesh() {
+    const ctx = this.ctx;
+    const W = this.canvas.width;
+    const H = this.canvas.height;
+    
+    ctx.save();
+    ctx.strokeStyle = 'rgba(79, 70, 229, 0.16)'; // Deep indigo/blue neon grid lines
+    ctx.lineWidth = 1.0;
+    
+    const gridSize = 32;
+    const sources = [];
+    if (this.player) {
+      sources.push({
+        x: this.player.x + this.player.w / 2,
+        y: this.player.y + this.player.h / 2,
+        mass: this.player.mass * 8.0
+      });
+    }
+    
+    for (const box of this.spawnedBoxes) {
+      if (!box.collected) {
+        sources.push({ x: box.x + box.w / 2, y: box.y + box.h / 2, mass: 4.0 });
+      }
+    }
+    for (const spring of this.spawnedSprings) {
+      sources.push({ x: spring.x + spring.w / 2, y: spring.y + spring.h / 2, mass: 3.0 });
+    }
+    
+    // Boulders/asteroids in Asteroid Forge (represented by type 'boulder')
+    for (const obj of this.interactiveObjects) {
+      if (obj.type === 'boulder' && !obj.collected) {
+        sources.push({ x: obj.x + obj.w / 2, y: obj.y + obj.h / 2, mass: (obj.mass || 2) * 6.0 });
+      }
+    }
+
+    const startX = Math.floor(this.cameraX / gridSize) * gridSize - gridSize;
+    const endX = startX + W + gridSize * 2;
+    
+    // Draw horizontal grid lines
+    for (let y = 0; y <= H; y += 16) {
+      ctx.beginPath();
+      let first = true;
+      for (let x = startX; x <= endX; x += 16) {
+        let wx = x;
+        let wy = y;
+        
+        let dxSum = 0;
+        let dySum = 0;
+        for (const src of sources) {
+          const rx = wx - src.x;
+          const ry = wy - src.y;
+          const distSq = rx * rx + ry * ry;
+          const dist = Math.sqrt(distSq);
+          if (dist > 5 && dist < 160) {
+            const pull = (src.mass * 30) / (distSq + 180);
+            dxSum += (rx / dist) * pull;
+            dySum += (ry / dist) * pull;
+          }
+        }
+        
+        const drawX = wx - dxSum - this.cameraX;
+        const drawY = wy - dySum;
+        if (first) {
+          ctx.moveTo(drawX, drawY);
+          first = false;
+        } else {
+          ctx.lineTo(drawX, drawY);
+        }
+      }
+      ctx.stroke();
+    }
+    
+    // Draw vertical grid lines
+    for (let x = startX; x <= endX; x += 32) {
+      ctx.beginPath();
+      let first = true;
+      for (let y = 0; y <= H; y += 16) {
+        let wx = x;
+        let wy = y;
+        
+        let dxSum = 0;
+        let dySum = 0;
+        for (const src of sources) {
+          const rx = wx - src.x;
+          const ry = wy - src.y;
+          const distSq = rx * rx + ry * ry;
+          const dist = Math.sqrt(distSq);
+          if (dist > 5 && dist < 160) {
+            const pull = (src.mass * 30) / (distSq + 180);
+            dxSum += (rx / dist) * pull;
+            dySum += (ry / dist) * pull;
+          }
+        }
+        
+        const drawX = wx - dxSum - this.cameraX;
+        const drawY = wy - dySum;
+        if (first) {
+          ctx.moveTo(drawX, drawY);
+          first = false;
+        } else {
+          ctx.lineTo(drawX, drawY);
+        }
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   // A calm, comic-styled planet horizon + glow drawn ONLY behind the start menu, so the

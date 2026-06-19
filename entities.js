@@ -981,6 +981,29 @@ class Player {
     // Apply gravity
     this.vy += gravityForce;
     if (this.vy > 12) this.vy = 12; // Terminal velocity
+
+    // Spawn subtle energy-flow particles trailing the player
+    if (game && Math.random() < 0.22) {
+      const ke = 0.5 * this.mass * (this.vx * this.vx + this.vy * this.vy);
+      const height = Math.max(0, 448 - this.y);
+      const pe = this.mass * baseGravity * height * 0.04;
+      const total = ke + pe;
+      if (total > 0.05) {
+        const isKe = Math.random() < (ke / total);
+        const pColor = isKe ? '#4ade80' : '#38bdf8'; // Green for KE, Cyan for PE
+        const pSize = 1.0 + Math.random() * 1.5;
+        Particles.spawn(
+          this.x + Math.random() * this.w,
+          this.y + Math.random() * this.h,
+          pColor,
+          pSize,
+          (Math.random() - 0.5) * 0.5,
+          -0.5 - Math.random() * 0.8,
+          20 + Math.random() * 20,
+          'glow'
+        );
+      }
+    }
   }
 
   // Thick dark comic ink outline around the CURRENT path. Temporarily kills the glow
@@ -1321,6 +1344,21 @@ class Enemy {
     this.w = 24 * this.scale;
     this.h = 24 * this.scale;
 
+    let speedMult = 1.0;
+    if (typeof Compiler !== 'undefined' && Compiler.env && Compiler.env.enemySpeed !== null && Compiler.env.enemySpeed !== undefined) {
+      speedMult = Compiler.env.enemySpeed;
+    }
+
+    if (speedMult === 0) {
+      return; // Freeze enemies completely!
+    }
+
+    // Adjust velocity magnitude based on speed override
+    const targetSpeed = 1.2 * speedMult;
+    if (this.vx !== 0) {
+      this.vx = Math.sign(this.vx) * targetSpeed;
+    }
+
     switch (this.type) {
       case 'bug': // Earth: Patrol walking
         this.vy += 0.5;
@@ -1423,36 +1461,45 @@ class Enemy {
     ctx.save();
     ctx.shadowBlur = 6;
 
+    const friendly = typeof Compiler !== 'undefined' && Compiler.env && Compiler.env.enemyFriendly;
+
     if (this.type === 'bug') {
-      ctx.fillStyle = '#ef4444';
-      ctx.shadowColor = '#ef4444';
+      ctx.fillStyle = friendly ? '#4ade80' : '#ef4444';
+      ctx.shadowColor = friendly ? '#4ade80' : '#ef4444';
       ctx.beginPath();
       ctx.arc(this.x + this.w / 2 - cameraX, this.y + this.h / 2, this.w / 2, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#000000';
       ctx.fillRect(this.x + this.w / 2 - 5 - cameraX, this.y + 6, 2, 3);
       ctx.fillRect(this.x + this.w / 2 + 3 - cameraX, this.y + 6, 2, 3);
+      if (friendly) {
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(this.x + this.w / 2 - cameraX, this.y + this.h / 2 + 1, 3, 0.1 * Math.PI, 0.9 * Math.PI);
+        ctx.stroke();
+      }
     } else if (this.type === 'spore') {
-      ctx.fillStyle = '#38bdf8';
-      ctx.shadowColor = '#38bdf8';
+      ctx.fillStyle = friendly ? '#4ade80' : '#38bdf8';
+      ctx.shadowColor = friendly ? '#4ade80' : '#38bdf8';
       ctx.beginPath();
       ctx.arc(this.x + this.w / 2 - cameraX, this.y + this.h / 2, this.w / 2, 0, Math.PI * 2);
       ctx.fill();
     } else if (this.type === 'crusher') {
-      ctx.fillStyle = '#64748b';
-      ctx.shadowColor = '#64748b';
+      ctx.fillStyle = friendly ? '#86efac' : '#64748b';
+      ctx.shadowColor = friendly ? '#86efac' : '#64748b';
       ctx.fillRect(this.x - cameraX, this.y, this.w, this.h);
-      ctx.fillStyle = '#ea580c';
+      ctx.fillStyle = friendly ? '#22c55e' : '#ea580c';
       ctx.fillRect(this.x + 4 - cameraX, this.y + 4, this.w - 8, 4);
     } else if (this.type === 'penguin') {
-      ctx.fillStyle = '#8b5cf6';
-      ctx.shadowColor = '#8b5cf6';
+      ctx.fillStyle = friendly ? '#4ade80' : '#8b5cf6';
+      ctx.shadowColor = friendly ? '#4ade80' : '#8b5cf6';
       ctx.beginPath();
       ctx.ellipse(this.x + this.w / 2 - cameraX, this.y + this.h / 2, this.w / 2, this.h / 2, 0, 0, Math.PI * 2);
       ctx.fill();
     } else {
-      ctx.fillStyle = '#f5d0fe';
-      ctx.shadowColor = '#ec4899';
+      ctx.fillStyle = friendly ? '#a7f3d0' : '#f5d0fe';
+      ctx.shadowColor = friendly ? '#4ade80' : '#ec4899';
       ctx.beginPath();
       ctx.arc(this.x + this.w / 2 - cameraX, this.y + this.h / 2, this.w / 3, 0, Math.PI * 2);
       ctx.fill();
@@ -1467,13 +1514,20 @@ class InteractiveObject {
   constructor(x, y, type) {
     this.x = x;
     this.y = y;
-    this.type = type; // 'coin', 'trampoline', 'spring', 'box', 'portal', 'pos_node', 'neg_node'
+    this.type = type; // 'coin', 'trampoline', 'spring', 'box', 'portal', 'pos_node', 'neg_node', 'boulder'
     this.w = 32;
     this.h = 32;
 
     if (this.type === 'coin') { this.w = 16; this.h = 16; this.y += 8; this.x += 8; }
     if (this.type === 'spring') { this.h = 16; this.y += 16; }
     if (this.type === 'trampoline') { this.h = 16; this.y += 16; }
+    if (this.type === 'boulder') {
+      this.w = 28;
+      this.h = 28;
+      this.vx = 0;
+      this.vy = 0;
+      this.mass = 2.0;
+    }
 
     this.collected = false;
     this.bounceTimer = 0;
@@ -1481,7 +1535,7 @@ class InteractiveObject {
     this.rejectPulse = 0; // >0 right after bumping a still-locked gem (drives a red pulse)
   }
 
-  update() {
+  update(game) {
     if (this.type === 'coin') {
       this.angle += 0.05;
     }
@@ -1490,6 +1544,50 @@ class InteractiveObject {
     }
     if (this.rejectPulse > 0) {
       this.rejectPulse = Math.max(0, this.rejectPulse - 0.06);
+    }
+
+    if (this.type === 'boulder') {
+      this.mass = (typeof Compiler !== 'undefined' && Compiler.env && Compiler.env.asteroidMass !== null && Compiler.env.asteroidMass !== undefined) ? Compiler.env.asteroidMass : 2.0;
+      const currentPlanet = game ? game.currentPlanet : null;
+      const baseGravity = game ? game.getCurrentGravity() : 0.6;
+      const gravity = currentPlanet && currentPlanet.id === 5 ? 0.0 : baseGravity;
+      const airResistance = currentPlanet && currentPlanet.physics ? currentPlanet.physics.airResistance : 0.99;
+      
+      this.vy += gravity;
+      if (this.vy > 12) this.vy = 12;
+
+      this.vx *= airResistance;
+      this.vy *= airResistance;
+
+      const tilemap = game ? game.getActiveMap() : null;
+      if (tilemap && typeof Physics !== 'undefined') {
+        this.x += this.vx;
+        let collsX = Physics.getTileCollisions(this, tilemap);
+        for (const t of collsX) {
+          if (this.vx > 0) {
+            this.x = t.c * TILE_SIZE - this.w;
+            this.vx = -this.vx * 0.8;
+          } else if (this.vx < 0) {
+            this.x = (t.c + 1) * TILE_SIZE;
+            this.vx = -this.vx * 0.8;
+          }
+        }
+
+        this.y += this.vy;
+        let collsY = Physics.getTileCollisions(this, tilemap);
+        for (const t of collsY) {
+          if (this.vy > 0) {
+            this.y = t.r * TILE_SIZE - this.h;
+            this.vy = -this.vy * 0.8;
+          } else if (this.vy < 0) {
+            this.y = (t.r + 1) * TILE_SIZE;
+            this.vy = -this.vy * 0.8;
+          }
+        }
+      } else {
+        this.x += this.vx;
+        this.y += this.vy;
+      }
     }
   }
 
@@ -1692,6 +1790,47 @@ class InteractiveObject {
         ctx.textAlign = 'center';
         ctx.fillText('🔒', cx, cy + 5);
       }
+    } else if (this.type === 'boulder') {
+      const x = this.x - cameraX;
+      ctx.save();
+      ctx.strokeStyle = '#0b1224';
+      ctx.lineWidth = 3;
+      ctx.fillStyle = '#475569';
+      ctx.beginPath();
+      const cx = x + this.w / 2;
+      const cy = this.y + this.h / 2;
+      const r = this.w / 2;
+      ctx.moveTo(cx + r, cy);
+      ctx.lineTo(cx + r * 0.7, cy + r * 0.7);
+      ctx.lineTo(cx, cy + r);
+      ctx.lineTo(cx - r * 0.7, cy + r * 0.7);
+      ctx.lineTo(cx - r, cy);
+      ctx.lineTo(cx - r * 0.7, cy - r * 0.7);
+      ctx.lineTo(cx, cy - r);
+      ctx.lineTo(cx + r * 0.7, cy - r * 0.7);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx - 5, cy - 4, 3, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(cx + 6, cy + 5, 2, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(cx - 3, cy + 6, 1.5, 0, Math.PI * 2);
+      ctx.stroke();
+
+      const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+      if (speed > 0.5) {
+        ctx.strokeStyle = 'rgba(251, 146, 60, 0.4)';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(x - 2, this.y - 2, this.w + 4, this.h + 4);
+      }
+      ctx.restore();
     }
 
     ctx.restore();

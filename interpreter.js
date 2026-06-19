@@ -189,22 +189,27 @@ class Parser {
   parseWhenStatement() {
     this.next(); // consume 'when'
     
-    // Support event structures: 'player.lands' or 'player.touching("ice")'
+    // Support event structures: 'player.lands', 'player.touching("ice")', or comparisons like 'player.fuel < 20'
     const target = this.expect('IDENTIFIER', "Expected an event trigger like player.lands").value;
     
     let eventArgs = [];
+    let comparisonOp = null;
+    let comparisonValue = null;
+
     if (this.peek() && this.peek().type === 'LPAREN') {
       this.next(); // consume '('
       if (this.peek().type !== 'RPAREN') {
         eventArgs.push(this.parseExpression());
       }
       this.expect('RPAREN', "Missing closing bracket ')' in event parameter");
+    } else if (this.peek() && this.peek().type === 'COMPARISON') {
+      comparisonOp = this.next().value;
+      comparisonValue = this.parseExpression();
     }
 
     this.expect('COLON', "Expected a colon ':' at the end of the when rule statement");
 
     const body = [];
-    // Parse until end of input or newline (simple single-line block Support)
     while (this.pos < this.tokens.length) {
       const nextT = this.peek();
       if (nextT.type === 'NEWLINE') {
@@ -214,7 +219,7 @@ class Parser {
       body.push(this.parseStatement());
     }
 
-    return { type: 'when', target, eventArgs, body };
+    return { type: 'when', target, eventArgs, comparisonOp, comparisonValue, body };
   }
 
   parseForStatement() {
@@ -543,7 +548,7 @@ class KidCodeInterpreter {
           }
 
           if (fnName === 'spawn') {
-            return runtimeContext.functions[fnName](this.game, resolvedArgs[0], resolvedKwargs);
+            return runtimeContext.functions[fnName](this.game, resolvedArgs[0], resolvedArgs[1], resolvedArgs[2], resolvedKwargs);
           } else {
             return runtimeContext.functions[fnName](this.game, ...resolvedArgs);
           }
@@ -763,30 +768,78 @@ const runtimeContext = {
           else if (lower === 'magnet' || lower === 'space') id = 4;
           else if (lower === 'tears' || lower === 'sad' || lower === 'jazz') id = 5;
         }
-        SFX.startBGM(id);
       }
+    },
+    elasticity: {
+      get: (game) => (typeof Compiler !== 'undefined' && Compiler.env && Compiler.env.elasticity !== null && Compiler.env.elasticity !== undefined) ? Compiler.env.elasticity : 0.8,
+      set: (game, val) => {
+        const n = Number(val);
+        Compiler.env.elasticity = Math.max(0.0, Math.min(1.0, Number.isFinite(n) ? n : 0.8));
+      }
+    },
+    "asteroid.mass": {
+      get: (game) => (typeof Compiler !== 'undefined' && Compiler.env && Compiler.env.asteroidMass !== null && Compiler.env.asteroidMass !== undefined) ? Compiler.env.asteroidMass : 2.0,
+      set: (game, val) => {
+        const n = Number(val);
+        Compiler.env.asteroidMass = Math.max(0.1, Math.min(20.0, Number.isFinite(n) ? n : 2.0));
+      }
+    },
+    "enemy.speed": {
+      get: (game) => (typeof Compiler !== 'undefined' && Compiler.env && Compiler.env.enemySpeed !== null && Compiler.env.enemySpeed !== undefined) ? Compiler.env.enemySpeed : 1.0,
+      set: (game, val) => {
+        const n = Number(val);
+        Compiler.env.enemySpeed = Math.max(0.0, Math.min(10.0, Number.isFinite(n) ? n : 1.0));
+      }
+    },
+    "enemy.friendly": {
+      get: (game) => (typeof Compiler !== 'undefined' && Compiler.env && Compiler.env.enemyFriendly) ? 1 : 0,
+      set: (game, val) => {
+        Compiler.env.enemyFriendly = !!val;
+      }
+    },
+    "player.fuel": {
+      get: (game) => game.player.fuel,
+      set: (game, val) => { game.player.fuel = Number(val) || 100; }
+    },
+    "player.speed": {
+      get: (game) => Math.round(Math.sqrt(game.player.vx * game.player.vx + game.player.vy * game.player.vy) * 100) / 100,
+      set: (game, val) => {}
     }
   },
   functions: {
-    spawn: (game, type, kwargs) => {
+    spawn: (game, type, x, y, kwargs) => {
+      let posX = undefined;
+      let posY = undefined;
+
+      // Handle positional arguments first
+      if (typeof x === 'number') posX = x;
+      if (typeof y === 'number') posY = y;
+
+      // Handle keyword arguments
+      const kw = (typeof x === 'object' && x !== null) ? x : (typeof y === 'object' && y !== null) ? y : kwargs;
+      if (kw && typeof kw === 'object') {
+        if (kw.x !== undefined) posX = Number(kw.x);
+        if (kw.y !== undefined) posY = Number(kw.y);
+      }
+
       if (type === 'gem') type = 'coin';
-      game.spawnItemAbovePlayer(type);
+      game.spawnItemAbovePlayer(type, posX, posY);
       return `Spawned ${type === 'coin' ? 'gem' : type}!`;
     },
-    spawn_coin: (game) => {
-      game.spawnItemAbovePlayer('coin');
+    spawn_coin: (game, x, y) => {
+      game.spawnItemAbovePlayer('coin', x, y);
       return "Spawned gem!";
     },
-    spawn_gem: (game) => {
-      game.spawnItemAbovePlayer('coin');
+    spawn_gem: (game, x, y) => {
+      game.spawnItemAbovePlayer('coin', x, y);
       return "Spawned gem!";
     },
-    spawn_box: (game) => {
-      game.spawnItemAbovePlayer('box');
+    spawn_box: (game, x, y) => {
+      game.spawnItemAbovePlayer('box', x, y);
       return "Spawned box!";
     },
-    spawn_spring: (game) => {
-      game.spawnItemAbovePlayer('spring');
+    spawn_spring: (game, x, y) => {
+      game.spawnItemAbovePlayer('spring', x, y);
       return "Spawned spring!";
     },
     invert_gravity: (game) => {
@@ -873,12 +926,14 @@ class AutocompleteEngine {
     this.choices = [
       "antigravity", "gravity", "friction", "jump_power", "scale",
       "player.jump_power", "player.mass", "player.say()", "player.touching()",
+      "player.fuel", "player.speed",
       "star.mass",
       "hopper.engine", "hopper.jump_power", "hopper.mass", "hopper.rocket_power", "hopper.spikes", "hopper.pole",
       "spawn()", "spawn_gem()", "spawn_box()", "spawn_spring()",
       "invert_gravity()", "rave_mode()", "survival_mode()", "shrink_enemies()", "bounce_up()", "reset()",
       "use_hopper()", "use_rover()",
-      "play_music()", "music"
+      "play_music()", "music",
+      "elasticity", "asteroid.mass", "enemy.speed", "enemy.friendly"
     ];
   }
 
@@ -907,7 +962,11 @@ class CompilerSingleton {
       antigravity: 0,
       magnetStrength: null,
       magnetPole: 'north',
-      raveMode: false
+      raveMode: false,
+      elasticity: null,
+      asteroidMass: null,
+      enemySpeed: null,
+      enemyFriendly: false
     };
     
     // List of active 'when' triggers: { target, eventArgs, bodyAST }
@@ -936,7 +995,11 @@ class CompilerSingleton {
       antigravity: 0,
       magnetStrength: null,
       magnetPole: 'north',
-      raveMode: false
+      raveMode: false,
+      elasticity: null,
+      asteroidMass: null,
+      enemySpeed: null,
+      enemyFriendly: false
     };
     this.activeRules = [];
     this.previousOnGround = false;
@@ -1013,6 +1076,40 @@ class CompilerSingleton {
 
       if (rule.target === 'hit_enemy' && hitEnemy) {
         trigger = true;
+      }
+
+      if (rule.comparisonOp && rule.comparisonValue) {
+        let leftVal = 0;
+        if (rule.target === 'player.fuel' || rule.target === 'hopper.fuel') {
+          leftVal = game.player.fuel;
+        } else if (rule.target === 'player.speed') {
+          leftVal = Math.sqrt(game.player.vx * game.player.vx + game.player.vy * game.player.vy);
+        } else {
+          try {
+            leftVal = interpreter.getVariable(rule.target);
+          } catch(e) {
+            leftVal = 0;
+          }
+        }
+
+        const rightVal = interpreter.evalExpr(rule.comparisonValue, {});
+        
+        let match = false;
+        switch (rule.comparisonOp) {
+          case '<': match = leftVal < rightVal; break;
+          case '>': match = leftVal > rightVal; break;
+          case '<=': match = leftVal <= rightVal; break;
+          case '>=': match = leftVal >= rightVal; break;
+          case '==': match = leftVal === rightVal; break;
+          case '!=': match = leftVal !== rightVal; break;
+        }
+
+        const wasMatching = !!rule.lastMatch;
+        rule.lastMatch = match;
+        
+        if (match && !wasMatching) {
+          trigger = true;
+        }
       }
 
       if (trigger) {

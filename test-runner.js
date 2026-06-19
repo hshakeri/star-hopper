@@ -190,6 +190,51 @@ function runSafetyTests() {
   } catch (err) {
     renderTestResult("safety-suite", "Infinite Loop Guard halts repeat statement (repeat 100)", false, err.message);
   }
+
+  // Test 6b: Spawning objects with set coordinates
+  try {
+    Compiler.reset();
+    let spawnCount = 0;
+    let spawnedType = "";
+    let spawnedX = undefined;
+    let spawnedY = undefined;
+    const mockGame = {
+      spawnItemAbovePlayer: (type, x, y) => {
+        spawnCount++;
+        spawnedType = type;
+        spawnedX = x;
+        spawnedY = y;
+      }
+    };
+    
+    // 1) Test positional args
+    let res = Compiler.runCommand("spawn_spring(120, 240)", mockGame);
+    assertEquals(true, res.success);
+    assertEquals(1, spawnCount);
+    assertEquals("spring", spawnedType);
+    assertEquals(120, spawnedX);
+    assertEquals(240, spawnedY);
+
+    // 2) Test generic spawn positional args
+    res = Compiler.runCommand("spawn('box', 150, 300)", mockGame);
+    assertEquals(true, res.success);
+    assertEquals(2, spawnCount);
+    assertEquals("box", spawnedType);
+    assertEquals(150, spawnedX);
+    assertEquals(300, spawnedY);
+
+    // 3) Test generic spawn keyword args
+    res = Compiler.runCommand("spawn('coin', x=80, y=160)", mockGame);
+    assertEquals(true, res.success);
+    assertEquals(3, spawnCount);
+    assertEquals("coin", spawnedType);
+    assertEquals(80, spawnedX);
+    assertEquals(160, spawnedY);
+
+    renderTestResult("safety-suite", "Spawn Functions: accept custom x and y coordinates (positional & keyword)", true);
+  } catch (err) {
+    renderTestResult("safety-suite", "Spawn Functions: accept custom x and y coordinates (positional & keyword)", false, err.message);
+  }
 }
 
 // Suite 3: Mock Game Engine State Integration Tests
@@ -749,6 +794,123 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Compiler: hopper.pole tunes magnetic polarity", true);
   } catch (err) {
     renderTestResult("engine-suite", "Compiler: hopper.pole tunes magnetic polarity", false, err.message);
+  }
+
+  // Test 26: Elastic collisions and momentum transfer equations under different elasticity parameters
+  try {
+    Compiler.reset();
+    
+    // Player: mass = 1.0, vx = 5.0, vy = 0.0
+    // Boulder: mass = 2.0, vx = 0.0, vy = 0.0
+    // Position: player at x=0, y=0; boulder at x=20, y=0. Both size=20.
+    // They are touching/overlapping. 
+    // Vector from player to boulder is along +x. Normal is (1.0, 0.0).
+    const player = {
+      x: 0, y: 0, w: 20, h: 20,
+      vx: 5.0, vy: 0.0, mass: 1.0
+    };
+    const boulder = {
+      x: 10, y: 0, w: 20, h: 20, // centers: player=10, boulder=20. dx=10. normal nx=1.0, ny=0.0
+      vx: 0.0, vy: 0.0, mass: 2.0
+    };
+    
+    // Elasticity e = 1.0 (perfectly elastic)
+    Compiler.env.elasticity = 1.0;
+    
+    // Check resolveElasticCollision
+    Physics.resolveElasticCollision(player, boulder);
+    
+    // Using equations:
+    // velAlongNormal = v1 - v2 = 5 - 0 = 5
+    // impulse = -(1 + e) * velAlongNormal / (1/m1 + 1/m2)
+    //         = -(2) * 5 / (1/1 + 1/2) = -10 / 1.5 = -6.6666
+    // v1' = v1 + impulse / m1 = 5 - 6.6666/1 = -1.6666
+    // v2' = v2 - impulse / m2 = 0 + 6.6666/2 = 3.3333
+    assertClose(-1.6666, player.vx, 0.01, "Player final velocity X should match elastic collision equations");
+    assertClose(3.3333, boulder.vx, 0.01, "Boulder final velocity X should match elastic collision equations");
+    
+    renderTestResult("engine-suite", "Physics: elastic momentum transfer resolves correctly", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Physics: elastic momentum transfer resolves correctly", false, err.message);
+  }
+
+  // Test 27: Compiler: comparison event parsing and edge-triggered event execution
+  try {
+    Compiler.reset();
+    
+    let sayCalled = 0;
+    let sayMsg = "";
+    const mockGame = {
+      player: {
+        fuel: 30,
+        vx: 0, vy: 0,
+        say: (msg) => {
+          sayCalled++;
+          sayMsg = msg;
+        },
+        isTouching: () => false
+      },
+      keys: {}
+    };
+    
+    // Register comparison event rule
+    const runRes = Compiler.runCommand("when player.fuel < 20: player.say('critical_fuel')", mockGame);
+    assertEquals(true, runRes.success, "Command parsing should succeed");
+    assertEquals(1, Compiler.activeRules.length, "One event rule should be registered");
+    
+    // Update rules at fuel = 30 (no trigger)
+    Compiler.updateRules(mockGame);
+    assertEquals(0, sayCalled, "Should not trigger when fuel is above threshold");
+    
+    // Drop fuel to 15 (should trigger)
+    mockGame.player.fuel = 15;
+    Compiler.updateRules(mockGame);
+    assertEquals(1, sayCalled, "Should trigger when fuel drops below threshold");
+    assertEquals("critical_fuel", sayMsg, "Should pass correct message to say()");
+    
+    // Update rules again at fuel = 15 (should NOT trigger again - edge triggered)
+    Compiler.updateRules(mockGame);
+    assertEquals(1, sayCalled, "Should not trigger repeatedly (edge-triggered check)");
+    
+    // Raise fuel back to 30
+    mockGame.player.fuel = 30;
+    Compiler.updateRules(mockGame);
+    assertEquals(1, sayCalled, "Should not trigger on raising above threshold");
+    
+    // Drop fuel again to 10 (should trigger again on transition)
+    mockGame.player.fuel = 10;
+    Compiler.updateRules(mockGame);
+    assertEquals(2, sayCalled, "Should trigger on subsequent drop below threshold");
+    
+    renderTestResult("engine-suite", "Compiler: comparison event registers and triggers edge-triggered", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Compiler: comparison event registers and triggers edge-triggered", false, err.message);
+  }
+
+  // Test 28: Compiler: enemy.friendly and enemy.speed variable overrides
+  try {
+    Compiler.reset();
+    
+    const mockGame = makeScaffoldMockGame(0);
+    
+    // Test enemy.friendly override
+    let res = Compiler.runCommand("enemy.friendly = 1", mockGame);
+    assertEquals(true, res.success);
+    assertEquals(true, Compiler.env.enemyFriendly, "enemy.friendly should be true");
+    
+    // Test enemy.speed override
+    res = Compiler.runCommand("enemy.speed = 3.5", mockGame);
+    assertEquals(true, res.success);
+    assertEquals(3.5, Compiler.env.enemySpeed, "enemy.speed override should be set to 3.5");
+    
+    // Test that resetting clears overrides
+    Compiler.reset();
+    assertEquals(false, Compiler.env.enemyFriendly, "enemy.friendly should be reset to false");
+    assertEquals(null, Compiler.env.enemySpeed, "enemy.speed override should be reset to null");
+    
+    renderTestResult("engine-suite", "Compiler: enemy friendly and speed overrides parsed", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Compiler: enemy friendly and speed overrides parsed", false, err.message);
   }
 }
 
