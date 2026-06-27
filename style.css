@@ -456,23 +456,36 @@ body.resizing-panes * {
 }
 
 .minimal-dashboard {
-  display: grid;
-  grid-template-columns: 0.72fr 0.86fr 0.58fr 1.05fr 1.25fr;
+  /* Flex-wrap (not a fixed-column grid) so any number of cards — including the
+     Health + Fuel cards — wrap cleanly and fit narrow phone/iOS viewports. */
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   align-items: stretch;
-  max-width: 610px;
+  max-width: 720px;
   padding: 0;
   overflow: visible;
   border-radius: 0;
 }
+
+.minimal-dashboard .hud-card { flex: 1 1 88px; }
+.minimal-dashboard .compact-energy { flex: 1.6 1 150px; }
 
 /* The mission-stat (Agility/Thrust) card only appears on worlds that have one,
    adding a leading column so the rest of the dashboard doesn't shift awkwardly. */
 #card-mission-stat { display: none; }
 
 .minimal-dashboard.has-mission-stat {
-  grid-template-columns: 0.78fr 0.72fr 0.86fr 0.58fr 1.05fr 1.25fr;
-  max-width: 700px;
+  max-width: 770px;
+}
+
+/* Phone / iOS: tighten the telemetry cards so the full set fits without overflowing. */
+@media (max-width: 820px) {
+  .minimal-dashboard { gap: 5px; max-width: 100%; }
+  .minimal-dashboard .hud-card { flex-basis: 76px; padding: 5px 6px; }
+  .minimal-dashboard .compact-energy { flex-basis: 128px; }
+  .hud-card-value { font-size: 0.74rem; }
+  .hud-card-title { font-size: 0.56rem; }
 }
 
 .minimal-dashboard.has-mission-stat #card-mission-stat { display: flex; }
