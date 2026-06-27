@@ -1387,16 +1387,19 @@ function runCombatTests() {
   // C9: a hog lines up and starts a charge; a blob bounces on the ground (species behaviors)
   try {
     const map = PLANETS[0].map;
-    const hog = new Mob(200, 200, 'hog', '#9a6b4f');
+    const hog = new Mob(200, 200, 'hog', '#9a6b4f', 1);
     hog.onGround = true; hog.behaviorTimer = 0;
-    hog.update(map, { x: 200 + TILE_SIZE * 3, y: 200 }, false);
-    assertEquals(true, hog.charging > 0, "Hog starts a charge when level + in range");
+    const hogPlayer = { x: 200 + TILE_SIZE * 3, y: 200 };
+    hog.update(map, hogPlayer, false);
+    assertEquals(true, hog.windupTimer > 0, "Hog telegraphs (winds up) before charging");
+    for (let i = 0; i < 24; i++) hog.update(map, hogPlayer, false);
+    assertEquals(true, hog.charging > 0, "Hog charges once the wind-up finishes");
 
-    const blob = new Mob(100, 96, 'blob', '#a78bfa');
+    const blob = new Mob(100, 96, 'blob', '#a78bfa', 1);
     blob.onGround = true;
     blob.update(map, { x: 150, y: 96 }, false);
     assertEquals(true, blob.vy < 0, "Blob bounces (hops) on the ground");
-    renderTestResult(SUITE, "Mobs: per-species behaviors (hog charge, blob bounce)", true);
+    renderTestResult(SUITE, "Mobs: per-species behaviors (hog wind-up→charge, blob bounce)", true);
   } catch (err) {
     renderTestResult(SUITE, "Mobs: per-species behaviors (hog charge, blob bounce)", false, err.message);
   }
@@ -1410,6 +1413,38 @@ function runCombatTests() {
     renderTestResult(SUITE, "Movement: reversing triggers a snappy skid", true);
   } catch (err) {
     renderTestResult(SUITE, "Movement: reversing triggers a snappy skid", false, err.message);
+  }
+
+  // C11: contact knockback scales with the attacker (a charging hog flings you farther)
+  try {
+    Compiler.reset(); // clean env so getCurrentGravity uses Earth's gravity (gf = 1)
+    const g = new StarHopperGame();
+    g.state = 'playing'; g.currentPlanet = PLANETS[0];
+    const mk = () => { const p = new Player(100, 100); p.facing = 1; return p; };
+    g.player = mk(); g.player.invulnerableFrames = 0; g.damagePlayer(1, 'mob', 200, 1.0);
+    const soft = Math.abs(g.player.vx);
+    g.player = mk(); g.player.invulnerableFrames = 0; g.damagePlayer(1, 'mob', 200, 2.4);
+    const hard = Math.abs(g.player.vx);
+    assertEquals(true, hard > soft + 1, "Higher knockback flings the cadet farther");
+    renderTestResult(SUITE, "Contact: knockback scales with the attacker", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Contact: knockback scales with the attacker", false, err.message);
+  }
+
+  // C12: knockback is scaled by world gravity so low-G worlds don't fling cadets off-map
+  try {
+    Compiler.reset();
+    const earth = new StarHopperGame(); earth.state = 'playing'; earth.currentPlanet = PLANETS[0];
+    earth.player = new Player(100, 100); earth.player.facing = 1; earth.player.invulnerableFrames = 0;
+    earth.damagePlayer(1, 'mob', 200, 1.5); const earthKb = Math.abs(earth.player.vx);
+    Compiler.reset();
+    const moon = new StarHopperGame(); moon.state = 'playing'; moon.currentPlanet = PLANETS[1]; // low gravity
+    moon.player = new Player(100, 100); moon.player.facing = 1; moon.player.invulnerableFrames = 0;
+    moon.damagePlayer(1, 'mob', 200, 1.5); const moonKb = Math.abs(moon.player.vx);
+    assertEquals(true, moonKb < earthKb, "A low-gravity world gives a gentler knockback");
+    renderTestResult(SUITE, "Contact: knockback scaled by world gravity (no off-map fling)", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Contact: knockback scaled by world gravity (no off-map fling)", false, err.message);
   }
 }
 

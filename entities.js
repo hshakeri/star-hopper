@@ -506,9 +506,10 @@ const MOB_THEMES = [
 ];
 
 class Mob {
-  constructor(x, y, species, accent) {
+  constructor(x, y, species, accent, aggro) {
     this.species = species || 'blob';
     this.accent = accent || '#a78bfa';
+    this.aggro = aggro || 1; // per-world aggression scale (Earth gentle, Jupiter mean)
     if (this.species === 'snake') { this.w = 32; this.h = 20; }
     else if (this.species === 'hog') { this.w = 32; this.h = 24; }
     else if (this.species === 'floater') { this.w = 28; this.h = 26; }
@@ -528,6 +529,8 @@ class Mob {
     // Per-species behavior state (charge / strike / dive / scan timers).
     this.behaviorTimer = 20 + Math.random() * 60;
     this.charging = 0;
+    this.windupTimer = 0;   // telegraph: brace/coil before an attack
+    this.attackPower = 1;   // contact knockback multiplier (boosted mid-attack)
     this.diveTimer = 0;
     this.scanning = false;
     this.darting = false;
@@ -549,30 +552,45 @@ class Mob {
     if (--this.blinkTimer <= 0) this.blinkTimer = 70 + Math.random() * 170;
     this.vy += (this.species === 'floater') ? 0.22 : 0.5; // floaters drift lazily
 
-    // --- Per-species behavior: each creature plays differently ----------------
+    // --- Per-species behavior: each creature plays differently; aggression scales by world.
     const dx = player.x - this.x, dy = player.y - this.y;
     const adx = Math.abs(dx), dist = Math.hypot(dx, dy);
+    const ag = this.aggro || 1;
     this.behaviorTimer--;
+    const hadWindup = this.windupTimer > 0;
+    if (this.windupTimer > 0) this.windupTimer--;
+    const windupDone = hadWindup && this.windupTimer === 0; // telegraph just finished → attack
     let moveSpeed = this.speed;
+    this.attackPower = 1;
     switch (this.species) {
-      case 'hog': // CHARGE: line up level with the cadet, then bull-rush.
-        if (this.charging > 0) { this.charging--; moveSpeed = this.speed * 3.2; }
-        else if (this.onGround && !flee && Math.abs(dy) < TILE_SIZE && adx > TILE_SIZE * 1.2 && adx < TILE_SIZE * 6 && this.behaviorTimer <= 0) {
-          this.charging = 42; this.behaviorTimer = 150;
+      case 'hog': // CHARGE: line up level, brace (wind-up tell), then bull-rush with a dust trail.
+        if (this.charging > 0) {
+          this.charging--; moveSpeed = this.speed * (2.4 + ag); this.attackPower = 2.4;
+          if (typeof Particles !== 'undefined' && Math.random() < 0.6)
+            Particles.spawn(this.x + this.w / 2 - this.eyeDir * 8, this.y + this.h - 2, '#cbd5e1', 2.4, -this.eyeDir * 0.8, -0.5, 16, 'glow');
+        } else if (this.windupTimer > 0) {
+          moveSpeed = 0; // brace in place (the tell)
+        } else if (this.onGround && !flee && Math.abs(dy) < TILE_SIZE && adx > TILE_SIZE * 1.2 && adx < TILE_SIZE * 6 && this.behaviorTimer <= 0) {
+          this.windupTimer = Math.round(18 / Math.max(1, ag)); this.behaviorTimer = Math.round(180 / ag);
+          if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(this.x + this.w / 2, this.y - 4, "!", "#ef4444", 0.95);
+        }
+        if (windupDone) this.charging = 40;
+        break;
+      case 'snake': // STRIKE: coil back (tell), then a fast lunge.
+        if (this.charging > 0) { this.charging--; moveSpeed = this.speed * (2.6 + ag); this.attackPower = 1.8; }
+        else if (this.windupTimer > 0) { moveSpeed = -this.speed * 0.45; } // recoil away = wind-up
+        else if (this.onGround && !flee && dist < TILE_SIZE * (2.0 + 0.5 * ag) && this.behaviorTimer <= 0) {
+          this.windupTimer = 16; this.behaviorTimer = Math.round(120 / ag); // readable tell
           if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(this.x + this.w / 2, this.y - 4, "!", "#ef4444", 0.9);
         }
-        break;
-      case 'snake': // STRIKE: a fast lunge when the cadet gets close.
-        if (this.onGround && !flee && dist < TILE_SIZE * 2.3 && this.behaviorTimer <= 0) {
-          this.vy = -4; moveSpeed = this.speed * 3.6; this.behaviorTimer = 90;
-        }
+        if (windupDone) { this.charging = 14; this.vy = -4; moveSpeed = this.speed * (2.6 + ag); this.attackPower = 1.8; }
         break;
       case 'blob': // BOUNCY: a gelatinous hop on every landing.
         if (this.onGround) this.vy = -6.5;
         break;
       case 'critter': // SKITTISH: quick darts punctuated by little pauses.
         if (this.behaviorTimer <= 0) { this.behaviorTimer = 30 + Math.random() * 40; this.darting = Math.random() < 0.6; }
-        moveSpeed = this.darting ? this.speed * 1.9 : this.speed * 0.4;
+        moveSpeed = this.darting ? this.speed * (1.5 + 0.4 * ag) : this.speed * 0.4;
         if (this.onGround && this.darting && Math.random() < 0.08) this.vy = -5;
         break;
       case 'bot': // MARCHER: steady pace, pausing now and then to "scan".
@@ -580,8 +598,8 @@ class Mob {
         moveSpeed = this.scanning ? 0 : this.speed * 0.9;
         break;
       case 'floater': // DIVE-BOMB: hover, then swoop down toward the cadet.
-        if (this.behaviorTimer <= 0 && adx < TILE_SIZE * 5) { this.behaviorTimer = 120; this.diveTimer = 30; }
-        if (this.diveTimer > 0) { this.diveTimer--; this.vy += 0.9; moveSpeed = this.speed * 2.2; }
+        if (this.behaviorTimer <= 0 && adx < TILE_SIZE * 5) { this.behaviorTimer = Math.round(140 / ag); this.diveTimer = 28; }
+        if (this.diveTimer > 0) { this.diveTimer--; this.vy += 0.9; moveSpeed = this.speed * (1.7 + 0.4 * ag); this.attackPower = 1.5; }
         break;
     }
 
@@ -729,6 +747,12 @@ class Mob {
 
     // Squash/stretch from vertical speed, anchored at the feet.
     ctx.save();
+    // Wind-up tell: a brace-shake + red glow right before a charge/strike.
+    if (this.windupTimer > 0) {
+      ctx.translate(Math.sin(this.animTime * 3) * 1.6, 0);
+      ctx.fillStyle = 'rgba(239,68,68,0.18)';
+      ctx.beginPath(); ctx.arc(cx, cy, this.w * 0.72, 0, Math.PI * 2); ctx.fill();
+    }
     const syS = 1 + Math.max(-0.18, Math.min(0.22, -this.vy * 0.016));
     ctx.translate(cx, footY); ctx.scale(1 / syS, syS); ctx.translate(-cx, -footY);
     this.drawSpecies(ctx, cx, cy, footY, this.animTime, blink);
@@ -1072,7 +1096,9 @@ class Player {
     // Snappier turns: brake harder when input opposes motion (a quick skid) so direction
     // changes feel crisp — without changing top speed. Skid dust sells the stop.
     const reversing = (leftPressed && this.vx > 0.4) || (rightPressed && this.vx < -0.4);
-    const accel = walkAcceleration * (reversing && this.onGround ? 3.2 : 1);
+    // Snappy grounded skid (3.2x); also a bit of air-steering (1.6x) so a cadet flung by a
+    // knockback can fight back toward safety in low-gravity worlds.
+    const accel = walkAcceleration * (reversing ? (this.onGround ? 3.2 : 1.6) : 1);
     if (reversing && this.onGround && Math.abs(this.vx) > 1.5 && Math.random() < 0.5) {
       Particles.spawn(this.x + this.w / 2, this.y + this.h, '#e2e8f0', 2, this.vx * 0.4, -0.6, 14, 'glow');
     }

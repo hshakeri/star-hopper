@@ -113,9 +113,11 @@ const smoke = `
 
   // Every drawn mob species renders without throwing (incl. blink + hit-flash + squash).
   ['hog', 'snake', 'critter', 'blob', 'bot', 'floater'].forEach((sp, i) => {
-    const mob = new Mob(50 + i * 30, 100, sp, '#a78bfa');
+    const mob = new Mob(50 + i * 30, 100, sp, '#a78bfa', 1.4);
     mob.eyeDir = 1; mob.animTime = 1.3; mob.vy = -3;
     mob.draw(ctx, 0);
+    mob.windupTimer = 10; mob.draw(ctx, 0);            // wind-up tell (brace shake + glow)
+    mob.windupTimer = 0; mob.charging = 40; mob.draw(ctx, 0); // mid-charge
     mob.blinkTimer = 3; mob.hitFlash = 4; mob.draw(ctx, 0);
   });
   global.__mobsok = true;

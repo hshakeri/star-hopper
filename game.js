@@ -1568,11 +1568,12 @@ class StarHopperGame {
     const theme = (typeof MOB_THEMES !== 'undefined' && MOB_THEMES[this.currentPlanetIndex]) || ["blob"];
     const species = theme[Math.floor(Math.random() * theme.length)];
     const accent = (this.currentPlanet && this.currentPlanet.color) || '#a78bfa';
+    const aggro = [0.7, 0.9, 1.4, 1.0, 1.2, 1.1][this.currentPlanetIndex] || 1.0;
     const mapW = this.getActiveMap()[0].length * TILE_SIZE;
     const fromLeft = Math.random() < 0.5;
     let x = fromLeft ? this.cameraX - 20 : this.cameraX + this.canvas.width + 20;
     x = Math.max(0, Math.min(mapW - 30, x));
-    const m = new Mob(x, 50, species, accent);
+    const m = new Mob(x, 50, species, accent, aggro);
     m.say(SPEECH.pick('mobChatter'));
     this.mobs.push(m);
   }
@@ -1640,7 +1641,7 @@ class StarHopperGame {
       } else if (this.raveImmuneTimer > 0) {
         this.killMob(j, 'rave');
       } else if (m.woken) {
-        this.damagePlayer(1, 'mob', m.x);
+        this.damagePlayer(1, 'mob', m.x, m.attackPower || 1);
         if (this.state === 'gameover') return;
       } else if (this.survivalHitCooldown <= 0) {
         this.survivalHitCooldown = 70;
@@ -1717,7 +1718,8 @@ class StarHopperGame {
     const theme = (typeof MOB_THEMES !== 'undefined' && MOB_THEMES[this.currentPlanetIndex]) || ["blob"];
     const species = theme[Math.floor(Math.random() * theme.length)];
     const accent = (this.currentPlanet && this.currentPlanet.color) || '#a78bfa';
-    const m = new Mob(x, y, species, accent);
+    const aggro = [0.7, 0.9, 1.4, 1.0, 1.2, 1.1][this.currentPlanetIndex] || 1.0;
+    const m = new Mob(x, y, species, accent, aggro);
     m.hp = 2 + (this.currentPlanetIndex > 1 ? 1 : 0); // tougher off Earth/Moon
     m.woken = true;
     this.mobs.push(m);
@@ -2009,7 +2011,7 @@ class StarHopperGame {
   // i-frames + knockback so one touch can't drain multiple hearts, a hurt flash + (motion-safe)
   // screen shake, and routes to killPlayer at zero health. Falling out of bounds bypasses this
   // and stays an instant death.
-  damagePlayer(amount, cause, sourceX) {
+  damagePlayer(amount, cause, sourceX, knockback) {
     if (!this.player || this.state !== 'playing') return;
     if (this.player.invulnerableFrames > 0) return;          // already inside the grace window
     this.player.health = Math.max(0, (this.player.health || 0) - (amount || 1));
@@ -2017,8 +2019,16 @@ class StarHopperGame {
     const away = (typeof sourceX === 'number')
       ? (this.player.x < sourceX ? -1 : 1)
       : (this.player.facing ? -this.player.facing : -1);
-    this.player.vx = away * 4;
-    this.player.vy = -5;                                      // knock up and away
+    // Knockback varies by source: a charging hog flings you far, a drifting blob barely nudges.
+    const kb = (typeof knockback === 'number' && knockback > 0) ? knockback : 1;
+    // Scale by the world's gravity so a hit travels a similar distance on every planet —
+    // otherwise the same impulse hurls the cadet off-map in low/zero-G worlds (unfair deaths).
+    const g = (typeof this.getCurrentGravity === 'function') ? this.getCurrentGravity() : 0.6;
+    const gf = Math.max(0.45, Math.min(1, g / 0.6));
+    let kx = away * 4 * kb * gf;
+    kx = Math.sign(kx) * Math.min(Math.abs(kx), 8);          // bound the worst-case fling
+    this.player.vx = kx;
+    this.player.vy = (-5 - (kb - 1) * 2.2) * gf;             // harder hits pop you up more
     this.hurtFlashTimer = 12;
     if (!this.reducedMotion) { this.shakeMax = 14; this.shakeFrames = 14; this.shakeMag = 7; }
     if (typeof SFX !== 'undefined' && SFX.playError) SFX.playError();
