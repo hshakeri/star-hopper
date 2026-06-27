@@ -1383,6 +1383,34 @@ function runCombatTests() {
   } catch (err) {
     renderTestResult(SUITE, "Mobs: woken mob has HP and is flagged", false, err.message);
   }
+
+  // C9: a hog lines up and starts a charge; a blob bounces on the ground (species behaviors)
+  try {
+    const map = PLANETS[0].map;
+    const hog = new Mob(200, 200, 'hog', '#9a6b4f');
+    hog.onGround = true; hog.behaviorTimer = 0;
+    hog.update(map, { x: 200 + TILE_SIZE * 3, y: 200 }, false);
+    assertEquals(true, hog.charging > 0, "Hog starts a charge when level + in range");
+
+    const blob = new Mob(100, 96, 'blob', '#a78bfa');
+    blob.onGround = true;
+    blob.update(map, { x: 150, y: 96 }, false);
+    assertEquals(true, blob.vy < 0, "Blob bounces (hops) on the ground");
+    renderTestResult(SUITE, "Mobs: per-species behaviors (hog charge, blob bounce)", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Mobs: per-species behaviors (hog charge, blob bounce)", false, err.message);
+  }
+
+  // C10: reversing direction on the ground brakes harder than normal accel (snappy turns)
+  try {
+    const p = new Player(0, 0); p.charType = 'star'; p.onGround = true; p.vx = 4;
+    const stub = { getCurrentGravity: () => 0.6, starMass: 1, hopperMass: 2.5, player: p };
+    p.update({ 'ArrowLeft': true }, PLANETS[0], stub); // moving right (vx=4), pressing left
+    assertEquals(true, p.vx < 4 - 0.5, "Reversing decelerates faster than the base 0.5 accel");
+    renderTestResult(SUITE, "Movement: reversing triggers a snappy skid", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Movement: reversing triggers a snappy skid", false, err.message);
+  }
 }
 
 // Suite 5: Retry Remix — seeded procedural variation (same lesson, new instance)

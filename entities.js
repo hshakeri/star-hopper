@@ -525,6 +525,12 @@ class Mob {
     this.animTime = Math.random() * Math.PI * 2;
     this.blinkTimer = 60 + Math.random() * 160;
     this.eyeDir = this.dir;
+    // Per-species behavior state (charge / strike / dive / scan timers).
+    this.behaviorTimer = 20 + Math.random() * 60;
+    this.charging = 0;
+    this.diveTimer = 0;
+    this.scanning = false;
+    this.darting = false;
   }
   say(t) { this.sayText = t; this.sayTimer = 70; }
   _solid(tilemap, x, y) {
@@ -543,8 +549,44 @@ class Mob {
     if (--this.blinkTimer <= 0) this.blinkTimer = 70 + Math.random() * 170;
     this.vy += (this.species === 'floater') ? 0.22 : 0.5; // floaters drift lazily
 
+    // --- Per-species behavior: each creature plays differently ----------------
+    const dx = player.x - this.x, dy = player.y - this.y;
+    const adx = Math.abs(dx), dist = Math.hypot(dx, dy);
+    this.behaviorTimer--;
+    let moveSpeed = this.speed;
+    switch (this.species) {
+      case 'hog': // CHARGE: line up level with the cadet, then bull-rush.
+        if (this.charging > 0) { this.charging--; moveSpeed = this.speed * 3.2; }
+        else if (this.onGround && !flee && Math.abs(dy) < TILE_SIZE && adx > TILE_SIZE * 1.2 && adx < TILE_SIZE * 6 && this.behaviorTimer <= 0) {
+          this.charging = 42; this.behaviorTimer = 150;
+          if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(this.x + this.w / 2, this.y - 4, "!", "#ef4444", 0.9);
+        }
+        break;
+      case 'snake': // STRIKE: a fast lunge when the cadet gets close.
+        if (this.onGround && !flee && dist < TILE_SIZE * 2.3 && this.behaviorTimer <= 0) {
+          this.vy = -4; moveSpeed = this.speed * 3.6; this.behaviorTimer = 90;
+        }
+        break;
+      case 'blob': // BOUNCY: a gelatinous hop on every landing.
+        if (this.onGround) this.vy = -6.5;
+        break;
+      case 'critter': // SKITTISH: quick darts punctuated by little pauses.
+        if (this.behaviorTimer <= 0) { this.behaviorTimer = 30 + Math.random() * 40; this.darting = Math.random() < 0.6; }
+        moveSpeed = this.darting ? this.speed * 1.9 : this.speed * 0.4;
+        if (this.onGround && this.darting && Math.random() < 0.08) this.vy = -5;
+        break;
+      case 'bot': // MARCHER: steady pace, pausing now and then to "scan".
+        if (this.behaviorTimer <= 0) { this.behaviorTimer = 80 + Math.random() * 60; this.scanning = !this.scanning; }
+        moveSpeed = this.scanning ? 0 : this.speed * 0.9;
+        break;
+      case 'floater': // DIVE-BOMB: hover, then swoop down toward the cadet.
+        if (this.behaviorTimer <= 0 && adx < TILE_SIZE * 5) { this.behaviorTimer = 120; this.diveTimer = 30; }
+        if (this.diveTimer > 0) { this.diveTimer--; this.vy += 0.9; moveSpeed = this.speed * 2.2; }
+        break;
+    }
+
     // Horizontal move with wall + ledge awareness (no more blindly walking off cliffs).
-    const nx = this.x + this.dir * this.speed;
+    const nx = this.x + this.dir * moveSpeed;
     const wallAhead = this._solid(tilemap, nx, this.y);
     const groundAhead = this._solid(tilemap, nx, this.y + 8); // floor under the next step?
     if (wallAhead) {
@@ -1027,9 +1069,16 @@ class Player {
 
     // 3. Horizontal movement inputs (Active character only)
     const walkAcceleration = 0.5;
+    // Snappier turns: brake harder when input opposes motion (a quick skid) so direction
+    // changes feel crisp — without changing top speed. Skid dust sells the stop.
+    const reversing = (leftPressed && this.vx > 0.4) || (rightPressed && this.vx < -0.4);
+    const accel = walkAcceleration * (reversing && this.onGround ? 3.2 : 1);
+    if (reversing && this.onGround && Math.abs(this.vx) > 1.5 && Math.random() < 0.5) {
+      Particles.spawn(this.x + this.w / 2, this.y + this.h, '#e2e8f0', 2, this.vx * 0.4, -0.6, 14, 'glow');
+    }
     if (leftPressed) {
       this.facing = -1;
-      this.vx -= walkAcceleration;
+      this.vx -= accel;
       if (this.vx < -speedMultiplier) this.vx = -speedMultiplier;
       // Walking dust particles
       if (this.onGround && Math.random() < 0.15) {
@@ -1042,7 +1091,7 @@ class Player {
       }
     } else if (rightPressed) {
       this.facing = 1;
-      this.vx += walkAcceleration;
+      this.vx += accel;
       if (this.vx > speedMultiplier) this.vx = speedMultiplier;
       if (this.onGround && Math.random() < 0.15) {
         Particles.spawn(
