@@ -91,12 +91,27 @@ const smoke = `
   g.state = 'start';
   g.draw();             // exercises start-state branch -> drawSpaceBackground + drawStartBackdrop
   g.drawStartBackdrop();
+
+  // 5. Wave 4 playing-state draw: debris + meteors + hurt flash + screen shake + heart HUD
+  const gp = new StarHopperGame();
+  gp.canvas = makeCanvas(); gp.ctx = gp.canvas.getContext('2d');
+  gp.loadPlanet(1);     // Moon — a space-y world with debris
+  gp.state = 'playing';
+  gp.spawnDebris(); gp.spawnDebris();
+  gp.triggerMeteorShower();
+  gp.meteorPhase = 'active'; gp.meteorActiveTimer = 60; gp.meteorSpawnTimer = 0; gp.spawnMeteor();
+  gp.hurtFlashTimer = 8; gp.shakeFrames = 10; gp.shakeMag = 7; gp.shakeMax = 10; gp.reducedMotion = false;
+  for (let i = 0; i < 5; i++) { gp.updateDebris(); gp.updateMeteors(); gp.draw(); }
+  gp.drawMeteorBanner(gp.ctx); gp.drawHealthHUD(gp.ctx);
+  global.__wave4ok = true;
+
   global.__ok = true;
 `;
 eval(bundle + '\n' + smoke);
 
 check('pop-text draws without throwing and caps at 2', () => { if (global.__popCap !== 2) throw new Error('pop cap was ' + global.__popCap + ', expected 2'); });
 check('player + gem + start backdrop drew without throwing', () => { if (!global.__ok) throw new Error('smoke did not complete'); });
+check('Wave 4 hazards (debris/meteors/flash/shake/hearts) draw without throwing', () => { if (!global.__wave4ok) throw new Error('wave4 draw did not complete'); });
 
 console.log(`\nSmoke: ${pass} ok, ${fail} threw.`);
 process.exit(fail > 0 ? 1 : 0);

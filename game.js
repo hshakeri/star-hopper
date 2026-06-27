@@ -568,8 +568,19 @@ class StarHopperGame {
   }
 
   setupControls() {
+    // Honor the OS "reduce motion" setting — gates screen shake / heavy animation.
+    this.reducedMotion = !!(typeof window !== 'undefined' && window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
     // Capture keyboard buttons
     window.addEventListener("keydown", (e) => {
+      // Pause / resume with P or Escape (freezes the world mid-jump so you can write code).
+      // Ignored while typing in the shell so the keys can be typed normally.
+      if ((e.key === "p" || e.key === "P" || e.key === "Escape") &&
+          document.activeElement.id !== "console-input" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        if (typeof toggleGamePause === "function") { e.preventDefault(); toggleGamePause(); return; }
+      }
+
       // Shift+C toggles focus between the code shell and the game. Mac/Windows safe
       // (no system clash) and we ignore Ctrl/Cmd/Alt so it never hits Ctrl+Shift+C.
       if (e.shiftKey && (e.key === "C" || e.key === "c") && !e.metaKey && !e.ctrlKey && !e.altKey) {
@@ -686,6 +697,9 @@ class StarHopperGame {
     this.missionBalloon = null;   // clear any on-canvas mission balloon
     this.shownGemGateIds = new Set(); // re-arm gem-gate hints (bash + balloon) per level
     this.mobs = []; this.projectiles = []; this.mobSpawnTimer = 50; // fresh critters per planet
+    this.debris = []; this.debrisTimer = 90; // fresh drifting space debris per planet
+    this.meteors = []; this.meteorPhase = 'idle'; // meteor-shower event state machine
+    this.meteorIdleTimer = 1500 + Math.floor(Math.random() * 1500); // first shower ~25-50s in
 
     // On a same-level retry, keep the player's typed code tunings so progress
     // made one task at a time survives death/restart. Only the physical level
@@ -1291,6 +1305,10 @@ class StarHopperGame {
       this.gemGateNoticeCooldown--;
     }
 
+    // Health timers: i-frame blink window counts down; hurt red-flash fades.
+    if (this.player && this.player.invulnerableFrames > 0) this.player.invulnerableFrames--;
+    if (this.hurtFlashTimer > 0) this.hurtFlashTimer--;
+
     // 2. Run real-time mission completion validator
     this.checkMissions();
 
@@ -1314,10 +1332,11 @@ class StarHopperGame {
       }
     }
 
-    // 6. Terrain hazards use separate collision from solid ground so spikes remain dangerous.
+    // 6. Terrain hazards (spikes) chip health + bounce the cadet off (i-frames prevent
+    // a multi-hit drain in one touch). Death at 0 health routes through killPlayer.
     if (Physics.getHazardCollisions(this.player, this.getActiveMap()).length > 0) {
-      this.killPlayer("contact with terrain hazard!", "hazard");
-      return;
+      this.damagePlayer(1, "hazard");
+      if (this.state === 'gameover') return;
     }
 
     // 7. Check if player fell out of bounds (dead)
@@ -1357,12 +1376,20 @@ class StarHopperGame {
               ComicBubbles.spawn(enemy.x + enemy.w/2, enemy.y, "HELLO!", "rounded", "#4ade80");
             }
           } else {
-            this.killPlayer("collision damage from alien life form!", "enemy");
-            return;
+            this.damagePlayer(1, "enemy", enemy.x);
+            if (this.state === 'gameover') return;
           }
         }
       }
     }
+
+    // 9b. Drifting space debris (ambient hazard on space-y worlds)
+    this.updateDebris();
+    if (this.state === 'gameover') return;
+
+    // 9c. Meteor shower event (warning → falling meteors; shelter under overhangs)
+    this.updateMeteors();
+    if (this.state === 'gameover') return;
 
     // 10. Update objects and check collisions
     for (const obj of this.interactiveObjects) {
@@ -1632,6 +1659,175 @@ class StarHopperGame {
     }
   }
 
+  // ---- METEOR SHOWER ---------------------------------------------------------
+  // Is the cadet under a NEARBY overhang? Meteors fall from above, so a block a few tiles
+  // overhead shelters you. We scan only a short reach (not the whole column) and skip the
+  // top border row 0 — otherwise the level's solid ceiling border would make every spot
+  // "sheltered" and meteors could never land a hit.
+  isSheltered(p) {
+    const map = this.getActiveMap();
+    const col = Math.floor((p.x + p.w / 2) / TILE_SIZE);
+    const topRow = Math.floor(p.y / TILE_SIZE);
+    const SHELTER_REACH = 7;
+    for (let r = topRow - 1; r >= Math.max(1, topRow - SHELTER_REACH); r--) {
+      if (map[r] && map[r][col] === 1) return true;
+    }
+    return false;
+  }
+
+  // Kicks off the 3-second warning, then the shower. Used by the periodic timer and the
+  // KidCode meteor_shower() command. No-op if a shower is already running.
+  triggerMeteorShower() {
+    if (this.meteorPhase && this.meteorPhase !== 'idle') return "A meteor shower is already underway!";
+    this.meteorPhase = 'warning';
+    this.meteorWarnTimer = 180; // 3s @ 60fps
+    if (typeof SFX !== 'undefined' && SFX.playError) SFX.playError();
+    if (typeof ui_log_output === 'function') ui_log_output("☄️ Meteor shower incoming — take shelter under an overhang!", "error");
+    if (this.player && typeof ComicBubbles !== 'undefined') {
+      ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y - 8, "INCOMING!", "jagged", "#ef4444", -0.4, { maxLife: 90, scale: 1.4 });
+    }
+    return "Meteor shower incoming — take shelter!";
+  }
+
+  spawnMeteor() {
+    const cw = (this.canvas && this.canvas.width) || 720;
+    const x = this.cameraX + Math.random() * cw;
+    // Enter the play area BELOW any solid ceiling border so meteors actually fall in
+    // (levels have a solid row-0 border; spawning above it would just hit the ceiling).
+    const map = this.getActiveMap();
+    const col = Math.max(0, Math.min(map[0].length - 1, Math.floor(x / TILE_SIZE)));
+    let spawnRow = 0;
+    for (let r = 0; r < map.length; r++) { if (map[r] && map[r][col] === 1) spawnRow = r + 1; else break; }
+    const y = spawnRow * TILE_SIZE - 12;
+    const vx = (Math.random() - 0.5) * 1.6;
+    const vy = 3 + Math.random() * 2;
+    this.meteors.push(new Meteor(x, y, vx, vy));
+  }
+
+  updateMeteors() {
+    if (!this.player || !this.currentPlanet) return;
+    this.meteors = this.meteors || [];
+    const tilemap = this.getActiveMap();
+
+    // Phase machine: idle → warning(3s) → active(spawning ~7s) → cooldown → idle.
+    if (this.meteorPhase === 'idle') {
+      if (this.currentPlanetIndex !== 0) { // Earth base camp stays calm
+        this.meteorIdleTimer = (this.meteorIdleTimer || 0) - 1;
+        if (this.meteorIdleTimer <= 0) this.triggerMeteorShower();
+      }
+    } else if (this.meteorPhase === 'warning') {
+      if (--this.meteorWarnTimer <= 0) { this.meteorPhase = 'active'; this.meteorActiveTimer = 420; this.meteorSpawnTimer = 0; }
+    } else if (this.meteorPhase === 'active') {
+      this.meteorActiveTimer--;
+      if ((this.meteorSpawnTimer = (this.meteorSpawnTimer || 0) - 1) <= 0) {
+        this.meteorSpawnTimer = 10 + Math.floor(Math.random() * 12);
+        this.spawnMeteor();
+      }
+      if (this.meteorActiveTimer <= 0) { this.meteorPhase = 'cooldown'; this.meteorCooldownTimer = 120; }
+    } else if (this.meteorPhase === 'cooldown') {
+      if (--this.meteorCooldownTimer <= 0) { this.meteorPhase = 'idle'; this.meteorIdleTimer = 2100 + Math.floor(Math.random() * 1800); }
+    }
+
+    for (let i = this.meteors.length - 1; i >= 0; i--) {
+      const m = this.meteors[i];
+      m.update(tilemap);
+      if (m.dead) {
+        this.meteors.splice(i, 1);
+        Particles.spawnBurst(m.x + m.w / 2, m.y + m.h / 2, '#f59e0b', 9, 2.5, 2.5, 'glow');
+        continue;
+      }
+      if (Physics.isOverlapping(this.player, m) && !this.isSheltered(this.player)) {
+        this.meteors.splice(i, 1);
+        Particles.spawnBurst(m.x + m.w / 2, m.y + m.h / 2, '#f59e0b', 9, 2.5, 2.5, 'glow');
+        this.damagePlayer(1, 'meteor', m.x);
+        if (this.state === 'gameover') return;
+      }
+    }
+  }
+
+  drawMeteorBanner(ctx) {
+    if (this.meteorPhase !== 'warning') return;
+    const secs = Math.ceil((this.meteorWarnTimer || 0) / 60);
+    ctx.save();
+    const label = `☄️ METEOR SHOWER — TAKE SHELTER!  ${secs}`;
+    ctx.font = "bold 16px 'Outfit', sans-serif";
+    const tw = ctx.measureText(label).width;
+    const cx = this.canvas.width / 2;
+    const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 120);
+    ctx.fillStyle = `rgba(239,68,68,${0.55 + 0.25 * pulse})`;
+    ctx.beginPath(); ctx.roundRect(cx - tw / 2 - 16, 44, tw + 32, 30, 9); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, cx, 59);
+    ctx.restore();
+  }
+
+  // ---- SPACE DEBRIS ("wonder pieces") ----------------------------------------
+  spawnDebris() {
+    if (!this.currentPlanet || !this.currentPlanet.map) return;
+    const mapW = this.getActiveMap()[0].length * TILE_SIZE;
+    const size = 16 + Math.random() * 18;
+    const fromLeft = Math.random() < 0.5;
+    const cw = (this.canvas && this.canvas.width) || 720;
+    let x = fromLeft ? this.cameraX - 30 : this.cameraX + cw + 30;
+    x = Math.max(-30, Math.min(mapW + 30, x));
+    const y = 30 + Math.random() * 230;
+    const vx = (fromLeft ? 1 : -1) * (0.6 + Math.random() * 1.0);
+    const vy = (Math.random() - 0.5) * 0.5;
+    this.debris.push(new Debris(x, y, vx, vy, size));
+  }
+
+  updateDebris() {
+    if (!this.debris || !this.player) return;
+    // Per-world drift rate (frames between chunks). Space-y worlds get more; Earth (base
+    // camp) gets none so the intro world stays calm for beginners.
+    const rates = { 1: 220, 2: 200, 3: 240, 4: 160, 5: 120 };
+    const rate = rates[this.currentPlanetIndex];
+    if (rate) {
+      this.debrisTimer = (this.debrisTimer || 0) - 1;
+      if (this.debrisTimer <= 0 && this.debris.length < 6) {
+        this.debrisTimer = rate + Math.floor(Math.random() * 90);
+        this.spawnDebris();
+      }
+    }
+    const mapW = this.getActiveMap()[0].length * TILE_SIZE;
+    for (let i = this.debris.length - 1; i >= 0; i--) {
+      const d = this.debris[i];
+      d.update();
+      if (d.x < -80 || d.x > mapW + 80 || d.y > 480) { this.debris.splice(i, 1); continue; }
+      if (Physics.isOverlapping(this.player, d)) {
+        this.debris.splice(i, 1);                 // the chunk shatters on impact
+        Particles.spawnBurst(d.x + d.w / 2, d.y + d.h / 2, '#9ca3af', 10, 2.5, 2.5);
+        this.damagePlayer(1, 'debris', d.x);
+        if (this.state === 'gameover') return;
+      }
+    }
+  }
+
+  // Chip the cadet's health from a contact hazard (debris, meteor, spikes, enemy). Applies
+  // i-frames + knockback so one touch can't drain multiple hearts, a hurt flash + (motion-safe)
+  // screen shake, and routes to killPlayer at zero health. Falling out of bounds bypasses this
+  // and stays an instant death.
+  damagePlayer(amount, cause, sourceX) {
+    if (!this.player || this.state !== 'playing') return;
+    if (this.player.invulnerableFrames > 0) return;          // already inside the grace window
+    this.player.health = Math.max(0, (this.player.health || 0) - (amount || 1));
+    this.player.invulnerableFrames = 70;                     // ~1.2s grace + blink
+    const away = (typeof sourceX === 'number')
+      ? (this.player.x < sourceX ? -1 : 1)
+      : (this.player.facing ? -this.player.facing : -1);
+    this.player.vx = away * 4;
+    this.player.vy = -5;                                      // knock up and away
+    this.hurtFlashTimer = 12;
+    if (!this.reducedMotion) { this.shakeMax = 14; this.shakeFrames = 14; this.shakeMag = 7; }
+    if (typeof SFX !== 'undefined' && SFX.playError) SFX.playError();
+    if (typeof ComicBubbles !== 'undefined') {
+      ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y, SPEECH.pick("bonk"), "jagged", "#ef4444", -0.3, { maxLife: 36 });
+    }
+    if (this.player.health <= 0) {
+      this.killPlayer(cause || "out of health!", cause || "enemy");
+    }
+  }
+
   killPlayer(cause, tag) {
     this.state = 'gameover';
     // Remember WHY for the lab report (diagnostics.js reads live telemetry + this).
@@ -1743,6 +1939,19 @@ class StarHopperGame {
 
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
+    // Screen shake on damage (motion-safe): nudge the WORLD a few px for a few frames.
+    // Restored before the screen-space overlays (vignette/HUD) so those stay stable.
+    let _shaking = false;
+    if (this.shakeFrames > 0) {
+      this.shakeFrames--;
+      if (!this.reducedMotion && this.shakeMag > 0) {
+        const k = this.shakeMag * (this.shakeFrames / (this.shakeMax || 1));
+        this.ctx.save();
+        this.ctx.translate((Math.random() - 0.5) * k, (Math.random() - 0.5) * k);
+        _shaking = true;
+      }
+    }
+
     // 1. Draw Parallax Space Background
     this.drawSpaceBackground();
 
@@ -1764,6 +1973,12 @@ class StarHopperGame {
     for (const enemy of this.enemies) {
       enemy.draw(this.ctx, this.cameraX);
     }
+
+    // 4b. Draw drifting space debris ("wonder pieces")
+    if (this.debris) for (const d of this.debris) d.draw(this.ctx, this.cameraX);
+
+    // 4c. Draw falling meteors
+    if (this.meteors) for (const m of this.meteors) m.draw(this.ctx, this.cameraX);
 
     // 5. Draw Player Character
     this.player.draw(this.ctx, this.cameraX, this);
@@ -1787,6 +2002,9 @@ class StarHopperGame {
       ComicBubbles.draw(this.ctx, this.cameraX);
     }
 
+    // End screen shake before the screen-space overlays so they don't jitter.
+    if (_shaking) { this.ctx.restore(); _shaking = false; }
+
     // 9c. Soft planet-tinted vignette over the world (cached; one drawImage),
     // under the screen-space balloon so UI text stays at full brightness.
     if (typeof RenderCache !== 'undefined') {
@@ -1794,8 +2012,39 @@ class StarHopperGame {
       if (vig) this.ctx.drawImage(vig, 0, 0);
     }
 
+    // 9d. Hurt red-flash overlay (screen-space), fades over ~12 frames.
+    if (this.hurtFlashTimer > 0) {
+      this.ctx.save();
+      this.ctx.fillStyle = `rgba(239, 68, 68, ${0.32 * (this.hurtFlashTimer / 12)})`;
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      this.ctx.restore();
+    }
+
+    // 9e. Heart health HUD (top-left).
+    this.drawHealthHUD(this.ctx);
+
+    // 9f. Meteor-shower "take shelter" warning banner (screen-space).
+    this.drawMeteorBanner(this.ctx);
+
     // 10. Mission/objective speech balloon (screen-space, top-center)
     this.drawMissionBalloon(this.ctx);
+  }
+
+  drawHealthHUD(ctx) {
+    if (!this.player || this.state !== 'playing') return;
+    const max = this.player.maxHealth || 0;
+    if (max <= 0) return;
+    ctx.save();
+    ctx.font = "16px serif";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    let s = "";
+    for (let i = 0; i < max; i++) s += (i < this.player.health) ? "❤️" : "🤍";
+    const tw = ctx.measureText(s).width;
+    ctx.fillStyle = "rgba(11,16,34,0.45)";
+    ctx.beginPath(); ctx.roundRect(8, 8, tw + 12, 24, 7); ctx.fill();
+    ctx.fillText(s, 14, 11);
+    ctx.restore();
   }
 
   drawSpaceBackground() {

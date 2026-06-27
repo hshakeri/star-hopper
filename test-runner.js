@@ -1176,6 +1176,87 @@ function runSolarTests() {
   }
 }
 
+// Suite: Wave 4 hazards & health (damage model, meteor event, shelter)
+function runHazardTests() {
+  const SUITE = "hazard-suite";
+
+  // H1: damagePlayer chips a heart, starts i-frames, and i-frames block a repeat hit
+  try {
+    const game = new StarHopperGame();
+    game.state = 'playing';
+    game.player = new Player(0, 0);
+    game.reducedMotion = true;
+    assertEquals(3, game.player.health, "Player starts at 3 hearts");
+    game.damagePlayer(1, 'debris', 100);
+    assertEquals(2, game.player.health, "A hit drops one heart");
+    assertEquals(true, game.player.invulnerableFrames > 0, "A hit starts i-frames");
+    game.damagePlayer(1, 'debris', 100);
+    assertEquals(2, game.player.health, "A second hit during i-frames is ignored");
+    renderTestResult(SUITE, "Health: damagePlayer chips a heart + i-frames block re-hit", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Health: damagePlayer chips a heart + i-frames block re-hit", false, err.message);
+  }
+
+  // H2: draining to zero health ends the run (routes to killPlayer → gameover)
+  try {
+    const game = new StarHopperGame();
+    game.state = 'playing';
+    game.player = new Player(0, 0);
+    game.reducedMotion = true;
+    for (let i = 0; i < 3; i++) { game.player.invulnerableFrames = 0; game.damagePlayer(1, 'enemy'); }
+    assertEquals(0, game.player.health, "Three hits empty the health bar");
+    assertEquals('gameover', game.state, "Zero health → gameover");
+    renderTestResult(SUITE, "Health: zero hearts ends the run", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Health: zero hearts ends the run", false, err.message);
+  }
+
+  // H3: meteor-shower phase machine (idle→warning→active→cooldown→idle)
+  try {
+    const game = new StarHopperGame();
+    game.state = 'playing';
+    game.player = new Player(64, 250);
+    game.currentPlanet = PLANETS[1];
+    game.currentVariant = { map: PLANETS[1].map };
+    game.currentPlanetIndex = 1;
+    game.cameraX = 0;
+    game.meteors = []; game.meteorPhase = 'idle';
+    game.triggerMeteorShower();
+    assertEquals('warning', game.meteorPhase, "Trigger enters the warning phase");
+    game.meteorWarnTimer = 1; game.updateMeteors();
+    assertEquals('active', game.meteorPhase, "Warning elapses → active");
+    game.meteorActiveTimer = 1; game.updateMeteors();
+    assertEquals('cooldown', game.meteorPhase, "Active elapses → cooldown");
+    game.meteorCooldownTimer = 1; game.updateMeteors();
+    assertEquals('idle', game.meteorPhase, "Cooldown elapses → idle");
+    renderTestResult(SUITE, "Meteor: warning→active→cooldown→idle phases", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Meteor: warning→active→cooldown→idle phases", false, err.message);
+  }
+
+  // H4: isSheltered = a NEARBY overhang protects; the far ceiling border does NOT
+  // (levels have a solid row-0 border — it must not make every spot "sheltered").
+  try {
+    const game = new StarHopperGame();
+    const map = [
+      [1, 1, 1, 1],   // row 0: solid ceiling border, like real levels
+      [0, 0, 0, 0],
+      [0, 1, 0, 0],   // row 2: an interior platform over column 1
+      [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0],
+      [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0],
+      [1, 1, 1, 1],   // floor
+    ];
+    game.currentPlanet = { map }; game.currentVariant = { map };
+    const underOverhang = { x: TILE_SIZE * 1, y: TILE_SIZE * 5, w: 20, h: 20 }; // col1, below the row-2 platform
+    const openFarCeiling = { x: TILE_SIZE * 3, y: TILE_SIZE * 9, w: 20, h: 20 }; // col3, only the far ceiling above
+    assertEquals(true, game.isSheltered(underOverhang), "A nearby overhang = sheltered");
+    assertEquals(false, game.isSheltered(openFarCeiling), "Only the far ceiling border = exposed");
+    renderTestResult(SUITE, "Meteor: shelter = nearby overhang, not the far ceiling", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Meteor: shelter = nearby overhang, not the far ceiling", false, err.message);
+  }
+}
+
 // Suite 5: Retry Remix — seeded procedural variation (same lesson, new instance)
 function runRetryRemixTests() {
   const SUITE = "remix-suite";

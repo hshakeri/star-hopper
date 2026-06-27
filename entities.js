@@ -585,6 +585,74 @@ class Projectile {
   }
 }
 
+// Drifting space debris ("wonder pieces") — leftover chunks from old crashes that float
+// across space-y worlds and chip the hopper's health on contact. Not affected by gravity;
+// it drifts in a straight line + slowly tumbles, and shatters when it hits the cadet.
+class Debris {
+  constructor(x, y, vx, vy, size) {
+    this.x = x; this.y = y; this.vx = vx; this.vy = vy;
+    this.w = size; this.h = size;
+    this.angle = (typeof Math !== 'undefined' ? Math.random() : 0) * Math.PI * 2;
+    this.spin = (Math.random() - 0.5) * 0.06;
+    this.shape = [];                       // jagged unit radii for a rocky silhouette
+    for (let i = 0; i < 7; i++) this.shape.push(0.6 + Math.random() * 0.4);
+  }
+  update() { this.x += this.vx; this.y += this.vy; this.angle += this.spin; }
+  draw(ctx, cameraX) {
+    const sx = this.x + this.w / 2 - cameraX, sy = this.y + this.h / 2, r = this.w / 2;
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.rotate(this.angle);
+    ctx.beginPath();
+    for (let i = 0; i < this.shape.length; i++) {
+      const a = (i / this.shape.length) * Math.PI * 2;
+      const rr = r * this.shape[i];
+      const px = Math.cos(a) * rr, py = Math.sin(a) * rr;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fillStyle = '#6b7280';                          // gray rock
+    ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = '#0b1224';     // comic ink outline
+    ctx.lineJoin = 'round'; ctx.stroke();
+    ctx.fillStyle = '#4b5563';                          // a crater dot
+    ctx.beginPath(); ctx.arc(-r * 0.2, -r * 0.12, r * 0.2, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+}
+
+// A meteor in a meteor-shower event: falls from the sky under gravity at a slight angle,
+// trailing fire, and bursts on the ground. Damages the cadet on contact unless sheltered.
+class Meteor {
+  constructor(x, y, vx, vy) {
+    this.x = x; this.y = y; this.vx = vx; this.vy = vy;
+    this.w = 16; this.h = 16;
+    this.angle = Math.atan2(vy, vx);
+    this.dead = false;
+  }
+  update(tilemap) {
+    this.vy += 0.35;                         // gravity
+    this.x += this.vx; this.y += this.vy;
+    this.angle = Math.atan2(this.vy, this.vx);
+    const c = Math.floor((this.x + this.w / 2) / TILE_SIZE);
+    const r = Math.floor((this.y + this.h) / TILE_SIZE);
+    if (tilemap[r] && tilemap[r][c] === 1) this.dead = true;  // hit ground
+    if (this.y > 470) this.dead = true;
+  }
+  draw(ctx, cameraX) {
+    const sx = this.x + this.w / 2 - cameraX, sy = this.y + this.h / 2;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(251,146,60,0.5)'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(sx - this.vx * 2.5, sy - this.vy * 2.5); ctx.lineTo(sx, sy); ctx.stroke();
+    ctx.translate(sx, sy); ctx.rotate(this.angle);
+    ctx.fillStyle = '#f59e0b'; ctx.strokeStyle = '#0b1224'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, 0, this.w / 2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#fde68a';
+    ctx.beginPath(); ctx.arc(-2, -2, this.w / 5, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+}
+
 // The Main Player Class (Swappable between Star & Hopper)
 class Player {
   constructor(x, y) {
@@ -629,6 +697,13 @@ class Player {
     // Split/Co-op coordinates control
     this.isStationary = false;
     this.facing = 1;
+
+    // Health: the cadet can take a few hits (space debris, meteors, enemies each chip 1)
+    // before the run ends, with brief invulnerability + knockback after each hit. Falling
+    // out of bounds is still instant. Reset to full on every level start (new Player).
+    this.maxHealth = 3;
+    this.health = 3;
+    this.invulnerableFrames = 0; // i-frames after a hit: blocks re-damage and blinks the sprite
   }
 
   // Retro 80s-style speech balloon. opts: { emoji, shout, timer, dialogue }
@@ -1030,6 +1105,11 @@ class Player {
     // Make inactive companion slightly translucent
     if (!isActive) {
       ctx.globalAlpha = 0.6;
+    }
+
+    // Blink while invulnerable after taking a hit (alpha flicker, ~every 80ms).
+    if (this.invulnerableFrames > 0) {
+      ctx.globalAlpha *= (Math.floor(Date.now() / 80) % 2 === 0) ? 0.3 : 0.75;
     }
 
     // Active pointer visual ring below active player's feet
