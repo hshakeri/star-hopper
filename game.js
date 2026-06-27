@@ -822,6 +822,9 @@ class StarHopperGame {
       }
     }
 
+    // Scatter a few breakable "?" blocks into the level (before the terrain is baked).
+    this.placeBreakableBlocks();
+
     // Set document head name
     const titleText = document.getElementById("header-planet-title");
     if (titleText) titleText.textContent = this.currentPlanet.name;
@@ -1349,6 +1352,18 @@ class StarHopperGame {
       return;
     }
 
+    // 7b. Stranded: out of fuel with no way to recharge (the ground refuels fast, so this
+    // only triggers when truly stuck/airborne on an empty tank) → restart like a death.
+    if (this.player.fuel <= 0) {
+      this.strandedTimer = (this.strandedTimer || 0) + 1;
+      if (this.strandedTimer > 150) {
+        this.killPlayer("stranded — out of fuel!", "fuel");
+        return;
+      }
+    } else {
+      this.strandedTimer = 0;
+    }
+
     // 8. Update camera positioning (lerp horizontal viewport centering)
     const targetCamX = this.player.x - this.canvas.width / 2;
     const maxCamX = (this.getActiveMap()[0].length * TILE_SIZE) - this.canvas.width;
@@ -1482,6 +1497,10 @@ class StarHopperGame {
     // (and always in survival). Projectiles hit campaign enemies AND survival mobs.
     this.updateCombat();
 
+    // 12e. Mobs (survival spawns + block-woken) move and fight here.
+    this.updateMobs();
+    if (this.state === 'gameover') return;
+
     // 13. Redraw HUD sidebar charts & variables
     updateHUD(this);
     if (typeof updateNotebook === 'function') {
@@ -1574,46 +1593,126 @@ class StarHopperGame {
 
   updateSurvival() {
     if (!this.survivalMode || !this.player || !this.currentPlanet) return;
-    const tilemap = this.getActiveMap();
-    const mapW = tilemap[0].length * TILE_SIZE;
     if (this.raveImmuneTimer > 0) this.raveImmuneTimer--;
     if (this.survivalHitCooldown > 0) this.survivalHitCooldown--;
-    const flee = this.raveImmuneTimer > 0;
 
-    // Spawn cadence (ramps up with score)
+    // Spawn cadence (ramps up with score). Mob movement/collision is in updateMobs() so
+    // woken mobs (from broken blocks) move and fight in normal play too.
     if (--this.mobSpawnTimer <= 0 && this.mobs.length < 8) {
       this.mobSpawnTimer = Math.max(45, 120 - Math.floor(this.survivalScore / 40) * 8);
       this.spawnMob();
     }
+  }
 
-    // (Firing + projectile-vs-target collisions now live in updateCombat() so shooting
-    // works in normal play too; survival only spawns mobs and runs mob-vs-player below.)
-
-    // Mobs vs player
+  // Unified mob update — runs every frame for ALL mobs (survival spawns AND block-woken).
+  // Stomp/shots chip mob hp; a woken mob that touches the cadet chips health (i-frames +
+  // knockback), while a survival mob just bonks for a score penalty (the mini-game's rule).
+  updateMobs() {
+    if (!this.player || !this.mobs || !this.mobs.length) return;
+    const tilemap = this.getActiveMap();
+    const mapW = tilemap[0].length * TILE_SIZE;
+    const flee = this.raveImmuneTimer > 0;
     for (let j = this.mobs.length - 1; j >= 0; j--) {
       const m = this.mobs[j];
       m.update(tilemap, this.player, flee);
-      if (m.y > 470 || m.x < -50 || m.x > mapW + 50) { this.mobs.splice(j, 1); continue; }
-      if (Physics.isOverlapping(this.player, m)) {
-        const isStomp = (this.player.vy > 0.5 && this.player.y + this.player.h - this.player.vy <= m.y + 9);
-        if (isStomp) { this.player.vy = -7; this.killMob(j, 'stomp'); }
-        else if (this.raveImmuneTimer > 0) { this.killMob(j, 'rave'); }
-        else if (this.survivalHitCooldown <= 0) {
-          this.survivalHitCooldown = 70;
-          this.player.vy = -5;
-          this.player.vx = (this.player.x < m.x ? -4 : 4);
-          this.survivalScore = Math.max(0, this.survivalScore - 5);
-          if (typeof SFX !== 'undefined' && SFX.playError) SFX.playError();
-          if (typeof ComicBubbles !== 'undefined') ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y, SPEECH.pick('bonk'), "jagged", "#ef4444", -0.3, { maxLife: 40 });
-        }
+      if (m.y > 470 || m.x < -60 || m.x > mapW + 60) { this.mobs.splice(j, 1); continue; }
+      if (!Physics.isOverlapping(this.player, m)) continue;
+      const isStomp = (this.player.vy > 0.5 && this.player.y + this.player.h - this.player.vy <= m.y + 9);
+      if (isStomp) {
+        this.player.vy = -7;
+        m.hp = (typeof m.hp === 'number' ? m.hp : 1) - 1;
+        if (m.hp <= 0) { const woken = m.woken; this.killMob(j, 'stomp'); if (woken) this.addXP(6); }
+        else { m.hitFlash = 6; if (typeof SFX !== 'undefined' && SFX.playStomp) SFX.playStomp(); }
+      } else if (this.raveImmuneTimer > 0) {
+        this.killMob(j, 'rave');
+      } else if (m.woken) {
+        this.damagePlayer(1, 'mob', m.x);
+        if (this.state === 'gameover') return;
+      } else if (this.survivalHitCooldown <= 0) {
+        this.survivalHitCooldown = 70;
+        this.player.vy = -5;
+        this.player.vx = (this.player.x < m.x ? -4 : 4);
+        this.survivalScore = Math.max(0, this.survivalScore - 5);
+        if (typeof SFX !== 'undefined' && SFX.playError) SFX.playError();
+        if (typeof ComicBubbles !== 'undefined') ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y, SPEECH.pick('bonk'), "jagged", "#ef4444", -0.3, { maxLife: 40 });
       }
     }
   }
 
+  // ---- BREAKABLE BLOCKS + CRATERS --------------------------------------------
+  // Carve a solid tile out of the world (block broken or meteor crater): clear the map
+  // cell, drop the baked terrain so it visually disappears, and puff debris.
+  carveTile(r, c) {
+    const map = this.getActiveMap();
+    if (!map[r] || (map[r][c] !== 1 && map[r][c] !== 10)) return false;
+    map[r][c] = 0;
+    if (typeof RenderCache !== 'undefined' && RenderCache.invalidateTile) RenderCache.invalidateTile();
+    if (typeof Particles !== 'undefined') Particles.spawnBurst(c * TILE_SIZE + 16, r * TILE_SIZE + 16, '#cbd5e1', 10, 2.5, 2.5);
+    return true;
+  }
+
+  // Bump a breakable block from below → open it. Seeded by (r,c,attempt) so a block is
+  // consistent on a retry: hidden gem, a blaster, a woken mob, or just rubble.
+  breakBlock(r, c) {
+    const map = this.getActiveMap();
+    if (!map[r] || map[r][c] !== 10) return;
+    this.carveTile(r, c);
+    if (typeof SFX !== 'undefined' && SFX.playStomp) SFX.playStomp();
+    const seed = ((r * 73856093) ^ (c * 19349663) ^ ((this.retryAttempt || 0) * 2654435761)) >>> 0;
+    const rng = (typeof mulberry32 === 'function') ? mulberry32(seed) : Math.random;
+    const roll = rng();
+    const dropX = c * TILE_SIZE, dropY = (r - 1) * TILE_SIZE;
+    if (roll < 0.40) {
+      this.spawnItemAbovePlayer('coin', dropX, dropY);
+      if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(dropX + 16, dropY, "GEM!", "#facc15", 1.0);
+    } else if (roll < 0.60) {
+      this.interactiveObjects.push(new InteractiveObject(dropX, dropY, 'weapon'));
+      if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(dropX + 16, dropY, "BLASTER!", "#facc15", 1.1);
+    } else if (roll < 0.85) {
+      this.wakeMob(dropX, dropY);
+    } else if (typeof ComicBubbles !== 'undefined') {
+      ComicBubbles.pop(dropX + 16, dropY, "POOF!", "#cbd5e1", 0.9);
+    }
+  }
+
+  // Scatter a few breakable blocks into open air above platforms (deterministic per attempt)
+  // so every world has some to bump — without editing the hand-built maps.
+  placeBreakableBlocks() {
+    const map = this.getActiveMap();
+    if (!map || !map.length) return;
+    const rng = (typeof mulberry32 === 'function')
+      ? mulberry32(((this.currentPlanetIndex * 2654435761) ^ ((this.retryAttempt || 0) * 40503)) >>> 0)
+      : Math.random;
+    const rows = map.length, cols = map[0].length;
+    let placed = 0, guard = 0;
+    while (placed < 4 && guard++ < 500) {
+      const c = 3 + Math.floor(rng() * (cols - 6));
+      const r = 3 + Math.floor(rng() * (rows - 6));
+      if (map[r][c] !== 0) continue;                       // block cell must be air
+      if (map[r + 1] && map[r + 1][c] !== 0) continue;     // air below (room to bump from beneath)
+      if (map[r - 1] && map[r - 1][c] === 1) continue;     // not buried under a ceiling
+      let groundBelow = false;
+      for (let dr = 2; dr <= 4; dr++) { if (map[r + dr] && map[r + dr][c] === 1) { groundBelow = true; break; } }
+      if (!groundBelow) continue;                          // reachable platform underneath
+      map[r][c] = 10;
+      placed++;
+    }
+  }
+
+  wakeMob(x, y) {
+    const theme = (typeof MOB_THEMES !== 'undefined' && MOB_THEMES[this.currentPlanetIndex]) || ["👾"];
+    const emoji = theme[Math.floor(Math.random() * theme.length)];
+    const m = new Mob(x, y, emoji);
+    m.hp = 2 + (this.currentPlanetIndex > 1 ? 1 : 0); // tougher off Earth/Moon
+    m.woken = true;
+    this.mobs.push(m);
+    if (typeof SFX !== 'undefined' && SFX.playError) SFX.playError();
+    if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(x + 13, y, "!", "#ef4444", 1.1);
+  }
+
   drawSurvival(ctx) {
     if (!this.survivalMode) return;
-    // (Projectiles are drawn in the main draw() now so they show in normal play too.)
-    for (const m of this.mobs) m.draw(ctx, this.cameraX);
+    // (Projectiles + mobs are drawn in the main draw() now so they show in normal play too.)
     // Score readout, top-center (clear of the corner bubbles)
     ctx.save();
     ctx.font = "bold 13px 'Outfit', sans-serif";
@@ -1808,10 +1907,18 @@ class StarHopperGame {
       if (--this.meteorCooldownTimer <= 0) { this.meteorPhase = 'idle'; this.meteorIdleTimer = 2100 + Math.floor(Math.random() * 1800); }
     }
 
+    // The whole view rumbles during the warning + shower (gentle; yields to a bigger
+    // damage shake; skipped under reduced-motion).
+    if ((this.meteorPhase === 'warning' || this.meteorPhase === 'active') && !this.reducedMotion && (this.shakeFrames || 0) < 2) {
+      this.shakeFrames = 2; this.shakeMag = 3; this.shakeMax = 2;
+    }
+
     for (let i = this.meteors.length - 1; i >= 0; i--) {
       const m = this.meteors[i];
       m.update(tilemap);
       if (m.dead) {
+        // Ground impacts sometimes blast a crater (carve the hit tile).
+        if (m.impactR != null && Math.random() < 0.5) this.carveTile(m.impactR, m.impactC);
         this.meteors.splice(i, 1);
         Particles.spawnBurst(m.x + m.w / 2, m.y + m.h / 2, '#f59e0b', 9, 2.5, 2.5, 'glow');
         continue;
@@ -2062,6 +2169,9 @@ class StarHopperGame {
 
     // 4d. Draw player projectiles (works in normal play once armed)
     if (this.projectiles) for (const p of this.projectiles) p.draw(this.ctx, this.cameraX);
+
+    // 4e. Draw mobs (survival + block-woken)
+    if (this.mobs) for (const m of this.mobs) m.draw(this.ctx, this.cameraX);
 
     // 5. Draw Player Character
     this.player.draw(this.ctx, this.cameraX, this);

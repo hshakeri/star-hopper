@@ -75,10 +75,15 @@ class PhysicsEngine {
           } else if (totalVy < 0) {
             entity.y = (t.r + 1) * TILE_SIZE;
             entity.vy = 0;
-            const nowBump = Date.now();
-            if (Math.abs(totalVy) > 1.5 && typeof ComicBubbles !== 'undefined' && (!entity._bumpBubbleAt || nowBump - entity._bumpBubbleAt > 600)) {
-              entity._bumpBubbleAt = nowBump;
-              ComicBubbles.spawn(entity.x + entity.w/2, entity.y, SPEECH.pick("bump"), "rounded", "#bae6fd");
+            // Mario-style: bumping a breakable block (tile 10) from below breaks it open.
+            if (tilemap[t.r] && tilemap[t.r][t.c] === 10 && game && typeof game.breakBlock === 'function') {
+              game.breakBlock(t.r, t.c);
+            } else {
+              const nowBump = Date.now();
+              if (Math.abs(totalVy) > 1.5 && typeof ComicBubbles !== 'undefined' && (!entity._bumpBubbleAt || nowBump - entity._bumpBubbleAt > 600)) {
+                entity._bumpBubbleAt = nowBump;
+                ComicBubbles.spawn(entity.x + entity.w/2, entity.y, SPEECH.pick("bump"), "rounded", "#bae6fd");
+              }
             }
           }
         }
@@ -129,7 +134,7 @@ class PhysicsEngine {
     const collisions = [];
     const epsilon = 0.01;
     const solidBottomOutOfBounds = options.solidBottomOutOfBounds !== false;
-    const tileValues = options.tileValues || [1];
+    const tileValues = options.tileValues || [1, 10]; // 10 = breakable block (solid until bumped)
     const colLeft = Math.floor(entity.x / TILE_SIZE);
     const colRight = Math.floor((entity.x + entity.w - epsilon) / TILE_SIZE);
     const rowTop = Math.floor(entity.y / TILE_SIZE);

@@ -495,11 +495,12 @@ const ComicBubbles = new ComicBubbleEngine();
 // so each world feels distinct, with their own little trash-talk balloons.
 // ---------------------------------------------------------------------------
 const MOB_THEMES = [
-  ["🐯", "🐺", "🦂", "🐗", "🐍"],   // 0 Earth — beasts
-  ["👾", "🛸", "🌚", "🦠"],          // 1 Moon — aliens
-  ["👹", "🐲", "🔥", "👺"],          // 2 Jupiter — storm demons
-  ["🐧", "🦭", "❄️", "🐻‍❄️"],         // 3 Glacies — frost things
-  ["🤖", "🧲", "⚡", "👁️"]           // 4 Mag-Net — machines
+  ["🐗", "🐍", "🦔", "🦊", "🐀"],   // 0 Earth — earthly critters (hog, snake, hedgehog, fox, rat)
+  ["👾", "🛸", "👽", "🌚"],          // 1 Moon — aliens
+  ["👽", "👾", "🔥", "🛸"],          // 2 Jupiter — fiery aliens
+  ["👽", "🛸", "❄️", "👾"],          // 3 Glacies — frost aliens
+  ["🤖", "👾", "⚡", "🛸"],          // 4 Mag-Net — machine aliens
+  ["👾", "🛸", "🪨", "👽"]           // 5 Asteroid Forge — drifter aliens
 ];
 
 class Mob {
@@ -527,10 +528,23 @@ class Mob {
     const toward = (player.x > this.x ? 1 : -1);
     this.dir = flee ? -toward : toward;
     this.vy += 0.5;
-    // horizontal (turn at walls)
+
+    // Horizontal move with wall + ledge awareness (no more blindly walking off cliffs).
     const nx = this.x + this.dir * this.speed;
-    if (!this._solid(tilemap, nx, this.y)) this.x = nx; else this.dir *= -1;
-    // vertical
+    const wallAhead = this._solid(tilemap, nx, this.y);
+    const groundAhead = this._solid(tilemap, nx, this.y + 8); // floor under the next step?
+    if (wallAhead) {
+      // Wall in the way: a grounded chaser hops it; otherwise turn around.
+      if (this.onGround && !flee && Math.random() < 0.6) this.vy = -7;
+      else this.dir *= -1;
+    } else if (this.onGround && !groundAhead && !flee) {
+      // Edge ahead: leap the gap toward a distant cadet, else stop at the brink.
+      if (Math.abs(player.x - this.x) > TILE_SIZE && Math.random() < 0.5) { this.vy = -7.5; this.x = nx; }
+    } else {
+      this.x = nx;
+    }
+
+    // Vertical integrate + ground resolve.
     this.y += this.vy;
     this.onGround = false;
     if (this._solid(tilemap, this.x, this.y)) {
@@ -538,8 +552,10 @@ class Mob {
       else if (this.vy < 0) { this.y = (Math.floor(this.y / TILE_SIZE) + 1) * TILE_SIZE; }
       this.vy = 0;
     }
-    // hops toward the cadet (not while fleeing a rave shield)
-    if (--this.hopTimer <= 0) { this.hopTimer = 50 + Math.random() * 100; if (this.onGround && !flee) this.vy = -6.5; }
+
+    // Purposeful leap when the cadet is well above and we're grounded (gives chase upward).
+    if (this.onGround && !flee && player.y < this.y - TILE_SIZE && Math.random() < 0.05) this.vy = -8.5;
+
     if (this.sayTimer > 0) this.sayTimer--;
     if (this.hitFlash > 0) this.hitFlash--;
     if (this.sayTimer <= 0 && Math.random() < 0.004) this.say(SPEECH.pick(flee ? 'mobRave' : 'mobChatter'));
@@ -636,7 +652,9 @@ class Meteor {
     this.angle = Math.atan2(this.vy, this.vx);
     const c = Math.floor((this.x + this.w / 2) / TILE_SIZE);
     const r = Math.floor((this.y + this.h) / TILE_SIZE);
-    if (tilemap[r] && tilemap[r][c] === 1) this.dead = true;  // hit ground
+    if (tilemap[r] && (tilemap[r][c] === 1 || tilemap[r][c] === 10)) { // hit ground/block
+      this.dead = true; this.impactR = r; this.impactC = c;
+    }
     if (this.y > 470) this.dead = true;
   }
   draw(ctx, cameraX) {

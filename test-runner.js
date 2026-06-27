@@ -1342,6 +1342,47 @@ function runCombatTests() {
   } catch (err) {
     renderTestResult(SUITE, "Fuel: antigravity needs fuel (no free floating)", false, err.message);
   }
+
+  // C6: bumping a breakable block (tile 10) carves it out of the world
+  try {
+    const game = new StarHopperGame();
+    game.currentPlanetIndex = 0; game.currentPlanet = PLANETS[0];
+    game.currentVariant = { map: PLANETS[0].map.map((row) => row.slice()) }; // deep copy (don't mutate source)
+    game.player = new Player(0, 0); game.interactiveObjects = []; game.mobs = [];
+    const m = game.getActiveMap();
+    m[3][5] = 10;
+    game.breakBlock(3, 5);
+    assertEquals(0, m[3][5], "Breaking a block carves the tile to empty");
+    renderTestResult(SUITE, "Blocks: bumping a breakable carves it out", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Blocks: bumping a breakable carves it out", false, err.message);
+  }
+
+  // C7: placeBreakableBlocks scatters breakable tiles into the map
+  try {
+    const game = new StarHopperGame();
+    game.currentPlanetIndex = 0; game.retryAttempt = 0; game.currentPlanet = PLANETS[0];
+    game.currentVariant = { map: PLANETS[0].map.map((row) => row.slice()) };
+    game.placeBreakableBlocks();
+    let tens = 0; game.getActiveMap().forEach((row) => row.forEach((v) => { if (v === 10) tens++; }));
+    assertEquals(true, tens >= 1, "placeBreakableBlocks adds at least one breakable block");
+    renderTestResult(SUITE, "Blocks: placement scatters breakable tiles", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Blocks: placement scatters breakable tiles", false, err.message);
+  }
+
+  // C8: a woken mob is tougher (hp >= 2) and flagged
+  try {
+    const game = new StarHopperGame();
+    game.currentPlanetIndex = 2; game.currentPlanet = PLANETS[2]; game.mobs = [];
+    game.wakeMob(100, 100);
+    assertEquals(1, game.mobs.length, "wakeMob adds a mob");
+    assertEquals(true, game.mobs[0].hp >= 2, "Woken mob is tougher (hp >= 2)");
+    assertEquals(true, game.mobs[0].woken === true, "Woken mob is flagged");
+    renderTestResult(SUITE, "Mobs: woken mob has HP and is flagged", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Mobs: woken mob has HP and is flagged", false, err.message);
+  }
 }
 
 // Suite 5: Retry Remix — seeded procedural variation (same lesson, new instance)

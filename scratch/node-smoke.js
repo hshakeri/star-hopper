@@ -103,7 +103,11 @@ const smoke = `
   gp.hurtFlashTimer = 8; gp.shakeFrames = 10; gp.shakeMag = 7; gp.shakeMax = 10; gp.reducedMotion = false;
   // Wave 5: arm the blaster + fire so projectiles, weapon HUD, and fuel gauge draw too.
   gp.equipWeapon('blaster'); gp.keys = { f: true }; gp.shootCooldown = 0;
-  for (let i = 0; i < 5; i++) { gp.updateDebris(); gp.updateMeteors(); gp.updateCombat(); gp.draw(); }
+  // Wave 5: break a placed block (carves terrain → rebake) and wake a mob.
+  const mm = gp.getActiveMap();
+  for (let r = 0; r < mm.length && !global.__broke; r++) for (let c = 0; c < mm[r].length; c++) { if (mm[r][c] === 10) { gp.breakBlock(r, c); global.__broke = true; break; } }
+  gp.wakeMob(220, 120);
+  for (let i = 0; i < 5; i++) { gp.updateDebris(); gp.updateMeteors(); gp.updateCombat(); gp.updateMobs(); gp.draw(); }
   gp.drawMeteorBanner(gp.ctx); gp.drawHealthHUD(gp.ctx); gp.drawFuelHUD(gp.ctx); gp.drawWeaponHUD(gp.ctx);
   global.__wave4ok = true;
 

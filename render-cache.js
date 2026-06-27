@@ -53,6 +53,12 @@ var RenderCache = {
     this._vig = this._vigKey = null;
   },
 
+  // Drop only the baked terrain layer so it rebuilds from the (mutated) map next frame —
+  // used after carving a tile (breakable block broken, meteor crater).
+  invalidateTile() {
+    this._tile = this._tileKey = null;
+  },
+
   // Deterministic per-tile hash for texture variety (stable across frames/rebuilds).
   _hash(r, c) {
     let h = (r * 73856093) ^ (c * 19349663);
@@ -85,7 +91,7 @@ var RenderCache = {
     for (let r = 0; r < map.length; r++) {
       for (let c = 0; c < map[r].length; c++) {
         const val = map[r][c];
-        if (val !== 1 && val !== 2) continue;
+        if (val !== 1 && val !== 2 && val !== 10) continue;
         const tx = c * T, ty = r * T;
 
         if (val === 1) {
@@ -169,6 +175,17 @@ var RenderCache = {
           ctx.strokeStyle = "rgba(15, 23, 42, 0.22)";
           ctx.lineWidth = 1;
           ctx.strokeRect(tx + 0.5, ty + 0.5, T - 1, T - 1);
+        } else if (val === 10) {
+          // Breakable block — a riveted crate with a "?" so it reads as "bump me from below".
+          const grad = ctx.createLinearGradient(tx, ty, tx, ty + T);
+          grad.addColorStop(0, "#b45309"); grad.addColorStop(1, "#78350f");
+          ctx.fillStyle = grad; ctx.fillRect(tx + 1, ty + 1, T - 2, T - 2);
+          ctx.strokeStyle = "#fbbf24"; ctx.lineWidth = 2;
+          ctx.strokeRect(tx + 2.5, ty + 2.5, T - 5, T - 5);
+          ctx.fillStyle = "#fde68a";
+          [[5, 5], [T - 5, 5], [5, T - 5], [T - 5, T - 5]].forEach(([dx, dy]) => { ctx.beginPath(); ctx.arc(tx + dx, ty + dy, 1.4, 0, Math.PI * 2); ctx.fill(); });
+          ctx.fillStyle = "#fde68a"; ctx.font = "bold 16px 'Outfit', sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+          ctx.fillText("?", tx + T / 2, ty + T / 2 + 1);
         } else {
           // Hazard spikes: the glow is BAKED (shadowBlur once, never per frame).
           ctx.save();

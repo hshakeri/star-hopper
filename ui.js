@@ -267,6 +267,20 @@ function updateHUD(game) {
   if (pBar) pBar.style.width = `${pePercent}%`;
   if (tBar) tBar.style.width = `${tePercent}%`;
 
+  // Health + fuel telemetry cards.
+  const healthEl = document.getElementById("hud-health");
+  if (healthEl && game.player) {
+    const hp = game.player.health, mhp = game.player.maxHealth || 3;
+    healthEl.textContent = `${hp} / ${mhp}`;
+    healthEl.style.color = hp <= 1 ? '#fb7185' : '';
+  }
+  const fuelEl = document.getElementById("hud-fuel");
+  if (fuelEl && game.player) {
+    const pct = Math.round(100 * (game.player.fuel / (game.player.maxFuel || 100)));
+    fuelEl.textContent = `${pct}%`;
+    fuelEl.style.color = pct <= 20 ? '#fb7185' : '';
+  }
+
   const energySummary = document.getElementById("hud-energy-summary");
   if (energySummary) {
     energySummary.textContent = `K ${Math.round(ke)} | P ${Math.round(pe)}`;
@@ -615,7 +629,30 @@ function getTunableInfo(game, cmd) {
     const cap = r1(game.getUpgradeCap(d.key));
     capText = HOPPER_UPGRADES[d.key].isFloor ? `min ${cap}` : `max ${cap}`;
   }
-  return { cur, capText };
+
+  // Fuel cost of the CURRENT setting, as a share of a full tank — so the cadet sees that
+  // cranking jump/rocket/antigravity drains fuel (and a lighter mass makes it cheaper).
+  let fuelText = "";
+  const mass = (game.player && game.player.mass) ? game.player.mass : (game.hopperMass || 2.5);
+  const maxFuel = (game.player && game.player.maxFuel) ? game.player.maxFuel : 100;
+  if (cur !== null) {
+    if (d.key === 'jump') {
+      const jp = game.player ? game.player.jumpPower : 0;
+      const cost = Math.max(0, jp - 14) * mass * 0.45;
+      if (cost > 0.5) fuelText = `⛽${Math.round(cost / maxFuel * 100)}%/jump`;
+    } else if (d.key === 'rocket') {
+      const rp = (game.player && Number.isFinite(game.player.rocketPower)) ? game.player.rocketPower : 0;
+      const perFrame = Math.max(0.5, 1.5 * (rp / 40) * (mass / 2.5));
+      fuelText = `⛽${Math.round(perFrame * 60 / maxFuel * 100)}%/s`;
+    } else if (d.key === 'antigravity') {
+      const agUnits = Math.abs(Compiler.env.antigravity || 0);
+      const perFrame = agUnits * mass;
+      if (perFrame > 0.001) fuelText = `⛽${Math.round(perFrame * 60 / maxFuel * 100)}%/s`;
+    } else if (d.key === 'mass') {
+      fuelText = "lighter = less fuel";
+    }
+  }
+  return { cur, capText, fuelText };
 }
 
 // Refresh the Physics Constants cards to show each tuner's CURRENT value + cap
@@ -1214,6 +1251,7 @@ function setupUIBindings(game) {
         const parts = [];
         if (info.cur !== null) parts.push(`now ${info.cur}`);
         if (info.capText) parts.push(info.capText);
+        if (info.fuelText) parts.push(info.fuelText);
         hintEl.textContent = parts.join(" · ");
         opt.appendChild(hintEl);
       }
