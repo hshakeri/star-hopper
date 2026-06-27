@@ -101,8 +101,10 @@ const smoke = `
   gp.triggerMeteorShower();
   gp.meteorPhase = 'active'; gp.meteorActiveTimer = 60; gp.meteorSpawnTimer = 0; gp.spawnMeteor();
   gp.hurtFlashTimer = 8; gp.shakeFrames = 10; gp.shakeMag = 7; gp.shakeMax = 10; gp.reducedMotion = false;
-  for (let i = 0; i < 5; i++) { gp.updateDebris(); gp.updateMeteors(); gp.draw(); }
-  gp.drawMeteorBanner(gp.ctx); gp.drawHealthHUD(gp.ctx);
+  // Wave 5: arm the blaster + fire so projectiles, weapon HUD, and fuel gauge draw too.
+  gp.equipWeapon('blaster'); gp.keys = { f: true }; gp.shootCooldown = 0;
+  for (let i = 0; i < 5; i++) { gp.updateDebris(); gp.updateMeteors(); gp.updateCombat(); gp.draw(); }
+  gp.drawMeteorBanner(gp.ctx); gp.drawHealthHUD(gp.ctx); gp.drawFuelHUD(gp.ctx); gp.drawWeaponHUD(gp.ctx);
   global.__wave4ok = true;
 
   global.__ok = true;

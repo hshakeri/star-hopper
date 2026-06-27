@@ -1257,6 +1257,93 @@ function runHazardTests() {
   }
 }
 
+// Suite: Wave 5 combat + fuel economy
+function runCombatTests() {
+  const SUITE = "combat-suite";
+
+  // C1: unarmed can't fire; equipping a blaster lets a held F spawn a projectile
+  try {
+    const game = new StarHopperGame();
+    game.state = 'playing';
+    game.player = new Player(0, 0);
+    game.currentPlanet = PLANETS[0]; game.currentVariant = { map: PLANETS[0].map };
+    game.enemies = []; game.mobs = []; game.projectiles = [];
+    game.keys = { f: true }; game.shootCooldown = 0;
+    game.updateCombat();
+    assertEquals(0, game.projectiles.length, "Unarmed cadet cannot fire");
+    game.equipWeapon('blaster');
+    assertEquals('blaster', game.player.weapon, "equipWeapon arms the cadet");
+    game.shootCooldown = 0; game.updateCombat();
+    // Firing sets the cooldown (the projectile itself may instantly hit the border tile at origin).
+    assertEquals(true, game.shootCooldown > 0, "Armed: holding F fires (cooldown set)");
+    renderTestResult(SUITE, "Weapons: unarmed can't fire; blaster unlocks shooting", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Weapons: unarmed can't fire; blaster unlocks shooting", false, err.message);
+  }
+
+  // C2: a shot that overlaps an enemy kills it and grants XP
+  try {
+    const game = new StarHopperGame();
+    game.state = 'playing';
+    game.player = new Player(0, 0); game.player.weapon = 'blaster';
+    game.currentPlanetIndex = 0; game.currentPlanet = PLANETS[0]; game.currentVariant = { map: PLANETS[0].map };
+    game.mobs = []; game.keys = {}; game.totalXP = 0; game.masteryMeters = {};
+    const e = new Enemy(100, 100, 'bug'); game.enemies = [e];
+    game.projectiles = [new Projectile(e.x + e.w / 2, e.y + e.h / 2, 1)];
+    game.updateCombat();
+    assertEquals(0, game.enemies.length, "Shot kills a 1-hp enemy");
+    assertEquals(true, (game.totalXP || 0) > 0, "Killing an enemy grants XP");
+    renderTestResult(SUITE, "Combat: shots kill enemies and grant XP", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Combat: shots kill enemies and grant XP", false, err.message);
+  }
+
+  // C3: XP accrues to the per-world mastery meter and levels the weapon
+  try {
+    const game = new StarHopperGame();
+    game.player = new Player(0, 0); game.currentPlanetIndex = 0; game.masteryMeters = {};
+    game.weaponLevel = 1; game.totalXP = 0;
+    game.addXP(50);
+    assertEquals(2, game.weaponLevel, "45+ XP reaches weapon level 2");
+    assertEquals(true, (game.masteryMeters[0].xp || 0) >= 50, "XP fills the per-world mastery meter");
+    renderTestResult(SUITE, "XP: fills mastery meter + levels the weapon", true);
+  } catch (err) {
+    renderTestResult(SUITE, "XP: fills mastery meter + levels the weapon", false, err.message);
+  }
+
+  // C4: a powered jump burns fuel; a lighter suit burns less (mass reduction = less fuel)
+  try {
+    // Both are Rovers (star) so the airborne branch is a fuel-free glide — isolating the
+    // jump cost. update() syncs mass from game.starMass, so set it via the stub.
+    const mkStub = (p, m) => ({ getCurrentGravity: () => 0.6, starMass: m, hopperMass: 2.5, player: p });
+    const heavy = new Player(0, 0); heavy.charType = 'star'; heavy.jumpPower = 40; heavy.fuel = 100; heavy.onGround = true;
+    const light = new Player(0, 0); light.charType = 'star'; light.jumpPower = 40; light.fuel = 100; light.onGround = true;
+    heavy.update({ ' ': true }, PLANETS[0], mkStub(heavy, 3));
+    light.update({ ' ': true }, PLANETS[0], mkStub(light, 1));
+    const heavyBurn = 100 - heavy.fuel, lightBurn = 100 - light.fuel;
+    assertEquals(true, heavyBurn > 0, "A powered jump burns fuel");
+    assertEquals(true, lightBurn < heavyBurn, "Lower mass burns less fuel");
+    renderTestResult(SUITE, "Fuel: powered jumps cost fuel, cheaper at lower mass", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Fuel: powered jumps cost fuel, cheaper at lower mass", false, err.message);
+  }
+
+  // C5: antigravity stops lifting when the fuel tank is empty (no free floating)
+  try {
+    Compiler.reset();
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[0];
+    game.player = new Player(0, 0);
+    Compiler.env.antigravity = 0.3;
+    game.player.fuel = 50; const lifted = game.getCurrentGravity();
+    game.player.fuel = 0;  const empty = game.getCurrentGravity();
+    assertEquals(true, empty > lifted, "Empty tank → antigravity no longer reduces gravity");
+    renderTestResult(SUITE, "Fuel: antigravity needs fuel (no free floating)", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Fuel: antigravity needs fuel (no free floating)", false, err.message);
+  }
+}
+
 // Suite 5: Retry Remix — seeded procedural variation (same lesson, new instance)
 function runRetryRemixTests() {
   const SUITE = "remix-suite";

@@ -104,7 +104,7 @@ const bundle = files.map((f) => fs.readFileSync(path.join(basePath, f), 'utf8'))
 // LOCAL to this eval scope (not global), so the run calls must share that scope.
 console.log('\n--- Running All Suites ---');
 const suites = ['runCompilerTests', 'runSafetyTests', 'runEngineTests', 'runSolarTests',
-  'runHazardTests', 'runRetryRemixTests', 'runDiagnosticsTests', 'runExperimentLogTests', 'runRenderCacheTests'];
+  'runHazardTests', 'runCombatTests', 'runRetryRemixTests', 'runDiagnosticsTests', 'runExperimentLogTests', 'runRenderCacheTests'];
 // test-runner.js declares its own `function renderTestResult` which, under sloppy-mode
 // direct eval, shadows our global. Reassign that binding inside the eval scope so our
 // logger captures results.

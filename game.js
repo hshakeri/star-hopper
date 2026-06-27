@@ -116,7 +116,9 @@ class StarHopperGame {
     const base = (env.gravity !== null && env.gravity !== undefined)
       ? env.gravity
       : (this.currentPlanet && this.currentPlanet.physics ? this.currentPlanet.physics.gravity : 0.6);
-    const anti = env.antigravity || 0; // game-units
+    let anti = env.antigravity || 0; // game-units
+    // Antigravity needs fuel: an empty tank means the coil can't push back on gravity.
+    if (anti > 0 && this.player && this.player.fuel <= 0) anti = 0;
     return Math.max(0.02, base - anti);
   }
 
@@ -806,6 +808,8 @@ class StarHopperGame {
           this.interactiveObjects.push(new InteractiveObject(tx, ty, 'portal'));
         } else if (val === 8) {
           this.interactiveObjects.push(new InteractiveObject(tx, ty, 'boulder'));
+        } else if (val === 11) {
+          this.interactiveObjects.push(new InteractiveObject(tx, ty, 'weapon'));
         } else if (val === 9) {
           let eType = 'bug';
           if (index === 1) eType = 'spore';
@@ -1438,6 +1442,9 @@ class StarHopperGame {
           }
         } else if (obj.type === 'boulder') {
           Physics.resolveElasticCollision(this.player, obj);
+        } else if (obj.type === 'weapon') {
+          obj.collected = true;
+          this.equipWeapon('blaster');
         } else if (obj.type === 'trampoline' || obj.type === 'spring') {
           const isTopBounce = (this.player.vy > 0.1 && this.player.y + this.player.h - this.player.vy <= obj.y + 6);
           if (isTopBounce) {
@@ -1468,8 +1475,12 @@ class StarHopperGame {
     // 12b. Idle banter: a quiet thought bubble after standing still a while (once per pause).
     this.updateIdleBanter();
 
-    // 12c. Mob Survival mini-mode (mobs, projectiles, score, rewards).
+    // 12c. Mob Survival mini-mode (mobs, score, rewards).
     if (this.survivalMode) this.updateSurvival();
+
+    // 12d. Combat: firing + projectiles. Works in normal play once a weapon is found
+    // (and always in survival). Projectiles hit campaign enemies AND survival mobs.
+    this.updateCombat();
 
     // 13. Redraw HUD sidebar charts & variables
     updateHUD(this);
@@ -1566,20 +1577,8 @@ class StarHopperGame {
     const tilemap = this.getActiveMap();
     const mapW = tilemap[0].length * TILE_SIZE;
     if (this.raveImmuneTimer > 0) this.raveImmuneTimer--;
-    if (this.shootCooldown > 0) this.shootCooldown--;
     if (this.survivalHitCooldown > 0) this.survivalHitCooldown--;
     const flee = this.raveImmuneTimer > 0;
-
-    // Shooting (hold F)
-    if ((this.keys['f'] || this.keys['F']) && this.shootCooldown <= 0) {
-      const dir = this.player.facing || 1;
-      this.shootCooldown = Math.max(6, 16 - this.weaponLevel * 3);
-      const px = this.player.x + this.player.w / 2, py = this.player.y + this.player.h / 2;
-      this.projectiles.push(new Projectile(px, py, dir * 7));
-      if (this.weaponLevel >= 3) this.projectiles.push(new Projectile(px, py - 9, dir * 7));
-      if (typeof SFX !== 'undefined' && SFX.playType) SFX.playType();
-      if (typeof ComicBubbles !== 'undefined' && Math.random() < 0.25) ComicBubbles.spawn(px + dir * 16, py - 6, "PEW!", "jagged", "#facc15", -0.2, { maxLife: 22, scale: 0.7 });
-    }
 
     // Spawn cadence (ramps up with score)
     if (--this.mobSpawnTimer <= 0 && this.mobs.length < 8) {
@@ -1587,20 +1586,8 @@ class StarHopperGame {
       this.spawnMob();
     }
 
-    // Projectiles vs mobs
-    for (let i = this.projectiles.length - 1; i >= 0; i--) {
-      const p = this.projectiles[i];
-      p.update(tilemap);
-      if (p.dead) { this.projectiles.splice(i, 1); continue; }
-      for (let j = this.mobs.length - 1; j >= 0; j--) {
-        const m = this.mobs[j];
-        if (Math.abs(p.x - (m.x + m.w / 2)) < m.w / 2 + 5 && Math.abs(p.y - (m.y + m.h / 2)) < m.h / 2 + 6) {
-          this.killMob(j, 'shot');
-          this.projectiles.splice(i, 1);
-          break;
-        }
-      }
-    }
+    // (Firing + projectile-vs-target collisions now live in updateCombat() so shooting
+    // works in normal play too; survival only spawns mobs and runs mob-vs-player below.)
 
     // Mobs vs player
     for (let j = this.mobs.length - 1; j >= 0; j--) {
@@ -1625,7 +1612,7 @@ class StarHopperGame {
 
   drawSurvival(ctx) {
     if (!this.survivalMode) return;
-    for (const p of this.projectiles) p.draw(ctx, this.cameraX);
+    // (Projectiles are drawn in the main draw() now so they show in normal play too.)
     for (const m of this.mobs) m.draw(ctx, this.cameraX);
     // Score readout, top-center (clear of the corner bubbles)
     ctx.save();
@@ -1656,6 +1643,99 @@ class StarHopperGame {
       this.idleTimer = 0;
       this.idleBanterCooldown = 1500; // ~25s before another musing, so it never nags
       ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y - 2, SPEECH.pick("idle"), "cloud", "#e0f2fe", -0.25, { maxLife: 150 });
+    }
+  }
+
+  // ---- COMBAT (shooting, projectiles, weapons, XP) ----------------------------
+  // Equip the blaster: unlocks shooting (hold F). Found as a pickup, broken out of a
+  // block, or via the KidCode equip_blaster() command.
+  equipWeapon(kind) {
+    if (!this.player) return "No cadet to arm.";
+    const wasUnarmed = !this.player.weapon;
+    this.player.weapon = kind || 'blaster';
+    if (!this.weaponLevel || this.weaponLevel < 1) this.weaponLevel = 1;
+    if (wasUnarmed) {
+      this._shootHintTimer = 360; // ~6s "hold F to shoot" prompt
+      if (typeof SFX !== 'undefined' && SFX.playSuccess) SFX.playSuccess();
+      if (typeof ComicBubbles !== 'undefined') {
+        ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y - 8, "BLASTER!", "jagged", "#facc15", -0.5, { maxLife: 90, scale: 1.4 });
+      }
+      if (typeof ui_log_output === 'function') ui_log_output("🔫 Blaster acquired! Hold F to shoot.", "success");
+    }
+    return "Blaster equipped — hold F to shoot!";
+  }
+
+  // Grant experience: fills the per-world mastery meter (persisted) and levels the blaster
+  // at thresholds, so fighting woken mobs makes your gun stronger.
+  addXP(n) {
+    if (!n || !this.player) return;
+    const idx = this.currentPlanetIndex;
+    this.masteryMeters = this.masteryMeters || {};
+    const cur = this.masteryMeters[idx] || { xp: 0 };
+    cur.xp = (cur.xp || 0) + n;
+    this.masteryMeters[idx] = cur;
+    this.totalXP = (this.totalXP || 0) + n;
+    if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(this.player.x + this.player.w / 2, this.player.y - 12, "+" + n + " XP", "#a3e635", 0.85);
+    const lvl = this.totalXP >= 120 ? 3 : this.totalXP >= 45 ? 2 : 1;
+    if (lvl > (this.weaponLevel || 1)) {
+      this.weaponLevel = lvl;
+      if (typeof ComicBubbles !== 'undefined') ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y - 6, "GUN UP!", "jagged", "#4ade80", -0.5, { maxLife: 80, scale: 1.4 });
+      if (typeof ui_log_output === 'function') ui_log_output(`🔫 Weapon level ${lvl}! ${lvl >= 3 ? 'Double shot!' : 'Faster fire!'}`, "success");
+    }
+  }
+
+  // Firing + projectile flight + hits. Runs every frame; fires only when armed (a weapon
+  // found, or survival mode). Projectiles damage campaign enemies (via hp) and survival mobs.
+  updateCombat() {
+    if (!this.player) return;
+    this.projectiles = this.projectiles || [];
+    if (this.shootCooldown > 0) this.shootCooldown--;
+    if (this._shootHintTimer > 0) this._shootHintTimer--;
+    const armed = !!this.player.weapon || this.survivalMode;
+    const lvl = this.weaponLevel || 1;
+
+    if (armed && (this.keys['f'] || this.keys['F']) && this.shootCooldown <= 0) {
+      const dir = this.player.facing || 1;
+      this.shootCooldown = Math.max(6, 16 - lvl * 3);
+      const px = this.player.x + this.player.w / 2, py = this.player.y + this.player.h / 2;
+      this.projectiles.push(new Projectile(px, py, dir * 7));
+      if (lvl >= 3) this.projectiles.push(new Projectile(px, py - 9, dir * 7));
+      if (typeof SFX !== 'undefined' && SFX.playType) SFX.playType();
+      if (typeof ComicBubbles !== 'undefined' && Math.random() < 0.25) ComicBubbles.spawn(px + dir * 16, py - 6, "PEW!", "jagged", "#facc15", -0.2, { maxLife: 22, scale: 0.7 });
+    }
+
+    if (!this.projectiles.length) return;
+    const tilemap = this.getActiveMap();
+    for (let i = this.projectiles.length - 1; i >= 0; i--) {
+      const p = this.projectiles[i];
+      p.update(tilemap);
+      if (p.dead) { this.projectiles.splice(i, 1); continue; }
+      let consumed = false;
+      for (let j = this.enemies.length - 1; j >= 0; j--) {
+        const e = this.enemies[j];
+        if (Math.abs(p.x - (e.x + e.w / 2)) < e.w / 2 + 5 && Math.abs(p.y - (e.y + e.h / 2)) < e.h / 2 + 6) {
+          e.hp = (typeof e.hp === 'number' ? e.hp : 1) - 1;
+          consumed = true;
+          if (e.hp <= 0) {
+            this.enemies.splice(j, 1);
+            Particles.spawnBurst(e.x + e.w / 2, e.y + e.h / 2, '#ef4444', 11, 2.5, 3, 'glow');
+            if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(e.x + e.w / 2, e.y - 4, SPEECH.pick('stomp'), "#fb7185", 1.0);
+            this.addXP(e.xpValue || 8);
+          } else {
+            Particles.spawnBurst(p.x, p.y, '#f59e0b', 4, 1.5, 1.5);
+          }
+          break;
+        }
+      }
+      if (!consumed) {
+        for (let j = this.mobs.length - 1; j >= 0; j--) {
+          const m = this.mobs[j];
+          if (Math.abs(p.x - (m.x + m.w / 2)) < m.w / 2 + 5 && Math.abs(p.y - (m.y + m.h / 2)) < m.h / 2 + 6) {
+            this.killMob(j, 'shot'); consumed = true; break;
+          }
+        }
+      }
+      if (consumed) this.projectiles.splice(i, 1);
     }
   }
 
@@ -1980,6 +2060,9 @@ class StarHopperGame {
     // 4c. Draw falling meteors
     if (this.meteors) for (const m of this.meteors) m.draw(this.ctx, this.cameraX);
 
+    // 4d. Draw player projectiles (works in normal play once armed)
+    if (this.projectiles) for (const p of this.projectiles) p.draw(this.ctx, this.cameraX);
+
     // 5. Draw Player Character
     this.player.draw(this.ctx, this.cameraX, this);
 
@@ -2020,8 +2103,10 @@ class StarHopperGame {
       this.ctx.restore();
     }
 
-    // 9e. Heart health HUD (top-left).
+    // 9e. Heart health HUD + fuel gauge + weapon status (top-left).
     this.drawHealthHUD(this.ctx);
+    this.drawFuelHUD(this.ctx);
+    this.drawWeaponHUD(this.ctx);
 
     // 9f. Meteor-shower "take shelter" warning banner (screen-space).
     this.drawMeteorBanner(this.ctx);
@@ -2034,16 +2119,91 @@ class StarHopperGame {
     if (!this.player || this.state !== 'playing') return;
     const max = this.player.maxHealth || 0;
     if (max <= 0) return;
+    const hp = this.player.health;
+    const size = 20, gap = 7, padX = 12, padY = 8;
+    const plateW = padX * 2 + max * size + (max - 1) * gap + 34;
     ctx.save();
-    ctx.font = "16px serif";
-    ctx.textAlign = "left";
-    ctx.textBaseline = "top";
-    let s = "";
-    for (let i = 0; i < max; i++) s += (i < this.player.health) ? "❤️" : "🤍";
-    const tw = ctx.measureText(s).width;
-    ctx.fillStyle = "rgba(11,16,34,0.45)";
-    ctx.beginPath(); ctx.roundRect(8, 8, tw + 12, 24, 7); ctx.fill();
-    ctx.fillText(s, 14, 11);
+    // Plate
+    ctx.fillStyle = "rgba(11,16,34,0.55)";
+    ctx.strokeStyle = "rgba(239,68,68,0.35)";
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(8, 8, plateW, size + padY * 2, 9); ctx.fill(); ctx.stroke();
+    // "HP" label
+    ctx.fillStyle = "#fca5a5";
+    ctx.font = "bold 11px 'Outfit', sans-serif";
+    ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.fillText("HP", 8 + padX, 8 + padY + size / 2 + 1);
+    // Drawn hearts (consistent across browsers — no emoji dependency)
+    for (let i = 0; i < max; i++) {
+      const cx = 8 + padX + 26 + i * (size + gap) + size / 2;
+      const cy = 8 + padY + size / 2;
+      this.drawHeart(ctx, cx, cy, size, i < hp);
+    }
+    ctx.restore();
+  }
+
+  drawHeart(ctx, x, y, size, filled) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(size / 16, size / 16);
+    ctx.beginPath();
+    ctx.moveTo(0, 4.5);
+    ctx.bezierCurveTo(-8, -3.5, -6.2, -11, 0, -6);
+    ctx.bezierCurveTo(6.2, -11, 8, -3.5, 0, 4.5);
+    ctx.closePath();
+    ctx.fillStyle = filled ? "#ef4444" : "rgba(90,100,120,0.45)";
+    ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = "#0b1224"; ctx.lineJoin = "round"; ctx.stroke();
+    if (filled) { // tiny shine
+      ctx.fillStyle = "rgba(255,255,255,0.55)";
+      ctx.beginPath(); ctx.ellipse(-2.4, -3, 1.5, 2.2, -0.4, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  drawFuelHUD(ctx) {
+    if (!this.player || this.state !== 'playing') return;
+    const mf = this.player.maxFuel || 100;
+    const f = Math.max(0, Math.min(mf, this.player.fuel));
+    const x = 8, y = 52, w = 162, h = 16;
+    ctx.save();
+    ctx.fillStyle = "rgba(11,16,34,0.55)";
+    ctx.strokeStyle = "rgba(56,189,248,0.3)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(x, y, w, h, 7); ctx.fill(); ctx.stroke();
+    const pct = f / mf;
+    const grad = ctx.createLinearGradient(x, 0, x + w, 0);
+    grad.addColorStop(0, "#ef4444"); grad.addColorStop(0.5, "#f59e0b"); grad.addColorStop(1, "#22c55e");
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.roundRect(x + 46, y + 3, Math.max(0, (w - 52) * pct), h - 6, 4); ctx.fill();
+    ctx.fillStyle = "#bae6fd"; ctx.font = "bold 10px 'Outfit', sans-serif";
+    ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.fillText("FUEL", x + 8, y + h / 2 + 0.5);
+    ctx.restore();
+  }
+
+  drawWeaponHUD(ctx) {
+    if (!this.player || this.state !== 'playing') return;
+    const armed = !!this.player.weapon || this.survivalMode;
+    if (!armed) return;
+    ctx.save();
+    // Small blaster indicator below the fuel bar.
+    ctx.fillStyle = "rgba(11,16,34,0.55)";
+    ctx.beginPath(); ctx.roundRect(8, 74, 110, 16, 7); ctx.fill();
+    ctx.fillStyle = "#facc15"; ctx.font = "bold 10px 'Outfit', sans-serif";
+    ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.fillText(`🔫 BLASTER L${this.weaponLevel || 1}`, 14, 74 + 8 + 0.5);
+    // First-time "hold F to shoot" prompt, center-screen, fades out.
+    if (this._shootHintTimer > 0) {
+      ctx.globalAlpha = Math.min(1, this._shootHintTimer / 50);
+      const label = "Hold  F  to shoot!";
+      ctx.font = "bold 15px 'Outfit', sans-serif";
+      const tw = ctx.measureText(label).width;
+      const cx = this.canvas.width / 2;
+      ctx.fillStyle = "rgba(11,16,34,0.75)";
+      ctx.beginPath(); ctx.roundRect(cx - tw / 2 - 14, 84, tw + 28, 28, 9); ctx.fill();
+      ctx.fillStyle = "#facc15"; ctx.textAlign = "center";
+      ctx.fillText(label, cx, 98);
+    }
     ctx.restore();
   }
 

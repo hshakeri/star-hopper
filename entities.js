@@ -704,6 +704,10 @@ class Player {
     this.maxHealth = 3;
     this.health = 3;
     this.invulnerableFrames = 0; // i-frames after a hit: blocks re-damage and blinks the sprite
+
+    // Weapons: the cadet starts UNARMED. Find a blaster pickup (or break it out of a block)
+    // to enable shooting with F. Null = can't shoot.
+    this.weapon = null;
   }
 
   // Retro 80s-style speech balloon. opts: { emoji, shout, timer, dialogue }
@@ -960,6 +964,11 @@ class Player {
       this.onGround = false;
       this.isJumping = true;
       this.coyoteFrames = 0;
+      // Powered jumps burn fuel: a stronger jump and a heavier suit cost more; a lighter
+      // suit is cheaper (mass reduction = less fuel). A jump near the planet baseline is
+      // effectively free, so ordinary play is never taxed — only cranked-up settings are.
+      const _jumpCost = Math.max(0, this.jumpPower - 14) * this.mass * 0.45;
+      if (_jumpCost > 0) this.fuel = Math.max(0, this.fuel - _jumpCost);
       SFX.playJump();
       Particles.spawnBurst(this.x + this.w / 2, this.y + this.h, 'rgba(255,255,255,0.6)', 8, 1.5, 2);
       if (typeof ComicBubbles !== 'undefined') {
@@ -998,9 +1007,9 @@ class Player {
           const rocketRiseLimit = Math.max(speedMultiplier, tunedRocketPower / 12);
           this.vy -= rocketAcceleration;
           if (this.vy < -rocketRiseLimit) this.vy = -rocketRiseLimit;
-          // Trade-off: a stronger rocket burns fuel proportionally faster (40 power ≈ 1.5/frame,
-          // so doubling the power empties the tank in half the time).
-          this.fuel -= Math.max(0.7, 1.5 * (tunedRocketPower / 40));
+          // Trade-off: a stronger rocket burns fuel proportionally faster, AND a heavier
+          // suit is thirstier — dropping mass makes the rocket more fuel-efficient.
+          this.fuel -= Math.max(0.5, 1.5 * (tunedRocketPower / 40) * (this.mass / 2.5));
           // Rocket exhaust particles
           Particles.spawn(
             this.x + (Math.random() * 6) + 4, this.y + this.h,
@@ -1019,8 +1028,17 @@ class Player {
         }
       }
     } else {
-      // Recharge fuel on ground
-      this.fuel = Math.min(this.fuel + 2, this.maxFuel);
+      // Recharge fuel on ground — slow enough that fuel is a real per-run budget, so you
+      // can't sustain maxed-out abilities and blaze through; gentle enough for normal play.
+      this.fuel = Math.min(this.fuel + 1.2, this.maxFuel);
+    }
+
+    // Antigravity coil draws fuel while engaged (heavier suit = thirstier; lighter = cheaper).
+    // When the tank runs dry, antigravity stops lifting (see Game.getCurrentGravity), so you
+    // can't just float past everything for free.
+    const _agUnits = (typeof Compiler !== 'undefined' && Compiler.env) ? Math.abs(Compiler.env.antigravity || 0) : 0;
+    if (_agUnits > 0 && this.fuel > 0) {
+      this.fuel = Math.max(0, this.fuel - _agUnits * this.mass * 1.0);
     }
 
     // 6. Electromagnet active (Hopper holds S / Down arrow in air)
@@ -1608,6 +1626,7 @@ class InteractiveObject {
       this.vy = 0;
       this.mass = 2.0;
     }
+    if (this.type === 'weapon') { this.w = 22; this.h = 18; this.y += 8; this.x += 5; }
 
     this.collected = false;
     this.bounceTimer = 0;
@@ -1910,6 +1929,20 @@ class InteractiveObject {
         ctx.lineWidth = 1.5;
         ctx.strokeRect(x - 2, this.y - 2, this.w + 4, this.h + 4);
       }
+      ctx.restore();
+    } else if (this.type === 'weapon') {
+      // A glowing blaster pickup — collect it to unlock shooting (press F).
+      const x = this.x - cameraX;
+      const cx = x + this.w / 2;
+      const bob = Math.sin(Date.now() / 220 + this.x * 0.05) * 2;
+      const cy = this.y + this.h / 2 + bob;
+      ctx.save();
+      ctx.shadowBlur = 12; ctx.shadowColor = '#facc15';
+      ctx.fillStyle = '#facc15'; ctx.strokeStyle = '#0b1224'; ctx.lineWidth = 2; ctx.lineJoin = 'round';
+      ctx.beginPath(); ctx.roundRect(cx - 9, cy - 3, 16, 6, 2); ctx.fill(); ctx.stroke();   // barrel/body
+      ctx.beginPath(); ctx.roundRect(cx - 6, cy + 1, 5, 7, 1.5); ctx.fill(); ctx.stroke();   // grip
+      ctx.fillStyle = '#fde68a';
+      ctx.beginPath(); ctx.arc(cx + 8, cy, 2.4, 0, Math.PI * 2); ctx.fill();                 // muzzle spark
       ctx.restore();
     }
 

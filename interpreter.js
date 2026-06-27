@@ -878,6 +878,10 @@ const runtimeContext = {
       if (game && typeof game.triggerMeteorShower === 'function') return game.triggerMeteorShower();
       return "Meteor shower needs the platformer.";
     },
+    equip_blaster: (game) => {
+      if (game && typeof game.equipWeapon === 'function') return game.equipWeapon('blaster');
+      return "Blaster needs the platformer.";
+    },
     shrink_enemies: (game) => {
       game.shrinkAllEnemies();
       return "Enemies shrunk!";
@@ -983,7 +987,7 @@ class AutocompleteEngine {
       "star.mass",
       "hopper.engine", "hopper.jump_power", "hopper.mass", "hopper.rocket_power", "hopper.spikes", "hopper.pole",
       "spawn()", "spawn_gem()", "spawn_box()", "spawn_spring()",
-      "invert_gravity()", "rave_mode()", "survival_mode()", "meteor_shower()", "shrink_enemies()", "bounce_up()", "reset()",
+      "invert_gravity()", "rave_mode()", "survival_mode()", "meteor_shower()", "equip_blaster()", "shrink_enemies()", "bounce_up()", "reset()",
       "use_hopper()", "use_rover()",
       "play_music()", "music",
       "elasticity", "asteroid.mass", "enemy.speed", "enemy.friendly"
