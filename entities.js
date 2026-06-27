@@ -494,26 +494,37 @@ const ComicBubbles = new ComicBubbleEngine();
 // MOB SURVIVAL: planet-themed critters you stomp/shoot for points. Emoji-drawn
 // so each world feels distinct, with their own little trash-talk balloons.
 // ---------------------------------------------------------------------------
+// Per-planet mob SPECIES (drawn creatures, not emoji): Earth = real critters,
+// the rest = themed aliens (tinted by the planet's accent color).
 const MOB_THEMES = [
-  ["🐗", "🐍", "🦔", "🦊", "🐀"],   // 0 Earth — earthly critters (hog, snake, hedgehog, fox, rat)
-  ["👾", "🛸", "👽", "🌚"],          // 1 Moon — aliens
-  ["👽", "👾", "🔥", "🛸"],          // 2 Jupiter — fiery aliens
-  ["👽", "🛸", "❄️", "👾"],          // 3 Glacies — frost aliens
-  ["🤖", "👾", "⚡", "🛸"],          // 4 Mag-Net — machine aliens
-  ["👾", "🛸", "🪨", "👽"]           // 5 Asteroid Forge — drifter aliens
+  ["hog", "snake", "critter"],   // 0 Earth — earthly critters
+  ["blob", "floater"],            // 1 Moon — aliens
+  ["blob", "floater"],            // 2 Jupiter — fiery aliens
+  ["critter", "blob"],            // 3 Glacies — frost aliens (icy critter + blob)
+  ["bot", "floater"],             // 4 Mag-Net — machine aliens
+  ["blob", "floater"]             // 5 Asteroid Forge — drifters
 ];
 
 class Mob {
-  constructor(x, y, emoji) {
-    this.x = x; this.y = y; this.w = 26; this.h = 26;
+  constructor(x, y, species, accent) {
+    this.species = species || 'blob';
+    this.accent = accent || '#a78bfa';
+    if (this.species === 'snake') { this.w = 32; this.h = 20; }
+    else if (this.species === 'hog') { this.w = 32; this.h = 24; }
+    else if (this.species === 'floater') { this.w = 28; this.h = 26; }
+    else { this.w = 26; this.h = 26; }
+    this.x = x; this.y = y;
     this.vy = 0;
     this.dir = (Math.random() < 0.5 ? -1 : 1);
     this.speed = 0.7 + Math.random() * 0.8;
-    this.emoji = emoji;
     this.onGround = false;
     this.hopTimer = 40 + Math.random() * 90;
     this.sayText = ""; this.sayTimer = 0;
     this.hitFlash = 0;
+    // Animation state — gives the creature life (walk cycle, blinking, look-at).
+    this.animTime = Math.random() * Math.PI * 2;
+    this.blinkTimer = 60 + Math.random() * 160;
+    this.eyeDir = this.dir;
   }
   say(t) { this.sayText = t; this.sayTimer = 70; }
   _solid(tilemap, x, y) {
@@ -521,24 +532,25 @@ class Mob {
     const rT = Math.floor(y / TILE_SIZE), rB = Math.floor((y + this.h) / TILE_SIZE);
     if (cL < 0 || !tilemap[0] || cR >= tilemap[0].length || rB >= tilemap.length) return true;
     if (rT < 0) return false;
-    for (let r = rT; r <= rB; r++) for (let c = cL; c <= cR; c++) if (tilemap[r] && tilemap[r][c] === 1) return true;
+    for (let r = rT; r <= rB; r++) for (let c = cL; c <= cR; c++) if (tilemap[r] && (tilemap[r][c] === 1 || tilemap[r][c] === 10)) return true;
     return false;
   }
   update(tilemap, player, flee) {
     const toward = (player.x > this.x ? 1 : -1);
     this.dir = flee ? -toward : toward;
-    this.vy += 0.5;
+    this.eyeDir = toward;
+    this.animTime += this.onGround ? 0.22 : 0.12;
+    if (--this.blinkTimer <= 0) this.blinkTimer = 70 + Math.random() * 170;
+    this.vy += (this.species === 'floater') ? 0.22 : 0.5; // floaters drift lazily
 
     // Horizontal move with wall + ledge awareness (no more blindly walking off cliffs).
     const nx = this.x + this.dir * this.speed;
     const wallAhead = this._solid(tilemap, nx, this.y);
     const groundAhead = this._solid(tilemap, nx, this.y + 8); // floor under the next step?
     if (wallAhead) {
-      // Wall in the way: a grounded chaser hops it; otherwise turn around.
       if (this.onGround && !flee && Math.random() < 0.6) this.vy = -7;
       else this.dir *= -1;
     } else if (this.onGround && !groundAhead && !flee) {
-      // Edge ahead: leap the gap toward a distant cadet, else stop at the brink.
       if (Math.abs(player.x - this.x) > TILE_SIZE && Math.random() < 0.5) { this.vy = -7.5; this.x = nx; }
     } else {
       this.x = nx;
@@ -553,31 +565,146 @@ class Mob {
       this.vy = 0;
     }
 
-    // Purposeful leap when the cadet is well above and we're grounded (gives chase upward).
     if (this.onGround && !flee && player.y < this.y - TILE_SIZE && Math.random() < 0.05) this.vy = -8.5;
+    // Floaters bob-hop to stay aloft.
+    if (this.species === 'floater' && this.onGround && Math.random() < 0.08) this.vy = -5;
 
     if (this.sayTimer > 0) this.sayTimer--;
     if (this.hitFlash > 0) this.hitFlash--;
     if (this.sayTimer <= 0 && Math.random() < 0.004) this.say(SPEECH.pick(flee ? 'mobRave' : 'mobChatter'));
   }
+
+  // White cartoon eyes that track the cadet and blink. spread 0 = a single cyclops eye.
+  _eyes(ctx, cx, cy, spread, r, blink) {
+    const look = this.eyeDir * r * 0.35;
+    const xs = spread === 0 ? [0] : [-spread, spread];
+    for (const ox of xs) {
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(cx + ox, cy, r, 0, Math.PI * 2); ctx.fill();
+      ctx.lineWidth = 1.5; ctx.strokeStyle = '#0b1224'; ctx.stroke();
+      if (blink) {
+        ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx + ox - r, cy); ctx.lineTo(cx + ox + r, cy); ctx.stroke();
+      } else {
+        ctx.fillStyle = '#0b1224';
+        ctx.beginPath(); ctx.arc(cx + ox + look, cy, r * 0.52, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+  }
+
+  drawSpecies(ctx, cx, cy, footY, t, blink) {
+    ctx.lineJoin = 'round'; ctx.lineWidth = 2; ctx.strokeStyle = '#0b1224';
+    const ed = this.eyeDir;
+    switch (this.species) {
+      case 'hog': {
+        const r = this.w * 0.42;
+        ctx.fillStyle = '#6b4a35';
+        [-r * 0.6, -r * 0.2, r * 0.2, r * 0.6].forEach((lx, i) => { const ph = Math.sin(t + i) * 2.5; ctx.fillRect(cx + lx - 2, footY - 7 + Math.max(0, ph), 4, 7); });
+        ctx.fillStyle = '#9a6b4f'; ctx.beginPath(); ctx.ellipse(cx, cy, r, r * 0.74, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx - r * 0.5, cy - r * 0.5); ctx.lineTo(cx - r * 0.8, cy - r); ctx.lineTo(cx - r * 0.2, cy - r * 0.65); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx + r * 0.5, cy - r * 0.5); ctx.lineTo(cx + r * 0.8, cy - r); ctx.lineTo(cx + r * 0.2, cy - r * 0.65); ctx.closePath(); ctx.fill(); ctx.stroke();
+        const snx = cx + ed * r * 0.6;
+        ctx.fillStyle = '#c08a6a'; ctx.beginPath(); ctx.ellipse(snx, cy + r * 0.12, r * 0.32, r * 0.26, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#4a2f20'; ctx.beginPath(); ctx.arc(snx - 2, cy + r * 0.12, 1.4, 0, 7); ctx.arc(snx + 2, cy + r * 0.12, 1.4, 0, 7); ctx.fill();
+        this._eyes(ctx, cx + ed * r * 0.18, cy - r * 0.22, r * 0.26, r * 0.2, blink);
+        break;
+      }
+      case 'snake': {
+        const segR = this.h * 0.5;
+        for (let i = 4; i >= 0; i--) {
+          const px = cx + ed * (this.w * 0.34 - i * this.w * 0.17);
+          const py = cy + Math.sin(t * 0.9 + i * 0.9) * 4;
+          ctx.fillStyle = i === 0 ? '#22c55e' : (i % 2 ? '#4ade80' : '#37b067');
+          ctx.beginPath(); ctx.arc(px, py, segR * (1 - i * 0.07), 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+          if (i === 0) {
+            this._eyes(ctx, px, py - segR * 0.25, segR * 0.3, segR * 0.22, blink);
+            ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 1.4;
+            ctx.beginPath(); ctx.moveTo(px + ed * segR, py + segR * 0.25); ctx.lineTo(px + ed * segR * 1.7, py + segR * 0.4); ctx.stroke();
+            ctx.strokeStyle = '#0b1224'; ctx.lineWidth = 2;
+          }
+        }
+        break;
+      }
+      case 'critter': {
+        const r = this.w * 0.4;
+        ctx.fillStyle = '#a1815c';
+        [-r * 0.45, r * 0.45].forEach((lx, i) => { const ph = Math.sin(t + i * Math.PI) * 2.5; ctx.fillRect(cx + lx - 2, footY - 6 + Math.max(0, ph), 4, 6); });
+        ctx.strokeStyle = '#a1815c'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(cx - ed * r * 0.7, cy); ctx.quadraticCurveTo(cx - ed * r * 1.4, cy - r * 0.2, cx - ed * r * 1.1, cy - r * 0.8); ctx.stroke();
+        ctx.lineWidth = 2; ctx.strokeStyle = '#0b1224';
+        ctx.fillStyle = '#d6b88f'; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx - r * 0.55, cy - r * 0.7, r * 0.3, 0, 7); ctx.arc(cx + r * 0.55, cy - r * 0.7, r * 0.3, 0, 7); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#f0d9b8'; ctx.beginPath(); ctx.arc(cx - r * 0.55, cy - r * 0.7, r * 0.15, 0, 7); ctx.arc(cx + r * 0.55, cy - r * 0.7, r * 0.15, 0, 7); ctx.fill();
+        this._eyes(ctx, cx, cy - r * 0.05, r * 0.4, r * 0.26, blink);
+        ctx.fillStyle = '#4a2f20'; ctx.beginPath(); ctx.arc(cx + ed * 2, cy + r * 0.38, 2, 0, 7); ctx.fill();
+        break;
+      }
+      case 'bot': {
+        const r = this.w * 0.42;
+        ctx.fillStyle = '#475569'; ctx.fillRect(cx - r, footY - 6, r * 2, 6); ctx.strokeRect(cx - r, footY - 6, r * 2, 6);
+        ctx.fillStyle = this.accent; ctx.beginPath(); ctx.roundRect(cx - r, cy - r * 0.85, r * 2, r * 1.6, 5); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = 'rgba(0,0,0,0.25)'; [[-r * 0.8, -r * 0.6], [r * 0.8, -r * 0.6], [-r * 0.8, r * 0.5], [r * 0.8, r * 0.5]].forEach(([dx, dy]) => { ctx.beginPath(); ctx.arc(cx + dx, cy + dy, 1.6, 0, 7); ctx.fill(); });
+        ctx.beginPath(); ctx.moveTo(cx, cy - r * 0.85); ctx.lineTo(cx, cy - r * 1.35); ctx.stroke();
+        ctx.fillStyle = '#facc15'; ctx.beginPath(); ctx.arc(cx, cy - r * 1.45, 2.5, 0, 7); ctx.fill();
+        ctx.fillStyle = blink ? '#1e293b' : '#fde047'; ctx.beginPath(); ctx.roundRect(cx - r * 0.6, cy - r * 0.2, r * 1.2, r * 0.5, 3); ctx.fill(); ctx.stroke();
+        if (!blink) { ctx.fillStyle = '#0b1224'; ctx.beginPath(); ctx.arc(cx + ed * r * 0.3, cy + r * 0.05, r * 0.16, 0, 7); ctx.fill(); }
+        break;
+      }
+      case 'floater': {
+        const r = this.w * 0.46;
+        const by = cy + Math.sin(t * 0.6) * 3;
+        ctx.strokeStyle = this.accent; ctx.lineWidth = 2.5;
+        for (let i = -2; i <= 2; i++) { const tx0 = cx + i * r * 0.35; ctx.beginPath(); ctx.moveTo(tx0, by + r * 0.4); ctx.quadraticCurveTo(tx0 + Math.sin(t + i) * 4, by + r, tx0 + Math.sin(t + i) * 6, by + r * 1.5); ctx.stroke(); }
+        ctx.lineWidth = 2; ctx.strokeStyle = '#0b1224';
+        ctx.fillStyle = this.accent; ctx.beginPath(); ctx.arc(cx, by, r, Math.PI, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.beginPath(); ctx.ellipse(cx, by, r * 0.7, r * 0.16, 0, 0, Math.PI * 2); ctx.fill();
+        this._eyes(ctx, cx, by - r * 0.35, r * 0.38, r * 0.18, blink);
+        break;
+      }
+      default: { // blob
+        const r = this.w * 0.46;
+        const wob = Math.sin(t) * 0.06;
+        ctx.fillStyle = this.accent;
+        ctx.beginPath(); ctx.ellipse(cx, cy, r * (1 + wob), r * (1 - wob), 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx - r * 0.5, cy + r * 0.7, r * 0.18, 0, Math.PI * 2); ctx.arc(cx + r * 0.4, cy + r * 0.8, r * 0.14, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.beginPath(); ctx.ellipse(cx - r * 0.3, cy - r * 0.4, r * 0.3, r * 0.18, -0.5, 0, Math.PI * 2); ctx.fill();
+        this._eyes(ctx, cx, cy - r * 0.15, r * 0.5, r * 0.2, blink);
+        this._eyes(ctx, cx, cy + r * 0.3, 0, r * 0.18, blink);
+        break;
+      }
+    }
+  }
+
   draw(ctx, cameraX) {
-    const sx = this.x + this.w / 2 - cameraX, sy = this.y + this.h / 2;
+    const cx = this.x + this.w / 2 - cameraX;
+    const cy = this.y + this.h / 2;
+    const footY = this.y + this.h;
+    const blink = this.blinkTimer < 7;
+
+    // Soft shadow (unscaled).
     ctx.save();
     ctx.globalAlpha = 0.22; ctx.fillStyle = '#000';
-    ctx.beginPath(); ctx.ellipse(sx, this.y + this.h, this.w * 0.42, 4, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.globalAlpha = this.hitFlash > 0 ? 0.5 : 1;
-    ctx.font = "23px serif"; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(this.emoji, sx, sy);
+    ctx.beginPath(); ctx.ellipse(cx, footY, this.w * 0.42, 4, 0, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
+
+    // Squash/stretch from vertical speed, anchored at the feet.
+    ctx.save();
+    const syS = 1 + Math.max(-0.18, Math.min(0.22, -this.vy * 0.016));
+    ctx.translate(cx, footY); ctx.scale(1 / syS, syS); ctx.translate(-cx, -footY);
+    this.drawSpecies(ctx, cx, cy, footY, this.animTime, blink);
+    if (this.hitFlash > 0) {
+      ctx.globalAlpha = 0.55 * (this.hitFlash / 6); ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(cx, cy, this.w * 0.6, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+
     if (this.sayTimer > 0 && this.sayText) {
       ctx.save();
       ctx.font = "7px 'Press Start 2P', monospace";
       const tw = ctx.measureText(this.sayText).width, bw = tw + 10, bh = 13;
-      const bx = sx - bw / 2, by = this.y - bh - 5;
+      const bx = cx - bw / 2, by = this.y - bh - 5;
       ctx.fillStyle = '#0b1022'; ctx.beginPath(); ctx.roundRect(bx - 2, by - 2, bw + 4, bh + 4, 4); ctx.fill();
       ctx.fillStyle = '#fde68a'; ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 3); ctx.fill();
       ctx.fillStyle = '#15233e'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(this.sayText, sx, by + bh / 2 + 0.5);
+      ctx.fillText(this.sayText, cx, by + bh / 2 + 0.5);
       ctx.restore();
     }
   }

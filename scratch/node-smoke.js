@@ -111,6 +111,15 @@ const smoke = `
   gp.drawMeteorBanner(gp.ctx); gp.drawHealthHUD(gp.ctx); gp.drawFuelHUD(gp.ctx); gp.drawWeaponHUD(gp.ctx);
   global.__wave4ok = true;
 
+  // Every drawn mob species renders without throwing (incl. blink + hit-flash + squash).
+  ['hog', 'snake', 'critter', 'blob', 'bot', 'floater'].forEach((sp, i) => {
+    const mob = new Mob(50 + i * 30, 100, sp, '#a78bfa');
+    mob.eyeDir = 1; mob.animTime = 1.3; mob.vy = -3;
+    mob.draw(ctx, 0);
+    mob.blinkTimer = 3; mob.hitFlash = 4; mob.draw(ctx, 0);
+  });
+  global.__mobsok = true;
+
   global.__ok = true;
 `;
 eval(bundle + '\n' + smoke);
@@ -118,6 +127,7 @@ eval(bundle + '\n' + smoke);
 check('pop-text draws without throwing and caps at 2', () => { if (global.__popCap !== 2) throw new Error('pop cap was ' + global.__popCap + ', expected 2'); });
 check('player + gem + start backdrop drew without throwing', () => { if (!global.__ok) throw new Error('smoke did not complete'); });
 check('Wave 4 hazards (debris/meteors/flash/shake/hearts) draw without throwing', () => { if (!global.__wave4ok) throw new Error('wave4 draw did not complete'); });
+check('all drawn mob species render without throwing', () => { if (!global.__mobsok) throw new Error('mob species draw did not complete'); });
 
 console.log(`\nSmoke: ${pass} ok, ${fail} threw.`);
 process.exit(fail > 0 ? 1 : 0);

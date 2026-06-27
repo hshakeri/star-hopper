@@ -1315,6 +1315,7 @@ class StarHopperGame {
     // Health timers: i-frame blink window counts down; hurt red-flash fades.
     if (this.player && this.player.invulnerableFrames > 0) this.player.invulnerableFrames--;
     if (this.hurtFlashTimer > 0) this.hurtFlashTimer--;
+    if (this.player && this.player.landSquash > 0) this.player.landSquash = Math.max(0, this.player.landSquash - 0.12);
 
     // 2. Run real-time mission completion validator
     this.checkMissions();
@@ -1333,10 +1334,19 @@ class StarHopperGame {
       // Soft "tick" on any real landing closes the jump loop; the bigger dust + bubble
       // only fire on a hard landing so light hops stay subtle.
       if (_preFallVy > 1.2 && typeof SFX !== 'undefined' && SFX.playLanding) SFX.playLanding();
+      // Squash on impact, scaled by how hard you hit (drives the foot-anchored draw scale).
+      this.player.landSquash = Math.min(1, Math.max(0.25, _preFallVy / 9));
       if (_preFallVy > 4 && typeof ComicBubbles !== 'undefined') {
         ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y + this.player.h, SPEECH.pick("land"), "rounded", "#d6d3d1", -0.3, { maxLife: 34, scale: 0.8 });
         Particles.spawnBurst(this.player.x + this.player.w / 2, this.player.y + this.player.h, '#cbd5e1', 6, 1.4, 2);
       }
+      if (_preFallVy > 7 && !this.reducedMotion) { this.shakeFrames = 6; this.shakeMag = 4; this.shakeMax = 6; }
+    }
+
+    // Run dust: little puffs kicked up when sprinting on the ground.
+    if (this.player.onGround && Math.abs(this.player.vx) > 2.2 && Math.random() < 0.3) {
+      Particles.spawn(this.player.x + this.player.w / 2 - (this.player.facing || 1) * 6, this.player.y + this.player.h - 2,
+        'rgba(255,255,255,0.5)', 2, -(this.player.facing || 1) * 0.6, -0.4, 16, 'glow');
     }
 
     // 6. Terrain hazards (spikes) chip health + bounce the cadet off (i-frames prevent
@@ -1365,7 +1375,10 @@ class StarHopperGame {
     }
 
     // 8. Update camera positioning (lerp horizontal viewport centering)
-    const targetCamX = this.player.x - this.canvas.width / 2;
+    // Look-ahead: bias the view toward where the cadet faces/moves, so the camera feels
+    // alive and you can see what's coming.
+    const lookAhead = (this.player.facing || 1) * 50 + this.player.vx * 6;
+    const targetCamX = this.player.x - this.canvas.width / 2 + lookAhead;
     const maxCamX = (this.getActiveMap()[0].length * TILE_SIZE) - this.canvas.width;
     this.cameraX += (targetCamX - this.cameraX) * 0.1;
     this.cameraX = Math.max(0, Math.min(maxCamX, this.cameraX));
@@ -1552,13 +1565,14 @@ class StarHopperGame {
 
   spawnMob() {
     if (!this.currentPlanet || !this.currentPlanet.map) return;
-    const theme = (typeof MOB_THEMES !== 'undefined' && MOB_THEMES[this.currentPlanetIndex]) || ["👾"];
-    const emoji = theme[Math.floor(Math.random() * theme.length)];
+    const theme = (typeof MOB_THEMES !== 'undefined' && MOB_THEMES[this.currentPlanetIndex]) || ["blob"];
+    const species = theme[Math.floor(Math.random() * theme.length)];
+    const accent = (this.currentPlanet && this.currentPlanet.color) || '#a78bfa';
     const mapW = this.getActiveMap()[0].length * TILE_SIZE;
     const fromLeft = Math.random() < 0.5;
     let x = fromLeft ? this.cameraX - 20 : this.cameraX + this.canvas.width + 20;
     x = Math.max(0, Math.min(mapW - 30, x));
-    const m = new Mob(x, 50, emoji);
+    const m = new Mob(x, 50, species, accent);
     m.say(SPEECH.pick('mobChatter'));
     this.mobs.push(m);
   }
@@ -1700,9 +1714,10 @@ class StarHopperGame {
   }
 
   wakeMob(x, y) {
-    const theme = (typeof MOB_THEMES !== 'undefined' && MOB_THEMES[this.currentPlanetIndex]) || ["👾"];
-    const emoji = theme[Math.floor(Math.random() * theme.length)];
-    const m = new Mob(x, y, emoji);
+    const theme = (typeof MOB_THEMES !== 'undefined' && MOB_THEMES[this.currentPlanetIndex]) || ["blob"];
+    const species = theme[Math.floor(Math.random() * theme.length)];
+    const accent = (this.currentPlanet && this.currentPlanet.color) || '#a78bfa';
+    const m = new Mob(x, y, species, accent);
     m.hp = 2 + (this.currentPlanetIndex > 1 ? 1 : 0); // tougher off Earth/Moon
     m.woken = true;
     this.mobs.push(m);
@@ -2173,8 +2188,19 @@ class StarHopperGame {
     // 4e. Draw mobs (survival + block-woken)
     if (this.mobs) for (const m of this.mobs) m.draw(this.ctx, this.cameraX);
 
-    // 5. Draw Player Character
-    this.player.draw(this.ctx, this.cameraX, this);
+    // 5. Draw Player Character — with foot-anchored squash & stretch for game-feel:
+    // stretch tall when rising/falling fast, squash flat on a hard landing.
+    {
+      const p = this.player;
+      let syS = 1, sxS = 1;
+      if (!p.onGround) { const s = Math.max(-0.16, Math.min(0.22, -p.vy * 0.012)); syS = 1 + s; sxS = 1 - s * 0.7; }
+      if (p.landSquash > 0) { const k = p.landSquash; syS = 1 - 0.28 * k; sxS = 1 + 0.30 * k; }
+      const fx = p.x + p.w / 2 - this.cameraX, fy = p.y + p.h;
+      this.ctx.save();
+      this.ctx.translate(fx, fy); this.ctx.scale(sxS, syS); this.ctx.translate(-fx, -fy);
+      p.draw(this.ctx, this.cameraX, this);
+      this.ctx.restore();
+    }
 
     // 6. Draw glowing magnetic lines if active
     this.drawMagneticFields();
