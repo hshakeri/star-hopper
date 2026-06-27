@@ -35,7 +35,9 @@ window.Nav = window.Nav || {};
       trail: [],          // Positions trail array for rendering
       lastTrailTime: null,
       maxVelocityObserved: Math.sqrt(vx * vx + vy * vy),
-      closestApproaches: { earth: Infinity, mars: Infinity, jupiter: Infinity }
+      closestApproaches: { earth: Infinity, mars: Infinity, jupiter: Infinity },
+      burnCount: 0,            // distinct thrust burns executed (mission gates on this)
+      minApproach: Infinity    // closest the ship has come to the mission destination
     };
     
     Nav.commandQueue = [];
@@ -167,6 +169,76 @@ window.Nav = window.Nav || {};
   };
 
   /**
+   * Runs a flight plan written in KidCode (the SAME language as the platformer).
+   * The point_at/thrust/wait/warp functions in the interpreter enqueue actions onto
+   * Nav.commandQueue, which processFlightQueue then executes over simulation time — so
+   * loops (`repeat`, `for`) and variables now plan multi-burn trajectories.
+   *
+   * Snapshots/restores Compiler.activeRules so a stray `when` rule typed into a flight
+   * plan can't bleed into the platformer's per-frame rule loop.
+   */
+  Nav.runKidCodePlan = function(commandString) {
+    if (!commandString || !commandString.trim()) return;
+
+    Nav.logConsole(`Executing flight plan: ${commandString.replace(/\n/g, ' ⏎ ')}`, "info");
+    Nav.lastCommandString = commandString;
+    Nav.commandQueue = [];
+    Nav.currentAction = null;
+    Nav.actionTimeRemaining = 0;
+
+    if (typeof Compiler === 'undefined') {
+      Nav.logConsole("Pilot OS: code engine unavailable.", "error");
+      return;
+    }
+
+    const savedRules = Array.isArray(Compiler.activeRules) ? Compiler.activeRules.slice() : [];
+    const res = Compiler.runCommand(commandString, (typeof window !== 'undefined' && window.Game) ? window.Game : {});
+    Compiler.activeRules = savedRules; // discard any when-rules registered during planning
+
+    if (res && res.success === false) {
+      Nav.logConsole(`Pilot OS: ${res.msg}`, "error");
+    }
+  };
+
+  /**
+   * Compiles a KidCode flight plan into a command queue WITHOUT touching the live
+   * flight or the platformer's Compiler state. Used by the ghost-trajectory preview so
+   * the dashed path reflects loop-based plans (repeat/for) typed in the Launch Plan box.
+   * Cached on the plan text so it only recompiles when the text changes (the preview
+   * runs every render frame). Returns fresh action copies the caller can consume.
+   */
+  Nav.planToQueue = function(text) {
+    if (!text || !text.trim() || typeof Compiler === 'undefined' || !Nav.ship) return [];
+
+    if (Nav._planCacheText === text && Nav._planCacheQueue) {
+      return Nav._planCacheQueue.map(a => ({ ...a }));
+    }
+
+    // Snapshot everything the compile could disturb, run into a throwaway queue, restore.
+    const liveQueue = Nav.commandQueue;
+    const liveCurrent = Nav.currentAction;
+    const liveRemaining = Nav.actionTimeRemaining;
+    const savedRules = Array.isArray(Compiler.activeRules) ? Compiler.activeRules.slice() : null;
+    const savedEnv = (Compiler.env && typeof Compiler.env === 'object') ? { ...Compiler.env } : null;
+
+    Nav.commandQueue = [];
+    try {
+      Compiler.runCommand(text, (typeof window !== 'undefined' && window.Game) ? window.Game : {});
+    } catch (e) { /* preview is best-effort; ignore parse errors mid-typing */ }
+    const built = Nav.commandQueue;
+
+    Nav.commandQueue = liveQueue;
+    Nav.currentAction = liveCurrent;
+    Nav.actionTimeRemaining = liveRemaining;
+    if (savedRules) Compiler.activeRules = savedRules;
+    if (savedEnv) Compiler.env = savedEnv;
+
+    Nav._planCacheText = text;
+    Nav._planCacheQueue = built;
+    return built.map(a => ({ ...a }));
+  };
+
+  /**
    * Processes the command queue step-by-step.
    * @param {number} dt - Timestep in TU (days)
    * @param {number} t - Current time in TU (days)
@@ -198,6 +270,7 @@ window.Nav = window.Nav || {};
         } else {
           Nav.ship.thrustActive = true;
           Nav.ship.thrustPower = (Nav.currentAction.power * 0.15) / 592.26; // Scaled for new physical year scale
+          Nav.ship.burnCount = (Nav.ship.burnCount || 0) + 1; // a fresh burn started (loop missions gate on this)
           Nav.actionTimeRemaining = Nav.currentAction.duration;
           Nav.logConsole(`Thrust burn engaged: power=${Nav.currentAction.power}, duration=${Nav.currentAction.duration} days`, "info");
           if (typeof SPEECH !== 'undefined') { Nav.ship.sayText = SPEECH.pick("navThrust"); Nav.ship.sayTimer = 110; }

@@ -230,7 +230,82 @@ function shRenderUI() {
     <div class="cadet-actions">
       <button class="cadet-btn cadet-btn-backup" onclick="exportLocalSave()">⬇ Download backup</button>
       <button class="cadet-btn cadet-btn-backup" onclick="importLocalSave()">⬆ Restore backup</button>
+    </div>
+    <div class="cadet-actions">
+      <button class="cadet-btn cadet-btn-backup" onclick="submitLabCode()" title="Copy a short code of your last Navigator mission to hand in for class">📋 Submit Lab</button>
+      <button class="cadet-btn cadet-btn-backup" onclick="loadLabCode()" title="Paste a classmate's or your own lab code to review it">📨 Load Lab Code</button>
     </div>`;
+}
+
+// --- "Submit Lab" — COPPA-safe classroom hand-in ----------------------------------
+// A short pasteable code (no account, no PII beyond the chosen cadet name) that captures
+// ONE completed Navigator lab: name, mission, stars, fuel/lines, the flight plan, date.
+// Built for Chromebook/Google Classroom workflows where logins aren't an option.
+const SH_LAB_PREFIX = 'STARHOPPER-';
+
+function shExportLabCode(lab) {
+  try {
+    // unicode-safe base64 (cadet names / code may contain emoji or non-Latin text)
+    return SH_LAB_PREFIX + btoa(unescape(encodeURIComponent(JSON.stringify(lab))));
+  } catch (e) { return ''; }
+}
+
+function shImportLabCode(code) {
+  try {
+    const b64 = String(code || '').trim().replace(/^STARHOPPER-/, '');
+    if (!b64) return null;
+    return JSON.parse(decodeURIComponent(escape(atob(b64))));
+  } catch (e) { return null; }
+}
+
+// Assemble a lab submission from the most recently completed Navigator mission.
+function shBuildNavLab() {
+  if (typeof window === 'undefined' || !window.Nav || !Nav.Missions) return null;
+  const mission = Nav.Missions[Nav.activeMissionIndex];
+  if (!mission || !Nav.orbitalMissionsCompleted || !Nav.orbitalMissionsCompleted.has(mission.id)) return null;
+  const grade = (Nav.missionStars && Nav.missionStars[mission.id]) || { stars: 1, fuelUsed: 0, lines: 0 };
+  const active = (typeof shGetActive === 'function') ? shGetActive() : null;
+  return {
+    v: 1,
+    n: active ? active.name : 'Cadet',                 // chosen name only — no PII
+    m: mission.id,
+    t: mission.title,
+    s: grade.stars,
+    f: Math.round((grade.fuelUsed || 0) * 100) / 100,
+    l: grade.lines || 0,
+    c: Nav.lastCommandString || mission.starterCode || '',
+    d: new Date().toISOString().slice(0, 10)
+  };
+}
+
+function submitLabCode() {
+  const lab = shBuildNavLab();
+  if (!lab) {
+    alert('Finish a Navigator mission first: open the Spaceship Navigator, run a flight plan to a planet, then come back and Submit Lab.');
+    return;
+  }
+  const code = shExportLabCode(lab);
+  if (!code) { alert('Sorry — could not build a lab code.'); return; }
+  const summary = `${lab.n} — ${lab.t}: ${lab.s}★ (${lab.l} lines, ${lab.f} fuel)`;
+  const done = () => alert(`Lab code copied to your clipboard!\nPaste it into your class assignment.\n\n${summary}`);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(code).then(done).catch(() => prompt('Copy your lab code:', code));
+  } else {
+    prompt('Copy your lab code:', code);
+  }
+}
+
+function loadLabCode() {
+  const input = prompt('Paste a STARHOPPER- lab code to review it:');
+  if (!input) return;
+  const lab = shImportLabCode(input);
+  if (!lab) {
+    alert('That lab code is not valid or was cut off. Make sure you pasted the whole STARHOPPER-… code.');
+    return;
+  }
+  alert(
+    `${lab.n}\nLab: ${lab.t}\nScore: ${lab.s}★  (${lab.l} lines, ${lab.f} fuel used)\nDate: ${lab.d}\n\nFlight plan:\n${lab.c}`
+  );
 }
 
 // escapeHTML is defined in ui.js; provide a safe fallback if profiles renders first.
@@ -259,5 +334,8 @@ window.StarHopperProfiles = {
   renderUI: shRenderUI,
   getActive: shGetActive,
   captureProgress: shCaptureProgress,
-  applyProgress: shApplyProgress
+  applyProgress: shApplyProgress,
+  exportLabCode: shExportLabCode,
+  importLabCode: shImportLabCode,
+  buildNavLab: shBuildNavLab
 };

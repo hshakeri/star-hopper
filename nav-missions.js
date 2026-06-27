@@ -23,13 +23,6 @@ window.Nav = window.Nav || {};
     };
   }
 
-  function commandPlanTargetsDestination(destinationId) {
-    const commandText = (Nav.lastCommandString || "").toLowerCase();
-    return commandText.includes(destinationId) &&
-      commandText.includes("thrust") &&
-      commandText.includes("wait");
-  }
-
   function makeRouteMission(config) {
     return {
       id: config.id,
@@ -39,6 +32,9 @@ window.Nav = window.Nav || {};
       originId: config.originId,
       destinationId: config.destinationId,
       targetPlanetIndex: config.targetPlanetIndex,
+      arrivalTolerance: config.arrivalTolerance,
+      maxFuelFor3Star: config.maxFuelFor3Star,
+      maxLinesFor3Star: config.maxLinesFor3Star,
       starterCode: config.starterCode,
       setup: function() {
         const origin = Nav.BODIES[config.originId.toUpperCase()];
@@ -57,23 +53,27 @@ window.Nav = window.Nav || {};
         Nav.ship.routeOriginId = config.originId;
         Nav.ship.routeTargetId = config.destinationId;
         Nav.ship.routeMinimumTime = config.minimumTime || 20;
+        Nav.ship.minApproach = Infinity;
+        Nav.ship.enteredDestinationSOI = false;
       },
+      // Real-physics validation: the plan's SIMULATED trajectory must actually carry the
+      // ship near the destination and burn real fuel. (Replaces the old text-match that
+      // passed if the command string merely contained the destination word — spoofable.)
       validate: function(ship, t) {
         const destination = Nav.BODIES[config.destinationId.toUpperCase()];
         const dState = Nav.bodyStateAt(destination, t);
         const dist = Nav.Vector.distance(ship, dState);
         const soi = Nav.SOI_RADII[destination.id] || 0.22;
 
-        if (dist < soi) {
-          ship.enteredDestinationSOI = true;
-        }
+        ship.minApproach = Math.min(ship.minApproach !== undefined ? ship.minApproach : Infinity, dist);
+        if (dist < soi) ship.enteredDestinationSOI = true;
 
         const commandFinished = Nav.commandQueue.length === 0 && !Nav.currentAction;
-        const routePlanComplete = commandPlanTargetsDestination(config.destinationId);
         const flightLongEnough = t >= (config.minimumTime || 20);
+        const realBurn = (ship.maxFuel - ship.fuelMass) > (config.minFuelBurn || 0.05);
+        const arrived = ship.enteredDestinationSOI || ship.minApproach < soi * (config.arrivalTolerance || 3.0);
 
-        return commandFinished && routePlanComplete && flightLongEnough &&
-          (ship.enteredDestinationSOI || dist < soi * 2.5 || config.planCertificationOnly);
+        return commandFinished && flightLongEnough && realBurn && arrived;
       }
     };
   }
@@ -88,8 +88,10 @@ window.Nav = window.Nav || {};
       destinationId: "moon",
       targetPlanetIndex: 1,
       minimumTime: 18,
-      planCertificationOnly: true,
-      starterCode: "point_at('moon'); thrust(4.0, 4.0); wait(24);"
+      arrivalTolerance: 2.1,
+      maxFuelFor3Star: 0.80,
+      maxLinesFor3Star: 6,
+      starterCode: "warp(3)\nrepeat 4:\n  point_at('moon')\n  thrust(12, 5)\n  wait(6)"
     }),
     makeRouteMission({
       id: "route-moon-jupiter",
@@ -100,8 +102,10 @@ window.Nav = window.Nav || {};
       destinationId: "jupiter",
       targetPlanetIndex: 2,
       minimumTime: 45,
-      planCertificationOnly: true,
-      starterCode: "point_at('jupiter'); thrust(5.0, 7.0); warp(5); wait(60);"
+      arrivalTolerance: 2.7,
+      maxFuelFor3Star: 1.55,
+      maxLinesFor3Star: 6,
+      starterCode: "warp(3)\nrepeat 8:\n  point_at('jupiter')\n  thrust(8, 5)\n  wait(6)"
     }),
     makeRouteMission({
       id: "route-jupiter-glacies",
@@ -112,8 +116,10 @@ window.Nav = window.Nav || {};
       destinationId: "glacies",
       targetPlanetIndex: 3,
       minimumTime: 55,
-      planCertificationOnly: true,
-      starterCode: "point_at('glacies'); thrust(4.5, 6.0); warp(5); wait(70);"
+      arrivalTolerance: 1.2,
+      maxFuelFor3Star: 1.25,
+      maxLinesFor3Star: 6,
+      starterCode: "warp(3)\nrepeat 8:\n  point_at('glacies')\n  thrust(10, 4)\n  wait(12)"
     }),
     makeRouteMission({
       id: "route-glacies-magnet",
@@ -124,8 +130,11 @@ window.Nav = window.Nav || {};
       destinationId: "magnet",
       targetPlanetIndex: 4,
       minimumTime: 45,
-      planCertificationOnly: true,
-      starterCode: "point_at('magnet'); thrust(3.8, 5.0); warp(5); wait(55);"
+      arrivalTolerance: 5.3,
+      fuelMass: 3.5,
+      maxFuelFor3Star: 2.40,
+      maxLinesFor3Star: 6,
+      starterCode: "warp(3)\nrepeat 12:\n  point_at('magnet')\n  thrust(12, 5)\n  wait(6)"
     }),
     {
       id: "sol-hohmann-mars",
@@ -199,6 +208,55 @@ window.Nav = window.Nav || {};
         // Success if they entered Jupiter SOI and exited with high speed
         return ship.passedJupiterSOI && dist > Nav.SOI_RADII.jupiter && sunSpeed > 2.5;
       }
+    },
+    {
+      // The payoff of unifying the two modes: this mission can ONLY be solved with a
+      // loop. A single big burn can't satisfy burnCount >= 4 — you must `repeat` small
+      // burns to spiral out to Jupiter, the same loop kids first learned on the Moon.
+      id: "sol-spiral-climb",
+      title: "Spiral Climb (Loop Required)",
+      concept: "Loops & Iteration — repeated burns raise an orbit",
+      objective: "One giant burn won't be enough on its own. Use a repeat loop to fire several small burns and spiral out to Jupiter — the same loop you learned on the Moon.",
+      originId: "earth",
+      destinationId: "jupiter",
+      arrivalTolerance: 4.0,
+      minBurns: 4,
+      maxFuelFor3Star: 0.52,
+      maxLinesFor3Star: 5,
+      starterCode: "point_at('jupiter')\nrepeat 5:\n  point_at('jupiter')\n  thrust(4, 3)\n  wait(14)",
+      setup: function() {
+        const earth = Nav.BODIES.EARTH;
+        const launch = getLaunchStateNearBody(earth, 0.12, 0.12);
+
+        Nav.initShip(
+          launch.x,
+          launch.y,
+          launch.vx,
+          launch.vy,
+          Math.atan2(launch.vy, launch.vx),
+          1.0,  // dryMass
+          3.0,  // fuelMass (plenty for several small burns)
+          0.04  // burnRate
+        );
+        Nav.ship.minApproach = Infinity;
+        Nav.ship.enteredDestinationSOI = false;
+      },
+      validate: function(ship, t) {
+        const dest = Nav.BODIES.JUPITER;
+        const dState = Nav.bodyStateAt(dest, t);
+        const dist = Nav.Vector.distance(ship, dState);
+        const soi = Nav.SOI_RADII.jupiter;
+
+        ship.minApproach = Math.min(ship.minApproach !== undefined ? ship.minApproach : Infinity, dist);
+        if (dist < soi) ship.enteredDestinationSOI = true;
+
+        const commandFinished = Nav.commandQueue.length === 0 && !Nav.currentAction;
+        const flightLongEnough = t >= 40;
+        const usedLoop = (ship.burnCount || 0) >= 4; // a single thrust() can't reach this
+        const arrived = ship.enteredDestinationSOI || ship.minApproach < soi * 4.0;
+
+        return commandFinished && flightLongEnough && usedLoop && arrived;
+      }
     }
   ];
 
@@ -208,6 +266,26 @@ window.Nav = window.Nav || {};
       Nav.RouteMissionByTargetPlanet[mission.targetPlanetIndex] = index;
     }
   });
+
+  // Grades a completed flight on efficiency: 1★ for arriving, +1★ for beating the fuel
+  // par, +1★ for beating the line-count par (which rewards a loop over hardcoded burns).
+  // Counts non-empty plan lines from the last executed flight plan.
+  Nav.missionStars = {};
+  Nav.computeStars = function(mission) {
+    const fuelUsed = Nav.ship ? (Nav.ship.maxFuel - Nav.ship.fuelMass) : 0;
+    const lines = String(Nav.lastCommandString || "")
+      .split("\n").map(s => s.trim()).filter(s => s.length > 0).length;
+    let stars = 1; // reached the destination safely
+    if (mission && mission.maxFuelFor3Star && fuelUsed <= mission.maxFuelFor3Star) stars++;
+    if (mission && mission.maxLinesFor3Star && lines > 0 && lines <= mission.maxLinesFor3Star) stars++;
+    return {
+      stars,
+      fuelUsed,
+      lines,
+      fuelPar: mission ? mission.maxFuelFor3Star : null,
+      linePar: mission ? mission.maxLinesFor3Star : null,
+    };
+  };
 
   Nav.loadRouteToPlanet = function(originPlanetIndex, targetPlanetIndex) {
     const missionIndex = Nav.RouteMissionByTargetPlanet[targetPlanetIndex];

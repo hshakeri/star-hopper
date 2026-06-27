@@ -214,6 +214,11 @@ function showNavigatorHelp() {
   log("• warp(factor) — speed up time so long coasts finish faster (e.g. warp(5)).", "info");
   log("Flight idea: point_at(target) → thrust to build speed → wait to coast in.", "info");
   log("Tip: if a plan overshoots or falls short, tune the thrust numbers — that's the engineering!", "success");
+  log("🔁 LOOPS WORK HERE — the same repeat/for you used on the Moon now fly the ship.", "success");
+  log("   Use the multi-line Launch Plan box and put the loop body on its own indented lines:", "info");
+  log("     repeat 3:", "info");
+  log("       thrust(4, 2)", "info");
+  log("       wait(8)", "info");
 }
 
 /**
@@ -236,7 +241,9 @@ function runNavigatorCommands(commandString) {
     if (activeMission) {
       activeMission.setup();
     }
-    window.Nav.runCommands(commandString);
+    // Flight plans are KidCode now — same language as the platformer, so loops and
+    // variables work. runKidCodePlan compiles the plan and enqueues the ship actions.
+    window.Nav.runKidCodePlan(commandString);
   }
 }
 
@@ -294,6 +301,18 @@ function updateNavigator(game) {
       if (activeMission && !window.Nav.orbitalMissionsCompleted.has(activeMission.id)) {
         if (activeMission.validate(window.Nav.ship, window.Nav.ship.timeElapsed)) {
           window.Nav.orbitalMissionsCompleted.add(activeMission.id);
+
+          // Grade the run on efficiency (fuel + lines) for the 3-star replay loop.
+          const grade = (typeof window.Nav.computeStars === 'function')
+            ? window.Nav.computeStars(activeMission) : { stars: 1 };
+          window.Nav.missionStars = window.Nav.missionStars || {};
+          window.Nav.missionStars[activeMission.id] = grade;
+          window.Nav.logConsole(
+            `★ ${grade.stars}/3 — fuel ${grade.fuelUsed.toFixed(2)} (par ${grade.fuelPar}), ` +
+            `${grade.lines} lines (par ${grade.linePar})` +
+            (grade.stars < 3 ? " — optimize for 3 stars!" : " — perfect!"),
+            "success"
+          );
           // Spacecraft settles into the destination orbit — keep coasting it for a beat
           // (cruising) before the landing call, instead of freezing in place.
           window.Nav.ship.sayText = (typeof SPEECH !== 'undefined') ? SPEECH.pick("navCruise") : "Cruising now!";

@@ -25,9 +25,16 @@ window.Nav = window.Nav || {};
     let actionTimeRemaining = 0;
 
     if (isIdle) {
+      // Prefer the multi-line Launch Plan box (where loop plans live); fall back to the
+      // single-line console. planToQueue compiles KidCode so the ghost reflects repeat/for.
+      const bridgeEl = document.getElementById("navigator-bridge-code");
       const inputEl = document.getElementById("navigator-console-input");
-      const codeText = inputEl ? inputEl.value : "";
-      actions = Nav.parseCommands ? Nav.parseCommands(codeText) : [];
+      const codeText = (bridgeEl && bridgeEl.value && bridgeEl.value.trim())
+        ? bridgeEl.value
+        : (inputEl ? inputEl.value : "");
+      actions = Nav.planToQueue
+        ? Nav.planToQueue(codeText)
+        : (Nav.parseCommands ? Nav.parseCommands(codeText) : []);
     } else {
       actions = window.Nav.commandQueue.map(a => ({...a}));
       if (window.Nav.currentAction) {
@@ -581,18 +588,35 @@ window.Nav = window.Nav || {};
       }
     }
 
-    // 7. Mission Verified overlay if mission is verified success
+    // 7. Mission Verified overlay (with 3-star efficiency grade) on success
     if (activeMission && Nav.orbitalMissionsCompleted && Nav.orbitalMissionsCompleted.has(activeMission.id)) {
-      ctx.fillStyle = "rgba(15, 23, 42, 0.88)";
-      ctx.fillRect(canvas.width / 2 - 160, canvas.height - 75, 320, 45);
+      const grade = (Nav.missionStars && Nav.missionStars[activeMission.id]) || { stars: 1 };
+      const stars = Math.max(1, Math.min(3, grade.stars || 1));
+
+      ctx.fillStyle = "rgba(15, 23, 42, 0.9)";
+      ctx.fillRect(canvas.width / 2 - 175, canvas.height - 92, 350, 66);
       ctx.strokeStyle = "var(--neon-green)";
       ctx.lineWidth = 1.5;
-      ctx.strokeRect(canvas.width / 2 - 160, canvas.height - 75, 320, 45);
+      ctx.strokeRect(canvas.width / 2 - 175, canvas.height - 92, 350, 66);
+
+      ctx.textAlign = "center";
+      // Stars row
+      ctx.fillStyle = "#facc15";
+      ctx.font = "20px 'Outfit'";
+      ctx.fillText("★".repeat(stars) + "☆".repeat(3 - stars), canvas.width / 2, canvas.height - 66);
 
       ctx.fillStyle = "var(--neon-green)";
-      ctx.font = "14px 'Outfit'";
-      ctx.textAlign = "center";
-      ctx.fillText("MISSION VERIFIED • CODES LOCKED", canvas.width / 2, canvas.height - 48);
+      ctx.font = "13px 'Outfit'";
+      ctx.fillText("MISSION VERIFIED", canvas.width / 2, canvas.height - 46);
+
+      // "Can you do better?" nudge — names the cheaper lever (lines vs fuel).
+      if (stars < 3) {
+        ctx.fillStyle = "rgba(255, 255, 255, 0.72)";
+        ctx.font = "11px 'Outfit'";
+        const needLines = grade.linePar && grade.lines > grade.linePar;
+        const tip = needLines ? "Fewer lines next time — use a loop!" : "Try the same trip on less fuel!";
+        ctx.fillText(tip, canvas.width / 2, canvas.height - 30);
+      }
       ctx.textAlign = "left";
     }
   };

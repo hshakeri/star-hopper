@@ -1104,6 +1104,76 @@ function runSolarTests() {
   } catch (err) {
     renderTestResult("solar-suite", "Navigator: beginner bridge loads next planet route", false, err.message);
   }
+
+  // Test 30: KidCode bridge — a flight plan compiles into ship actions on the queue
+  try {
+    Nav.Missions[0].setup();
+    Nav.runKidCodePlan("point_at('moon')\nthrust(5, 2)\nwait(8)");
+    assertEquals(3, Nav.commandQueue.length, "KidCode plan should enqueue 3 ship actions");
+    assertEquals("rotate", Nav.commandQueue[0].type, "First action should be rotate");
+    assertEquals("thrust", Nav.commandQueue[1].type, "Second action should be thrust");
+    assertEquals(5, Nav.commandQueue[1].power, "Thrust power should pass through");
+    assertEquals("wait", Nav.commandQueue[2].type, "Third action should be wait");
+    renderTestResult("solar-suite", "KidCode bridge: flight plan enqueues ship actions", true);
+  } catch (err) {
+    renderTestResult("solar-suite", "KidCode bridge: flight plan enqueues ship actions", false, err.message);
+  }
+
+  // Test 31: planToQueue expands loops and never mutates the live flight
+  try {
+    Nav.Missions[0].setup();
+    Nav.runKidCodePlan("point_at('moon')");
+    const liveLen = Nav.commandQueue.length;
+    const preview = Nav.planToQueue("repeat 3:\n  thrust(4, 2)\n  wait(8)");
+    assertEquals(6, preview.length, "repeat 3 over 2 actions should expand to 6");
+    assertEquals(liveLen, Nav.commandQueue.length, "preview must not mutate the live queue");
+    renderTestResult("solar-suite", "Ghost preview: planToQueue expands loops, stays pure", true);
+  } catch (err) {
+    renderTestResult("solar-suite", "Ghost preview: planToQueue expands loops, stays pure", false, err.message);
+  }
+
+  // Test 32: 3-star grading rewards low fuel + few lines (a loop)
+  try {
+    const m = Nav.Missions[0];
+    m.setup();
+    Nav.runKidCodePlan(m.starterCode);              // 5-line loop ≤ line par (6)
+    Nav.ship.fuelMass = Nav.ship.maxFuel - 0.5;     // fuel used 0.5 ≤ fuel par (0.80)
+    assertEquals(3, Nav.computeStars(m).stars, "low fuel + loop should be 3 stars");
+    Nav.ship.fuelMass = Nav.ship.maxFuel - 2.0;     // fuel used 2.0 > par
+    assertEquals(2, Nav.computeStars(m).stars, "over fuel par should drop to 2 stars");
+    renderTestResult("solar-suite", "3-star grade: fuel + line-count efficiency", true);
+  } catch (err) {
+    renderTestResult("solar-suite", "3-star grade: fuel + line-count efficiency", false, err.message);
+  }
+
+  // Test 33: Submit-Lab code round-trips (unicode-safe) and rejects garbage
+  try {
+    const lab = { v: 1, n: "Cadet 🚀", m: "route-earth-moon", t: "Earth to Moon", s: 2, f: 0.86, l: 5, c: "warp(3)\nrepeat 4:", d: "2026-06-26" };
+    const code = StarHopperProfiles.exportLabCode(lab);
+    assertEquals(0, code.indexOf("STARHOPPER-"), "lab code should carry the STARHOPPER- prefix");
+    const back = StarHopperProfiles.importLabCode(code);
+    assertEquals(lab.n, back.n, "emoji cadet name should round-trip");
+    assertEquals(lab.s, back.s, "stars should round-trip");
+    assertEquals(lab.c, back.c, "flight plan should round-trip");
+    assertEquals(null, StarHopperProfiles.importLabCode("not-a-real-code"), "garbage should decode to null");
+    renderTestResult("solar-suite", "Submit Lab: Base64 code round-trips, rejects garbage", true);
+  } catch (err) {
+    renderTestResult("solar-suite", "Submit Lab: Base64 code round-trips, rejects garbage", false, err.message);
+  }
+
+  // Test 34: wall-clock guard halts a run that exceeds the time budget
+  try {
+    const realPerf = global.performance;
+    let calls = 0;
+    global.performance = { now: () => (calls++ === 0 ? 0 : 1000) }; // 1000ms elapsed by first step
+    const res = Compiler.runCommand("gravity = 5\nfriction = 2", (typeof window !== 'undefined' && window.Game) ? window.Game : {});
+    global.performance = realPerf;
+    assertEquals(false, res.success, "an over-time run should fail gracefully");
+    assertEquals(true, /too long/i.test(res.msg), "the message should explain the run took too long");
+    renderTestResult("solar-suite", "Safety: wall-clock guard halts a too-slow run", true);
+  } catch (err) {
+    renderTestResult("solar-suite", "Safety: wall-clock guard halts a too-slow run", false, err.message);
+  }
 }
 
 // Suite 5: Retry Remix — seeded procedural variation (same lesson, new instance)

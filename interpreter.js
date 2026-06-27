@@ -402,7 +402,11 @@ class KidCodeInterpreter {
   evaluate(ast, customLocals = {}) {
     this.spawnsThisRun = 0;
     this.steps = 0;
-    
+    // Wall-clock guard: a defense-in-depth backstop for a merely *slow* run (the
+    // 200-step / 30-iteration caps already make infinite loops impossible). Stamped
+    // here, checked in execute(). performance.now() with a Date.now() fallback for node.
+    this.startTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+
     let lastResult = null;
     for (const statement of ast) {
       lastResult = this.execute(statement, customLocals);
@@ -414,6 +418,12 @@ class KidCodeInterpreter {
     this.steps++;
     if (this.steps > 200) {
       throw new KidCodeError("Your code takes too many steps! Try running fewer loops.");
+    }
+    if (Number.isFinite(this.startTime)) {
+      const _now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+      if (_now - this.startTime > 250) {
+        throw new KidCodeError("Your code is taking too long to run! Try simplifying it.");
+      }
     }
 
     switch (node.type) {
@@ -923,6 +933,36 @@ const runtimeContext = {
       }
       SFX.startBGM(id);
       return `Now playing track ${id}: "${name}"!`;
+    },
+    // --- Navigator flight-deck commands ---------------------------------------
+    // These let the SAME KidCode language fly the orbital spaceship. Each one
+    // ENQUEUES an action (it does not fly inline) onto Nav.commandQueue, which the
+    // navigator's processFlightQueue executes over simulation time — so loops and
+    // variables now plan multi-burn trajectories. No-op (friendly message) outside
+    // the Navigator, where there is no ship. Values are clamped to defuse bad input.
+    point_at: (game, body) => {
+      if (typeof window === 'undefined' || !window.Nav || !window.Nav.ship) return "point_at works in the Navigator.";
+      window.Nav.commandQueue.push({ type: 'rotate', target: String(body || 'sun').toLowerCase() });
+      return `Aiming at ${body}`;
+    },
+    thrust: (game, power, duration) => {
+      if (typeof window === 'undefined' || !window.Nav || !window.Nav.ship) return "thrust works in the Navigator.";
+      let p = Number(power); p = Number.isFinite(p) ? Math.max(0, Math.min(20, p)) : 2.0;
+      let d = Number(duration); d = Number.isFinite(d) ? Math.max(0, Math.min(400, d)) : 5.0;
+      window.Nav.commandQueue.push({ type: 'thrust', power: p, duration: d });
+      return `Thrust ${p} for ${d} days`;
+    },
+    wait: (game, duration) => {
+      if (typeof window === 'undefined' || !window.Nav || !window.Nav.ship) return "wait works in the Navigator.";
+      let d = Number(duration); d = Number.isFinite(d) ? Math.max(0, Math.min(400, d)) : 10.0;
+      window.Nav.commandQueue.push({ type: 'wait', duration: d });
+      return `Coast ${d} days`;
+    },
+    warp: (game, factor) => {
+      if (typeof window === 'undefined' || !window.Nav || !window.Nav.ship) return "warp works in the Navigator.";
+      let f = Number(factor); f = Number.isFinite(f) ? Math.max(1, Math.min(20, f)) : 5.0;
+      window.Nav.commandQueue.push({ type: 'warp', factor: f });
+      return `Warp ${f}x`;
     }
   }
 };
@@ -944,17 +984,24 @@ class AutocompleteEngine {
       "play_music()", "music",
       "elasticity", "asteroid.mass", "enemy.speed", "enemy.friendly"
     ];
+    // Navigator flight-deck vocabulary — shown when suggest() is called with mode 'nav'.
+    this.navChoices = [
+      "point_at('earth')", "point_at('moon')", "point_at('mars')",
+      "point_at('jupiter')", "point_at('glacies')", "point_at('magnet')",
+      "thrust()", "wait()", "warp()", "repeat", "for i in range()"
+    ];
   }
 
-  suggest(prefix) {
+  suggest(prefix, mode) {
     if (!prefix) return [];
-    
+
     // Trim leading whitespaces
     const p = prefix.trim().toLowerCase();
     if (p === "") return [];
 
-    // Separate nesting dots
-    return this.choices.filter(c => c.toLowerCase().startsWith(p));
+    // Platformer vocabulary by default; flight-deck vocabulary in the Navigator.
+    const pool = mode === 'nav' ? this.navChoices : this.choices;
+    return pool.filter(c => c.toLowerCase().startsWith(p));
   }
 }
 
