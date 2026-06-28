@@ -517,7 +517,7 @@ class Mob {
     this.x = x; this.y = y;
     this.vy = 0;
     this.dir = (Math.random() < 0.5 ? -1 : 1);
-    this.speed = 0.7 + Math.random() * 0.8;
+    this.speed = 0.5 + Math.random() * 0.5; // gentler base pace (was 0.7..1.5)
     this.onGround = false;
     this.hopTimer = 40 + Math.random() * 90;
     this.sayText = ""; this.sayTimer = 0;
@@ -565,32 +565,32 @@ class Mob {
     switch (this.species) {
       case 'hog': // CHARGE: line up level, brace (wind-up tell), then bull-rush with a dust trail.
         if (this.charging > 0) {
-          this.charging--; moveSpeed = this.speed * (2.4 + ag); this.attackPower = 2.4;
+          this.charging--; moveSpeed = this.speed * (1.7 + 0.7 * ag); this.attackPower = 1.8;
           if (typeof Particles !== 'undefined' && Math.random() < 0.6)
             Particles.spawn(this.x + this.w / 2 - this.eyeDir * 8, this.y + this.h - 2, '#cbd5e1', 2.4, -this.eyeDir * 0.8, -0.5, 16, 'glow');
         } else if (this.windupTimer > 0) {
           moveSpeed = 0; // brace in place (the tell)
         } else if (this.onGround && !flee && Math.abs(dy) < TILE_SIZE && adx > TILE_SIZE * 1.2 && adx < TILE_SIZE * 6 && this.behaviorTimer <= 0) {
-          this.windupTimer = Math.round(18 / Math.max(1, ag)); this.behaviorTimer = Math.round(180 / ag);
+          this.windupTimer = Math.round(18 / Math.max(1, ag)); this.behaviorTimer = Math.round(300 / ag);
           if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(this.x + this.w / 2, this.y - 4, "!", "#ef4444", 0.95);
         }
-        if (windupDone) this.charging = 40;
+        if (windupDone) this.charging = 28;
         break;
       case 'snake': // STRIKE: coil back (tell), then a fast lunge.
-        if (this.charging > 0) { this.charging--; moveSpeed = this.speed * (2.6 + ag); this.attackPower = 1.8; }
+        if (this.charging > 0) { this.charging--; moveSpeed = this.speed * (1.9 + 0.6 * ag); this.attackPower = 1.4; }
         else if (this.windupTimer > 0) { moveSpeed = -this.speed * 0.45; } // recoil away = wind-up
         else if (this.onGround && !flee && dist < TILE_SIZE * (2.0 + 0.5 * ag) && this.behaviorTimer <= 0) {
-          this.windupTimer = 16; this.behaviorTimer = Math.round(120 / ag); // readable tell
+          this.windupTimer = 16; this.behaviorTimer = Math.round(210 / ag); // readable tell
           if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(this.x + this.w / 2, this.y - 4, "!", "#ef4444", 0.9);
         }
-        if (windupDone) { this.charging = 14; this.vy = -4; moveSpeed = this.speed * (2.6 + ag); this.attackPower = 1.8; }
+        if (windupDone) { this.charging = 14; this.vy = -4; moveSpeed = this.speed * (1.9 + 0.6 * ag); this.attackPower = 1.4; }
         break;
       case 'blob': // BOUNCY: a gelatinous hop on every landing.
-        if (this.onGround) this.vy = -6.5;
+        if (this.onGround) this.vy = -5.5;
         break;
       case 'critter': // SKITTISH: quick darts punctuated by little pauses.
         if (this.behaviorTimer <= 0) { this.behaviorTimer = 30 + Math.random() * 40; this.darting = Math.random() < 0.6; }
-        moveSpeed = this.darting ? this.speed * (1.5 + 0.4 * ag) : this.speed * 0.4;
+        moveSpeed = this.darting ? this.speed * (1.2 + 0.3 * ag) : this.speed * 0.4;
         if (this.onGround && this.darting && Math.random() < 0.08) this.vy = -5;
         break;
       case 'bot': // MARCHER: steady pace, pausing now and then to "scan".
@@ -598,8 +598,8 @@ class Mob {
         moveSpeed = this.scanning ? 0 : this.speed * 0.9;
         break;
       case 'floater': // DIVE-BOMB: hover, then swoop down toward the cadet.
-        if (this.behaviorTimer <= 0 && adx < TILE_SIZE * 5) { this.behaviorTimer = Math.round(140 / ag); this.diveTimer = 28; }
-        if (this.diveTimer > 0) { this.diveTimer--; this.vy += 0.9; moveSpeed = this.speed * (1.7 + 0.4 * ag); this.attackPower = 1.5; }
+        if (this.behaviorTimer <= 0 && adx < TILE_SIZE * 5) { this.behaviorTimer = Math.round(240 / ag); this.diveTimer = 26; }
+        if (this.diveTimer > 0) { this.diveTimer--; this.vy += 0.9; moveSpeed = this.speed * (1.3 + 0.3 * ag); this.attackPower = 1.2; }
         break;
     }
 
@@ -805,8 +805,24 @@ class Debris {
     this.spin = (Math.random() - 0.5) * 0.06;
     this.shape = [];                       // jagged unit radii for a rocky silhouette
     for (let i = 0; i < 7; i++) this.shape.push(0.6 + Math.random() * 0.4);
+    this.life = 480 + Math.random() * 360; // despawns eventually (it bounces, so won't drift off)
   }
-  update() { this.x += this.vx; this.y += this.vy; this.angle += this.spin; }
+  _solidAt(tilemap, px, py) {
+    if (!tilemap) return false;
+    const c = Math.floor(px / TILE_SIZE), r = Math.floor(py / TILE_SIZE);
+    return !!(tilemap[r] && (tilemap[r][c] === 1 || tilemap[r][c] === 10));
+  }
+  update(tilemap) {
+    this.angle += this.spin;
+    this.life--;
+    // Bounce off solid tiles AND breakable blocks (per-axis reflection, ~0.7 restitution).
+    this.x += this.vx;
+    const midY = this.y + this.h / 2;
+    if (this._solidAt(tilemap, this.x + (this.vx > 0 ? this.w : 0), midY)) { this.x -= this.vx; this.vx = -this.vx * 0.7; this.spin = -this.spin; }
+    this.y += this.vy;
+    const midX = this.x + this.w / 2;
+    if (this._solidAt(tilemap, midX, this.y + (this.vy > 0 ? this.h : 0))) { this.y -= this.vy; this.vy = -this.vy * 0.7; }
+  }
   draw(ctx, cameraX) {
     const sx = this.x + this.w / 2 - cameraX, sy = this.y + this.h / 2, r = this.w / 2;
     ctx.save();

@@ -1278,6 +1278,9 @@ class StarHopperGame {
         }
       } else {
         this.physicsAccumulator = 0;
+        // Keep cosmetic timers ticking while paused so speech / onomatopoeia bubbles still
+        // fade instead of freezing on screen (you can pause a long time to write code).
+        this.tickPausedCosmetics();
       }
 
       this.draw();
@@ -1293,6 +1296,15 @@ class StarHopperGame {
       }
     }
     requestAnimationFrame((t) => this.loop(t));
+  }
+
+  // Decay short-lived visual timers while the world is paused, so speech/onomatopoeia
+  // bubbles, the hurt flash, etc. fade out instead of freezing on screen during a pause.
+  tickPausedCosmetics() {
+    if (this.player && typeof this.player.updateSpeech === 'function') this.player.updateSpeech();
+    if (this.mobs) for (const m of this.mobs) { if (m.sayTimer > 0) m.sayTimer--; }
+    if (typeof ComicBubbles !== 'undefined' && ComicBubbles.update) ComicBubbles.update();
+    if (this.hurtFlashTimer > 0) this.hurtFlashTimer--;
   }
 
   update() {
@@ -1568,7 +1580,7 @@ class StarHopperGame {
     const theme = (typeof MOB_THEMES !== 'undefined' && MOB_THEMES[this.currentPlanetIndex]) || ["blob"];
     const species = theme[Math.floor(Math.random() * theme.length)];
     const accent = (this.currentPlanet && this.currentPlanet.color) || '#a78bfa';
-    const aggro = [0.7, 0.9, 1.4, 1.0, 1.2, 1.1][this.currentPlanetIndex] || 1.0;
+    const aggro = [0.5, 0.65, 0.9, 0.75, 0.85, 0.8][this.currentPlanetIndex] || 0.7;
     const mapW = this.getActiveMap()[0].length * TILE_SIZE;
     const fromLeft = Math.random() < 0.5;
     let x = fromLeft ? this.cameraX - 20 : this.cameraX + this.canvas.width + 20;
@@ -1718,9 +1730,9 @@ class StarHopperGame {
     const theme = (typeof MOB_THEMES !== 'undefined' && MOB_THEMES[this.currentPlanetIndex]) || ["blob"];
     const species = theme[Math.floor(Math.random() * theme.length)];
     const accent = (this.currentPlanet && this.currentPlanet.color) || '#a78bfa';
-    const aggro = [0.7, 0.9, 1.4, 1.0, 1.2, 1.1][this.currentPlanetIndex] || 1.0;
+    const aggro = [0.5, 0.65, 0.9, 0.75, 0.85, 0.8][this.currentPlanetIndex] || 0.7;
     const m = new Mob(x, y, species, accent, aggro);
-    m.hp = 2 + (this.currentPlanetIndex > 1 ? 1 : 0); // tougher off Earth/Moon
+    m.hp = (this.currentPlanetIndex >= 2 ? 2 : 1); // Earth/Moon: one hit; tougher worlds: two
     m.woken = true;
     this.mobs.push(m);
     if (typeof SFX !== 'undefined' && SFX.playError) SFX.playError();
@@ -1934,8 +1946,14 @@ class StarHopperGame {
       const m = this.meteors[i];
       m.update(tilemap);
       if (m.dead) {
-        // Ground impacts sometimes blast a crater (carve the hit tile).
-        if (m.impactR != null && Math.random() < 0.5) this.carveTile(m.impactR, m.impactC);
+        if (m.impactR != null) {
+          const im = this.getActiveMap();
+          if (im[m.impactR] && im[m.impactR][m.impactC] === 10) {
+            this.breakBlock(m.impactR, m.impactC);        // always shatter a suspended block (with its drop)
+          } else if (Math.random() < 0.5) {
+            this.carveTile(m.impactR, m.impactC);          // ground impacts sometimes leave a crater
+          }
+        }
         this.meteors.splice(i, 1);
         Particles.spawnBurst(m.x + m.w / 2, m.y + m.h / 2, '#f59e0b', 9, 2.5, 2.5, 'glow');
         continue;
@@ -1993,11 +2011,12 @@ class StarHopperGame {
         this.spawnDebris();
       }
     }
-    const mapW = this.getActiveMap()[0].length * TILE_SIZE;
+    const tilemap = this.getActiveMap();
+    const mapW = tilemap[0].length * TILE_SIZE;
     for (let i = this.debris.length - 1; i >= 0; i--) {
       const d = this.debris[i];
-      d.update();
-      if (d.x < -80 || d.x > mapW + 80 || d.y > 480) { this.debris.splice(i, 1); continue; }
+      d.update(tilemap);
+      if (d.x < -80 || d.x > mapW + 80 || d.y > 480 || d.life <= 0) { this.debris.splice(i, 1); continue; }
       if (Physics.isOverlapping(this.player, d)) {
         this.debris.splice(i, 1);                 // the chunk shatters on impact
         Particles.spawnBurst(d.x + d.w / 2, d.y + d.h / 2, '#9ca3af', 10, 2.5, 2.5);

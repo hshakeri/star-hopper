@@ -1446,6 +1446,48 @@ function runCombatTests() {
   } catch (err) {
     renderTestResult(SUITE, "Contact: knockback scaled by world gravity (no off-map fling)", false, err.message);
   }
+
+  // C13: debris bounces off a solid tile instead of phasing through it
+  try {
+    const map = [[0, 0, 0, 1, 0, 0]]; // solid wall at column 3 (x 96..128)
+    const d = new Debris(84, 4, 4, 0, 16); // right edge 100, moving right into the wall
+    d.update(map);
+    assertEquals(true, d.vx < 0, "Debris reflects (bounces) off a solid tile");
+    renderTestResult(SUITE, "Debris: bounces off solid surfaces", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Debris: bounces off solid surfaces", false, err.message);
+  }
+
+  // C14: a meteor shatters a suspended breakable block (tile 10)
+  try {
+    const g = new StarHopperGame();
+    g.state = 'playing'; g.currentPlanetIndex = 2; g.currentPlanet = PLANETS[2];
+    g.currentVariant = { map: PLANETS[2].map.map((r) => r.slice()) };
+    g.player = new Player(0, 0); g.interactiveObjects = []; g.mobs = [];
+    const map = g.getActiveMap();
+    map[5][6] = 10; // suspended block
+    g.meteors = [new Meteor(6 * TILE_SIZE, 5 * TILE_SIZE - 6, 0, 4)]; // falling right onto it
+    g.meteorPhase = 'active'; g.meteorActiveTimer = 60;
+    for (let i = 0; i < 12 && map[5][6] === 10; i++) g.updateMeteors();
+    assertEquals(0, map[5][6], "Meteor shatters the suspended breakable block");
+    renderTestResult(SUITE, "Meteor: shatters suspended breakable blocks", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Meteor: shatters suspended breakable blocks", false, err.message);
+  }
+
+  // C15: speech/onomatopoeia bubbles keep fading while the world is paused (pause-to-code)
+  try {
+    const g = new StarHopperGame();
+    g.player = new Player(0, 0);
+    g.player.sayText = 'hello'; g.player.sayTimer = 100; g.player.sayReveal = 0;
+    g.mobs = []; g.hurtFlashTimer = 5;
+    g.tickPausedCosmetics();
+    assertEquals(99, g.player.sayTimer, "Speech bubble timer ticks down while paused");
+    assertEquals(4, g.hurtFlashTimer, "Hurt flash fades while paused");
+    renderTestResult(SUITE, "Pause: cosmetic bubbles fade while paused", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Pause: cosmetic bubbles fade while paused", false, err.message);
+  }
 }
 
 // Suite 5: Retry Remix — seeded procedural variation (same lesson, new instance)
