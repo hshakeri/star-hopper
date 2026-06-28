@@ -1657,6 +1657,30 @@ function runCombatTests() {
     renderTestResult(SUITE, "Fuel: infinite-tank toggle flips, persists, and fills up", false, err.message);
   }
 
+  // C22d: a spatial tutorial cue fires ONCE per level even though update() polls it every frame
+  // (the Moon "gap" bug: re-firing reset the speech balloon each frame so it never cleared).
+  try {
+    const g = new StarHopperGame();
+    g.currentPlanet = { tutorial: [{ trigger: 'gap', text: 'Mind the gap!' }, { trigger: 'wall', text: 'A wall!' }], story: {} };
+    g.player = new Player(0, 0);
+    let sayCount = 0; const realSay = g.player.say.bind(g.player);
+    g.player.say = (...a) => { sayCount++; return realSay(...a); };
+    const prevGame = (typeof window !== 'undefined') ? window.Game : undefined;
+    window.Game = g; // showDialogue reads window.Game.player
+    g._firedTutorialTriggers = new Set();
+    for (let i = 0; i < 8; i++) g.triggerTutorialDialogue('gap');   // simulate lingering in the zone
+    assertEquals(1, sayCount, "Re-entering the same cue zone shows the balloon only once");
+    g.triggerTutorialDialogue('wall');                              // a different cue still fires
+    assertEquals(2, sayCount, "A distinct cue still shows");
+    g._firedTutorialTriggers = new Set();                           // new level → cues reset
+    g.triggerTutorialDialogue('gap');
+    assertEquals(3, sayCount, "Cues reset on a fresh level load");
+    window.Game = prevGame;
+    renderTestResult(SUITE, "Tutorial: spatial cues fire once per level (balloon clears)", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Tutorial: spatial cues fire once per level (balloon clears)", false, err.message);
+  }
+
   // C23: fuel canisters are scattered onto solid ledges (deterministic per attempt)
   try {
     const g = new StarHopperGame();

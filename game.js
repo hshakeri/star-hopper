@@ -846,6 +846,7 @@ class StarHopperGame {
     
     // Trigger dialogue helper robot text only after the player launches a mission.
     if (this.state === 'playing') {
+      this._firedTutorialTriggers = new Set();   // fresh per level so each cue can show once
       this.triggerTutorialDialogue("start");
       // Retro arcade arrival shout as a comic bubble (one onomatopoeia system).
       if (this.player && typeof ComicBubbles !== 'undefined') {
@@ -904,6 +905,12 @@ class StarHopperGame {
   }
 
   triggerTutorialDialogue(trigger) {
+    // Each cue fires ONCE per level. The spatial checks in update() poll every frame while the
+    // cadet is in the zone (e.g. lingering at the Moon's gap), so without this guard showDialogue
+    // would reset the speech balloon every frame and it would never clear.
+    this._firedTutorialTriggers = this._firedTutorialTriggers || new Set();
+    if (this._firedTutorialTriggers.has(trigger)) return;
+    this._firedTutorialTriggers.add(trigger);
     // On arrival, Vector delivers the story transmission (The Signal arc) if the
     // planet defines one; mid-level mechanic cues (wall/gap/poles/...) fall through
     // to the planet's tutorial beats.
