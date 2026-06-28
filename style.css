@@ -786,6 +786,12 @@ body.resizing-panes * {
   border-radius: 6px;
 }
 
+.infinite-toggle.infinite-on {
+  background: rgba(249, 115, 22, 0.85) !important;
+  box-shadow: 0 0 10px rgba(249, 115, 22, 0.7);
+  border-radius: 6px;
+}
+
 .game-top-controls:hover,
 .game-top-controls:focus-within {
   opacity: 1;

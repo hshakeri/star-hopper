@@ -34,6 +34,10 @@ class StarHopperGame {
     this.spawnedBoxes = [];
     this.spawnedSprings = [];
 
+    // Infinite-tank toggle (accessibility/sandbox): when on, the fuel tank never runs out so
+    // kids can fly and experiment freely. Persisted so it survives a reload.
+    this.infiniteFuel = (typeof localStorage !== 'undefined' && localStorage.getItem('sh-infinite-fuel') === '1');
+
     // Mob Survival mode
     this.survivalMode = false;
     this.mobs = [];
@@ -1335,6 +1339,12 @@ class StarHopperGame {
     this.checkMissions();
 
     // 3. Update character inputs and accelerations
+    // Infinite tank: top the reserve (and thruster) back to full BEFORE the update so abilities
+    // never cut out, yet the burn this frame still dips the gauge/flame for visual feedback.
+    if (this.infiniteFuel && this.player) {
+      this.player.tank = this.player.maxTank;
+      this.player.fuel = this.player.maxFuel;
+    }
     this.player.update(this.keys, this.currentPlanet, this);
 
     // 4. Magnetic force application
@@ -1586,6 +1596,30 @@ class StarHopperGame {
     } else {
       ui_log_output("Mob Survival off — back to engineering.", "info");
     }
+  }
+
+  // Flip the infinite-tank toggle. When on, update() keeps fuel topped so the cadet can fly
+  // and experiment without running dry; persisted so it survives a reload.
+  toggleInfiniteFuel() {
+    this.infiniteFuel = !this.infiniteFuel;
+    if (typeof localStorage !== 'undefined') localStorage.setItem('sh-infinite-fuel', this.infiniteFuel ? '1' : '0');
+    this.syncInfiniteFuelButton();
+    if (this.infiniteFuel && this.player) {
+      this.player.tank = this.player.maxTank;
+      this.player.fuel = this.player.maxFuel;
+    }
+    if (typeof ui_log_output === 'function') {
+      ui_log_output(this.infiniteFuel ? "♾️ Infinite tank ON — fuel never runs out." : "Infinite tank OFF — fuel is limited again.", this.infiniteFuel ? "success" : "info");
+    }
+    if (this.infiniteFuel && this.player && typeof ComicBubbles !== 'undefined') {
+      ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y - 4, "FULL TANK!", "rounded", "#f97316", -0.3, { maxLife: 70, scale: 1.2 });
+    }
+  }
+
+  // Reflect the persisted infinite-fuel state on its toggle button (called on toggle + init).
+  syncInfiniteFuelButton() {
+    const btn = document.getElementById('infinite-fuel-btn');
+    if (btn) btn.classList.toggle('infinite-on', !!this.infiniteFuel);
   }
 
   spawnMob() {
@@ -2414,6 +2448,12 @@ class StarHopperGame {
     ctx.fillStyle = "#bae6fd"; ctx.font = "bold 10px 'Outfit', sans-serif";
     ctx.textAlign = "left"; ctx.textBaseline = "middle";
     ctx.fillText("TANK", x + 8, y + h / 2 + 0.5);
+    // Infinite tank: badge the full bar with an ∞ so it's obvious the limit is off.
+    if (this.infiniteFuel) {
+      ctx.fillStyle = "#fff7ed"; ctx.font = "bold 12px 'Outfit', sans-serif";
+      ctx.textAlign = "right";
+      ctx.fillText("∞", x + w - 8, y + h / 2 + 0.5);
+    }
     ctx.restore();
   }
 
@@ -2842,4 +2882,5 @@ window.addEventListener("load", () => {
   Game = new StarHopperGame();
   window.Game = Game;
   Game.init();
+  Game.syncInfiniteFuelButton();   // reflect the persisted infinite-tank toggle on its button
 });

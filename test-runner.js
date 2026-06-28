@@ -1638,6 +1638,25 @@ function runCombatTests() {
     renderTestResult(SUITE, "Fuel: rocket burn clamps the thruster at zero", false, err.message);
   }
 
+  // C22c: the infinite-tank toggle flips state, persists, and tops both pools to full
+  try {
+    const g = new StarHopperGame();
+    g.player = new Player(0, 0);
+    g.player.tank = 10; g.player.fuel = 10; g.player.maxTank = 200; g.player.maxFuel = 100;
+    g.infiniteFuel = false;
+    g.toggleInfiniteFuel();
+    assertEquals(true, g.infiniteFuel, "Toggle turns infinite fuel on");
+    assertEquals(200, g.player.tank, "Turning on tops the tank to full");
+    assertEquals(100, g.player.fuel, "Turning on tops the thruster to full");
+    assertEquals('1', localStorage.getItem('sh-infinite-fuel'), "On-state is persisted");
+    g.toggleInfiniteFuel();
+    assertEquals(false, g.infiniteFuel, "Toggle turns infinite fuel off");
+    assertEquals('0', localStorage.getItem('sh-infinite-fuel'), "Off-state is persisted");
+    renderTestResult(SUITE, "Fuel: infinite-tank toggle flips, persists, and fills up", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Fuel: infinite-tank toggle flips, persists, and fills up", false, err.message);
+  }
+
   // C23: fuel canisters are scattered onto solid ledges (deterministic per attempt)
   try {
     const g = new StarHopperGame();
