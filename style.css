@@ -451,6 +451,12 @@ body.resizing-panes * {
   right: 12px;
   bottom: 12px;
   height: auto;
+  /* Cap the bottom telemetry panel to the lower portion of the canvas so it can never grow
+     up over the on-canvas game HUD (hearts / tank / weapon live in the top ~20%). On wide
+     screens the cards fit well within this; only on very narrow viewports does the last row
+     clip — and the game HUD stays visible, which is what matters. */
+  max-height: 68%;
+  overflow: hidden;
   z-index: 75;
   pointer-events: none;
 }

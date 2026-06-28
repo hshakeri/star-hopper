@@ -923,9 +923,16 @@ class Player {
     this.mass = 1.0;
     this.jumpPower = 15;
 
-    // Hopper specifics
+    // Two-tier fuel:
+    //  • THRUSTER (fuel/maxFuel) — a small working pool spent by powered abilities (cranked
+    //    jumps, rocket, antigravity). Shown as the live gauge above the hopper.
+    //  • TANK (tank/maxTank) — a finite reserve for the level. The thruster refills FROM the
+    //    tank on the ground (no free regen); when the tank runs dry the thruster can't refill.
+    //    Refills to full at level start (new Player) and from fuel-canister pickups.
     this.fuel = 100;
     this.maxFuel = 100;
+    this.tank = 200;
+    this.maxTank = 200;
     this.rocketPower = 40;
     this.magnetActive = false;
     this.isBraking = false; // Spiked boots engaged
@@ -1265,7 +1272,7 @@ class Player {
           if (this.vy < -rocketRiseLimit) this.vy = -rocketRiseLimit;
           // Trade-off: a stronger rocket burns fuel proportionally faster, AND a heavier
           // suit is thirstier — dropping mass makes the rocket more fuel-efficient.
-          this.fuel -= Math.max(0.5, 1.5 * (tunedRocketPower / 40) * (this.mass / 2.5));
+          this.fuel = Math.max(0, this.fuel - Math.max(0.5, 1.5 * (tunedRocketPower / 40) * (this.mass / 2.5)));
           // Rocket exhaust particles
           Particles.spawn(
             this.x + (Math.random() * 6) + 4, this.y + this.h,
@@ -1284,9 +1291,14 @@ class Player {
         }
       }
     } else {
-      // Recharge fuel on ground — slow enough that fuel is a real per-run budget, so you
-      // can't sustain maxed-out abilities and blaze through; gentle enough for normal play.
-      this.fuel = Math.min(this.fuel + 1.2, this.maxFuel);
+      // On the ground the thruster refills FROM the finite tank (no free regen). Once the
+      // tank is dry the thruster can't top up — find a fuel canister or reach the next level.
+      const need = this.maxFuel - this.fuel;
+      if (need > 0 && this.tank > 0) {
+        const draw = Math.min(1.2, need, this.tank);
+        this.fuel += draw;
+        this.tank = Math.max(0, this.tank - draw);
+      }
     }
 
     // Antigravity coil draws fuel while engaged (heavier suit = thirstier; lighter = cheaper).
@@ -1573,7 +1585,7 @@ class Player {
         ctx.fill();
         ctx.fillStyle = '#f97316';
         ctx.beginPath();
-        ctx.roundRect(x, y - 8, this.w * (this.fuel / this.maxFuel), 4, 2);
+        ctx.roundRect(x, y - 8, this.w * Math.max(0, Math.min(1, this.fuel / this.maxFuel)), 4, 2);
         ctx.fill();
       }
     }
@@ -1883,6 +1895,7 @@ class InteractiveObject {
       this.mass = 2.0;
     }
     if (this.type === 'weapon') { this.w = 22; this.h = 18; this.y += 8; this.x += 5; }
+    if (this.type === 'fuel') { this.w = 16; this.h = 20; this.y += 6; this.x += 8; }
 
     this.collected = false;
     this.bounceTimer = 0;
@@ -2199,6 +2212,21 @@ class InteractiveObject {
       ctx.beginPath(); ctx.roundRect(cx - 6, cy + 1, 5, 7, 1.5); ctx.fill(); ctx.stroke();   // grip
       ctx.fillStyle = '#fde68a';
       ctx.beginPath(); ctx.arc(cx + 8, cy, 2.4, 0, Math.PI * 2); ctx.fill();                 // muzzle spark
+      ctx.restore();
+    } else if (this.type === 'fuel') {
+      // A fuel canister — collect it to refill the tank.
+      const x = this.x - cameraX;
+      const cx = x + this.w / 2;
+      const bob = Math.sin(Date.now() / 240 + this.x * 0.05) * 2;
+      const top = this.y + bob;
+      ctx.save();
+      ctx.shadowBlur = 12; ctx.shadowColor = '#f97316';
+      ctx.fillStyle = '#ea580c'; ctx.strokeStyle = '#0b1224'; ctx.lineWidth = 2; ctx.lineJoin = 'round';
+      ctx.beginPath(); ctx.roundRect(cx - this.w / 2 + 1, top + 3, this.w - 2, this.h - 5, 3); ctx.fill(); ctx.stroke(); // body
+      ctx.fillStyle = '#fb923c';
+      ctx.beginPath(); ctx.roundRect(cx - 3, top, 6, 4, 1.5); ctx.fill(); ctx.stroke();        // cap
+      ctx.fillStyle = '#fff7ed'; ctx.font = "bold 9px 'Outfit', sans-serif"; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('⛽', cx, top + this.h / 2 + 1);                                              // fuel glyph
       ctx.restore();
     }
 

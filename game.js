@@ -824,6 +824,8 @@ class StarHopperGame {
 
     // Scatter a few breakable "?" blocks into the level (before the terrain is baked).
     this.placeBreakableBlocks();
+    // Drop a couple of fuel canisters on reachable ledges so the finite tank is refillable.
+    this.placeFuelCanisters();
 
     // Set document head name
     const titleText = document.getElementById("header-planet-title");
@@ -1374,9 +1376,10 @@ class StarHopperGame {
       return;
     }
 
-    // 7b. Stranded: out of fuel with no way to recharge (the ground refuels fast, so this
-    // only triggers when truly stuck/airborne on an empty tank) → restart like a death.
-    if (this.player.fuel <= 0) {
+    // 7b. Stranded: thruster AND tank both bone-dry, so there's no way to recharge → restart
+    // like a death. Normal jumps still work at empty, so this only bites after the whole
+    // reserve is spent with no canister found.
+    if (this.player.fuel <= 0 && (this.player.tank || 0) <= 0) {
       this.strandedTimer = (this.strandedTimer || 0) + 1;
       if (this.strandedTimer > 150) {
         this.killPlayer("stranded — out of fuel!", "fuel");
@@ -1485,6 +1488,16 @@ class StarHopperGame {
         } else if (obj.type === 'weapon') {
           obj.collected = true;
           this.equipWeapon('blaster');
+        } else if (obj.type === 'fuel') {
+          // A fuel canister tops the TANK back to full (and a little thruster), so the finite
+          // reserve can be replenished mid-level without dying.
+          obj.collected = true;
+          this.player.tank = this.player.maxTank || 200;
+          this.player.fuel = Math.min(this.player.maxFuel || 100, (this.player.fuel || 0) + 40);
+          if (typeof SFX !== 'undefined' && SFX.playCoin) SFX.playCoin();
+          Particles.spawnBurst(obj.x + obj.w / 2, obj.y + obj.h / 2, '#f97316', 12, 2.2, 2.6, 'glow');
+          if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(obj.x + obj.w / 2, obj.y - 4, "REFUEL!", "#f97316", 1.1);
+          ui_log_output("⛽ Fuel canister — tank refilled!", "success");
         } else if (obj.type === 'trampoline' || obj.type === 'spring') {
           const isTopBounce = (this.player.vy > 0.1 && this.player.y + this.player.h - this.player.vy <= obj.y + 6);
           if (isTopBounce) {
@@ -1700,12 +1713,15 @@ class StarHopperGame {
       }
       return;
     }
-    if (roll < 0.40) {
+    if (roll < 0.36) {
       this.spawnItemAbovePlayer('coin', dropX, dropY);
       if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(dropX + 16, dropY, "GEM!", "#facc15", 1.0);
-    } else if (roll < 0.60) {
+    } else if (roll < 0.52) {
       this.interactiveObjects.push(new InteractiveObject(dropX, dropY, 'weapon'));
       if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(dropX + 16, dropY, "BLASTER!", "#facc15", 1.1);
+    } else if (roll < 0.66) {
+      this.interactiveObjects.push(new InteractiveObject(dropX, dropY, 'fuel'));
+      if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(dropX + 16, dropY, "FUEL!", "#f97316", 1.1);
     } else if (roll < 0.85) {
       this.wakeMob(dropX, dropY);
     } else if (typeof ComicBubbles !== 'undefined') {
@@ -1733,6 +1749,27 @@ class StarHopperGame {
       for (let dr = 2; dr <= 4; dr++) { if (map[r + dr] && map[r + dr][c] === 1) { groundBelow = true; break; } }
       if (!groundBelow) continue;                          // reachable platform underneath
       map[r][c] = 10;
+      placed++;
+    }
+  }
+
+  // Place a couple of fuel canisters resting on solid ledges (deterministic per attempt) so
+  // the finite tank can be topped up mid-level without breaking blocks.
+  placeFuelCanisters() {
+    const map = this.getActiveMap();
+    if (!map || !map.length) return;
+    const rng = (typeof mulberry32 === 'function')
+      ? mulberry32(((this.currentPlanetIndex * 374761393) ^ ((this.retryAttempt || 0) * 668265263) ^ 0x9e3779b9) >>> 0)
+      : Math.random;
+    const rows = map.length, cols = map[0].length;
+    let placed = 0, guard = 0;
+    while (placed < 2 && guard++ < 500) {
+      const c = 3 + Math.floor(rng() * (cols - 6));
+      const r = 3 + Math.floor(rng() * (rows - 6));
+      if (map[r][c] !== 0) continue;                         // canister cell must be air
+      if (!(map[r + 1] && map[r + 1][c] === 1)) continue;    // solid ledge directly underneath
+      if (map[r - 1] && map[r - 1][c] === 1) continue;       // headroom above
+      this.interactiveObjects.push(new InteractiveObject(c * TILE_SIZE, r * TILE_SIZE, 'fuel'));
       placed++;
     }
   }
@@ -2316,7 +2353,7 @@ class StarHopperGame {
     if (!this.player || this.state !== 'playing') return;
     const max = this.player.maxHealth || 0;
     if (max <= 0) return;
-    const hp = this.player.health;
+    const hp = this.player.health || 0;
     const size = 20, gap = 7, padX = 12, padY = 8;
     const plateW = padX * 2 + max * size + (max - 1) * gap + 34;
     ctx.save();
@@ -2358,23 +2395,25 @@ class StarHopperGame {
     ctx.restore();
   }
 
+  // The main fuel HUD shows the TOTAL TANK — the finite per-level reserve. The small live
+  // gauge above the hopper shows the thruster (working pool) that this tank refills.
   drawFuelHUD(ctx) {
     if (!this.player || this.state !== 'playing') return;
-    const mf = this.player.maxFuel || 100;
-    const f = Math.max(0, Math.min(mf, this.player.fuel));
+    const mt = this.player.maxTank || 100;
+    const t = Math.max(0, Math.min(mt, this.player.tank != null ? this.player.tank : mt));
     const x = 8, y = 52, w = 162, h = 16;
     ctx.save();
     ctx.fillStyle = "rgba(11,16,34,0.55)";
     ctx.strokeStyle = "rgba(56,189,248,0.3)"; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.roundRect(x, y, w, h, 7); ctx.fill(); ctx.stroke();
-    const pct = f / mf;
+    const pct = t / mt;
     const grad = ctx.createLinearGradient(x, 0, x + w, 0);
     grad.addColorStop(0, "#ef4444"); grad.addColorStop(0.5, "#f59e0b"); grad.addColorStop(1, "#22c55e");
     ctx.fillStyle = grad;
     ctx.beginPath(); ctx.roundRect(x + 46, y + 3, Math.max(0, (w - 52) * pct), h - 6, 4); ctx.fill();
     ctx.fillStyle = "#bae6fd"; ctx.font = "bold 10px 'Outfit', sans-serif";
     ctx.textAlign = "left"; ctx.textBaseline = "middle";
-    ctx.fillText("FUEL", x + 8, y + h / 2 + 0.5);
+    ctx.fillText("TANK", x + 8, y + h / 2 + 0.5);
     ctx.restore();
   }
 

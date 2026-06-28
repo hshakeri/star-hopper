@@ -152,6 +152,19 @@ function runCompilerTests() {
   } catch (err) {
     renderTestResult("compiler-suite", "Autocomplete: Enter accepts highlighted or top suggestion", false, err.message);
   }
+
+  // Test 6: player.tank is wired into KidCode (read + write), like player.fuel
+  try {
+    Compiler.reset();
+    const mockGame = { player: { fuel: 100, tank: 200, maxTank: 200 } };
+    const res = Compiler.runCommand("player.tank = 50", mockGame);
+    assertEquals(true, res.success, "Setting player.tank should succeed");
+    assertEquals(50, mockGame.player.tank, "player.tank assignment writes the reserve");
+    assertEquals(true, Compiler.autocomplete.choices.includes("player.tank"), "player.tank is offered in autocomplete");
+    renderTestResult("compiler-suite", "KidCode: player.tank is readable/writable + autocompletes", true);
+  } catch (err) {
+    renderTestResult("compiler-suite", "KidCode: player.tank is readable/writable + autocompletes", false, err.message);
+  }
 }
 
 // Suite 2: Infinite Loop & Crash Safety Limits
@@ -1579,6 +1592,71 @@ function runCombatTests() {
     renderTestResult(SUITE, "Blocks: meteor breaks never spawn mobs (survival-off fix)", true);
   } catch (err) {
     renderTestResult(SUITE, "Blocks: meteor breaks never spawn mobs (survival-off fix)", false, err.message);
+  }
+
+  // C21: two-tier fuel — the grounded thruster refills FROM the finite tank (no free regen),
+  // and the tank loses exactly what the thruster gains.
+  try {
+    if (typeof Compiler !== 'undefined' && Compiler.reset) Compiler.reset();
+    const p = new Player(0, 0); p.charType = 'star'; p.onGround = true;
+    p.fuel = 50; p.maxFuel = 100; p.tank = 100; p.maxTank = 200;
+    const stub = { getCurrentGravity: () => 0.6, starMass: 1, hopperMass: 2.5, player: p };
+    p.update({}, PLANETS[0], stub);
+    assertEquals(true, p.fuel > 50, "Grounded thruster refills");
+    assertEquals(true, p.tank < 100, "Refill is drawn from the tank");
+    assertEquals(true, Math.abs((p.fuel - 50) - (100 - p.tank)) < 1e-6, "Tank loses exactly what the thruster gains");
+    renderTestResult(SUITE, "Fuel: thruster refills from the finite tank on the ground", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Fuel: thruster refills from the finite tank on the ground", false, err.message);
+  }
+
+  // C22: an empty tank means the thruster can't refill (run dry → stays dry until a pickup)
+  try {
+    if (typeof Compiler !== 'undefined' && Compiler.reset) Compiler.reset();
+    const p = new Player(0, 0); p.charType = 'star'; p.onGround = true;
+    p.fuel = 20; p.maxFuel = 100; p.tank = 0; p.maxTank = 200;
+    const stub = { getCurrentGravity: () => 0.6, starMass: 1, hopperMass: 2.5, player: p };
+    p.update({}, PLANETS[0], stub);
+    assertEquals(20, Math.round(p.fuel), "Empty tank → thruster does not refill");
+    assertEquals(0, p.tank, "Empty tank stays empty");
+    renderTestResult(SUITE, "Fuel: a dry tank can't recharge the thruster", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Fuel: a dry tank can't recharge the thruster", false, err.message);
+  }
+
+  // C22b: a rocket burn from a near-empty thruster clamps at 0 (never negative → no gauge glitch)
+  try {
+    if (typeof Compiler !== 'undefined' && Compiler.reset) Compiler.reset();
+    const p = new Player(0, 0); p.charType = 'hopper'; p.onGround = false;
+    p.fuel = 0.3; p.maxFuel = 100; p.tank = 50; p.rocketPower = 40; p.coyoteFrames = 0;
+    const stub = { getCurrentGravity: () => 0.6, starMass: 1, hopperMass: 2.5, player: p };
+    p.update({ ' ': true }, PLANETS[0], stub); // hold jump mid-air → rocket burn
+    assertEquals(true, p.fuel >= 0, "Rocket burn never drives the thruster negative");
+    assertEquals(0, p.fuel, "Thruster bottoms out exactly at 0");
+    renderTestResult(SUITE, "Fuel: rocket burn clamps the thruster at zero", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Fuel: rocket burn clamps the thruster at zero", false, err.message);
+  }
+
+  // C23: fuel canisters are scattered onto solid ledges (deterministic per attempt)
+  try {
+    const g = new StarHopperGame();
+    g.currentPlanetIndex = 1; g.retryAttempt = 0; g.interactiveObjects = [];
+    const air = () => new Array(14).fill(0);
+    const solid = () => new Array(14).fill(1);
+    const map = [air(), air(), air(), air(), air(), air(), air(), air(), solid(), air(), air(), air(), air(), air()];
+    g.currentVariant = { map };
+    g.placeFuelCanisters();
+    const cans = g.interactiveObjects.filter((o) => o.type === 'fuel');
+    assertEquals(true, cans.length >= 1, "At least one fuel canister is placed");
+    const onLedge = cans.every((o) => {
+      const c = Math.floor(o.x / TILE_SIZE), r = Math.floor(o.y / TILE_SIZE);
+      return map[r] && map[r][c] === 0 && map[r + 1] && map[r + 1][c] === 1;
+    });
+    assertEquals(true, onLedge, "Every canister rests on a solid ledge");
+    renderTestResult(SUITE, "Fuel: canisters spawn on reachable ledges", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Fuel: canisters spawn on reachable ledges", false, err.message);
   }
 }
 

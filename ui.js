@@ -267,19 +267,9 @@ function updateHUD(game) {
   if (pBar) pBar.style.width = `${pePercent}%`;
   if (tBar) tBar.style.width = `${tePercent}%`;
 
-  // Health + fuel telemetry cards.
-  const healthEl = document.getElementById("hud-health");
-  if (healthEl && game.player) {
-    const hp = game.player.health, mhp = game.player.maxHealth || 3;
-    healthEl.textContent = `${hp} / ${mhp}`;
-    healthEl.style.color = hp <= 1 ? '#fb7185' : '';
-  }
-  const fuelEl = document.getElementById("hud-fuel");
-  if (fuelEl && game.player) {
-    const pct = Math.round(100 * (game.player.fuel / (game.player.maxFuel || 100)));
-    fuelEl.textContent = `${pct}%`;
-    fuelEl.style.color = pct <= 20 ? '#fb7185' : '';
-  }
+  // Health (hearts) and Fuel (tank) are drawn on the canvas HUD now — see Game.drawHealthHUD
+  // and Game.drawFuelHUD. They were removed from this DOM telemetry panel so it no longer
+  // duplicates them or grows tall enough to cover the on-canvas hearts on narrow screens.
 
   const energySummary = document.getElementById("hud-energy-summary");
   if (energySummary) {

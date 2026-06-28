@@ -816,6 +816,10 @@ const runtimeContext = {
       get: (game) => game.player.fuel,
       set: (game, val) => { game.player.fuel = Number(val) || 100; }
     },
+    "player.tank": {
+      get: (game) => game.player.tank,
+      set: (game, val) => { game.player.tank = Number(val) || 0; }
+    },
     "player.speed": {
       get: (game) => Math.round(Math.sqrt(game.player.vx * game.player.vx + game.player.vy * game.player.vy) * 100) / 100,
       set: (game, val) => {}
@@ -983,7 +987,7 @@ class AutocompleteEngine {
     this.choices = [
       "antigravity", "gravity", "friction", "jump_power", "scale",
       "player.jump_power", "player.mass", "player.say()", "player.touching()",
-      "player.fuel", "player.speed",
+      "player.fuel", "player.tank", "player.speed",
       "star.mass",
       "hopper.engine", "hopper.jump_power", "hopper.mass", "hopper.rocket_power", "hopper.spikes", "hopper.pole",
       "spawn()", "spawn_gem()", "spawn_box()", "spawn_spring()",
