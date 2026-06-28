@@ -1077,7 +1077,9 @@ function logMissionStat(game) {
       const f = (n) => (Math.round(n * 10) / 10).toFixed(1);
       const m = game.getActiveMass();
       if (s.key === "agility") {
-        const S = game.getCurrentSpeed(), J = game.getJumpVelocity(), g = game.getCurrentGravity();
+        // Use design gravity so the printed formula matches getAgility() (which ignores the
+        // fuel gate) — otherwise the arithmetic wouldn't reconcile when the thruster is empty.
+        const S = game.getCurrentSpeed(), J = game.getJumpVelocity(), g = (typeof game.getDesignGravity === 'function') ? game.getDesignGravity() : game.getCurrentGravity();
         ui_log_output(`   speed = engine ${f(game.getEngineForce())} ÷ mass ${f(m)} = ${f(S)} · jump = force ${f(game.getJumpForce())} ÷ mass ${f(m)} = ${f(J)}`, "info");
         ui_log_output(`   Agility = (speed ${f(S)} + jump ${f(J)}) × 0.6 ÷ gravity ${f(g)} = ${Math.round(s.value)}`, "info");
       } else if (s.key === "thrust") {

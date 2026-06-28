@@ -1401,6 +1401,27 @@ function runCombatTests() {
     renderTestResult(SUITE, "Fuel: antigravity needs fuel (no free floating)", false, err.message);
   }
 
+  // C5b: Agility reflects the COMMANDED design, NOT live thruster fuel — so an engineered
+  // Agility doesn't collapse (and the gate stay fair) when the thruster drains mid-flight.
+  // The physics gravity must STILL fuel-gate (the C5 mechanic is preserved).
+  try {
+    Compiler.reset();
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[0]; game.currentPlanetIndex = 0;
+    game.player = new Player(0, 0); game.player.charType = 'hopper'; game.player.mass = 2;
+    Compiler.env.antigravity = 0.4;                       // commanded antigravity (engineering lever)
+    game.player.fuel = 100; const agiFull = game.getAgility();
+    game.player.fuel = 0;   const agiEmpty = game.getAgility();
+    assertEquals(true, agiFull > 0 && Math.abs(agiFull - agiEmpty) < 1e-9, "Agility is unchanged when the thruster empties");
+    // Physics gravity still loses antigravity on an empty tank (C5 mechanic intact).
+    game.player.fuel = 100; const gLift = game.getCurrentGravity();
+    game.player.fuel = 0;   const gEmpty = game.getCurrentGravity();
+    assertEquals(true, gEmpty > gLift, "Physics gravity still fuel-gates antigravity");
+    renderTestResult(SUITE, "Agility: uses commanded design gravity (stable when out of fuel)", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Agility: uses commanded design gravity (stable when out of fuel)", false, err.message);
+  }
+
   // C6: bumping a breakable block (tile 10) carves it out of the world
   try {
     const game = new StarHopperGame();

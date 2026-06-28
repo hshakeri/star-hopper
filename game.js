@@ -121,9 +121,21 @@ class StarHopperGame {
       ? env.gravity
       : (this.currentPlanet && this.currentPlanet.physics ? this.currentPlanet.physics.gravity : 0.6);
     let anti = env.antigravity || 0; // game-units
-    // Antigravity needs fuel: an empty tank means the coil can't push back on gravity.
+    // Antigravity needs fuel: an empty tank means the coil can't push back on gravity (PHYSICS).
     if (anti > 0 && this.player && this.player.fuel <= 0) anti = 0;
     return Math.max(0.02, base - anti);
+  }
+
+  // The gravity the cadet's DESIGN produces (base minus the antigravity they commanded), WITHOUT
+  // the empty-tank gate. Engineering readouts/gates (Agility) use this so the number reflects
+  // what was built and never silently collapses when the thruster drains mid-flight — only the
+  // actual physics float (getCurrentGravity) is fuel-limited.
+  getDesignGravity() {
+    const env = (typeof Compiler !== 'undefined' && Compiler.env) ? Compiler.env : {};
+    const base = (env.gravity !== null && env.gravity !== undefined)
+      ? env.gravity
+      : (this.currentPlanet && this.currentPlanet.physics ? this.currentPlanet.physics.gravity : 0.6);
+    return Math.max(0.02, base - (env.antigravity || 0));
   }
 
   // How far a tuner is unlocked, 0..1. Starts at 0 (base cap) and ticks up with each
@@ -263,7 +275,9 @@ class StarHopperGame {
   // Earth: faster + higher-jumping + lower-gravity = more agile.
   getAgility() {
     if (!this.player || this.player.charType !== 'hopper') return 0;
-    const g = Math.max(0.05, this.getCurrentGravity());           // game-units gravity
+    // Use the DESIGN gravity (commanded antigravity), not the fuel-gated physics gravity, so the
+    // Agility a cadet engineers stays put — it must not drop just because the thruster ran dry.
+    const g = Math.max(0.05, this.getDesignGravity());
     return (this.getCurrentSpeed() + this.getJumpVelocity()) * 0.6 / g;
   }
 
