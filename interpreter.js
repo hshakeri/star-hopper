@@ -1133,13 +1133,20 @@ class CompilerSingleton {
       
       if (rule.target === 'player.touching') {
         const checkType = rule.eventArgs[0] ? rule.eventArgs[0].value : "";
-        if (checkType && (game.player.touchingGroundType === checkType || game.player.isTouching(checkType, game))) {
-          trigger = true;
-        }
+        // Edge-trigger on contact: 'touching' stays true for many frames while the cadet sits
+        // on/over the thing, so fire the body once on entry — otherwise a body like
+        // player.say(...) would reset the speech balloon every frame and it would never clear.
+        const touchingNow = !!(checkType && (game.player.touchingGroundType === checkType || game.player.isTouching(checkType, game)));
+        if (touchingNow && !rule.lastTouch) trigger = true;
+        rule.lastTouch = touchingNow;
       }
 
-      if (rule.target === 'hopper.rocket_on' && game.player.charType === 'hopper' && game.keys[' ']) {
-        trigger = true;
+      if (rule.target === 'hopper.rocket_on') {
+        // Edge-trigger on the rising edge of the rocket key (held for many frames) for the
+        // same reason — fire once per press, not every frame the key is down.
+        const pressed = game.player.charType === 'hopper' && !!game.keys[' '];
+        if (pressed && !rule._wasPressed) trigger = true;
+        rule._wasPressed = pressed;
       }
 
       if (rule.target === 'hit_enemy' && hitEnemy) {

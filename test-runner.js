@@ -981,6 +981,51 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Compiler: comparison event registers and triggers edge-triggered", false, err.message);
   }
 
+  // Test 27b: `when player.touching(...)` is EDGE-triggered — fires once on contact, not every
+  // frame (else a body like player.say(...) would re-pin the speech balloon forever).
+  try {
+    Compiler.reset();
+    let sayCount = 0;
+    const mockGame = {
+      player: { charType: 'star', onGround: true, fuel: 100, vx: 0, vy: 0,
+        touchingGroundType: 'ice', isTouching: () => true, say: () => { sayCount++; } },
+      keys: {},
+    };
+    Compiler.runCommand("when player.touching('ice'): player.say('hi')", mockGame);
+    for (let i = 0; i < 12; i++) Compiler.updateRules(mockGame);  // stay in contact 12 frames
+    assertEquals(1, sayCount, "touching fires once on contact, not every frame");
+    // Leave, then re-enter → fires again
+    mockGame.player.touchingGroundType = ''; mockGame.player.isTouching = () => false;
+    Compiler.updateRules(mockGame);
+    mockGame.player.touchingGroundType = 'ice'; mockGame.player.isTouching = () => true;
+    Compiler.updateRules(mockGame);
+    assertEquals(2, sayCount, "re-entering contact fires again");
+    renderTestResult("engine-suite", "Compiler: player.touching is edge-triggered (no balloon pin)", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Compiler: player.touching is edge-triggered (no balloon pin)", false, err.message);
+  }
+
+  // Test 27c: `when hopper.rocket_on` is EDGE-triggered — fires once per press, not every held frame.
+  try {
+    Compiler.reset();
+    let sayCount = 0;
+    const mockGame = {
+      player: { charType: 'hopper', onGround: false, fuel: 100, vx: 0, vy: 0,
+        isTouching: () => false, say: () => { sayCount++; } },
+      keys: {},
+    };
+    Compiler.runCommand("when hopper.rocket_on: player.say('fly')", mockGame);
+    mockGame.keys[' '] = true;
+    for (let i = 0; i < 12; i++) Compiler.updateRules(mockGame);  // hold the rocket key 12 frames
+    assertEquals(1, sayCount, "rocket_on fires once per press, not every frame");
+    mockGame.keys[' '] = false; Compiler.updateRules(mockGame);
+    mockGame.keys[' '] = true; Compiler.updateRules(mockGame);
+    assertEquals(2, sayCount, "releasing and re-pressing fires again");
+    renderTestResult("engine-suite", "Compiler: hopper.rocket_on is edge-triggered (no balloon pin)", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Compiler: hopper.rocket_on is edge-triggered (no balloon pin)", false, err.message);
+  }
+
   // Test 28: Compiler: enemy.friendly and enemy.speed variable overrides
   try {
     Compiler.reset();

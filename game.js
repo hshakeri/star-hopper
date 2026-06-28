@@ -1435,15 +1435,22 @@ class StarHopperGame {
           if (typeof Compiler !== 'undefined' && Compiler.env && Compiler.env.enemyFriendly) {
             this.player.vy = -5;
             this.player.vx = (this.player.x < enemy.x ? -3 : 3);
-            SFX.playJump();
-            if (typeof ComicBubbles !== 'undefined') {
-              ComicBubbles.spawn(enemy.x + enemy.w/2, enemy.y, "HELLO!", "rounded", "#4ade80");
+            // Greet once per contact, not every overlapping frame — otherwise the uncapped
+            // "HELLO!" bubbles (and the bounce SFX) machine-gun while the cadet stays in touch.
+            if (!enemy._greeted) {
+              enemy._greeted = true;
+              SFX.playJump();
+              if (typeof ComicBubbles !== 'undefined') {
+                ComicBubbles.spawn(enemy.x + enemy.w/2, enemy.y, "HELLO!", "rounded", "#4ade80");
+              }
             }
           } else {
             this.damagePlayer(1, "enemy", enemy.x);
             if (this.state === 'gameover') return;
           }
         }
+      } else if (enemy._greeted) {
+        enemy._greeted = false; // re-arm the greeting once the cadet steps away
       }
     }
 
