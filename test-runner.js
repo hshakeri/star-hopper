@@ -1488,6 +1488,98 @@ function runCombatTests() {
   } catch (err) {
     renderTestResult(SUITE, "Pause: cosmetic bubbles fade while paused", false, err.message);
   }
+
+  // C16: a shot busts a debris chunk apart (so you can clear it from range)
+  try {
+    const g = new StarHopperGame();
+    g.state = 'playing'; g.player = new Player(0, 0); g.currentPlanetIndex = 0;
+    g.currentVariant = { map: Array.from({ length: 10 }, () => new Array(12).fill(0)) };
+    g.enemies = []; g.mobs = []; g.keys = {};
+    g.debris = [new Debris(100, 100, 0, 0, 16)];
+    g.projectiles = [new Projectile(108, 108, 2)];
+    g.updateCombat();
+    assertEquals(0, g.debris.length, "A shot destroys the debris chunk");
+    assertEquals(0, g.projectiles.length, "The shot is consumed by the debris hit");
+    renderTestResult(SUITE, "Combat: shooting space debris destroys it", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Combat: shooting space debris destroys it", false, err.message);
+  }
+
+  // C17: jumping on debris smashes it safely — a bounce, no health lost
+  try {
+    const g = new StarHopperGame();
+    g.state = 'playing'; g.currentPlanetIndex = 0; // Earth: no ambient debris spawn to interfere
+    g.currentVariant = { map: Array.from({ length: 10 }, () => new Array(12).fill(0)) };
+    g.player = new Player(100, 92); g.player.health = 3; g.player.vy = 5; // descending onto the chunk
+    g.debris = [new Debris(100, 120, 0, 0, 16)];
+    g.updateDebris();
+    assertEquals(0, g.debris.length, "Stomping the debris destroys it");
+    assertEquals(3, g.player.health, "A stomp costs no health");
+    assertEquals(true, g.player.vy < 0, "Stomping bounces the cadet back up");
+    renderTestResult(SUITE, "Combat: stomping debris destroys it (no damage, bounce)", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Combat: stomping debris destroys it (no damage, bounce)", false, err.message);
+  }
+
+  // C18: a woken mob walks freely on flat ground but turns back at the brink of a crater
+  try {
+    const flat   = [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[1,1,1,1,1,1,1,1]];
+    const crater = [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[1,1,1,1,0,0,0,0]];
+    const player = { x: 6 * TILE_SIZE, y: 38 };
+    const walk = (map) => {
+      const m = new Mob(96, 38, 'bot', '#fff', 1); m.speed = 3; m.behaviorTimer = 999; m.scanning = false;
+      let right = m.x + m.w;
+      for (let i = 0; i < 40; i++) { m.onGround = true; m.update(map, player, false); right = Math.max(right, m.x + m.w); }
+      return right;
+    };
+    const realRand = Math.random; Math.random = () => 1; // suppress the random wall-hop for determinism
+    const flatReach = walk(flat), craterReach = walk(crater);
+    Math.random = realRand;
+    assertEquals(true, flatReach > 5 * TILE_SIZE, "Mob walks freely along flat ground");
+    assertEquals(true, craterReach <= 4 * TILE_SIZE + 4, "Mob stops at the crater edge (won't step into the gap)");
+    renderTestResult(SUITE, "Mobs: walk on flat ground, stop at a crater edge", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Mobs: walk on flat ground, stop at a crater edge", false, err.message);
+  }
+
+  // C19: a mob won't march onto a spike floor
+  try {
+    const spikes = [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[1,1,1,1,2,2,1,1]];
+    const player = { x: 6 * TILE_SIZE, y: 38 };
+    const m = new Mob(96, 38, 'bot', '#fff', 1); m.speed = 3; m.behaviorTimer = 999; m.scanning = false;
+    const realRand = Math.random; Math.random = () => 1;
+    let right = m.x + m.w;
+    for (let i = 0; i < 40; i++) { m.onGround = true; m.update(spikes, player, false); right = Math.max(right, m.x + m.w); }
+    Math.random = realRand;
+    assertEquals(true, right <= 4 * TILE_SIZE + 4, "Mob turns back before the spike tiles");
+    renderTestResult(SUITE, "Mobs: refuse to walk onto spikes", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Mobs: refuse to walk onto spikes", false, err.message);
+  }
+
+  // C20: a meteor smashing a block drops gem/rubble but NEVER conjures a mob (survival-off fix) —
+  // while a deliberate head-bump still can, so the two paths stay distinct.
+  try {
+    const g = new StarHopperGame();
+    g.state = 'playing'; g.currentPlanetIndex = 2; g.player = new Player(0, 0); g.interactiveObjects = [];
+    let mobFromMeteor = false;
+    for (let a = 0; a < 40 && !mobFromMeteor; a++) {
+      g.retryAttempt = a; g.currentVariant = { map: [[1, 1, 1], [0, 10, 0], [1, 1, 1]] }; g.mobs = [];
+      g.breakBlock(1, 1, 'meteor');
+      if (g.mobs.length > 0) mobFromMeteor = true;
+    }
+    assertEquals(false, mobFromMeteor, "A meteor-shattered block never wakes a mob");
+    let mobFromBump = false;
+    for (let a = 0; a < 60 && !mobFromBump; a++) {
+      g.retryAttempt = a; g.currentVariant = { map: [[1, 1, 1], [0, 10, 0], [1, 1, 1]] }; g.mobs = [];
+      g.breakBlock(1, 1);
+      if (g.mobs.length > 0) mobFromBump = true;
+    }
+    assertEquals(true, mobFromBump, "A head-bumped block can still wake a mob");
+    renderTestResult(SUITE, "Blocks: meteor breaks never spawn mobs (survival-off fix)", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Blocks: meteor breaks never spawn mobs (survival-off fix)", false, err.message);
+  }
 }
 
 // Suite 5: Retry Remix — seeded procedural variation (same lesson, new instance)

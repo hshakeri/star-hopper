@@ -544,6 +544,19 @@ class Mob {
     for (let r = rT; r <= rB; r++) for (let c = cL; c <= cR; c++) if (tilemap[r] && (tilemap[r][c] === 1 || tilemap[r][c] === 10)) return true;
     return false;
   }
+  _tileIs(tilemap, px, py, val) {
+    if (!tilemap) return false;
+    const c = Math.floor(px / TILE_SIZE), r = Math.floor(py / TILE_SIZE);
+    return !!(tilemap[r] && tilemap[r][c] === val);
+  }
+  // Single-point solid test (block or breakable). Used for the wall/floor probes so we can
+  // sample specific spots (above the feet, just past the leading edge) instead of the whole
+  // AABB — a box test would always include the floor row underfoot and read "wall everywhere".
+  _solidPoint(tilemap, px, py) {
+    if (!tilemap) return false;
+    const c = Math.floor(px / TILE_SIZE), r = Math.floor(py / TILE_SIZE);
+    return !!(tilemap[r] && (tilemap[r][c] === 1 || tilemap[r][c] === 10));
+  }
   update(tilemap, player, flee) {
     const toward = (player.x > this.x ? 1 : -1);
     this.dir = flee ? -toward : toward;
@@ -603,15 +616,22 @@ class Mob {
         break;
     }
 
-    // Horizontal move with wall + ledge awareness (no more blindly walking off cliffs).
+    // Horizontal move: turn at walls, and refuse to step onto a crater (gap) or spikes.
+    // All probes sample POINTS at the leading edge (not the whole AABB) so the floor the mob
+    // stands on never counts as a "wall" — that would freeze it on flat ground.
     const nx = this.x + this.dir * moveSpeed;
-    const wallAhead = this._solid(tilemap, nx, this.y);
-    const groundAhead = this._solid(tilemap, nx, this.y + 8); // floor under the next step?
-    if (wallAhead) {
-      if (this.onGround && !flee && Math.random() < 0.6) this.vy = -7;
-      else this.dir *= -1;
-    } else if (this.onGround && !groundAhead && !flee) {
-      if (Math.abs(player.x - this.x) > TILE_SIZE && Math.random() < 0.5) { this.vy = -7.5; this.x = nx; }
+    const lead = this.dir > 0 ? nx + this.w : nx;            // leading edge x
+    const footY = this.y + this.h + 4;                       // just below the feet, at the leading edge
+    // Wall = solid/breakable at body height ahead (sampled above the feet so the floor is excluded).
+    const wallAhead = this._solidPoint(tilemap, lead, this.y + 4) || this._solidPoint(tilemap, lead, this.y + this.h - 6);
+    const spikeAhead = this._tileIs(tilemap, lead, this.y + this.h / 2, 2) || this._tileIs(tilemap, lead, this.y + this.h - 6, 2);
+    const floorAhead = this._solidPoint(tilemap, lead, footY); // ground to step onto at the leading edge?
+    const floorSpike = this._tileIs(tilemap, lead, footY, 2);
+    if (wallAhead || spikeAhead) {
+      if (wallAhead && !spikeAhead && this.onGround && !flee && Math.random() < 0.6) this.vy = -7; // hop a wall
+      else this.dir *= -1;                                   // turn at a wall or spikes
+    } else if (this.onGround && (!floorAhead || floorSpike)) {
+      this.dir *= -1;                                        // brink of a crater/gap or spike floor → turn back
     } else {
       this.x = nx;
     }

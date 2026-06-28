@@ -1680,7 +1680,7 @@ class StarHopperGame {
 
   // Bump a breakable block from below → open it. Seeded by (r,c,attempt) so a block is
   // consistent on a retry: hidden gem, a blaster, a woken mob, or just rubble.
-  breakBlock(r, c) {
+  breakBlock(r, c, source) {
     const map = this.getActiveMap();
     if (!map[r] || map[r][c] !== 10) return;
     this.carveTile(r, c);
@@ -1689,6 +1689,17 @@ class StarHopperGame {
     const rng = (typeof mulberry32 === 'function') ? mulberry32(seed) : Math.random;
     const roll = rng();
     const dropX = c * TILE_SIZE, dropY = (r - 1) * TILE_SIZE;
+    // A meteor smashing a block shouldn't conjure a mob (felt like uncontrolled spawning) —
+    // it drops a gem or just rubble. Only a deliberate head-bump can wake a mob.
+    if (source === 'meteor') {
+      if (roll < 0.5) {
+        this.spawnItemAbovePlayer('coin', dropX, dropY);
+        if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(dropX + 16, dropY, "GEM!", "#facc15", 1.0);
+      } else if (typeof ComicBubbles !== 'undefined') {
+        ComicBubbles.pop(dropX + 16, dropY, "POOF!", "#cbd5e1", 0.9);
+      }
+      return;
+    }
     if (roll < 0.40) {
       this.spawnItemAbovePlayer('coin', dropX, dropY);
       if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(dropX + 16, dropY, "GEM!", "#facc15", 1.0);
@@ -1863,6 +1874,19 @@ class StarHopperGame {
           }
         }
       }
+      // Shoot space debris to bust it apart (no damage to anyone — it just shatters).
+      if (!consumed && this.debris) {
+        for (let j = this.debris.length - 1; j >= 0; j--) {
+          const d = this.debris[j];
+          if (Math.abs(p.x - (d.x + d.w / 2)) < d.w / 2 + 5 && Math.abs(p.y - (d.y + d.h / 2)) < d.h / 2 + 6) {
+            this.debris.splice(j, 1);
+            Particles.spawnBurst(d.x + d.w / 2, d.y + d.h / 2, '#9ca3af', 10, 2.5, 2.5, 'glow');
+            if (typeof SFX !== 'undefined' && SFX.playStomp) SFX.playStomp();
+            if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(d.x + d.w / 2, d.y - 4, SPEECH.pick('stomp'), '#cbd5e1', 0.9);
+            consumed = true; break;
+          }
+        }
+      }
       if (consumed) this.projectiles.splice(i, 1);
     }
   }
@@ -1949,7 +1973,7 @@ class StarHopperGame {
         if (m.impactR != null) {
           const im = this.getActiveMap();
           if (im[m.impactR] && im[m.impactR][m.impactC] === 10) {
-            this.breakBlock(m.impactR, m.impactC);        // always shatter a suspended block (with its drop)
+            this.breakBlock(m.impactR, m.impactC, 'meteor'); // shatter a suspended block (gem/rubble, never a mob)
           } else if (Math.random() < 0.5) {
             this.carveTile(m.impactR, m.impactC);          // ground impacts sometimes leave a crater
           }
@@ -2018,10 +2042,18 @@ class StarHopperGame {
       d.update(tilemap);
       if (d.x < -80 || d.x > mapW + 80 || d.y > 480 || d.life <= 0) { this.debris.splice(i, 1); continue; }
       if (Physics.isOverlapping(this.player, d)) {
+        const isStomp = (this.player.vy > 0.5 && this.player.y + this.player.h - this.player.vy <= d.y + 8);
         this.debris.splice(i, 1);                 // the chunk shatters on impact
-        Particles.spawnBurst(d.x + d.w / 2, d.y + d.h / 2, '#9ca3af', 10, 2.5, 2.5);
-        this.damagePlayer(1, 'debris', d.x);
-        if (this.state === 'gameover') return;
+        Particles.spawnBurst(d.x + d.w / 2, d.y + d.h / 2, '#9ca3af', 12, 2.5, 3, 'glow');
+        if (isStomp) {
+          // Jump on it to smash it safely — a little bounce, no damage.
+          this.player.vy = -7;
+          if (typeof SFX !== 'undefined' && SFX.playStomp) SFX.playStomp();
+          if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(d.x + d.w / 2, d.y - 4, SPEECH.pick('stomp'), '#cbd5e1', 1.0);
+        } else {
+          this.damagePlayer(1, 'debris', d.x);
+          if (this.state === 'gameover') return;
+        }
       }
     }
   }
