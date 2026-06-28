@@ -1646,8 +1646,8 @@ function runCombatTests() {
     g.infiniteFuel = false;
     g.toggleInfiniteFuel();
     assertEquals(true, g.infiniteFuel, "Toggle turns infinite fuel on");
-    assertEquals(200, g.player.tank, "Turning on tops the tank to full");
-    assertEquals(100, g.player.fuel, "Turning on tops the thruster to full");
+    assertEquals(200, g.player.tank, "Turning on tops the TANK to full");
+    assertEquals(10, g.player.fuel, "Turning on does NOT fill the thruster (only the tank is infinite)");
     assertEquals('1', localStorage.getItem('sh-infinite-fuel'), "On-state is persisted");
     g.toggleInfiniteFuel();
     assertEquals(false, g.infiniteFuel, "Toggle turns infinite fuel off");

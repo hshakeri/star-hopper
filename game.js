@@ -1339,11 +1339,11 @@ class StarHopperGame {
     this.checkMissions();
 
     // 3. Update character inputs and accelerations
-    // Infinite tank: top the reserve (and thruster) back to full BEFORE the update so abilities
-    // never cut out, yet the burn this frame still dips the gauge/flame for visual feedback.
+    // Infinite tank: keep only the RESERVE topped up — the thruster still drains and refills
+    // from it normally, so sustained mid-air rocketing is still limited, but the tank never
+    // runs dry (no stranding, always refuels on the ground).
     if (this.infiniteFuel && this.player) {
       this.player.tank = this.player.maxTank;
-      this.player.fuel = this.player.maxFuel;
     }
     this.player.update(this.keys, this.currentPlanet, this);
 
@@ -1605,8 +1605,7 @@ class StarHopperGame {
     if (typeof localStorage !== 'undefined') localStorage.setItem('sh-infinite-fuel', this.infiniteFuel ? '1' : '0');
     this.syncInfiniteFuelButton();
     if (this.infiniteFuel && this.player) {
-      this.player.tank = this.player.maxTank;
-      this.player.fuel = this.player.maxFuel;
+      this.player.tank = this.player.maxTank;   // fill only the reserve; the thruster still drains from it
     }
     if (typeof ui_log_output === 'function') {
       ui_log_output(this.infiniteFuel ? "♾️ Infinite tank ON — fuel never runs out." : "Infinite tank OFF — fuel is limited again.", this.infiniteFuel ? "success" : "info");
