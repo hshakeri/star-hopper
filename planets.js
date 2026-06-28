@@ -17,6 +17,13 @@ const PLANETS = [
       payoff: "Emerald shard secured — it holds one fragment of a lost star-map. The signal is bouncing off the Moon next."
     },
 
+    npcs: [
+      { id: "geary", name: "Machinist Geary", profession: "Machinist", x: 260, y: 320, type: "npc_geary", color: "#4ade80" },
+      { id: "bitbyte", name: "Logician Bit-Byte", profession: "Logician", x: 500, y: 320, type: "npc_bitbyte", color: "#38bdf8" },
+      { id: "horizon", name: "Cartographer Horizon", profession: "Cartographer", x: 740, y: 320, type: "npc_horizon", color: "#f97316" },
+      { id: "tesla", name: "Magnetist Tesla", profession: "Magnetist", x: 980, y: 320, type: "npc_tesla", color: "#ec4899" }
+    ],
+
     physics: {
       gravity: 0.6,
       friction: 0.85,

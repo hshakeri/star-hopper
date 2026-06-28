@@ -2252,3 +2252,151 @@ function drawGemShape(ctx, x, y, halfWidth, height) {
 function var_css(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
+
+class NPC extends InteractiveObject {
+  constructor(config) {
+    super(config.x, config.y, config.type);
+    this.id = config.id;
+    this.name = config.name;
+    this.profession = config.profession;
+    this.color = config.color;
+    this.w = 28;
+    this.h = 36;
+    this.proximity = false; // Player is nearby
+    
+    // Set dialogue lists
+    if (this.id === 'geary') {
+      this.dialogue = [
+        "Hey Cadet! I'm Geary, the Machinist. My forge needs Emeralds to craft heavy engines.",
+        "With enough Emeralds, I can push your engine speed and jump springs beyond safety caps!",
+        "Let's make these rovers move like rockets!"
+      ];
+      this.trades = [
+        { id: 'engine_1', cost: { type: 'emerald', amount: 1 }, desc: 'Reinforce Engine: Max +3', reward: { type: 'cap', key: 'engine', amount: 3 } },
+        { id: 'engine_2', cost: { type: 'emerald', amount: 3 }, desc: 'Overclock Engine: Max +5', reward: { type: 'cap', key: 'engine', amount: 5 } }
+      ];
+    } else if (this.id === 'bitbyte') {
+      this.dialogue = [
+        "01001000 01001001! I am Bit-Byte. I parse logic gates and syntax parameters.",
+        "Bring me Moon Quartz, and I will unlock advanced coding commands for your compiler.",
+        "Code is the poetry of physics, Cadet."
+      ];
+      this.trades = [
+        { id: 'code_1', cost: { type: 'quartz', amount: 1 }, desc: 'Unlock loop command: "repeat"', reward: { type: 'code', key: 'repeat' } },
+        { id: 'code_2', cost: { type: 'quartz', amount: 2 }, desc: 'Unlock conditional: "if"', reward: { type: 'code', key: 'if' } }
+      ];
+    } else if (this.id === 'horizon') {
+      this.dialogue = [
+        "Greetings, stargazer. I'm Horizon. I map the stars and plot trajectories.",
+        "Trade me Amber Storm from Jupiter, and I will reveal coordinates to secret sectors.",
+        "The universe is expanding, and so should our map."
+      ];
+      this.trades = [
+        { id: 'map_1', cost: { type: 'amber', amount: 1 }, desc: 'Unlock Asteroid Forge map coordinates', reward: { type: 'planet', key: 5 } }
+      ];
+    } else if (this.id === 'tesla') {
+      this.dialogue = [
+        "BZZZT! Static energy everywhere! I'm Tesla, the Magnetist.",
+        "Magenta Flux from the nebula can help me charge magnetic repulsor boots.",
+        "Opposites attract, Cadet. Let's charge up!"
+      ];
+      this.trades = [
+        { id: 'magnet_1', cost: { type: 'flux', amount: 1 }, desc: 'Craft Magnet Coils (Antigrav +2)', reward: { type: 'cap', key: 'antigravity', amount: 2 } }
+      ];
+    } else {
+      this.dialogue = ["Greetings Cadet!"];
+      this.trades = [];
+    }
+  }
+
+  update(game) {
+    if (!game || !game.player) return;
+    // Track distance to player
+    const dx = (this.x + this.w / 2) - (game.player.x + game.player.w / 2);
+    const dy = (this.y + this.h / 2) - (game.player.y + game.player.h / 2);
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    
+    const wasProx = this.proximity;
+    this.proximity = (dist < 48);
+
+    if (this.proximity && !wasProx) {
+      // Just walked up: spawn a greeting balloon
+      if (typeof ComicBubbles !== 'undefined') {
+        ComicBubbles.spawn(this.x + this.w / 2, this.y - 6, `Hrrr! I'm the ${this.profession}.`, "rounded", this.color, -0.4, { maxLife: 100 });
+      }
+    }
+  }
+
+  draw(ctx, cameraX, game) {
+    const cx = this.x - cameraX;
+    const cy = this.y;
+
+    ctx.save();
+    
+    // Glowing aura if player is nearby
+    if (this.proximity) {
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = this.color;
+    } else {
+      ctx.shadowBlur = 4;
+      ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    }
+
+    // Robot outer casing
+    ctx.fillStyle = '#1e293b';
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.roundRect(cx, cy + 8, this.w, this.h - 8, 6);
+    ctx.fill();
+    ctx.stroke();
+
+    // Robot glowing screen/face
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.roundRect(cx + 4, cy + 12, this.w - 8, 14, 4);
+    ctx.fill();
+    ctx.stroke();
+
+    // Glowing eyes (screen content)
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.arc(cx + 9, cy + 19, 2.5, 0, Math.PI * 2);
+    ctx.arc(cx + this.w - 9, cy + 19, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Robot core light/heart
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.arc(cx + this.w / 2, cy + 29, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Antenna
+    ctx.strokeStyle = '#64748b';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx + this.w / 2, cy + 8);
+    ctx.lineTo(cx + this.w / 2, cy);
+    ctx.stroke();
+
+    // Antenna glowing bulb
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.arc(cx + this.w / 2, cy, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Draw floating prompt if proximity is active
+    if (this.proximity && game && game.activeNPC === this) {
+      ctx.restore();
+      ctx.save();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = "bold 9px 'Share Tech Mono', sans-serif";
+      ctx.textAlign = 'center';
+      // Pulse animation
+      const bob = Math.sin(Date.now() / 150) * 1.5;
+      ctx.fillText('[PRESS E TO TRADE]', cx + this.w / 2, cy - 14 + bob);
+    }
+
+    ctx.restore();
+  }
+}

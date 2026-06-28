@@ -15,6 +15,9 @@ class StarHopperGame {
   constructor() {
     this.unlockedUpgrades = new Set(); // legacy fully-unlocked limits (persists in profile)
     this.upgradeLevels = {}; // per-upgrade unlock fraction 0..1, ticks up with each gem (persisted)
+    this.gemsWallet = { emerald: 0, quartz: 0, amber: 0, ice: 0, flux: 0 };
+    this.purchasedTrades = new Set();
+    this.upgradeCapBonuses = { engine: 0, jump: 0, rocket: 0, mass: 0, antigravity: 0 };
     this.canvas = null;
     this.ctx = null;
     this.currentPlanetIndex = 0;
@@ -152,7 +155,13 @@ class StarHopperGame {
   getUpgradeCap(key) {
     const u = HOPPER_UPGRADES[key];
     if (!u) return Infinity;
-    const raw = u.base + (u.extreme - u.base) * this.getUpgradeLevel(key);
+    const bonus = (this.upgradeCapBonuses && this.upgradeCapBonuses[key]) ? this.upgradeCapBonuses[key] : 0;
+    let raw = u.base + (u.extreme - u.base) * this.getUpgradeLevel(key);
+    if (u.isFloor) {
+      raw = Math.max(0.1, raw - bonus);
+    } else {
+      raw += bonus;
+    }
     return u.isFloor ? Math.round(raw * 10) / 10 : Math.round(raw);
   }
 
@@ -623,6 +632,14 @@ class StarHopperGame {
 
       if (document.activeElement.id === "console-input") return; // skip gameplay inputs if typing code
 
+      if (e.key.toLowerCase() === "e" && this.activeNPC) {
+        e.preventDefault();
+        if (typeof openTradeScreen === "function") {
+          openTradeScreen(this.activeNPC);
+        }
+        return;
+      }
+
       this.keys[e.key.toLowerCase()] = true;
       this.keys[e.key] = true; // raw code support
 
@@ -844,6 +861,15 @@ class StarHopperGame {
     this.placeBreakableBlocks();
     // Drop a couple of fuel canisters on reachable ledges so the finite tank is refillable.
     this.placeFuelCanisters();
+
+    // Spawn planet NPCs (specifically on Earth Base Camp)
+    if (index === 0 && this.currentPlanet.npcs) {
+      for (const npcConf of this.currentPlanet.npcs) {
+        if (typeof NPC !== 'undefined') {
+          this.interactiveObjects.push(new NPC(npcConf));
+        }
+      }
+    }
 
     // Set document head name
     const titleText = document.getElementById("header-planet-title");
@@ -1477,9 +1503,14 @@ class StarHopperGame {
     if (this.state === 'gameover') return;
 
     // 10. Update objects and check collisions
+    this.activeNPC = null;
     for (const obj of this.interactiveObjects) {
       obj.update(this);
       if (obj.collected) continue;
+
+      if (typeof NPC !== 'undefined' && obj instanceof NPC && obj.proximity) {
+        this.activeNPC = obj;
+      }
 
       if (Physics.isOverlapping(this.player, obj)) {
         if (obj.type === 'coin') {
@@ -2214,8 +2245,24 @@ class StarHopperGame {
     ui_log_output(`Initializing rescue pod... Click Retry to launch.`, "info");
   }
 
+  getGemKeyForPlanet(index) {
+    const keys = ['emerald', 'quartz', 'amber', 'ice', 'flux'];
+    return keys[index] || 'emerald';
+  }
+
   clearLevel() {
     this.state = 'clear';
+
+    // Award collected gems to the wallet!
+    if (this.requiredCollectiblesCollected > 0) {
+      const gemKey = this.getGemKeyForPlanet(this.currentPlanetIndex);
+      this.gemsWallet = this.gemsWallet || { emerald: 0, quartz: 0, amber: 0, ice: 0, flux: 0 };
+      this.gemsWallet[gemKey] = (this.gemsWallet[gemKey] || 0) + this.requiredCollectiblesCollected;
+      if (typeof ui_log_output === 'function') {
+        ui_log_output(`🎁 Earned ${this.requiredCollectiblesCollected} ${gemKey} shards for your wallet!`, "success");
+      }
+    }
+
     // A cleared run is an experiment too — log it with its telemetry.
     if (typeof attemptLogFinish === 'function') attemptLogFinish(this, 'cleared');
     const isDailyRun = this.remixContext === 'daily'

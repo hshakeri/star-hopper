@@ -1678,3 +1678,167 @@ function updatePedagogicalGuide(game) {
 
   renderScaffoldEditor(game, activeMission);
 }
+
+function openTradeScreen(npc) {
+  if (!npc || !window.Game) return;
+  
+  // Pause the game while trading
+  window.Game.isPaused = true;
+  if (typeof updatePauseControls === 'function') updatePauseControls();
+
+  const tradeScreen = document.getElementById("trade-screen");
+  if (!tradeScreen) return;
+
+  // Set NPC details
+  const nameEl = document.getElementById("trade-npc-name");
+  if (nameEl) nameEl.textContent = npc.name;
+  
+  const profEl = document.getElementById("trade-npc-profession");
+  if (profEl) profEl.textContent = `// ${npc.profession}`;
+  
+  // Set dialogue (random line from NPC dialogue pool)
+  const dialogueText = document.getElementById("trade-dialogue-text");
+  if (dialogueText && npc.dialogue && npc.dialogue.length) {
+    dialogueText.textContent = npc.dialogue[Math.floor(Math.random() * npc.dialogue.length)];
+  }
+
+  // Populate wallet balances
+  const wallet = window.Game.gemsWallet || { emerald: 0, quartz: 0, amber: 0, ice: 0, flux: 0 };
+  const emEl = document.getElementById("wallet-emerald");
+  if (emEl) emEl.textContent = wallet.emerald || 0;
+  const qzEl = document.getElementById("wallet-quartz");
+  if (qzEl) qzEl.textContent = wallet.quartz || 0;
+  const amEl = document.getElementById("wallet-amber");
+  if (amEl) amEl.textContent = wallet.amber || 0;
+  const icEl = document.getElementById("wallet-ice");
+  if (icEl) icEl.textContent = wallet.ice || 0;
+  const flEl = document.getElementById("wallet-flux");
+  if (flEl) flEl.textContent = wallet.flux || 0;
+
+  // Render trade offers
+  const tradeList = document.getElementById("trade-list");
+  if (tradeList) {
+    tradeList.innerHTML = "";
+    
+    if (!npc.trades || npc.trades.length === 0) {
+      tradeList.innerHTML = `<div style="font-family: var(--font-sans); color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 20px 0;">No trades available.</div>`;
+    } else {
+      npc.trades.forEach(trade => {
+        const costType = trade.cost.type;
+        const costAmount = trade.cost.amount;
+        const playerBalance = wallet[costType] || 0;
+        const hasEnough = playerBalance >= costAmount;
+        
+        const purchased = window.Game.purchasedTrades && window.Game.purchasedTrades.has(trade.id);
+        
+        const tradeRow = document.createElement("div");
+        tradeRow.className = "trade-row";
+        
+        let gemSymbol = "💚";
+        if (costType === 'quartz') gemSymbol = "🤍";
+        else if (costType === 'amber') gemSymbol = "🧡";
+        else if (costType === 'ice') gemSymbol = "💜";
+        else if (costType === 'flux') gemSymbol = "💖";
+
+        let btnHtml = "";
+        if (purchased) {
+          btnHtml = `<button class="trade-btn completed" disabled>TRADED</button>`;
+        } else {
+          btnHtml = `<button class="trade-btn" ${hasEnough ? "" : "disabled"} onclick="executeNPCTrade('${npc.id}', '${trade.id}')">TRADE</button>`;
+        }
+
+        tradeRow.innerHTML = `
+          <div class="trade-info">
+            <span class="trade-desc">${trade.desc}</span>
+            <span class="trade-cost">Cost: ${costAmount} ${costType} ${gemSymbol} (Have: ${playerBalance})</span>
+          </div>
+          ${btnHtml}
+        `;
+        tradeList.appendChild(tradeRow);
+      });
+    }
+  }
+
+  // Show overlay
+  tradeScreen.classList.remove("hidden");
+}
+
+function closeTradeScreen() {
+  const tradeScreen = document.getElementById("trade-screen");
+  if (tradeScreen) {
+    tradeScreen.classList.add("hidden");
+  }
+  
+  // Unpause the game
+  if (window.Game) {
+    window.Game.isPaused = false;
+    if (typeof updatePauseControls === 'function') updatePauseControls();
+  }
+}
+
+function executeNPCTrade(npcId, tradeId) {
+  if (!window.Game) return;
+  const npc = window.Game.interactiveObjects.find(o => o.id === npcId);
+  if (!npc) return;
+  const trade = npc.trades.find(t => t.id === tradeId);
+  if (!trade) return;
+
+  const wallet = window.Game.gemsWallet || { emerald: 0, quartz: 0, amber: 0, ice: 0, flux: 0 };
+  const costType = trade.cost.type;
+  const costAmount = trade.cost.amount;
+
+  if ((wallet[costType] || 0) < costAmount) {
+    if (typeof ui_log_output === 'function') ui_log_output("❌ You do not have enough gems for this trade!", "error");
+    return;
+  }
+
+  // Deduct cost
+  wallet[costType] -= costAmount;
+  window.Game.gemsWallet = wallet;
+
+  // Mark trade as purchased
+  window.Game.purchasedTrades = window.Game.purchasedTrades || new Set();
+  window.Game.purchasedTrades.add(tradeId);
+
+  // Apply Reward!
+  const reward = trade.reward;
+  if (reward.type === 'cap') {
+    const key = reward.key;
+    window.Game.upgradeCapBonuses = window.Game.upgradeCapBonuses || { engine: 0, jump: 0, rocket: 0, mass: 0, antigravity: 0 };
+    window.Game.upgradeCapBonuses[key] = (window.Game.upgradeCapBonuses[key] || 0) + reward.amount;
+    
+    if (typeof ui_log_output === 'function') {
+      ui_log_output(`⚙ Trade Successful! Reinforced ${key} capability by +${reward.amount}.`, "success");
+    }
+  } else if (reward.type === 'code') {
+    // Unlock advanced commands
+    if (typeof ui_log_output === 'function') {
+      ui_log_output(`📜 Trade Successful! Unlocked compiler command: "${reward.key}"`, "success");
+    }
+  } else if (reward.type === 'planet') {
+    // Unlock Asteroid Forge
+    if (typeof ui_log_output === 'function') {
+      ui_log_output(`🛰️ Trade Successful! Astro-Navigator revealed Asteroid Forge coordinates!`, "success");
+    }
+    window.Game.planetClears = window.Game.planetClears || {};
+    if (window.Game.planetClears[5] === undefined) {
+      window.Game.planetClears[5] = 0;
+    }
+  }
+
+  // Play success sound
+  if (typeof SFX !== 'undefined' && SFX.playSuccess) {
+    SFX.playSuccess();
+  }
+
+  // Spawn starburst particles above player
+  if (window.Game.player && typeof Particles !== 'undefined') {
+    Particles.spawnBurst(window.Game.player.x + window.Game.player.w / 2, window.Game.player.y + window.Game.player.h / 2, npc.color, 12, 3, 3, 'glow');
+  }
+
+  // Re-save progress
+  if (typeof saveLocalProgress === 'function') saveLocalProgress();
+
+  // Refresh Trade Screen UI
+  openTradeScreen(npc);
+}

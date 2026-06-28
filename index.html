@@ -301,6 +301,42 @@
           <div class="failure-hint">…or tap a fix above: it respawns you with the code staged — press Enter to run the experiment.</div>
         </div>
 
+        <!-- NPC Trading Overlay -->
+        <div id="trade-screen" class="canvas-overlay hidden">
+          <div class="trade-modal-panel">
+            <div class="trade-modal-header">
+              <div>
+                <span id="trade-npc-name" class="trade-npc-name">Machinist Geary</span>
+                <span id="trade-npc-profession" class="trade-npc-profession">// Machinist</span>
+              </div>
+              <button class="trade-close-btn" onclick="closeTradeScreen()">✖</button>
+            </div>
+            <div class="trade-modal-body">
+              <div class="trade-dialogue-box">
+                <p id="trade-dialogue-text">Hello, Cadet! My forge needs Emeralds to craft heavy engines...</p>
+              </div>
+              
+              <div class="trade-wallet-display">
+                <span class="trade-wallet-title">YOUR GEMS:</span>
+                <div class="trade-wallet-row">
+                  <span class="wallet-gem" title="Earth Emeralds" style="color: #4ade80;">💚 <span id="wallet-emerald">0</span></span>
+                  <span class="wallet-gem" title="Moon Quartz" style="color: #e2e8f0;">🤍 <span id="wallet-quartz">0</span></span>
+                  <span class="wallet-gem" title="Jupiter Amber" style="color: #f97316;">🧡 <span id="wallet-amber">0</span></span>
+                  <span class="wallet-gem" title="Glacies Ice" style="color: #a78bfa;">💜 <span id="wallet-ice">0</span></span>
+                  <span class="wallet-gem" title="Magnet Flux" style="color: #ec4899;">💖 <span id="wallet-flux">0</span></span>
+                </div>
+              </div>
+              
+              <div class="trade-list-container">
+                <div class="trade-list-title">OFFERS:</div>
+                <div id="trade-list" class="trade-list">
+                  <!-- Trades populated dynamically -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <!-- On-screen touch controls (mobile / touch devices) -->

@@ -72,7 +72,10 @@ function shCaptureProgress() {
     masteryMeters: (window.Game && Game.masteryMeters) ? { ...Game.masteryMeters } : {},
     dailySignalClears: (window.Game && Game.dailySignalClears) || 0,
     lastPlayedDate: (window.Game && Game.lastPlayedDate) ? Game.lastPlayedDate : null,
-    streakCount: (window.Game && Game.streakCount) || 0
+    streakCount: (window.Game && Game.streakCount) || 0,
+    gemsWallet: (window.Game && Game.gemsWallet) ? { ...Game.gemsWallet } : { emerald: 0, quartz: 0, amber: 0, ice: 0, flux: 0 },
+    purchasedTrades: (window.Game && Game.purchasedTrades) ? Array.from(Game.purchasedTrades) : [],
+    upgradeCapBonuses: (window.Game && Game.upgradeCapBonuses) ? { ...Game.upgradeCapBonuses } : { engine: 0, jump: 0, rocket: 0, mass: 0, antigravity: 0 }
   };
 }
 
@@ -91,6 +94,9 @@ function shApplyProgress(progress) {
   Game.dailySignalClears = progress.dailySignalClears || 0;
   Game.lastPlayedDate = progress.lastPlayedDate || null;
   Game.streakCount = progress.streakCount || 0;
+  Game.gemsWallet = progress.gemsWallet ? { ...progress.gemsWallet } : { emerald: 0, quartz: 0, amber: 0, ice: 0, flux: 0 };
+  Game.purchasedTrades = new Set(progress.purchasedTrades || []);
+  Game.upgradeCapBonuses = progress.upgradeCapBonuses ? { ...progress.upgradeCapBonuses } : { engine: 0, jump: 0, rocket: 0, mass: 0, antigravity: 0 };
   try {
     if (typeof notebookEntries !== 'undefined' && notebookEntries) {
       Object.keys(notebookEntries).forEach(k => delete notebookEntries[k]);
