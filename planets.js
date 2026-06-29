@@ -18,10 +18,10 @@ const PLANETS = [
     },
 
     npcs: [
-      { id: "geary", name: "Machinist Geary", profession: "Machinist", x: 150, type: "npc", color: "#4ade80", roleMark: "E" },
-      { id: "bitbyte", name: "Logician Bit-Byte", profession: "Logician", x: 205, type: "npc", color: "#38bdf8", roleMark: "J" },
-      { id: "horizon", name: "Cartographer Horizon", profession: "Cartographer", x: 260, type: "npc", color: "#f97316", roleMark: "M" },
-      { id: "tesla", name: "Magnetist Tesla", profession: "Magnetist", x: 315, type: "npc", color: "#ec4899", roleMark: "A" }
+      { id: "geary", name: "Machinist Geary", profession: "Machinist", x: 390, type: "npc", color: "#4ade80", roleMark: "E" },
+      { id: "bitbyte", name: "Logician Bit-Byte", profession: "Logician", x: 448, type: "npc", color: "#38bdf8", roleMark: "J" },
+      { id: "horizon", name: "Cartographer Horizon", profession: "Cartographer", x: 506, type: "npc", color: "#f97316", roleMark: "M" },
+      { id: "tesla", name: "Magnetist Tesla", profession: "Magnetist", x: 564, type: "npc", color: "#ec4899", roleMark: "A" }
     ],
 
     physics: {
@@ -92,7 +92,7 @@ const PLANETS = [
         id: "selene",
         name: "Springwright Selene",
         profession: "Springwright",
-        x: 170,
+        x: 330,
         type: "npc",
         color: "#38bdf8",
         roleMark: "J",
@@ -172,7 +172,7 @@ const PLANETS = [
         id: "ion",
         name: "Booster Ion",
         profession: "Rocketwright",
-        x: 165,
+        x: 330,
         type: "npc",
         color: "#f97316",
         roleMark: "R",
@@ -256,7 +256,7 @@ const PLANETS = [
         id: "cryo",
         name: "Gripkeeper Cryo",
         profession: "Gripkeeper",
-        x: 170,
+        x: 330,
         type: "npc",
         color: "#a78bfa",
         roleMark: "G",
@@ -336,7 +336,7 @@ const PLANETS = [
         id: "tesla_field",
         name: "Magnetist Tesla",
         profession: "Magnetist",
-        x: 165,
+        x: 330,
         type: "npc",
         color: "#ec4899",
         roleMark: "A",
@@ -418,7 +418,7 @@ const PLANETS = [
         id: "anvil",
         name: "Forgekeeper Anvil",
         profession: "Forgekeeper",
-        x: 165,
+        x: 330,
         type: "npc",
         color: "#fb923c",
         roleMark: "F",

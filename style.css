@@ -1863,57 +1863,60 @@ html {
 
 /* Mission panel styling */
 .mission-panel {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--panel-border);
-  border-radius: 12px;
+  background: radial-gradient(circle at 50% 0%, rgba(34, 197, 94, 0.14), rgba(2, 20, 12, 0.96) 55%);
+  border: 1px solid rgba(34, 197, 94, 0.62);
+  border-radius: 6px;
   margin: 0 20px 5px;
-  padding: 12px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  box-shadow: inset 0 0 18px rgba(34, 197, 94, 0.12);
 }
 
 .mission-panel-title {
-  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
   font-weight: bold;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: #facc15;
   letter-spacing: 1px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(34, 197, 94, 0.28);
   padding-bottom: 6px;
 }
 
 /* Briefing log inside the Mission bubble — the persistent copy of every narration line */
 .mission-briefing {
-  margin-top: 10px;
+  margin-top: 8px;
 }
 .mission-briefing-log {
   display: flex;
   flex-direction: column;
   gap: 6px;
   margin-top: 6px;
-  max-height: 150px;
+  max-height: 98px;
   overflow-y: auto;
 }
 .mission-briefing-item {
-  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
   line-height: 1.35;
-  color: var(--text-primary);
-  background: rgba(56, 189, 248, 0.07);
-  border-left: 3px solid var(--neon-cyan);
-  border-radius: 0 6px 6px 0;
+  color: #bbf7d0;
+  background: rgba(0, 0, 0, 0.28);
+  border-left: 3px solid #22c55e;
+  border-radius: 0 4px 4px 0;
   padding: 6px 8px;
 }
 .mission-briefing-item:first-child {
-  border-left-color: var(--neon-green);
-  background: rgba(74, 222, 128, 0.09);
+  border-left-color: #facc15;
+  background: rgba(250, 204, 21, 0.1);
 }
 
 .mission-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 110px;
+  max-height: 96px;
   overflow-y: auto;
 }
 
@@ -1921,8 +1924,9 @@ html {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.8rem;
-  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: #bbf7d0;
   transition: color 0.3s ease;
 }
 
@@ -2100,14 +2104,44 @@ html {
 .coach-bubble.mission-bubble {
   left: 12px;
   right: auto;
-  box-shadow: 4px 4px 0 rgba(11, 16, 34, 0.5), inset 0 0 0 2px var(--neon-green);
+  width: min(282px, 43%);
+  border-radius: 8px;
+  border-color: #020617;
+  background:
+    linear-gradient(rgba(34, 197, 94, 0.04) 50%, rgba(0, 0, 0, 0.08) 50%),
+    #020617;
+  background-size: 100% 4px, auto;
+  box-shadow:
+    4px 4px 0 rgba(11, 16, 34, 0.58),
+    inset 0 0 0 2px #22c55e,
+    inset 0 0 24px rgba(34, 197, 94, 0.12);
+  font-family: var(--font-mono);
 }
-.coach-bubble.mission-bubble .coach-bubble-head { background: rgba(74, 222, 128, 0.16); }
+.coach-bubble.mission-bubble .coach-bubble-head {
+  background: rgba(6, 78, 59, 0.82);
+  color: #bbf7d0;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  border-bottom: 1px solid rgba(34, 197, 94, 0.38);
+}
 .coach-bubble.mission-bubble .coach-chevron { color: var(--neon-green); }
-.mission-bubble-planet { font-size: 1rem; margin: 0 0 2px; font-family: var(--font-mono); }
-.mission-bubble .terminal-sub-header { padding: 0; }
+.mission-bubble-planet {
+  font-size: 0.82rem;
+  margin: 0 0 2px;
+  font-family: var(--font-mono);
+  color: #f8fafc;
+  line-height: 1.25;
+}
+.mission-bubble .terminal-sub-header {
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: rgba(187, 247, 208, 0.72);
+}
 .mission-bubble .mode-save-row { margin-top: 8px; }
-.mission-bubble .mission-panel { margin-top: 8px; }
+.mission-bubble .mission-panel { margin: 8px 0 0; }
+.mission-bubble .mission-briefing { margin-top: 8px; }
+.mission-bubble .coach-bubble-body { gap: 6px; }
 
 /* Hide the canvas bubbles while flying the orbital navigator */
 body.navigator-active .coach-bubble { display: none !important; }

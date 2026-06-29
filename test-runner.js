@@ -630,6 +630,34 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Objectives: Forge gates introduce mass before elasticity", false, err.message);
   }
 
+  // Test 17d: village NPCs are placed away from locked/required gem tiles.
+  try {
+    const game = new StarHopperGame();
+    for (let i = 0; i < PLANETS.length; i++) {
+      const planet = PLANETS[i];
+      if (!planet || !planet.npcs || !planet.npcs.length || !planet.map) continue;
+      game.currentPlanet = planet;
+      game.currentPlanetIndex = i;
+      game.currentVariant = { map: planet.map };
+      game.interactiveObjects = [];
+      for (let r = 0; r < planet.map.length; r++) {
+        for (let c = 0; c < planet.map[r].length; c++) {
+          if (planet.map[r][c] !== 3) continue;
+          const coin = new InteractiveObject(c * TILE_SIZE, r * TILE_SIZE, 'coin');
+          coin.requiredCollectible = true;
+          game.interactiveObjects.push(coin);
+        }
+      }
+      for (const npcConf of planet.npcs) {
+        const placed = game.placeNpcAwayFromCollectibles(npcConf);
+        assertEquals(false, game.npcOverlapsRequiredGem(placed.x, placed.y), `${planet.name} NPC ${npcConf.id} should not overlap a required gem`);
+      }
+    }
+    renderTestResult("engine-suite", "Villages: NPC placement avoids required gems", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Villages: NPC placement avoids required gems", false, err.message);
+  }
+
   // Test 18: Campaign mission validators read the same derived physics used by gates/HUD.
   try {
     Compiler.reset();
@@ -1657,40 +1685,54 @@ function runCombatTests() {
     renderTestResult(SUITE, "Combat: stomping debris destroys it (no damage, bounce)", false, err.message);
   }
 
-  // C18: a woken mob walks freely on flat ground but turns back at the brink of a crater
+  // C18: mobs can make mistakes: crater gaps are not invisible brakes, so they fall in.
   try {
     const flat   = [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[1,1,1,1,1,1,1,1]];
     const crater = [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[1,1,1,1,0,0,0,0]];
     const player = { x: 6 * TILE_SIZE, y: 38 };
-    const walk = (map) => {
-      const m = new Mob(96, 38, 'bot', '#fff', 1); m.speed = 3; m.behaviorTimer = 999; m.scanning = false;
+    const walk = (map, frames = 32) => {
+      const m = new Mob(96, 38, 'bot', '#fff', 1);
+      m.speed = 4; m.behaviorTimer = 999; m.scanning = false; m.onGround = true; m.dir = 1;
       let right = m.x + m.w;
-      for (let i = 0; i < 40; i++) { m.onGround = true; m.update(map, player, false); right = Math.max(right, m.x + m.w); }
-      return right;
+      for (let i = 0; i < frames; i++) { m.update(map, player, false); right = Math.max(right, m.x + m.w); }
+      return { right, y: m.y, onGround: m.onGround };
     };
-    const realRand = Math.random; Math.random = () => 1; // suppress the random wall-hop for determinism
-    const flatReach = walk(flat), craterReach = walk(crater);
-    Math.random = realRand;
-    assertEquals(true, flatReach > 5 * TILE_SIZE, "Mob walks freely along flat ground");
-    assertEquals(true, craterReach <= 4 * TILE_SIZE + 4, "Mob stops at the crater edge (won't step into the gap)");
-    renderTestResult(SUITE, "Mobs: walk on flat ground, stop at a crater edge", true);
+    const realRand = Math.random; // suppress the random wall-hop for determinism
+    let flatReach, craterReach;
+    try {
+      Math.random = () => 1;
+      flatReach = walk(flat, 24);
+      craterReach = walk(crater, 36);
+    } finally {
+      Math.random = realRand;
+    }
+    assertEquals(true, flatReach.right > 5 * TILE_SIZE, "Mob walks freely along flat ground");
+    assertEquals(true, craterReach.right > 4 * TILE_SIZE + 4, "Mob crosses the crater brink instead of stopping");
+    assertEquals(true, craterReach.y > 46, "Mob falls after entering the crater gap");
+    renderTestResult(SUITE, "Mobs: fall into crater gaps", true);
   } catch (err) {
-    renderTestResult(SUITE, "Mobs: walk on flat ground, stop at a crater edge", false, err.message);
+    renderTestResult(SUITE, "Mobs: fall into crater gaps", false, err.message);
   }
 
-  // C19: a mob won't march onto a spike floor
+  // C19: spike floors also make mobs fall instead of turning them around.
   try {
     const spikes = [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[1,1,1,1,2,2,1,1]];
     const player = { x: 6 * TILE_SIZE, y: 38 };
-    const m = new Mob(96, 38, 'bot', '#fff', 1); m.speed = 3; m.behaviorTimer = 999; m.scanning = false;
-    const realRand = Math.random; Math.random = () => 1;
+    const m = new Mob(96, 38, 'bot', '#fff', 1);
+    m.speed = 4; m.behaviorTimer = 999; m.scanning = false; m.onGround = true; m.dir = 1;
     let right = m.x + m.w;
-    for (let i = 0; i < 40; i++) { m.onGround = true; m.update(spikes, player, false); right = Math.max(right, m.x + m.w); }
-    Math.random = realRand;
-    assertEquals(true, right <= 4 * TILE_SIZE + 4, "Mob turns back before the spike tiles");
-    renderTestResult(SUITE, "Mobs: refuse to walk onto spikes", true);
+    const realRand = Math.random;
+    try {
+      Math.random = () => 1;
+      for (let i = 0; i < 36; i++) { m.update(spikes, player, false); right = Math.max(right, m.x + m.w); }
+    } finally {
+      Math.random = realRand;
+    }
+    assertEquals(true, right > 4 * TILE_SIZE + 4, "Mob crosses onto spike tiles instead of turning back");
+    assertEquals(true, m.y > 46, "Mob falls through the spike floor");
+    renderTestResult(SUITE, "Mobs: fall through spike floors", true);
   } catch (err) {
-    renderTestResult(SUITE, "Mobs: refuse to walk onto spikes", false, err.message);
+    renderTestResult(SUITE, "Mobs: fall through spike floors", false, err.message);
   }
 
   // C20: a meteor smashing a block drops gem/rubble but NEVER conjures a mob (survival-off fix) —
@@ -1786,22 +1828,26 @@ function runCombatTests() {
     const g = new StarHopperGame();
     g.currentPlanet = { tutorial: [{ trigger: 'gap', text: 'Mind the gap!' }, { trigger: 'wall', text: 'A wall!' }], story: {} };
     g.player = new Player(0, 0);
-    let sayCount = 0; const realSay = g.player.say.bind(g.player);
-    g.player.say = (...a) => { sayCount++; return realSay(...a); };
+    let monitorCount = 0;
+    const realMonitor = g.showMissionBalloon.bind(g);
+    g.showMissionBalloon = (...a) => { monitorCount++; return realMonitor(...a); };
     const prevGame = (typeof window !== 'undefined') ? window.Game : undefined;
-    window.Game = g; // showDialogue reads window.Game.player
-    g._firedTutorialTriggers = new Set();
-    for (let i = 0; i < 8; i++) g.triggerTutorialDialogue('gap');   // simulate lingering in the zone
-    assertEquals(1, sayCount, "Re-entering the same cue zone shows the balloon only once");
-    g.triggerTutorialDialogue('wall');                              // a different cue still fires
-    assertEquals(2, sayCount, "A distinct cue still shows");
-    g._firedTutorialTriggers = new Set();                           // new level → cues reset
-    g.triggerTutorialDialogue('gap');
-    assertEquals(3, sayCount, "Cues reset on a fresh level load");
-    window.Game = prevGame;
-    renderTestResult(SUITE, "Tutorial: spatial cues fire once per level (balloon clears)", true);
+    try {
+      window.Game = g; // showDialogue reads window.Game
+      g._firedTutorialTriggers = new Set();
+      for (let i = 0; i < 8; i++) g.triggerTutorialDialogue('gap');   // simulate lingering in the zone
+      assertEquals(1, monitorCount, "Re-entering the same cue zone shows the mission monitor only once");
+      g.triggerTutorialDialogue('wall');                              // a different cue still fires
+      assertEquals(2, monitorCount, "A distinct cue still shows");
+      g._firedTutorialTriggers = new Set();                           // new level → cues reset
+      g.triggerTutorialDialogue('gap');
+      assertEquals(3, monitorCount, "Cues reset on a fresh level load");
+    } finally {
+      window.Game = prevGame;
+    }
+    renderTestResult(SUITE, "Tutorial: spatial cues fire once per level (mission monitor clears)", true);
   } catch (err) {
-    renderTestResult(SUITE, "Tutorial: spatial cues fire once per level (balloon clears)", false, err.message);
+    renderTestResult(SUITE, "Tutorial: spatial cues fire once per level (mission monitor clears)", false, err.message);
   }
 
   // C23: fuel canisters are scattered onto solid ledges (deterministic per attempt)

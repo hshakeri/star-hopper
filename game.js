@@ -891,8 +891,7 @@ class StarHopperGame {
     if (this.currentPlanet.npcs) {
       for (const npcConf of this.currentPlanet.npcs) {
         if (typeof NPC !== 'undefined') {
-          const placed = { ...npcConf };
-          if (placed.snapToGround !== false) placed.y = this.findSurfaceYForNpc(placed.x, placed.y);
+          const placed = this.placeNpcAwayFromCollectibles(npcConf);
           this.interactiveObjects.push(new NPC(placed));
         }
       }
@@ -980,6 +979,39 @@ class StarHopperGame {
       if (cell === 1 || cell === 10) return r * TILE_SIZE - 36;
     }
     return fallbackY;
+  }
+
+  npcOverlapsRequiredGem(x, y) {
+    const npcRect = { x: x - 12, y: y - 8, w: 52, h: 48 };
+    return this.interactiveObjects.some((obj) => {
+      if (!obj || obj.type !== 'coin' || !obj.requiredCollectible || obj.collected) return false;
+      const gemRect = { x: obj.x - 14, y: obj.y - 14, w: obj.w + 28, h: obj.h + 28 };
+      return Physics.isOverlapping(npcRect, gemRect);
+    });
+  }
+
+  placeNpcAwayFromCollectibles(npcConf) {
+    const placed = { ...npcConf };
+    const map = this.getActiveMap();
+    const mapW = map && map[0] ? map[0].length * TILE_SIZE : 1920;
+    const baseX = Number.isFinite(placed.x) ? placed.x : 160;
+    const offsets = [0, 96, 128, 160, 64, 192, -64, -96, 224, -128, 256, -160, 320];
+
+    for (const dx of offsets) {
+      const candidateX = Math.max(48, Math.min(mapW - 96, baseX + dx));
+      const candidateY = placed.snapToGround === false
+        ? (Number.isFinite(placed.y) ? placed.y : this.findSurfaceYForNpc(candidateX, placed.y))
+        : this.findSurfaceYForNpc(candidateX, placed.y);
+      if (!this.npcOverlapsRequiredGem(candidateX, candidateY)) {
+        placed.x = candidateX;
+        placed.y = candidateY;
+        return placed;
+      }
+    }
+
+    placed.x = Math.max(48, Math.min(mapW - 96, baseX + 360));
+    if (placed.snapToGround !== false) placed.y = this.findSurfaceYForNpc(placed.x, placed.y);
+    return placed;
   }
 
   triggerTutorialDialogue(trigger) {
@@ -1164,18 +1196,19 @@ class StarHopperGame {
     const gem = obj.gem || this.getGemConfig();
     ui_log_output(`Locked ${gem.shortName} gem: ${obj.gemGate.label}.`, "error");
     // Brief version as an on-canvas mission balloon (hopper-balloon style, gold).
-    this.showMissionBalloon(`🔒 ${obj.gemGate.short || obj.gemGate.label}`);
+    this.showMissionBalloon(`REQ: ${obj.gemGate.short || obj.gemGate.label}`, { title: "GEM LOCK" });
     SFX.playError();
     updateMissionList(this);
   }
 
-  // A mission/objective speech balloon drawn on the canvas — same retro window as
-  // the Hopper's, but gold and a touch bigger, with word wrap for short phrases.
+  // Screen-space mission monitor for requirements and tutorial messages. Important
+  // information no longer depends on character speech bubbles being visible.
   showMissionBalloon(text, opts) {
     opts = opts || {};
     this.missionBalloon = {
       text: text,
-      timer: opts.timer || 230,    // ~3.8s at 60fps
+      title: opts.title || "MISSION CRT",
+      timer: opts.timer || 250,    // ~4.1s at 60fps
       color: opts.color || '#facc15',
       reveal: 0,
       prevLen: 0
@@ -1193,45 +1226,70 @@ class StarHopperGame {
     const shown = mb.text.slice(0, shownCount);
 
     const W = this.canvas ? this.canvas.width : 720;
+    const H = this.canvas ? this.canvas.height : 448;
     ctx.save();
-    ctx.font = "10px 'Press Start 2P', monospace";
+    ctx.font = "9px 'Press Start 2P', monospace";
     // Word-wrap the FULL text to a max width so the box size is steady while typing.
-    const maxW = Math.min(360, W - 40);
+    const maxW = Math.min(330, W - 28);
     const words = mb.text.split(' ');
     const lines = [];
     let line = '';
     for (const w of words) {
       const test = line ? line + ' ' + w : w;
-      if (ctx.measureText(test).width > maxW - 24 && line) { lines.push(line); line = w; }
+      if (ctx.measureText(test).width > maxW - 30 && line) { lines.push(line); line = w; }
       else line = test;
     }
     if (line) lines.push(line);
-    const lineH = 16;
-    const boxW = Math.min(maxW, Math.max(...lines.map(l => ctx.measureText(l).width)) + 24);
-    const boxH = lines.length * lineH + 14;
-    const cx = W / 2;
-    const bx = cx - boxW / 2;
-    const by = 64; // sit below the top control ribbon, inside the play area
+    const shownLines = lines.slice(0, 5);
+    const lineH = 14;
+    const titleH = 18;
+    const boxW = Math.min(maxW, Math.max(...shownLines.map(l => ctx.measureText(l).width), ctx.measureText(mb.title || "").width + 72) + 30);
+    const boxH = titleH + shownLines.length * lineH + 18;
+    const bx = W > 620 ? W - boxW - 14 : Math.max(12, (W - boxW) / 2);
+    const by = Math.max(58, Math.min(H - boxH - 14, 68));
 
-    // Outer ink frame → gold edge → cream panel (retro window, gold accent).
-    ctx.fillStyle = 'rgba(11, 16, 34, 0.58)';
-    ctx.beginPath(); ctx.roundRect(bx - 3, by - 3, boxW + 6, boxH + 6, 7); ctx.fill();
-    ctx.fillStyle = mb.color;
-    ctx.beginPath(); ctx.roundRect(bx - 1, by - 1, boxW + 2, boxH + 2, 6); ctx.fill();
-    ctx.fillStyle = 'rgba(251, 243, 218, 0.74)';
-    ctx.beginPath(); ctx.roundRect(bx, by, boxW, boxH, 5); ctx.fill();
+    ctx.shadowBlur = 14;
+    ctx.shadowColor = 'rgba(34, 197, 94, 0.28)';
+    ctx.fillStyle = 'rgba(2, 6, 23, 0.94)';
+    ctx.strokeStyle = '#0b1022';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.roundRect(bx - 4, by - 4, boxW + 8, boxH + 8, 7); ctx.fill(); ctx.stroke();
+    ctx.shadowBlur = 0;
 
-    // Text (reveal across the wrapped lines), ink on cream.
-    ctx.fillStyle = '#15233e';
-    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(6, 78, 59, 0.88)';
+    ctx.strokeStyle = '#22c55e';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.roundRect(bx, by, boxW, boxH, 5); ctx.fill(); ctx.stroke();
+
+    ctx.save();
+    ctx.beginPath(); ctx.roundRect(bx + 3, by + 3, boxW - 6, boxH - 6, 4); ctx.clip();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
+    for (let y = by + 5; y < by + boxH - 4; y += 4) ctx.fillRect(bx + 4, y, boxW - 8, 1);
+    ctx.restore();
+
+    ctx.fillStyle = 'rgba(250, 204, 21, 0.16)';
+    ctx.fillRect(bx + 3, by + 3, boxW - 6, titleH);
+    ctx.fillStyle = '#facc15';
+    ctx.font = "8px 'Press Start 2P', monospace";
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(mb.title || "MISSION CRT", bx + 22, by + 12);
+    ctx.fillStyle = '#22c55e';
+    ctx.fillRect(bx + 9, by + 8, 7, 7);
+    ctx.fillStyle = 'rgba(187, 247, 208, 0.72)';
+    ctx.fillRect(bx + boxW - 34, by + 8, 6, 6);
+    ctx.fillRect(bx + boxW - 22, by + 8, 6, 6);
+
+    ctx.font = "9px 'Press Start 2P', monospace";
+    ctx.fillStyle = '#bbf7d0';
     ctx.textBaseline = 'middle';
     let used = 0;
-    for (let i = 0; i < lines.length; i++) {
-      const full = lines[i];
+    for (let i = 0; i < shownLines.length; i++) {
+      const full = shownLines[i];
       const remain = Math.max(0, shown.length - used);
       const part = full.slice(0, remain);
       used += full.length + 1; // + the space
-      ctx.fillText(part, cx, by + 9 + i * lineH + lineH / 2 - 4);
+      ctx.fillText(part, bx + 14, by + titleH + 13 + i * lineH);
     }
     ctx.restore();
   }
@@ -1263,6 +1321,7 @@ class StarHopperGame {
       this._lastPortalLockMsg = msg;
       ui_log_output(msg, "error");
       SFX.playError();
+      this.showMissionBalloon(`REQ: ${this.formatObjectiveLockMessage(status)}`, { title: "PORTAL LOCK", timer: 320 });
       updateMissionList(this);
     }
   }

@@ -991,9 +991,9 @@ const PORTRAIT_ART = {
   SYSTEM: `<svg viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="6" y="2" width="4" height="12" fill="#94a3b8"/><rect x="2" y="6" width="12" height="4" fill="#94a3b8"/><rect x="4" y="4" width="8" height="8" fill="#94a3b8"/><rect x="6" y="6" width="4" height="4" fill="#0b1022"/></svg>`
 };
 
-// Vector is gone: narration/tutorial lines now appear as the cadet's own in-world
-// speech balloon (multi-line, lingering). The full objectives live in the 🎯 Mission
-// panel for anyone who wants the detail.
+// Vector is gone: narration/tutorial lines now appear in the mission CRT monitor
+// and in the Mission box log. Important directions should not depend on a
+// character speech bubble that can hide behind the scene.
 function showDialogue(text, trigger = "start") {
   if (!text) return;
   // Strip the old "Vector here — " framing now that there's no robot speaking.
@@ -1003,16 +1003,19 @@ function showDialogue(text, trigger = "start") {
     const log = document.getElementById("mission-briefing-log");
     if (log) { log.innerHTML = ""; log._last = null; }
   }
-  // Brief, in-world balloon (longer pause on the first/arrival show)...
-  if (window.Game && window.Game.player && typeof window.Game.player.say === "function") {
-    window.Game.player.say(line, { dialogue: true, timer: trigger === "start" ? 540 : 360 });
+  if (window.Game && typeof window.Game.showMissionBalloon === "function") {
+    window.Game.showMissionBalloon(line, {
+      title: trigger === "start" ? "MISSION MSG" : "REQUIREMENT",
+      timer: trigger === "start" ? 420 : 300,
+      color: "#22c55e"
+    });
   }
-  // ...and the COMPLETE message is kept in the 🎯 Mission box for re-reading.
+  // The complete message is kept in the Mission monitor for re-reading.
   logMissionBriefing(line);
 }
 
 // Keep every narration line in the Mission box (newest on top), so the transient
-// balloon is just a heads-up and the full text is always there to refer back to.
+// CRT monitor is just a heads-up and the full text is always there to refer back to.
 function logMissionBriefing(text) {
   const log = document.getElementById("mission-briefing-log");
   if (!log || !text) return;

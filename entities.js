@@ -541,9 +541,10 @@ class Mob {
   _solid(tilemap, x, y) {
     const cL = Math.floor(x / TILE_SIZE), cR = Math.floor((x + this.w) / TILE_SIZE);
     const rT = Math.floor(y / TILE_SIZE), rB = Math.floor((y + this.h) / TILE_SIZE);
-    if (cL < 0 || !tilemap[0] || cR >= tilemap[0].length || rB >= tilemap.length) return true;
+    if (cL < 0 || !tilemap[0] || cR >= tilemap[0].length) return true;
+    if (rB >= tilemap.length) return false;
     if (rT < 0) return false;
-    for (let r = rT; r <= rB; r++) for (let c = cL; c <= cR; c++) if (tilemap[r] && (tilemap[r][c] === 1 || tilemap[r][c] === 10)) return true;
+    for (let r = rT; r <= Math.min(rB, tilemap.length - 1); r++) for (let c = cL; c <= cR; c++) if (tilemap[r] && (tilemap[r][c] === 1 || tilemap[r][c] === 10)) return true;
     return false;
   }
   _tileIs(tilemap, px, py, val) {
@@ -618,22 +619,17 @@ class Mob {
         break;
     }
 
-    // Horizontal move: turn at walls, and refuse to step onto a crater (gap) or spikes.
+    // Horizontal move: turn at walls only. Crater gaps and spike floors are hazards,
+    // so mobs can blunder into them and fall instead of perfectly avoiding danger.
     // All probes sample POINTS at the leading edge (not the whole AABB) so the floor the mob
     // stands on never counts as a "wall" — that would freeze it on flat ground.
     const nx = this.x + this.dir * moveSpeed;
     const lead = this.dir > 0 ? nx + this.w : nx;            // leading edge x
-    const footY = this.y + this.h + 4;                       // just below the feet, at the leading edge
     // Wall = solid/breakable at body height ahead (sampled above the feet so the floor is excluded).
     const wallAhead = this._solidPoint(tilemap, lead, this.y + 4) || this._solidPoint(tilemap, lead, this.y + this.h - 6);
-    const spikeAhead = this._tileIs(tilemap, lead, this.y + this.h / 2, 2) || this._tileIs(tilemap, lead, this.y + this.h - 6, 2);
-    const floorAhead = this._solidPoint(tilemap, lead, footY); // ground to step onto at the leading edge?
-    const floorSpike = this._tileIs(tilemap, lead, footY, 2);
-    if (wallAhead || spikeAhead) {
-      if (wallAhead && !spikeAhead && this.onGround && !flee && Math.random() < 0.6) this.vy = -7; // hop a wall
-      else this.dir *= -1;                                   // turn at a wall or spikes
-    } else if (this.onGround && (!floorAhead || floorSpike)) {
-      this.dir *= -1;                                        // brink of a crater/gap or spike floor → turn back
+    if (wallAhead) {
+      if (this.onGround && !flee && Math.random() < 0.6) this.vy = -7; // hop a wall
+      else this.dir *= -1;
     } else {
       this.x = nx;
     }
