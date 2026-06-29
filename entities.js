@@ -262,6 +262,9 @@ const SPEECH_POOLS = {
   ],
   mobRave: [
     "AAH, DISCO!", "TOO SHINY!", "RETREAT!", "NOPE NOPE!", "MY EYES!", "FLEE!", "rave bad!", "spooky lights!", "abort!", "run away!"
+  ],
+  mobPet: [
+    "FRIEND!", "I HELP!", "PROTECT!", "WITH YOU!", "GOOD CADET!", "PET MODE!", "I GOT THIS!", "stay back!"
   ]
 };
 
@@ -525,6 +528,10 @@ class Mob {
     this.hopTimer = 40 + Math.random() * 90;
     this.sayText = ""; this.sayTimer = 0;
     this.hitFlash = 0;
+    this.scaredTimer = 0;
+    this.scaredSayCooldown = 0;
+    this.pet = false;
+    this.attackCooldown = 0;
     // Animation state — gives the creature life (walk cycle, blinking, look-at).
     this.animTime = Math.random() * Math.PI * 2;
     this.blinkTimer = 60 + Math.random() * 160;
@@ -563,8 +570,16 @@ class Mob {
   }
   update(tilemap, player, flee) {
     const toward = (player.x > this.x ? 1 : -1);
-    this.dir = flee ? -toward : toward;
+    const scared = flee && !this.pet;
+    this.dir = scared ? -toward : toward;
     this.eyeDir = toward;
+    if (scared) {
+      this.scaredTimer = Math.max(this.scaredTimer, 24);
+      if (this.scaredSayCooldown <= 0) {
+        this.say(SPEECH.pick('mobRave'));
+        this.scaredSayCooldown = 95;
+      }
+    }
     this.animTime += this.onGround ? 0.22 : 0.12;
     if (--this.blinkTimer <= 0) this.blinkTimer = 70 + Math.random() * 170;
     this.vy += (this.species === 'floater') ? 0.22 : 0.5; // floaters drift lazily
@@ -651,7 +666,10 @@ class Mob {
     if (this.sayTimer > 0) this.sayTimer--;
     if (this.hitFlash > 0) this.hitFlash--;
     if (this.hazardCooldown > 0) this.hazardCooldown--;
-    if (this.sayTimer <= 0 && Math.random() < 0.004) this.say(SPEECH.pick(flee ? 'mobRave' : 'mobChatter'));
+    if (this.scaredTimer > 0) this.scaredTimer--;
+    if (this.scaredSayCooldown > 0) this.scaredSayCooldown--;
+    if (this.attackCooldown > 0) this.attackCooldown--;
+    if (this.sayTimer <= 0 && Math.random() < 0.004) this.say(SPEECH.pick(this.pet ? 'mobPet' : (flee ? 'mobRave' : 'mobChatter')));
   }
 
   // White cartoon eyes that track the cadet and blink. spread 0 = a single cyclops eye.
@@ -767,6 +785,14 @@ class Mob {
 
     // Squash/stretch from vertical speed, anchored at the feet.
     ctx.save();
+    if (this.pet) {
+      ctx.fillStyle = 'rgba(74, 222, 128, 0.18)';
+      ctx.beginPath(); ctx.arc(cx, cy, this.w * 0.78, 0, Math.PI * 2); ctx.fill();
+    } else if (this.scaredTimer > 0) {
+      ctx.translate(Math.sin(this.animTime * 8) * 1.8, 0);
+      ctx.fillStyle = 'rgba(236, 72, 153, 0.18)';
+      ctx.beginPath(); ctx.arc(cx, cy, this.w * 0.78, 0, Math.PI * 2); ctx.fill();
+    }
     // Wind-up tell: a brace-shake + red glow right before a charge/strike.
     if (this.windupTimer > 0) {
       ctx.translate(Math.sin(this.animTime * 3) * 1.6, 0);
@@ -781,6 +807,30 @@ class Mob {
       ctx.beginPath(); ctx.arc(cx, cy, this.w * 0.6, 0, Math.PI * 2); ctx.fill();
     }
     ctx.restore();
+
+    if (this.pet) {
+      ctx.save();
+      ctx.font = "10px 'Press Start 2P', monospace";
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#4ade80';
+      ctx.strokeStyle = '#0b1022';
+      ctx.lineWidth = 3;
+      ctx.strokeText('♥', cx, this.y - 7);
+      ctx.fillText('♥', cx, this.y - 7);
+      ctx.restore();
+    } else if (this.scaredTimer > 0) {
+      ctx.save();
+      ctx.font = "9px 'Press Start 2P', monospace";
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#f0abfc';
+      ctx.strokeStyle = '#0b1022';
+      ctx.lineWidth = 3;
+      ctx.strokeText('!', cx, this.y - 7);
+      ctx.fillText('!', cx, this.y - 7);
+      ctx.restore();
+    }
 
     if (this.sayTimer > 0 && this.sayText) {
       ctx.save();

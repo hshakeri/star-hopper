@@ -263,11 +263,13 @@ const PLANETS = [
         dialogue: [
           "Violet Ice is slick until you cut it into boot spikes.",
           "A village on ice survives by trading grip, not speed.",
-          "Bring Violet Ice and I will make the comet stop bullying your boots."
+          "Bring Violet Ice and I will make the comet stop bullying your boots.",
+          "My calming lotion smells weird, but skittish critters trust it."
         ],
         trades: [
           { id: "glacies_ice_spikes", cost: { type: "ice", amount: 1 }, desc: "Craft Ice Spikes: permanent grip boots", reward: { type: "tool", key: "ice_spikes", label: "ice spike boots" } },
-          { id: "glacies_light_alloy", cost: { type: "ice", amount: 2 }, desc: "Mill Lightweight Alloy: Mass floor -0.2", reward: { type: "cap", key: "mass", amount: 0.2 } }
+          { id: "glacies_light_alloy", cost: { type: "ice", amount: 2 }, desc: "Mill Lightweight Alloy: Mass floor -0.2", reward: { type: "cap", key: "mass", amount: 0.2 } },
+          { id: "glacies_taming_lotion", cost: { type: "ice", amount: 1 }, desc: "Mix Calming Lotion: tame scared small mobs", reward: { type: "tool", key: "taming_lotion", label: "calming lotion" } }
         ]
       }
     ],

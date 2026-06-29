@@ -1568,6 +1568,59 @@ function runCombatTests() {
     renderTestResult(SUITE, "Mobs: per-species behaviors (hog charge, blob bounce)", false, err.message);
   }
 
+  // C9b: rave mode scares wild mobs away from the cadet instead of letting them keep charging.
+  try {
+    const g = new StarHopperGame();
+    g.currentPlanetIndex = 0; g.currentPlanet = PLANETS[0];
+    const map = Array.from({ length: 6 }, () => new Array(20).fill(0));
+    map[5].fill(1);
+    g.currentVariant = { map };
+    g.player = new Player(96, 128);
+    const mob = new Mob(160, 128, 'hog', '#9a6b4f', 1);
+    mob.speed = 0.8; mob.behaviorTimer = 999;
+    g.mobs = [mob];
+    g.raveImmuneTimer = 60;
+    g.updateMobs();
+    assertEquals(true, mob.scaredTimer > 0, "Rave mode marks the mob as scared");
+    assertEquals(1, mob.dir, "Mob flees away from a cadet standing to its left");
+    renderTestResult(SUITE, "Mobs: rave mode scares wild mobs", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Mobs: rave mode scares wild mobs", false, err.message);
+  }
+
+  // C9c: after buying calming lotion, scared small mobs can become pets and protect the cadet.
+  try {
+    const g = new StarHopperGame();
+    g.state = 'playing'; g.currentPlanetIndex = 0; g.currentPlanet = PLANETS[0];
+    const map = Array.from({ length: 6 }, () => new Array(20).fill(0));
+    map[5].fill(1);
+    g.currentVariant = { map };
+    g.player = new Player(100, 128);
+    g.unlockedTools = new Set(['taming_lotion']);
+    const tameable = new Mob(134, 128, 'blob', '#a78bfa', 1);
+    tameable.speed = 0; tameable.behaviorTimer = 999;
+    g.mobs = [tameable];
+    g.raveImmuneTimer = 60;
+    g.updateMobs();
+    assertEquals(1, g.mobs.length, "Taming keeps the mob in the scene");
+    assertEquals(true, g.mobs[0].pet, "Calming lotion tames the scared small mob");
+
+    const beforeHealth = g.player.health;
+    const pet = g.mobs[0];
+    pet.x = 112; pet.y = 128; pet.speed = 0; pet.behaviorTimer = 999; pet.attackCooldown = 0;
+    const hostile = new Mob(102, 128, 'hog', '#9a6b4f', 1);
+    hostile.hp = 1; hostile.woken = true; hostile.speed = 0; hostile.behaviorTimer = 999;
+    g.raveImmuneTimer = 0;
+    g.mobs = [hostile, pet];
+    g.updateMobs();
+    assertEquals(1, g.mobs.length, "Pet removes the nearby hostile mob");
+    assertEquals(true, g.mobs[0].pet, "The surviving mob is the trained pet");
+    assertEquals(beforeHealth, g.player.health, "Pet protection prevents contact damage");
+    renderTestResult(SUITE, "Mobs: lotion tames pets that protect the cadet", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Mobs: lotion tames pets that protect the cadet", false, err.message);
+  }
+
   // C10: reversing direction on the ground brakes harder than normal accel (snappy turns)
   try {
     const p = new Player(0, 0); p.charType = 'star'; p.onGround = true; p.vx = 4;
@@ -1977,6 +2030,9 @@ function runCombatTests() {
       assertEquals(true, g.unlockedTools.has('dual_blaster'), "Tool trade records the unlocked tool");
       assertEquals('blaster', g.player.weapon, "Dual blaster reward equips the blaster");
       assertEquals(true, g.weaponLevel >= 3, "Dual blaster reward upgrades weapon level");
+      const glaciesTrades = (PLANETS[3].npcs[0] && PLANETS[3].npcs[0].trades) || [];
+      const lotionTrade = glaciesTrades.find((trade) => trade.id === 'glacies_taming_lotion');
+      assertEquals('taming_lotion', lotionTrade && lotionTrade.reward && lotionTrade.reward.key, "Glacies trade unlocks calming lotion");
     } finally {
       window.Game = prevGame;
     }

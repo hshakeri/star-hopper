@@ -1818,12 +1818,147 @@ class StarHopperGame {
   killMob(index, cause) {
     const m = this.mobs[index];
     if (!m) return;
+    const wasPet = !!m.pet;
     this.mobs.splice(index, 1);
-    this.survivalScore += (cause === 'stomp' ? 15 : cause === 'shot' ? 10 : 8);
+    if (!wasPet) {
+      this.survivalScore += (cause === 'stomp' ? 15 : cause === 'shot' ? 10 : cause === 'pet' ? 12 : 8);
+    }
     if (typeof SFX !== 'undefined' && SFX.playStomp) SFX.playStomp();
-    if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(m.x + m.w / 2, m.y - 4, SPEECH.pick('mobDeath'), "#fb7185", 1.0);
-    Particles.spawnBurst(m.x + m.w / 2, m.y + m.h / 2, '#ef4444', 10, 2.5, 2.5, 'glow');
-    this.checkSurvivalRewards();
+    if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(m.x + m.w / 2, m.y - 4, wasPet ? "FRIEND!" : SPEECH.pick('mobDeath'), wasPet ? "#4ade80" : "#fb7185", 1.0);
+    Particles.spawnBurst(m.x + m.w / 2, m.y + m.h / 2, wasPet ? '#4ade80' : '#ef4444', 10, 2.5, 2.5, 'glow');
+    if (!wasPet) this.checkSurvivalRewards();
+  }
+
+  hasTamingLotion() {
+    return !!(this.unlockedTools && this.unlockedTools.has('taming_lotion'));
+  }
+
+  isTamableMob(m) {
+    return !!(m && !m.pet && (m.species === 'blob' || m.species === 'critter'));
+  }
+
+  entityCenter(entity) {
+    return {
+      x: entity.x + (entity.w || 0) / 2,
+      y: entity.y + (entity.h || 0) / 2
+    };
+  }
+
+  entityDistance(a, b) {
+    const ac = this.entityCenter(a);
+    const bc = this.entityCenter(b);
+    return Math.hypot(ac.x - bc.x, ac.y - bc.y);
+  }
+
+  tryTameMob(index, force = false) {
+    const m = this.mobs && this.mobs[index];
+    if (!this.player || !this.hasTamingLotion() || !this.isTamableMob(m)) return false;
+    if (!force && this.entityDistance(this.player, m) > 58) return false;
+    this.tameMob(m);
+    return true;
+  }
+
+  tameMob(m) {
+    if (!m) return;
+    m.pet = true;
+    m.woken = false;
+    m.scaredTimer = 0;
+    m.attackCooldown = 24;
+    m.hp = Math.max(typeof m.hp === 'number' ? m.hp : 1, 2);
+    m.say(SPEECH.pick('mobPet'));
+    if (typeof SFX !== 'undefined' && SFX.playSuccess) SFX.playSuccess();
+    if (typeof ComicBubbles !== 'undefined') {
+      ComicBubbles.pop(m.x + m.w / 2, m.y - 5, "PET!", "#4ade80", 1.05);
+    }
+    if (typeof Particles !== 'undefined') {
+      Particles.spawnBurst(m.x + m.w / 2, m.y + m.h / 2, '#4ade80', 12, 2.2, 2.3, 'glow');
+    }
+    if (typeof ui_log_output === 'function') {
+      ui_log_output("🧴 Calming lotion worked — a small mob joined your crew!", "success");
+    }
+  }
+
+  petFollowTarget(pet) {
+    const facing = Math.sign((this.player && this.player.vx) || (this.player && this.player.facing) || (pet && pet.dir) || 1) || 1;
+    return {
+      x: this.player.x - facing * 42,
+      y: this.player.y,
+      w: this.player.w || 28,
+      h: this.player.h || 28
+    };
+  }
+
+  findNearestHostileMob(pet, radius = 190) {
+    if (!pet || !this.mobs || !this.player) return null;
+    let best = null;
+    let bestDist = Infinity;
+    for (let i = 0; i < this.mobs.length; i++) {
+      const m = this.mobs[i];
+      if (!m || m === pet || m.pet) continue;
+      const petDist = this.entityDistance(pet, m);
+      const playerDist = this.entityDistance(this.player, m);
+      if ((petDist <= radius || playerDist <= 120) && petDist < bestDist) {
+        best = { index: i, mob: m, distance: petDist };
+        bestDist = petDist;
+      }
+    }
+    return best;
+  }
+
+  findProtectingPet(hostile) {
+    if (!hostile || !this.mobs || !this.player) return null;
+    for (const pet of this.mobs) {
+      if (!pet || !pet.pet || (pet.attackCooldown || 0) > 0) continue;
+      const nearThreat = this.entityDistance(pet, hostile) <= 84;
+      const guardingCadet = this.entityDistance(pet, this.player) <= 92 && this.entityDistance(hostile, this.player) <= 70;
+      if (nearThreat || guardingCadet) return pet;
+    }
+    return null;
+  }
+
+  petStrikeMob(index, pet) {
+    const m = this.mobs && this.mobs[index];
+    if (!m || m.pet || !pet || (pet.attackCooldown || 0) > 0) return null;
+    pet.attackCooldown = 32;
+    pet.dir = m.x > pet.x ? 1 : -1;
+    pet.eyeDir = pet.dir;
+    pet.say(SPEECH.pick('mobPet'));
+    m.hp = (typeof m.hp === 'number' ? m.hp : 1) - 1;
+    m.hitFlash = 8;
+    m.scaredTimer = 14;
+    m.vy = Math.min(m.vy || 0, -3.5);
+    if (typeof SFX !== 'undefined' && SFX.playStomp) SFX.playStomp();
+    if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(m.x + m.w / 2, m.y - 4, "PROTECT!", "#4ade80", 0.85);
+    if (typeof Particles !== 'undefined') Particles.spawnBurst(m.x + m.w / 2, m.y + m.h / 2, '#4ade80', 8, 2.0, 2.1, 'glow');
+    if (m.hp <= 0) {
+      const wasWoken = !!m.woken;
+      this.killMob(index, 'pet');
+      if (wasWoken) this.addXP(4);
+      return index;
+    }
+    return null;
+  }
+
+  updatePetMob(index, tilemap, mapW) {
+    const pet = this.mobs && this.mobs[index];
+    if (!pet) return null;
+    const targetInfo = this.findNearestHostileMob(pet);
+    const target = targetInfo ? targetInfo.mob : this.petFollowTarget(pet);
+    pet.update(tilemap, target, false);
+    pet.pet = true;
+    pet.scaredTimer = 0;
+    if (pet.y > 470 || pet.x < -60 || pet.x > mapW + 60) {
+      this.mobs.splice(index, 1);
+      return index;
+    }
+    if (this.damageMobFromHazards(index)) return index;
+    if (targetInfo && this.mobs[targetInfo.index] === targetInfo.mob) {
+      const strikeRange = Math.max(pet.w || 24, targetInfo.mob.w || 24) + 12;
+      if (targetInfo.distance <= strikeRange || this.entityDistance(pet, targetInfo.mob) <= strikeRange) {
+        return this.petStrikeMob(targetInfo.index, pet);
+      }
+    }
+    return null;
   }
 
   checkSurvivalRewards() {
@@ -1866,9 +2001,15 @@ class StarHopperGame {
     const flee = this.raveImmuneTimer > 0;
     for (let j = this.mobs.length - 1; j >= 0; j--) {
       const m = this.mobs[j];
+      if (m.pet) {
+        const removedIndex = this.updatePetMob(j, tilemap, mapW);
+        if (removedIndex !== null && removedIndex < j) j--;
+        continue;
+      }
       m.update(tilemap, this.player, flee);
       if (m.y > 470 || m.x < -60 || m.x > mapW + 60) { this.mobs.splice(j, 1); continue; }
       if (this.damageMobFromHazards(j)) continue;
+      if (flee && this.tryTameMob(j)) continue;
       if (!Physics.isOverlapping(this.player, m)) continue;
       const isStomp = (this.player.vy > 0.5 && this.player.y + this.player.h - this.player.vy <= m.y + 9);
       if (isStomp) {
@@ -1877,11 +2018,22 @@ class StarHopperGame {
         if (m.hp <= 0) { const woken = m.woken; this.killMob(j, 'stomp'); if (woken) this.addXP(6); }
         else { m.hitFlash = 6; if (typeof SFX !== 'undefined' && SFX.playStomp) SFX.playStomp(); }
       } else if (this.raveImmuneTimer > 0) {
+        if (this.tryTameMob(j, true)) continue;
         this.killMob(j, 'rave');
       } else if (m.woken) {
+        const protector = this.findProtectingPet(m);
+        if (protector) {
+          this.petStrikeMob(j, protector);
+          continue;
+        }
         this.damagePlayer(1, 'mob', m.x, m.attackPower || 1);
         if (this.state === 'gameover') return;
       } else if (this.survivalHitCooldown <= 0) {
+        const protector = this.findProtectingPet(m);
+        if (protector) {
+          this.petStrikeMob(j, protector);
+          continue;
+        }
         this.survivalHitCooldown = 70;
         this.player.vy = -5;
         this.player.vx = (this.player.x < m.x ? -4 : 4);
@@ -1910,8 +2062,9 @@ class StarHopperGame {
     }
     if (m.hp <= 0) {
       const woken = !!m.woken;
+      const wasPet = !!m.pet;
       this.killMob(index, onSpikes ? 'spikes' : 'crate');
-      if (woken) this.addXP(4);
+      if (woken && !wasPet) this.addXP(4);
       return true;
     }
     return false;
