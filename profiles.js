@@ -74,6 +74,7 @@ function shCaptureProgress() {
     lastPlayedDate: (window.Game && Game.lastPlayedDate) ? Game.lastPlayedDate : null,
     streakCount: (window.Game && Game.streakCount) || 0,
     gemsWallet: (window.Game && Game.gemsWallet) ? { ...Game.gemsWallet } : { emerald: 0, quartz: 0, amber: 0, ice: 0, flux: 0 },
+    gemsAwardedForPlanet: (window.Game && Game.gemsAwardedForPlanet) ? { ...Game.gemsAwardedForPlanet } : {},
     purchasedTrades: (window.Game && Game.purchasedTrades) ? Array.from(Game.purchasedTrades) : [],
     upgradeCapBonuses: (window.Game && Game.upgradeCapBonuses) ? { ...Game.upgradeCapBonuses } : { engine: 0, jump: 0, rocket: 0, mass: 0, antigravity: 0 }
   };
@@ -95,6 +96,7 @@ function shApplyProgress(progress) {
   Game.lastPlayedDate = progress.lastPlayedDate || null;
   Game.streakCount = progress.streakCount || 0;
   Game.gemsWallet = progress.gemsWallet ? { ...progress.gemsWallet } : { emerald: 0, quartz: 0, amber: 0, ice: 0, flux: 0 };
+  Game.gemsAwardedForPlanet = (progress.gemsAwardedForPlanet && typeof progress.gemsAwardedForPlanet === 'object') ? { ...progress.gemsAwardedForPlanet } : {};
   Game.purchasedTrades = new Set(progress.purchasedTrades || []);
   Game.upgradeCapBonuses = progress.upgradeCapBonuses ? { ...progress.upgradeCapBonuses } : { engine: 0, jump: 0, rocket: 0, mass: 0, antigravity: 0 };
   try {

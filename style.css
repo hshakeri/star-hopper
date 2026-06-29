@@ -3715,6 +3715,19 @@ select:focus-visible,
   box-shadow: 0 0 16px rgba(250, 204, 21, 0.45);
 }
 
+/* Trade button: hidden until the cadet is standing next to a villager (.npc-near). */
+.touch-btn.touch-trade {
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.5);
+  display: none;
+}
+.touch-controls.npc-near .touch-trade { display: inline-flex; }
+.touch-btn.touch-trade.pressed,
+.touch-btn.touch-trade:active {
+  background: rgba(52, 211, 153, 0.22);
+  box-shadow: 0 0 16px rgba(52, 211, 153, 0.45);
+}
+
 .touch-btn {
   display: inline-flex;
   align-items: center;

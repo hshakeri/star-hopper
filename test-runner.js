@@ -1767,6 +1767,48 @@ function runCombatTests() {
   } catch (err) {
     renderTestResult(SUITE, "Fuel: canisters spawn on reachable ledges", false, err.message);
   }
+
+  // C24: an NPC trade deducts gems, applies the cap reward, marks it purchased, and refuses
+  // a trade the cadet can't afford.
+  try {
+    const g = new StarHopperGame();
+    const prevGame = (typeof window !== 'undefined') ? window.Game : undefined;
+    window.Game = g;
+    g.gemsWallet = { emerald: 5, quartz: 0, amber: 0, ice: 0, flux: 0 };
+    g.purchasedTrades = new Set();
+    g.upgradeCapBonuses = { engine: 0, jump: 0, rocket: 0, mass: 0, antigravity: 0 };
+    const npc = { id: 'geary', name: 'Geary', profession: 'Machinist', color: '#fff', dialogue: ['hi'],
+      trades: [
+        { id: 'engine_1', cost: { type: 'emerald', amount: 1 }, desc: 'x', reward: { type: 'cap', key: 'engine', amount: 3 } },
+        { id: 'pricey', cost: { type: 'emerald', amount: 99 }, desc: 'y', reward: { type: 'cap', key: 'engine', amount: 5 } },
+      ] };
+    g.interactiveObjects = [npc];
+    executeNPCTrade('geary', 'engine_1');
+    assertEquals(4, g.gemsWallet.emerald, "Trade deducts the cost from the wallet");
+    assertEquals(3, g.upgradeCapBonuses.engine, "Cap reward applies the bonus");
+    assertEquals(true, g.purchasedTrades.has('engine_1'), "Trade is marked purchased");
+    executeNPCTrade('geary', 'pricey');     // can't afford (have 4, costs 99)
+    assertEquals(4, g.gemsWallet.emerald, "Unaffordable trade does not deduct");
+    assertEquals(3, g.upgradeCapBonuses.engine, "Unaffordable trade grants no bonus");
+    window.Game = prevGame;
+    renderTestResult(SUITE, "Trade: deducts gems, applies cap, blocks over-spend", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Trade: deducts gems, applies cap, blocks over-spend", false, err.message);
+  }
+
+  // C25: getUpgradeCap folds in NPC-trade cap bonuses (raises ceilings, lowers the mass floor).
+  try {
+    const g = new StarHopperGame();
+    g.currentPlanetIndex = 0;
+    const engBase = g.getUpgradeCap('engine');
+    const massBase = g.getUpgradeCap('mass');
+    g.upgradeCapBonuses = { engine: 4, jump: 0, rocket: 0, mass: 0.3, antigravity: 0 };
+    assertEquals(engBase + 4, g.getUpgradeCap('engine'), "Engine ceiling rises by the bonus");
+    assertEquals(true, g.getUpgradeCap('mass') < massBase, "Mass floor drops with the bonus");
+    renderTestResult(SUITE, "Trade: getUpgradeCap folds in purchased cap bonuses", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Trade: getUpgradeCap folds in purchased cap bonuses", false, err.message);
+  }
 }
 
 // Suite 5: Retry Remix — seeded procedural variation (same lesson, new instance)

@@ -2278,12 +2278,14 @@ class NPC extends InteractiveObject {
     } else if (this.id === 'bitbyte') {
       this.dialogue = [
         "01001000 01001001! I am Bit-Byte. I parse logic gates and syntax parameters.",
-        "Bring me Moon Quartz, and I will unlock advanced coding commands for your compiler.",
+        "Bring me Moon Quartz, and I'll tune your jump-loop logic so your springs launch higher.",
         "Code is the poetry of physics, Cadet."
       ];
+      // (repeat/if are already free + tutorial-taught, so these now grant a real jump-cap boost
+      // — letting your repeat-loop spring stacks reach higher — instead of selling free commands.)
       this.trades = [
-        { id: 'code_1', cost: { type: 'quartz', amount: 1 }, desc: 'Unlock loop command: "repeat"', reward: { type: 'code', key: 'repeat' } },
-        { id: 'code_2', cost: { type: 'quartz', amount: 2 }, desc: 'Unlock conditional: "if"', reward: { type: 'code', key: 'if' } }
+        { id: 'code_1', cost: { type: 'quartz', amount: 1 }, desc: 'Tune Jump Logic: Max +2', reward: { type: 'cap', key: 'jump', amount: 2 } },
+        { id: 'code_2', cost: { type: 'quartz', amount: 2 }, desc: 'Optimize Jump Loops: Max +4', reward: { type: 'cap', key: 'jump', amount: 4 } }
       ];
     } else if (this.id === 'horizon') {
       this.dialogue = [

@@ -12,7 +12,7 @@
 
     function setKey(key, down) {
       var g = window.Game;
-      if (!g || !g.keys) return;
+      if (!g || !g.keys || !key) return; // skip action buttons (e.g. trade) that have no data-key
       g.keys[key] = down;
       g.keys[key.toLowerCase()] = down; // entities.js also checks lowercase
     }
@@ -26,6 +26,18 @@
 
     buttons.forEach(function (btn) {
       var key = btn.getAttribute("data-key");
+
+      // The trade button isn't a held key — it must call the trade opener directly, because
+      // opening a trade lives in the keydown handler (reads the event), not in a Game.keys poll.
+      if (btn.getAttribute("data-action") === "trade") {
+        btn.addEventListener("pointerdown", function (e) {
+          e.preventDefault();
+          var g = window.Game;
+          if (g && g.activeNPC && typeof openTradeScreen === "function") openTradeScreen(g.activeNPC);
+        });
+        btn.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+        return;
+      }
 
       function press(e) {
         e.preventDefault();

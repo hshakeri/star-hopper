@@ -18,6 +18,7 @@ class StarHopperGame {
     this.gemsWallet = { emerald: 0, quartz: 0, amber: 0, ice: 0, flux: 0 };
     this.purchasedTrades = new Set();
     this.upgradeCapBonuses = { engine: 0, jump: 0, rocket: 0, mass: 0, antigravity: 0 };
+    this.gemsAwardedForPlanet = {}; // most gems ever banked from each planet — caps replay farming
     this.canvas = null;
     this.ctx = null;
     this.currentPlanetIndex = 0;
@@ -603,6 +604,18 @@ class StarHopperGame {
 
     // Capture keyboard buttons
     window.addEventListener("keydown", (e) => {
+      // While the trade modal is open the world is paused — swallow gameplay keys so the cadet
+      // can't move/jump behind it, and let Escape or E close it (otherwise Escape/P below would
+      // resume the world while the panel stayed up).
+      const _tradeOpen = (() => { const ts = document.getElementById('trade-screen'); return ts && !ts.classList.contains('hidden'); })();
+      if (_tradeOpen) {
+        if (e.key === 'Escape' || e.key.toLowerCase() === 'e') {
+          e.preventDefault();
+          if (typeof closeTradeScreen === 'function') closeTradeScreen();
+        }
+        return;
+      }
+
       // Pause / resume with P or Escape (freezes the world mid-jump so you can write code).
       // Ignored while typing in the shell so the keys can be typed normally.
       if ((e.key === "p" || e.key === "P" || e.key === "Escape") &&
@@ -1582,6 +1595,11 @@ class StarHopperGame {
         }
       }
     }
+    // Reveal the on-screen TRADE button (touch devices) only while a villager is in range.
+    if (typeof document !== 'undefined') {
+      const _tc = document.getElementById('touch-controls');
+      if (_tc) _tc.classList.toggle('npc-near', !!this.activeNPC);
+    }
 
     // 11. Update spawned box boxes (AABB block pushes)
     for (const box of this.spawnedBoxes) {
@@ -2253,13 +2271,20 @@ class StarHopperGame {
   clearLevel() {
     this.state = 'clear';
 
-    // Award collected gems to the wallet!
+    // Award collected gems to the wallet — but only the NEW ones never banked from this planet
+    // before, so replaying a level (or the Daily Signal) can't farm unlimited trade currency.
     if (this.requiredCollectiblesCollected > 0) {
       const gemKey = this.getGemKeyForPlanet(this.currentPlanetIndex);
-      this.gemsWallet = this.gemsWallet || { emerald: 0, quartz: 0, amber: 0, ice: 0, flux: 0 };
-      this.gemsWallet[gemKey] = (this.gemsWallet[gemKey] || 0) + this.requiredCollectiblesCollected;
-      if (typeof ui_log_output === 'function') {
-        ui_log_output(`🎁 Earned ${this.requiredCollectiblesCollected} ${gemKey} shards for your wallet!`, "success");
+      this.gemsAwardedForPlanet = this.gemsAwardedForPlanet || {};
+      const alreadyBanked = this.gemsAwardedForPlanet[this.currentPlanetIndex] || 0;
+      const newGems = Math.max(0, this.requiredCollectiblesCollected - alreadyBanked);
+      if (newGems > 0) {
+        this.gemsWallet = this.gemsWallet || { emerald: 0, quartz: 0, amber: 0, ice: 0, flux: 0 };
+        this.gemsWallet[gemKey] = (this.gemsWallet[gemKey] || 0) + newGems;
+        this.gemsAwardedForPlanet[this.currentPlanetIndex] = this.requiredCollectiblesCollected;
+        if (typeof ui_log_output === 'function') {
+          ui_log_output(`🎁 Earned ${newGems} ${gemKey} shards for your wallet!`, "success");
+        }
       }
     }
 

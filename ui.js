@@ -1810,19 +1810,14 @@ function executeNPCTrade(npcId, tradeId) {
     if (typeof ui_log_output === 'function') {
       ui_log_output(`⚙ Trade Successful! Reinforced ${key} capability by +${reward.amount}.`, "success");
     }
-  } else if (reward.type === 'code') {
-    // Unlock advanced commands
-    if (typeof ui_log_output === 'function') {
-      ui_log_output(`📜 Trade Successful! Unlocked compiler command: "${reward.key}"`, "success");
-    }
   } else if (reward.type === 'planet') {
-    // Unlock Asteroid Forge
+    // Actually unlock the galaxy-map node the trade paid for (was a no-op that only set
+    // planetClears[5]=0, which never touches the node's locked/disabled state).
+    if (window.Game && typeof window.Game.unlockNextPlanetNode === 'function') {
+      window.Game.unlockNextPlanetNode(reward.key);
+    }
     if (typeof ui_log_output === 'function') {
       ui_log_output(`🛰️ Trade Successful! Astro-Navigator revealed Asteroid Forge coordinates!`, "success");
-    }
-    window.Game.planetClears = window.Game.planetClears || {};
-    if (window.Game.planetClears[5] === undefined) {
-      window.Game.planetClears[5] = 0;
     }
   }
 
