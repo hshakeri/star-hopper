@@ -990,6 +990,23 @@ class StarHopperGame {
     });
   }
 
+  entityTouchesHazard(entity) {
+    const map = this.getActiveMap();
+    return !!(map && map.length && Physics.getHazardCollisions(entity, map).length > 0);
+  }
+
+  entityOverlapsSpawnedBox(entity) {
+    return (this.spawnedBoxes || []).some((box) => box && !box.collected && Physics.isOverlapping(entity, box));
+  }
+
+  npcHasUnsafePlacement(x, y) {
+    const rect = { x: x - 12, y: y - 8, w: 52, h: 48 };
+    if (this.npcOverlapsRequiredGem(x, y)) return true;
+    if (this.entityTouchesHazard(rect)) return true;
+    if (this.entityOverlapsSpawnedBox(rect)) return true;
+    return false;
+  }
+
   placeNpcAwayFromCollectibles(npcConf) {
     const placed = { ...npcConf };
     const map = this.getActiveMap();
@@ -1002,7 +1019,7 @@ class StarHopperGame {
       const candidateY = placed.snapToGround === false
         ? (Number.isFinite(placed.y) ? placed.y : this.findSurfaceYForNpc(candidateX, placed.y))
         : this.findSurfaceYForNpc(candidateX, placed.y);
-      if (!this.npcOverlapsRequiredGem(candidateX, candidateY)) {
+      if (!this.npcHasUnsafePlacement(candidateX, candidateY)) {
         placed.x = candidateX;
         placed.y = candidateY;
         return placed;
@@ -1605,8 +1622,9 @@ class StarHopperGame {
       obj.update(this);
       if (obj.collected) continue;
 
-      if (typeof NPC !== 'undefined' && obj instanceof NPC && obj.proximity) {
-        this.activeNPC = obj;
+      if (typeof NPC !== 'undefined' && obj instanceof NPC) {
+        this.damageNPCFromHazards(obj);
+        if (obj.proximity) this.activeNPC = obj;
       }
 
       if (Physics.isOverlapping(this.player, obj)) {
@@ -1850,6 +1868,7 @@ class StarHopperGame {
       const m = this.mobs[j];
       m.update(tilemap, this.player, flee);
       if (m.y > 470 || m.x < -60 || m.x > mapW + 60) { this.mobs.splice(j, 1); continue; }
+      if (this.damageMobFromHazards(j)) continue;
       if (!Physics.isOverlapping(this.player, m)) continue;
       const isStomp = (this.player.vy > 0.5 && this.player.y + this.player.h - this.player.vy <= m.y + 9);
       if (isStomp) {
@@ -1871,6 +1890,73 @@ class StarHopperGame {
         if (typeof ComicBubbles !== 'undefined') ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y, SPEECH.pick('bonk'), "jagged", "#ef4444", -0.3, { maxLife: 40 });
       }
     }
+  }
+
+  damageMobFromHazards(index) {
+    const m = this.mobs && this.mobs[index];
+    if (!m || (m.hazardCooldown || 0) > 0) return false;
+    const onSpikes = this.entityTouchesHazard(m);
+    const onCrate = this.entityOverlapsSpawnedBox(m);
+    if (!onSpikes && !onCrate) return false;
+
+    m.hazardCooldown = 36;
+    m.hitFlash = 10;
+    m.hp = (typeof m.hp === 'number' ? m.hp : 1) - 1;
+    m.vy = -4;
+    m.dir *= -1;
+    if (typeof SFX !== 'undefined' && SFX.playError) SFX.playError();
+    if (typeof Particles !== 'undefined') {
+      Particles.spawnBurst(m.x + m.w / 2, m.y + m.h / 2, onSpikes ? '#ef4444' : '#f97316', 7, 2.2, 2.2, 'glow');
+    }
+    if (m.hp <= 0) {
+      const woken = !!m.woken;
+      this.killMob(index, onSpikes ? 'spikes' : 'crate');
+      if (woken) this.addXP(4);
+      return true;
+    }
+    return false;
+  }
+
+  relocateNPCToSafeSpot(npc) {
+    if (!npc) return;
+    const placed = this.placeNpcAwayFromCollectibles({
+      id: npc.id,
+      name: npc.name,
+      profession: npc.profession,
+      x: npc.x + 96,
+      y: npc.y,
+      type: npc.type,
+      color: npc.color,
+      roleMark: npc.roleMark,
+      skinTone: npc.skinTone,
+      stall: npc.stall,
+      dialogue: npc.dialogue,
+      trades: npc.trades
+    });
+    npc.x = placed.x;
+    npc.y = placed.y;
+    npc.proximity = false;
+    if (this.activeNPC === npc) this.activeNPC = null;
+  }
+
+  damageNPCFromHazards(npc) {
+    if (!npc || (npc.hazardCooldown || 0) > 0) return;
+    const onSpikes = this.entityTouchesHazard(npc);
+    const onCrate = this.entityOverlapsSpawnedBox(npc);
+    if (!onSpikes && !onCrate) return;
+
+    npc.hazardCooldown = 60;
+    npc.hitFlash = 14;
+    npc.health = Math.max(0, (npc.health || npc.maxHealth || 3) - 1);
+    if (typeof SFX !== 'undefined' && SFX.playError) SFX.playError();
+    if (typeof Particles !== 'undefined') {
+      Particles.spawnBurst(npc.x + npc.w / 2, npc.y + npc.h / 2, onSpikes ? '#ef4444' : '#f97316', 8, 2.2, 2.2, 'glow');
+    }
+    if (typeof ComicBubbles !== 'undefined') {
+      ComicBubbles.pop(npc.x + npc.w / 2, npc.y - 4, npc.health <= 0 ? "MEDIC!" : "OUCH!", onSpikes ? "#ef4444" : "#f97316", 0.9);
+    }
+    this.relocateNPCToSafeSpot(npc);
+    if (npc.health <= 0) npc.health = npc.maxHealth || 3;
   }
 
   // ---- BREAKABLE BLOCKS + CRATERS --------------------------------------------

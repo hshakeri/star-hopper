@@ -651,11 +651,29 @@ function runEngineTests() {
       for (const npcConf of planet.npcs) {
         const placed = game.placeNpcAwayFromCollectibles(npcConf);
         assertEquals(false, game.npcOverlapsRequiredGem(placed.x, placed.y), `${planet.name} NPC ${npcConf.id} should not overlap a required gem`);
+        assertEquals(false, game.npcHasUnsafePlacement(placed.x, placed.y), `${planet.name} NPC ${npcConf.id} should not stand on hazards or crates`);
       }
     }
-    renderTestResult("engine-suite", "Villages: NPC placement avoids required gems", true);
+
+    const safeGame = new StarHopperGame();
+    safeGame.currentVariant = {
+      map: [
+        [0,0,0,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,2,0,0,0,0,0,0,0],
+        [1,1,1,1,1,1,1,1,1,1,1,1]
+      ]
+    };
+    safeGame.interactiveObjects = [];
+    safeGame.spawnedBoxes = [new InteractiveObject(7 * TILE_SIZE, 3 * TILE_SIZE - 36, 'box')];
+    const spikePlaced = safeGame.placeNpcAwayFromCollectibles({ id: 'test_spike', name: 'Test', profession: 'Tester', type: 'npc', x: 4 * TILE_SIZE, color: '#fff' });
+    assertEquals(false, safeGame.npcHasUnsafePlacement(spikePlaced.x, spikePlaced.y), "NPC shifts away from spike-backed surface");
+    const cratePlaced = safeGame.placeNpcAwayFromCollectibles({ id: 'test_crate', name: 'Test', profession: 'Tester', type: 'npc', x: 7 * TILE_SIZE, color: '#fff' });
+    assertEquals(false, safeGame.npcHasUnsafePlacement(cratePlaced.x, cratePlaced.y), "NPC shifts away from spawned crate");
+
+    renderTestResult("engine-suite", "Villages: NPC placement avoids gems, spikes, and crates", true);
   } catch (err) {
-    renderTestResult("engine-suite", "Villages: NPC placement avoids required gems", false, err.message);
+    renderTestResult("engine-suite", "Villages: NPC placement avoids gems, spikes, and crates", false, err.message);
   }
 
   // Test 18: Campaign mission validators read the same derived physics used by gates/HUD.
@@ -1733,6 +1751,46 @@ function runCombatTests() {
     renderTestResult(SUITE, "Mobs: fall through spike floors", true);
   } catch (err) {
     renderTestResult(SUITE, "Mobs: fall through spike floors", false, err.message);
+  }
+
+  // C19b: when mobs or villagers actually touch spikes/crates, they take damage instead of
+  // sitting safely on top of them.
+  try {
+    const g = new StarHopperGame();
+    g.currentVariant = {
+      map: [
+        [0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0],
+        [0,0,0,0,2,0,0,0],
+        [1,1,1,1,1,1,1,1]
+      ]
+    };
+    g.currentPlanetIndex = 0;
+    g.player = new Player(0, 0);
+    const spikeMob = new Mob(4 * TILE_SIZE, 2 * TILE_SIZE, 'bot', '#fff', 1);
+    spikeMob.hp = 1;
+    g.mobs = [spikeMob];
+    g.spawnedBoxes = [];
+    assertEquals(true, g.damageMobFromHazards(0), "Spike contact kills a one-HP mob");
+    assertEquals(0, g.mobs.length, "Spike-damaged mob is removed");
+
+    const crateMob = new Mob(3 * TILE_SIZE, 64, 'bot', '#fff', 1);
+    crateMob.hp = 1;
+    g.mobs = [crateMob];
+    g.spawnedBoxes = [new InteractiveObject(3 * TILE_SIZE, 64, 'box')];
+    assertEquals(true, g.damageMobFromHazards(0), "Crate overlap hurts a one-HP mob");
+    assertEquals(0, g.mobs.length, "Crate-damaged mob is removed");
+
+    const npc = new NPC({ id: 'safe', name: 'Safe', profession: 'Tester', type: 'npc', x: 4 * TILE_SIZE, y: 2 * TILE_SIZE, color: '#fff' });
+    g.interactiveObjects = [npc];
+    g.spawnedBoxes = [];
+    g.damageNPCFromHazards(npc);
+    assertEquals(true, npc.hitFlash > 0, "Villager flashes when hurt by a spike");
+    assertEquals(true, npc.health < npc.maxHealth, "Villager health is chipped");
+    assertEquals(false, g.npcHasUnsafePlacement(npc.x, npc.y), "Villager is relocated to a safe spot");
+    renderTestResult(SUITE, "Mobs/Villagers: hazards and crates hurt them", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Mobs/Villagers: hazards and crates hurt them", false, err.message);
   }
 
   // C20: a meteor smashing a block drops gem/rubble but NEVER conjures a mob (survival-off fix) —

@@ -521,6 +521,7 @@ class Mob {
     this.dir = (Math.random() < 0.5 ? -1 : 1);
     this.speed = 0.5 + Math.random() * 0.5; // gentler base pace (was 0.7..1.5)
     this.onGround = false;
+    this.hazardCooldown = 0;
     this.hopTimer = 40 + Math.random() * 90;
     this.sayText = ""; this.sayTimer = 0;
     this.hitFlash = 0;
@@ -649,6 +650,7 @@ class Mob {
 
     if (this.sayTimer > 0) this.sayTimer--;
     if (this.hitFlash > 0) this.hitFlash--;
+    if (this.hazardCooldown > 0) this.hazardCooldown--;
     if (this.sayTimer <= 0 && Math.random() < 0.004) this.say(SPEECH.pick(flee ? 'mobRave' : 'mobChatter'));
   }
 
@@ -2268,6 +2270,10 @@ class NPC extends InteractiveObject {
     this.w = 28;
     this.h = 36;
     this.proximity = false; // Player is nearby
+    this.maxHealth = config.maxHealth || 3;
+    this.health = this.maxHealth;
+    this.hazardCooldown = 0;
+    this.hitFlash = 0;
     
     // Set dialogue lists
     if (Array.isArray(config.dialogue)) this.dialogue = config.dialogue.slice();
@@ -2340,6 +2346,8 @@ class NPC extends InteractiveObject {
     
     const wasProx = this.proximity;
     this.proximity = (dist < 48);
+    if (this.hazardCooldown > 0) this.hazardCooldown--;
+    if (this.hitFlash > 0) this.hitFlash--;
 
     if (this.proximity && !wasProx) {
       // Just walked up: spawn a greeting balloon
@@ -2354,6 +2362,10 @@ class NPC extends InteractiveObject {
     const cy = this.y;
 
     ctx.save();
+    if (this.hitFlash > 0) {
+      ctx.shadowBlur = 16;
+      ctx.shadowColor = '#ef4444';
+    }
 
     const bob = Math.sin(Date.now() / 360 + this.x * 0.03) * 1.2;
     const groundY = cy + this.h;
@@ -2481,6 +2493,16 @@ class NPC extends InteractiveObject {
       // Pulse animation
       const promptBob = Math.sin(Date.now() / 150) * 1.5;
       ctx.fillText('[E] TRADE', cx + this.w / 2, cy - 14 + promptBob);
+    }
+
+    if (this.hitFlash > 0) {
+      ctx.save();
+      ctx.globalAlpha = Math.min(0.55, this.hitFlash / 12);
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.roundRect(cx + 1, cy + 1, this.w - 2, this.h - 2, 7);
+      ctx.fill();
+      ctx.restore();
     }
 
     ctx.restore();
