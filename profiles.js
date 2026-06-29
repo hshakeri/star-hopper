@@ -57,48 +57,53 @@ function shWriteStore(store) {
 
 // Snapshot the live game state into a progress object.
 function shCaptureProgress() {
+  const game = window.Game || null;
   return {
-    completedMissions: (window.Game && Game.completedMissions) ? Array.from(Game.completedMissions) : [],
+    completedMissions: (game && game.completedMissions) ? Array.from(game.completedMissions) : [],
     notebookEntries: (typeof notebookEntries !== 'undefined' && notebookEntries) ? notebookEntries : {},
-    earnedBadges: (window.Game && Game.earnedBadges) ? Array.from(Game.earnedBadges) : [],
-    unlockedUpgrades: (window.Game && Game.unlockedUpgrades) ? Array.from(Game.unlockedUpgrades) : [],
-    upgradeLevels: (window.Game && Game.upgradeLevels) ? { ...Game.upgradeLevels } : {},
-    planetClears: (window.Game && Game.planetClears) ? { ...Game.planetClears } : {},
+    earnedBadges: (game && game.earnedBadges) ? Array.from(game.earnedBadges) : [],
+    unlockedUpgrades: (game && game.unlockedUpgrades) ? Array.from(game.unlockedUpgrades) : [],
+    upgradeLevels: (game && game.upgradeLevels) ? { ...game.upgradeLevels } : {},
+    planetClears: (game && game.planetClears) ? { ...game.planetClears } : {},
     // Phase-2 progression fields. All additive + backward-compatible (old saves simply lack
     // them and shApplyProgress defaults them). NOT sent to the github-sync flat payload —
     // the local profile store is authoritative (matches existing planetClears behavior).
-    bestClearTimes: (window.Game && Game.bestClearTimes) ? { ...Game.bestClearTimes } : {},
-    masteryCleared: (window.Game && Game.masteryCleared) ? { ...Game.masteryCleared } : {},
-    masteryMeters: (window.Game && Game.masteryMeters) ? { ...Game.masteryMeters } : {},
-    dailySignalClears: (window.Game && Game.dailySignalClears) || 0,
-    lastPlayedDate: (window.Game && Game.lastPlayedDate) ? Game.lastPlayedDate : null,
-    streakCount: (window.Game && Game.streakCount) || 0,
-    gemsWallet: (window.Game && Game.gemsWallet) ? { ...Game.gemsWallet } : { emerald: 0, quartz: 0, amber: 0, ice: 0, flux: 0 },
-    gemsAwardedForPlanet: (window.Game && Game.gemsAwardedForPlanet) ? { ...Game.gemsAwardedForPlanet } : {},
-    purchasedTrades: (window.Game && Game.purchasedTrades) ? Array.from(Game.purchasedTrades) : [],
-    upgradeCapBonuses: (window.Game && Game.upgradeCapBonuses) ? { ...Game.upgradeCapBonuses } : { engine: 0, jump: 0, rocket: 0, mass: 0, antigravity: 0 }
+    bestClearTimes: (game && game.bestClearTimes) ? { ...game.bestClearTimes } : {},
+    masteryCleared: (game && game.masteryCleared) ? { ...game.masteryCleared } : {},
+    masteryMeters: (game && game.masteryMeters) ? { ...game.masteryMeters } : {},
+    dailySignalClears: (game && game.dailySignalClears) || 0,
+    lastPlayedDate: (game && game.lastPlayedDate) ? game.lastPlayedDate : null,
+    streakCount: (game && game.streakCount) || 0,
+    gemsWallet: (game && game.gemsWallet) ? { ...game.gemsWallet } : { emerald: 0, quartz: 0, amber: 0, ice: 0, flux: 0, forge: 0 },
+    gemsAwardedForPlanet: (game && game.gemsAwardedForPlanet) ? { ...game.gemsAwardedForPlanet } : {},
+    purchasedTrades: (game && game.purchasedTrades) ? Array.from(game.purchasedTrades) : [],
+    unlockedTools: (game && game.unlockedTools) ? Array.from(game.unlockedTools) : [],
+    upgradeCapBonuses: (game && game.upgradeCapBonuses) ? { ...game.upgradeCapBonuses } : { engine: 0, jump: 0, rocket: 0, mass: 0, antigravity: 0 }
   };
 }
 
 // Load a progress object into the live game and refresh every dependent panel.
 function shApplyProgress(progress) {
   if (!window.Game) return;
-  Game.completedMissions = new Set(progress.completedMissions || []);
-  Game.earnedBadges = new Set(progress.earnedBadges || []);
-  Game.unlockedUpgrades = new Set(progress.unlockedUpgrades || []);
-  Game.upgradeLevels = progress.upgradeLevels ? { ...progress.upgradeLevels } : {};
-  Game.planetClears = progress.planetClears ? { ...progress.planetClears } : {};
+  const game = window.Game;
+  game.completedMissions = new Set(progress.completedMissions || []);
+  game.earnedBadges = new Set(progress.earnedBadges || []);
+  game.unlockedUpgrades = new Set(progress.unlockedUpgrades || []);
+  game.upgradeLevels = progress.upgradeLevels ? { ...progress.upgradeLevels } : {};
+  game.planetClears = progress.planetClears ? { ...progress.planetClears } : {};
   // Phase-2 fields — default for old saves that predate them.
-  Game.bestClearTimes = (progress.bestClearTimes && typeof progress.bestClearTimes === 'object') ? { ...progress.bestClearTimes } : {};
-  Game.masteryCleared = (progress.masteryCleared && typeof progress.masteryCleared === 'object') ? { ...progress.masteryCleared } : {};
-  Game.masteryMeters = (progress.masteryMeters && typeof progress.masteryMeters === 'object') ? { ...progress.masteryMeters } : {};
-  Game.dailySignalClears = progress.dailySignalClears || 0;
-  Game.lastPlayedDate = progress.lastPlayedDate || null;
-  Game.streakCount = progress.streakCount || 0;
-  Game.gemsWallet = progress.gemsWallet ? { ...progress.gemsWallet } : { emerald: 0, quartz: 0, amber: 0, ice: 0, flux: 0 };
-  Game.gemsAwardedForPlanet = (progress.gemsAwardedForPlanet && typeof progress.gemsAwardedForPlanet === 'object') ? { ...progress.gemsAwardedForPlanet } : {};
-  Game.purchasedTrades = new Set(progress.purchasedTrades || []);
-  Game.upgradeCapBonuses = progress.upgradeCapBonuses ? { ...progress.upgradeCapBonuses } : { engine: 0, jump: 0, rocket: 0, mass: 0, antigravity: 0 };
+  game.bestClearTimes = (progress.bestClearTimes && typeof progress.bestClearTimes === 'object') ? { ...progress.bestClearTimes } : {};
+  game.masteryCleared = (progress.masteryCleared && typeof progress.masteryCleared === 'object') ? { ...progress.masteryCleared } : {};
+  game.masteryMeters = (progress.masteryMeters && typeof progress.masteryMeters === 'object') ? { ...progress.masteryMeters } : {};
+  game.dailySignalClears = progress.dailySignalClears || 0;
+  game.lastPlayedDate = progress.lastPlayedDate || null;
+  game.streakCount = progress.streakCount || 0;
+  game.gemsWallet = { emerald: 0, quartz: 0, amber: 0, ice: 0, flux: 0, forge: 0, ...(progress.gemsWallet || {}) };
+  game.gemsAwardedForPlanet = (progress.gemsAwardedForPlanet && typeof progress.gemsAwardedForPlanet === 'object') ? { ...progress.gemsAwardedForPlanet } : {};
+  game.purchasedTrades = new Set(progress.purchasedTrades || []);
+  game.unlockedTools = new Set(progress.unlockedTools || []);
+  game.upgradeCapBonuses = progress.upgradeCapBonuses ? { ...progress.upgradeCapBonuses } : { engine: 0, jump: 0, rocket: 0, mass: 0, antigravity: 0 };
+  if (typeof game.applyUnlockedTools === 'function') game.applyUnlockedTools();
   try {
     if (typeof notebookEntries !== 'undefined' && notebookEntries) {
       Object.keys(notebookEntries).forEach(k => delete notebookEntries[k]);
@@ -109,20 +114,20 @@ function shApplyProgress(progress) {
   // Roll the return-streak now that this cadet's lastPlayedDate/streakCount are loaded.
   // (Must run AFTER the fields above are restored — Game.init ran before this apply, so
   // doing it in init() would compute from defaults and then be overwritten here.)
-  if (typeof Game.updateReturnStreak === 'function') {
-    try { Game.updateReturnStreak(); } catch (e) { /* streak is non-critical */ }
+  if (typeof game.updateReturnStreak === 'function') {
+    try { game.updateReturnStreak(); } catch (e) { /* streak is non-critical */ }
   }
 
   // Refresh each dependent panel independently — at startup some (e.g. the mission
   // list) may not be ready (no planet loaded yet), so one failure must not abort the rest.
   [
-    () => typeof updateMissionList === 'function' && updateMissionList(Game),
+    () => typeof updateMissionList === 'function' && updateMissionList(game),
     () => typeof renderNotebookHistory === 'function' && renderNotebookHistory(),
-    () => typeof updateBadgeShelf === 'function' && updateBadgeShelf(Game),
-    () => typeof updateLearningConceptProgress === 'function' && updateLearningConceptProgress(Game),
+    () => typeof updateBadgeShelf === 'function' && updateBadgeShelf(game),
+    () => typeof updateLearningConceptProgress === 'function' && updateLearningConceptProgress(game),
     () => typeof updateCertificateState === 'function' && updateCertificateState(),
-    () => Game.refreshDailySignalBanner && Game.refreshDailySignalBanner(),
-    () => Game.refreshStreakBanner && Game.refreshStreakBanner()
+    () => game.refreshDailySignalBanner && game.refreshDailySignalBanner(),
+    () => game.refreshStreakBanner && game.refreshStreakBanner()
   ].forEach(fn => { try { fn(); } catch (e) { /* panel not ready at this stage */ } });
 }
 

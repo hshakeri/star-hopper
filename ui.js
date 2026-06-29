@@ -69,6 +69,36 @@ function toggleGamePause() {
   }
 }
 
+function isTradeScreenOpen() {
+  const tradeScreen = document.getElementById("trade-screen");
+  return !!(tradeScreen && !tradeScreen.classList.contains("hidden"));
+}
+
+function setCodingPause(active) {
+  const game = window.Game || Game;
+  if (!game || game.state !== 'playing') return;
+  if (active) {
+    if (!game._codingPauseActive) {
+      game._wasPausedBeforeCoding = !!game.isPaused;
+      game._codingPauseActive = true;
+    }
+    game.isPaused = true;
+    game.physicsAccumulator = 0;
+    updatePauseControls();
+    return;
+  }
+
+  if (!game._codingPauseActive) return;
+  const shouldRemainPaused = !!game._wasPausedBeforeCoding || isTradeScreenOpen();
+  game._codingPauseActive = false;
+  game._wasPausedBeforeCoding = false;
+  if (!shouldRemainPaused) {
+    game.isPaused = false;
+    game.physicsAccumulator = 0;
+  }
+  updatePauseControls();
+}
+
 function setupResizablePanes() {
   const app = document.getElementById("app-container");
   const mainResizer = document.getElementById("main-pane-resizer");
@@ -564,7 +594,8 @@ const COACH_SLOT_RULES = {
   "hopper.engine":       { dir: ">=", live: (g) => g.getEngineForce() },
   "hopper.jump_power":   { dir: ">=", live: (g) => (g.player ? g.player.jumpPower : 0) },
   "hopper.rocket_power": { dir: ">=", live: (g) => (g.player && Number.isFinite(g.player.rocketPower)) ? g.player.rocketPower : 0 },
-  "hopper.mass":         { dir: "<=", live: (g) => g.hopperMass }
+  "hopper.mass":         { dir: "<=", live: (g) => g.hopperMass },
+  "elasticity":          { dir: ">=", live: () => (Compiler.env && Compiler.env.elasticity !== null) ? Compiler.env.elasticity : 0 }
 };
 
 function coachLineForSlot(scaffold, slotId) {
@@ -581,13 +612,14 @@ function coachAssignment(scaffold, slot, value) {
 function coachSetupLines(scaffold) {
   return (scaffold.template || "").split("\n").filter(l => l.trim() && !/\{[^}]+\}/.test(l));
 }
-function isSlotAlreadySet(game, varName, target) {
+function isSlotAlreadySet(game, varName, target, slot) {
   const rule = COACH_SLOT_RULES[varName];
   if (!rule || !Number.isFinite(target)) return false;
   const live = rule.live(game);
   if (!Number.isFinite(live)) return false;
-  if (rule.dir === ">=") return live >= target - 0.05;
-  if (rule.dir === "<=") return live <= target + 0.05;
+  const dir = (slot && slot.dir) || rule.dir;
+  if (dir === ">=") return live >= target - 0.05;
+  if (dir === "<=") return live <= target + 0.05;
   return Math.abs(live - target) < 0.05;
 }
 
@@ -608,7 +640,8 @@ function getTunableInfo(game, cmd) {
     "player.speed":        { live: () => game.getCurrentSpeed(), key: null },
     "speed":               { live: () => game.getCurrentSpeed(), key: null },
     "friction":            { live: () => game.getCurrentFriction(), key: null },
-    "gravity":             { live: () => game.getCurrentGravity() * G, key: null }
+    "gravity":             { live: () => game.getCurrentGravity() * G, key: null },
+    "elasticity":          { live: () => (Compiler.env && Compiler.env.elasticity !== null) ? Compiler.env.elasticity : 0, key: null }
   };
   const d = defs[cmd];
   if (!d) return null;
@@ -746,7 +779,7 @@ function renderScaffoldEditor(game, mission) {
   // 2a. Already satisfied? Flash "already set" and auto-skip to the next tweak.
   if (state.index < slots.length) {
     const cur = slots[state.index];
-    if (isSlotAlreadySet(game, coachVarName(scaffold, cur.id), Number(cur.value))) {
+    if (isSlotAlreadySet(game, coachVarName(scaffold, cur.id), Number(cur.value), cur)) {
       const skip = document.createElement("div");
       skip.className = "try-code-card coach-kid coach-skip";
       skip.appendChild(makeDots());
@@ -1261,6 +1294,17 @@ function setupUIBindings(game) {
 
   // 1. Code editor input submission
   if (input) {
+    const pauseForCoding = () => setCodingPause(true);
+    input.addEventListener("pointerdown", pauseForCoding);
+    input.addEventListener("mousedown", pauseForCoding);
+    input.addEventListener("focus", pauseForCoding);
+    input.addEventListener("focusin", pauseForCoding);
+    input.addEventListener("blur", () => {
+      setTimeout(() => {
+        if (document.activeElement !== input) setCodingPause(false);
+      }, 80);
+    });
+
     input.addEventListener("keydown", (e) => {
       // Tab completes the word under the caret; pressing Tab again cycles matches.
       if (e.key === "Tab") {
@@ -1546,9 +1590,19 @@ function setupUIBindings(game) {
           item.classList.remove("active");
           const indicator = item.querySelector(".track-active-indicator");
           if (indicator) indicator.textContent = "";
-        }
-      });
-    }
+      }
+    });
+  }
+
+  const gameCanvas = document.getElementById("game-canvas");
+  if (gameCanvas && input) {
+    gameCanvas.addEventListener("pointerdown", () => {
+      if (document.activeElement === input) {
+        input.blur();
+        setCodingPause(false);
+      }
+    });
+  }
 
     // Export so audio.js can sync state
     window.updateMusicMenuState = updateMusicMenuState;
@@ -1683,6 +1737,8 @@ function openTradeScreen(npc) {
   if (!npc || !window.Game) return;
   
   // Pause the game while trading
+  const alreadyOpen = isTradeScreenOpen();
+  if (!alreadyOpen) window.Game._wasPausedBeforeTrade = !!window.Game.isPaused;
   window.Game.isPaused = true;
   if (typeof updatePauseControls === 'function') updatePauseControls();
 
@@ -1703,7 +1759,7 @@ function openTradeScreen(npc) {
   }
 
   // Populate wallet balances
-  const wallet = window.Game.gemsWallet || { emerald: 0, quartz: 0, amber: 0, ice: 0, flux: 0 };
+  const wallet = window.Game.gemsWallet || { emerald: 0, quartz: 0, amber: 0, ice: 0, flux: 0, forge: 0 };
   const emEl = document.getElementById("wallet-emerald");
   if (emEl) emEl.textContent = wallet.emerald || 0;
   const qzEl = document.getElementById("wallet-quartz");
@@ -1714,6 +1770,8 @@ function openTradeScreen(npc) {
   if (icEl) icEl.textContent = wallet.ice || 0;
   const flEl = document.getElementById("wallet-flux");
   if (flEl) flEl.textContent = wallet.flux || 0;
+  const fgEl = document.getElementById("wallet-forge");
+  if (fgEl) fgEl.textContent = wallet.forge || 0;
 
   // Render trade offers
   const tradeList = document.getElementById("trade-list");
@@ -1739,6 +1797,7 @@ function openTradeScreen(npc) {
         else if (costType === 'amber') gemSymbol = "🧡";
         else if (costType === 'ice') gemSymbol = "💜";
         else if (costType === 'flux') gemSymbol = "💖";
+        else if (costType === 'forge') gemSymbol = "🟧";
 
         let btnHtml = "";
         if (purchased) {
@@ -1771,7 +1830,9 @@ function closeTradeScreen() {
   
   // Unpause the game
   if (window.Game) {
-    window.Game.isPaused = false;
+    const shouldRemainPaused = !!window.Game._wasPausedBeforeTrade || !!window.Game._codingPauseActive;
+    window.Game._wasPausedBeforeTrade = false;
+    window.Game.isPaused = shouldRemainPaused;
     if (typeof updatePauseControls === 'function') updatePauseControls();
   }
 }
@@ -1783,7 +1844,7 @@ function executeNPCTrade(npcId, tradeId) {
   const trade = npc.trades.find(t => t.id === tradeId);
   if (!trade) return;
 
-  const wallet = window.Game.gemsWallet || { emerald: 0, quartz: 0, amber: 0, ice: 0, flux: 0 };
+  const wallet = window.Game.gemsWallet || { emerald: 0, quartz: 0, amber: 0, ice: 0, flux: 0, forge: 0 };
   const costType = trade.cost.type;
   const costAmount = trade.cost.amount;
 
@@ -1809,6 +1870,14 @@ function executeNPCTrade(npcId, tradeId) {
     
     if (typeof ui_log_output === 'function') {
       ui_log_output(`⚙ Trade Successful! Reinforced ${key} capability by +${reward.amount}.`, "success");
+    }
+  } else if (reward.type === 'tool') {
+    window.Game.unlockedTools = window.Game.unlockedTools || new Set();
+    window.Game.unlockedTools.add(reward.key);
+    if (typeof window.Game.applyUnlockedTools === 'function') window.Game.applyUnlockedTools();
+
+    if (typeof ui_log_output === 'function') {
+      ui_log_output(`🧰 Trade Successful! Equipped ${reward.label || reward.key}.`, "success");
     }
   } else if (reward.type === 'planet') {
     // Actually unlock the galaxy-map node the trade paid for (was a no-op that only set

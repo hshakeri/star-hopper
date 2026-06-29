@@ -368,12 +368,13 @@ class ComicBubble {
     const h = 20;
 
     // 1. Dynamic comic drop shadow (offset offset)
-    ctx.fillStyle = 'rgba(11, 16, 34, 0.45)';
+    ctx.fillStyle = 'rgba(11, 16, 34, 0.28)';
     ctx.beginPath();
     this.drawPath(ctx, w, h, 2.5, 2.5);
     ctx.fill();
 
     // 2. Thick Ink outer border
+    ctx.globalAlpha = 0.78;
     ctx.strokeStyle = '#15233e';
     ctx.lineWidth = 3;
     ctx.fillStyle = this.color;
@@ -399,6 +400,7 @@ class ComicBubble {
     }
 
     // 3. Inner JRPG thin accent line
+    ctx.globalAlpha = 1;
     ctx.strokeStyle = 'rgba(21, 35, 62, 0.22)';
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -787,8 +789,8 @@ class Mob {
       ctx.font = "7px 'Press Start 2P', monospace";
       const tw = ctx.measureText(this.sayText).width, bw = tw + 10, bh = 13;
       const bx = cx - bw / 2, by = this.y - bh - 5;
-      ctx.fillStyle = '#0b1022'; ctx.beginPath(); ctx.roundRect(bx - 2, by - 2, bw + 4, bh + 4, 4); ctx.fill();
-      ctx.fillStyle = '#fde68a'; ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 3); ctx.fill();
+      ctx.fillStyle = 'rgba(11, 16, 34, 0.42)'; ctx.beginPath(); ctx.roundRect(bx - 2, by - 2, bw + 4, bh + 4, 4); ctx.fill();
+      ctx.fillStyle = 'rgba(253, 230, 138, 0.72)'; ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 3); ctx.fill();
       ctx.fillStyle = '#15233e'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText(this.sayText, cx, by + bh / 2 + 0.5);
       ctx.restore();
@@ -797,12 +799,16 @@ class Mob {
 }
 
 class Projectile {
-  constructor(x, y, vx) { this.x = x; this.y = y; this.vx = vx; this.life = 0; this.maxLife = 60; this.dead = false; }
+  constructor(x, y, vx) { this.x = x; this.y = y; this.vx = vx; this.life = 0; this.dead = false; }
   update(tilemap) {
     this.x += this.vx; this.life++;
-    const c = Math.floor(this.x / TILE_SIZE), r = Math.floor(this.y / TILE_SIZE);
-    if (tilemap[r] && tilemap[r][c] === 1) this.dead = true;
-    if (this.life >= this.maxLife) this.dead = true;
+    if (!tilemap || !tilemap.length || !tilemap[0]) {
+      if (this.life > 300) this.dead = true;
+      return;
+    }
+    const mapW = tilemap[0].length * TILE_SIZE;
+    const mapH = tilemap.length * TILE_SIZE;
+    if (this.x < -24 || this.x > mapW + 24 || this.y < -24 || this.y > mapH + 24) this.dead = true;
   }
   draw(ctx, cameraX) {
     ctx.save();
@@ -1656,15 +1662,15 @@ class Player {
       ctx.shadowBlur = 0;
       ctx.fillStyle = accent;
       ctx.beginPath(); ctx.roundRect(bx - 3, by - 3, bubbleW + 6, bubbleH + 6, 6); ctx.fill();
-      ctx.fillStyle = '#0b1022';
+      ctx.fillStyle = 'rgba(11, 16, 34, 0.58)';
       ctx.beginPath(); ctx.roundRect(bx - 1.5, by - 1.5, bubbleW + 3, bubbleH + 3, 5); ctx.fill();
-      ctx.fillStyle = '#fbf3da';
+      ctx.fillStyle = 'rgba(251, 243, 218, 0.72)';
       ctx.beginPath(); ctx.roundRect(bx, by, bubbleW, bubbleH, 4); ctx.fill();
 
       // Blocky stepped pointer tail (points down to the cadet, or up if flipped below).
       ctx.fillStyle = accent;
-      if (below) { ctx.fillRect(tailX - 6, by - 3, 12, 4); ctx.fillStyle = '#fbf3da'; ctx.fillRect(tailX - 4, by - 1, 8, 3); ctx.fillRect(tailX - 2, by - 4, 4, 3); }
-      else { ctx.fillRect(tailX - 6, by + bubbleH - 1, 12, 4); ctx.fillStyle = '#fbf3da'; ctx.fillRect(tailX - 4, by + bubbleH - 1, 8, 3); ctx.fillRect(tailX - 2, by + bubbleH + 2, 4, 3); }
+      if (below) { ctx.fillRect(tailX - 6, by - 3, 12, 4); ctx.fillStyle = 'rgba(251, 243, 218, 0.72)'; ctx.fillRect(tailX - 4, by - 1, 8, 3); ctx.fillRect(tailX - 2, by - 4, 4, 3); }
+      else { ctx.fillRect(tailX - 6, by + bubbleH - 1, 12, 4); ctx.fillStyle = 'rgba(251, 243, 218, 0.72)'; ctx.fillRect(tailX - 4, by + bubbleH - 1, 8, 3); ctx.fillRect(tailX - 2, by + bubbleH + 2, 4, 3); }
 
       // Text (dark navy ink on cream), revealed across the wrapped lines.
       ctx.fillStyle = '#15233e';
@@ -2260,53 +2266,71 @@ class NPC extends InteractiveObject {
     this.name = config.name;
     this.profession = config.profession;
     this.color = config.color;
+    this.roleMark = config.roleMark || (this.profession ? this.profession.charAt(0).toUpperCase() : "?");
+    this.skinTone = config.skinTone || '#d8a46f';
+    this.stall = config.stall !== false;
     this.w = 28;
     this.h = 36;
     this.proximity = false; // Player is nearby
     
     // Set dialogue lists
-    if (this.id === 'geary') {
+    if (Array.isArray(config.dialogue)) this.dialogue = config.dialogue.slice();
+    if (Array.isArray(config.trades)) this.trades = config.trades.map(t => ({ ...t }));
+
+    if (!this.dialogue && this.id === 'geary') {
       this.dialogue = [
         "Hey Cadet! I'm Geary, the Machinist. My forge needs Emeralds to craft heavy engines.",
         "With enough Emeralds, I can push your engine speed and jump springs beyond safety caps!",
         "Let's make these rovers move like rockets!"
       ];
+    }
+    if (!this.trades && this.id === 'geary') {
       this.trades = [
         { id: 'engine_1', cost: { type: 'emerald', amount: 1 }, desc: 'Reinforce Engine: Max +3', reward: { type: 'cap', key: 'engine', amount: 3 } },
-        { id: 'engine_2', cost: { type: 'emerald', amount: 3 }, desc: 'Overclock Engine: Max +5', reward: { type: 'cap', key: 'engine', amount: 5 } }
+        { id: 'engine_2', cost: { type: 'emerald', amount: 3 }, desc: 'Overclock Engine: Max +5', reward: { type: 'cap', key: 'engine', amount: 5 } },
+        { id: 'earth_blaster', cost: { type: 'emerald', amount: 2 }, desc: 'Craft Starter Blaster', reward: { type: 'tool', key: 'blaster', label: 'starter blaster' } }
       ];
-    } else if (this.id === 'bitbyte') {
+    } else if (!this.dialogue && this.id === 'bitbyte') {
       this.dialogue = [
         "01001000 01001001! I am Bit-Byte. I parse logic gates and syntax parameters.",
         "Bring me Moon Quartz, and I'll tune your jump-loop logic so your springs launch higher.",
         "Code is the poetry of physics, Cadet."
       ];
+    }
+    if (!this.trades && this.id === 'bitbyte') {
       // (repeat/if are already free + tutorial-taught, so these now grant a real jump-cap boost
       // — letting your repeat-loop spring stacks reach higher — instead of selling free commands.)
       this.trades = [
         { id: 'code_1', cost: { type: 'quartz', amount: 1 }, desc: 'Tune Jump Logic: Max +2', reward: { type: 'cap', key: 'jump', amount: 2 } },
         { id: 'code_2', cost: { type: 'quartz', amount: 2 }, desc: 'Optimize Jump Loops: Max +4', reward: { type: 'cap', key: 'jump', amount: 4 } }
       ];
-    } else if (this.id === 'horizon') {
+    } else if (!this.dialogue && this.id === 'horizon') {
       this.dialogue = [
         "Greetings, stargazer. I'm Horizon. I map the stars and plot trajectories.",
         "Trade me Amber Storm from Jupiter, and I will reveal coordinates to secret sectors.",
         "The universe is expanding, and so should our map."
       ];
+    }
+    if (!this.trades && this.id === 'horizon') {
       this.trades = [
         { id: 'map_1', cost: { type: 'amber', amount: 1 }, desc: 'Unlock Asteroid Forge map coordinates', reward: { type: 'planet', key: 5 } }
       ];
-    } else if (this.id === 'tesla') {
+    } else if (!this.dialogue && this.id === 'tesla') {
       this.dialogue = [
         "BZZZT! Static energy everywhere! I'm Tesla, the Magnetist.",
         "Magenta Flux from the nebula can help me charge magnetic repulsor boots.",
         "Opposites attract, Cadet. Let's charge up!"
       ];
+    }
+    if (!this.trades && this.id === 'tesla') {
       this.trades = [
         { id: 'magnet_1', cost: { type: 'flux', amount: 1 }, desc: 'Craft Magnet Coils (Antigrav +2)', reward: { type: 'cap', key: 'antigravity', amount: 2 } }
       ];
-    } else {
+    }
+    if (!this.dialogue) {
       this.dialogue = ["Greetings Cadet!"];
+    }
+    if (!this.trades) {
       this.trades = [];
     }
   }
@@ -2324,7 +2348,7 @@ class NPC extends InteractiveObject {
     if (this.proximity && !wasProx) {
       // Just walked up: spawn a greeting balloon
       if (typeof ComicBubbles !== 'undefined') {
-        ComicBubbles.spawn(this.x + this.w / 2, this.y - 6, `Hrrr! I'm the ${this.profession}.`, "rounded", this.color, -0.4, { maxLife: 100 });
+        ComicBubbles.spawn(this.x + this.w / 2, this.y - 6, `${this.profession} trades open.`, "rounded", this.color, -0.4, { maxLife: 100 });
       }
     }
   }
@@ -2334,69 +2358,133 @@ class NPC extends InteractiveObject {
     const cy = this.y;
 
     ctx.save();
-    
-    // Glowing aura if player is nearby
+
+    const bob = Math.sin(Date.now() / 360 + this.x * 0.03) * 1.2;
+    const groundY = cy + this.h;
+
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    ctx.beginPath();
+    ctx.ellipse(cx + this.w / 2, groundY + 2, this.w * 0.62, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (this.stall) {
+      const sx = cx - 8;
+      const sy = cy + 15;
+      const sw = this.w + 16;
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.72)';
+      ctx.strokeStyle = 'rgba(11, 16, 34, 0.9)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(sx, sy + 14, sw, 13, 4);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = this.color;
+      ctx.beginPath();
+      ctx.moveTo(sx - 2, sy + 8);
+      ctx.lineTo(sx + 5, sy);
+      ctx.lineTo(sx + sw - 5, sy);
+      ctx.lineTo(sx + sw + 2, sy + 8);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      for (let i = 0; i < 3; i++) ctx.fillRect(sx + 6 + i * 12, sy + 2, 6, 7);
+    }
+
+    ctx.translate(0, bob);
     if (this.proximity) {
       ctx.shadowBlur = 15;
       ctx.shadowColor = this.color;
     } else {
       ctx.shadowBlur = 4;
-      ctx.shadowColor = 'rgba(0,0,0,0.5)';
+      ctx.shadowColor = 'rgba(0,0,0,0.45)';
     }
 
-    // Robot outer casing
-    ctx.fillStyle = '#1e293b';
-    ctx.strokeStyle = '#0f172a';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.roundRect(cx, cy + 8, this.w, this.h - 8, 6);
-    ctx.fill();
-    ctx.stroke();
-
-    // Robot glowing screen/face
+    // Boots and legs
     ctx.fillStyle = '#0f172a';
-    ctx.beginPath();
-    ctx.roundRect(cx + 4, cy + 12, this.w - 8, 14, 4);
-    ctx.fill();
-    ctx.stroke();
+    ctx.fillRect(cx + 6, cy + 29, 5, 8);
+    ctx.fillRect(cx + this.w - 11, cy + 29, 5, 8);
+    ctx.fillStyle = '#020617';
+    ctx.fillRect(cx + 4, cy + 35, 8, 3);
+    ctx.fillRect(cx + this.w - 12, cy + 35, 8, 3);
 
-    // Glowing eyes (screen content)
-    ctx.fillStyle = this.color;
-    ctx.beginPath();
-    ctx.arc(cx + 9, cy + 19, 2.5, 0, Math.PI * 2);
-    ctx.arc(cx + this.w - 9, cy + 19, 2.5, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Robot core light/heart
-    ctx.fillStyle = this.color;
-    ctx.beginPath();
-    ctx.arc(cx + this.w / 2, cy + 29, 3.5, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Antenna
-    ctx.strokeStyle = '#64748b';
+    // Suit body
+    ctx.fillStyle = '#e2e8f0';
+    ctx.strokeStyle = '#0f172a';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(cx + this.w / 2, cy + 8);
-    ctx.lineTo(cx + this.w / 2, cy);
+    ctx.roundRect(cx + 4, cy + 16, this.w - 8, 18, 5);
+    ctx.fill();
     ctx.stroke();
-
-    // Antenna glowing bulb
     ctx.fillStyle = this.color;
     ctx.beginPath();
-    ctx.arc(cx + this.w / 2, cy, 3, 0, Math.PI * 2);
+    ctx.roundRect(cx + 7, cy + 18, this.w - 14, 10, 3);
     ctx.fill();
+
+    // Profession badge
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(cx + this.w / 2, cy + 25, 4.6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff7ed';
+    ctx.font = "bold 7px 'Share Tech Mono', monospace";
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(this.roleMark, cx + this.w / 2, cy + 25.5);
+
+    // Helmet and face
+    ctx.fillStyle = 'rgba(226, 232, 240, 0.82)';
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx + this.w / 2, cy + 10, 12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = this.skinTone;
+    ctx.beginPath();
+    ctx.roundRect(cx + 6, cy + 4, this.w - 12, 13, 5);
+    ctx.fill();
+    ctx.stroke();
+
+    // Hair/hood accent
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.arc(cx + this.w / 2, cy + 4, 7, Math.PI, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Eyes and nose
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(cx + 10, cy + 10, 1.4, 0, Math.PI * 2);
+    ctx.arc(cx + this.w - 10, cy + 10, 1.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#7c2d12';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx + this.w / 2, cy + 10);
+    ctx.lineTo(cx + this.w / 2 - 1, cy + 13);
+    ctx.stroke();
+    ctx.strokeStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(cx + this.w / 2, cy + 14, 3, 0.15, Math.PI - 0.15);
+    ctx.stroke();
 
     // Draw floating prompt if proximity is active
     if (this.proximity && game && game.activeNPC === this) {
       ctx.restore();
       ctx.save();
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.72)';
+      ctx.beginPath();
+      ctx.roundRect(cx - 43, cy - 25, 86, 15, 5);
+      ctx.fill();
       ctx.fillStyle = '#ffffff';
       ctx.font = "bold 9px 'Share Tech Mono', sans-serif";
       ctx.textAlign = 'center';
       // Pulse animation
-      const bob = Math.sin(Date.now() / 150) * 1.5;
-      ctx.fillText('[PRESS E TO TRADE]', cx + this.w / 2, cy - 14 + bob);
+      const promptBob = Math.sin(Date.now() / 150) * 1.5;
+      ctx.fillText('[E] TRADE', cx + this.w / 2, cy - 14 + promptBob);
     }
 
     ctx.restore();

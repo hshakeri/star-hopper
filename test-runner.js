@@ -605,6 +605,31 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Objectives: Earth low gems unlock upon meeting Agility target", false, err.message);
   }
 
+  // Test 17c: Asteroid Forge teaches one concept first: mass unlocks the first gem, then
+  // elasticity is required for later boulder-bounce gems.
+  try {
+    Compiler.reset();
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[5];
+    game.currentPlanetIndex = 5;
+    game.player = { charType: 'hopper', jumpPower: 10, rocketPower: 40, mass: 2.5, spikes: false };
+    game.hopperMass = 2.5;
+
+    const firstForgeGem = { type: 'coin', requiredCollectible: true, collected: false, gemGate: game.getGemGateForCollectible(5, 6, 18) };
+    const laterForgeGem = { type: 'coin', requiredCollectible: true, collected: false, gemGate: game.getGemGateForCollectible(5, 6, 30) };
+
+    assertEquals(false, game.canCollectGem(firstForgeGem), "First Forge gem should still require a heavy Hopper");
+    game.player.mass = 4.0;
+    game.hopperMass = 4.0;
+    assertEquals(true, game.canCollectGem(firstForgeGem), "First Forge gem unlocks with mass alone");
+    assertEquals(false, game.canCollectGem(laterForgeGem), "Later Forge gems still require elasticity after mass");
+    Compiler.env.elasticity = 1.0;
+    assertEquals(true, game.canCollectGem(laterForgeGem), "Later Forge gems unlock after adding elasticity");
+    renderTestResult("engine-suite", "Objectives: Forge gates introduce mass before elasticity", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Objectives: Forge gates introduce mass before elasticity", false, err.message);
+  }
+
   // Test 18: Campaign mission validators read the same derived physics used by gates/HUD.
   try {
     Compiler.reset();
@@ -1356,6 +1381,20 @@ function runCombatTests() {
     renderTestResult(SUITE, "Combat: shots kill enemies and grant XP", false, err.message);
   }
 
+  // C2b: a projectile does not time out early or die on a wall; it travels to the map edge
+  try {
+    const map = Array.from({ length: 5 }, () => new Array(20).fill(0));
+    map[2][4] = 1; // old behavior killed bullets on this wall
+    const p = new Projectile(2 * TILE_SIZE, 2 * TILE_SIZE + 12, 7);
+    for (let i = 0; i < 70; i++) p.update(map);
+    assertEquals(false, p.dead, "Projectile continues past old 60-frame/wall limit");
+    for (let i = 0; i < 200 && !p.dead; i++) p.update(map);
+    assertEquals(true, p.dead, "Projectile despawns at the scene edge");
+    renderTestResult(SUITE, "Combat: bullets travel to the scene edge", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Combat: bullets travel to the scene edge", false, err.message);
+  }
+
   // C3: XP accrues to the per-world mastery meter and levels the weapon
   try {
     const game = new StarHopperGame();
@@ -1552,6 +1591,24 @@ function runCombatTests() {
     renderTestResult(SUITE, "Meteor: shatters suspended breakable blocks", true);
   } catch (err) {
     renderTestResult(SUITE, "Meteor: shatters suspended breakable blocks", false, err.message);
+  }
+
+  // C14b: a meteor hit damages/kills mobs, not just the cadet and terrain
+  try {
+    const g = new StarHopperGame();
+    g.state = 'playing'; g.currentPlanetIndex = 2; g.currentPlanet = PLANETS[2];
+    g.currentVariant = { map: Array.from({ length: 8 }, () => new Array(12).fill(0)) };
+    g.player = new Player(300, 120); g.enemies = []; g.interactiveObjects = [];
+    const mob = new Mob(100, 100, 'blob', '#f97316', 1); mob.hp = 1;
+    g.mobs = [mob];
+    g.meteors = [new Meteor(100, 100, 0, 0)];
+    g.meteorPhase = 'active'; g.meteorActiveTimer = 60; g.meteorSpawnTimer = 999;
+    g.updateMeteors();
+    assertEquals(0, g.mobs.length, "Meteor kills the overlapping mob");
+    assertEquals(0, g.meteors.length, "Meteor is consumed on mob impact");
+    renderTestResult(SUITE, "Meteor: shower hurts mobs", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Meteor: shower hurts mobs", false, err.message);
   }
 
   // C15: speech/onomatopoeia bubbles keep fading while the world is paused (pause-to-code)
@@ -1796,7 +1853,35 @@ function runCombatTests() {
     renderTestResult(SUITE, "Trade: deducts gems, applies cap, blocks over-spend", false, err.message);
   }
 
-  // C25: getUpgradeCap folds in NPC-trade cap bonuses (raises ceilings, lowers the mass floor).
+  // C25: tool rewards from NPC trades persist and immediately equip the cadet.
+  try {
+    const g = new StarHopperGame();
+    const prevGame = (typeof window !== 'undefined') ? window.Game : undefined;
+    try {
+      window.Game = g;
+      g.player = new Player(0, 0);
+      g.gemsWallet = { emerald: 3, quartz: 0, amber: 0, ice: 0, flux: 0, forge: 0 };
+      g.purchasedTrades = new Set();
+      g.unlockedTools = new Set();
+      const npc = { id: 'geary', name: 'Geary', profession: 'Machinist', color: '#fff', dialogue: ['hi'],
+        trades: [
+          { id: 'dual', cost: { type: 'emerald', amount: 2 }, desc: 'x', reward: { type: 'tool', key: 'dual_blaster', label: 'dual blaster' } },
+        ] };
+      g.interactiveObjects = [npc];
+      executeNPCTrade('geary', 'dual');
+      assertEquals(1, g.gemsWallet.emerald, "Tool trade deducts the wallet cost");
+      assertEquals(true, g.unlockedTools.has('dual_blaster'), "Tool trade records the unlocked tool");
+      assertEquals('blaster', g.player.weapon, "Dual blaster reward equips the blaster");
+      assertEquals(true, g.weaponLevel >= 3, "Dual blaster reward upgrades weapon level");
+    } finally {
+      window.Game = prevGame;
+    }
+    renderTestResult(SUITE, "Trade: tool rewards unlock and equip weapons", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Trade: tool rewards unlock and equip weapons", false, err.message);
+  }
+
+  // C26: getUpgradeCap folds in NPC-trade cap bonuses (raises ceilings, lowers the mass floor).
   try {
     const g = new StarHopperGame();
     g.currentPlanetIndex = 0;

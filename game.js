@@ -15,8 +15,9 @@ class StarHopperGame {
   constructor() {
     this.unlockedUpgrades = new Set(); // legacy fully-unlocked limits (persists in profile)
     this.upgradeLevels = {}; // per-upgrade unlock fraction 0..1, ticks up with each gem (persisted)
-    this.gemsWallet = { emerald: 0, quartz: 0, amber: 0, ice: 0, flux: 0 };
+    this.gemsWallet = { emerald: 0, quartz: 0, amber: 0, ice: 0, flux: 0, forge: 0 };
     this.purchasedTrades = new Set();
+    this.unlockedTools = new Set();
     this.upgradeCapBonuses = { engine: 0, jump: 0, rocket: 0, mass: 0, antigravity: 0 };
     this.gemsAwardedForPlanet = {}; // most gems ever banked from each planet — caps replay farming
     this.canvas = null;
@@ -562,9 +563,17 @@ class StarHopperGame {
     }
 
     if (planetIndex === 5) {
+      if (col <= 22) {
+        return {
+          id: "asteroid-mass-first-gem",
+          label: "first make Hopper heavy with hopper.mass = 4.0 to shove the nearby asteroid",
+          short: "MASS 4.0 FIRST!",
+          validate: (game) => game.player && game.player.mass >= 3.5
+        };
+      }
       return {
         id: "asteroid-momentum-gems",
-        label: "set elasticity to 1.0 (elasticity = 1.0) and make Hopper heavy (hopper.mass = 4.0) to bounce and push boulders",
+        label: "after the heavy-Hopper shove, add elasticity = 1.0 to bounce cleanly through the later asteroids",
         short: "ELASTICITY 1.0 & MASS 4.0",
         validate: (game) => (typeof Compiler !== 'undefined' && Compiler.env && Compiler.env.elasticity >= 0.9) && game.player.mass >= 3.5
       };
@@ -806,6 +815,8 @@ class StarHopperGame {
       this.player.jumpPower = saved.jumpPower;
       this.player.rocketPower = saved.rocketPower;
     }
+
+    this.applyUnlockedTools();
     
     this.enemies = [];
     this.interactiveObjects = [];
@@ -875,11 +886,14 @@ class StarHopperGame {
     // Drop a couple of fuel canisters on reachable ledges so the finite tank is refillable.
     this.placeFuelCanisters();
 
-    // Spawn planet NPCs (specifically on Earth Base Camp)
-    if (index === 0 && this.currentPlanet.npcs) {
+    // Spawn planet villages. NPCs snap onto the nearest surface so config can focus on
+    // the stage layout instead of pixel-perfect y positions.
+    if (this.currentPlanet.npcs) {
       for (const npcConf of this.currentPlanet.npcs) {
         if (typeof NPC !== 'undefined') {
-          this.interactiveObjects.push(new NPC(npcConf));
+          const placed = { ...npcConf };
+          if (placed.snapToGround !== false) placed.y = this.findSurfaceYForNpc(placed.x, placed.y);
+          this.interactiveObjects.push(new NPC(placed));
         }
       }
     }
@@ -955,6 +969,17 @@ class StarHopperGame {
     if (this.state === 'playing' && typeof checkStartGuidedMode === 'function') {
       checkStartGuidedMode(index);
     }
+  }
+
+  findSurfaceYForNpc(x, fallbackY = 320) {
+    const map = this.getActiveMap();
+    if (!map || !map.length || !map[0]) return fallbackY;
+    const col = Math.max(1, Math.min(map[0].length - 2, Math.floor((x + 14) / TILE_SIZE)));
+    for (let r = 1; r < map.length; r++) {
+      const cell = map[r] && map[r][col];
+      if (cell === 1 || cell === 10) return r * TILE_SIZE - 36;
+    }
+    return fallbackY;
   }
 
   triggerTutorialDialogue(trigger) {
@@ -1189,11 +1214,11 @@ class StarHopperGame {
     const by = 64; // sit below the top control ribbon, inside the play area
 
     // Outer ink frame → gold edge → cream panel (retro window, gold accent).
-    ctx.fillStyle = '#0b1022';
+    ctx.fillStyle = 'rgba(11, 16, 34, 0.58)';
     ctx.beginPath(); ctx.roundRect(bx - 3, by - 3, boxW + 6, boxH + 6, 7); ctx.fill();
     ctx.fillStyle = mb.color;
     ctx.beginPath(); ctx.roundRect(bx - 1, by - 1, boxW + 2, boxH + 2, 6); ctx.fill();
-    ctx.fillStyle = '#fbf3da';
+    ctx.fillStyle = 'rgba(251, 243, 218, 0.74)';
     ctx.beginPath(); ctx.roundRect(bx, by, boxW, boxH, 5); ctx.fill();
 
     // Text (reveal across the wrapped lines), ink on cream.
@@ -1951,6 +1976,33 @@ class StarHopperGame {
     return "Blaster equipped — hold F to shoot!";
   }
 
+  applyUnlockedTools() {
+    if (!this.player) return;
+    const tools = this.unlockedTools || new Set();
+    if (tools.has('blaster') || tools.has('dual_blaster')) {
+      this.player.weapon = 'blaster';
+      this.weaponLevel = Math.max(this.weaponLevel || 1, tools.has('dual_blaster') ? 3 : 1);
+    }
+    if (tools.has('ice_spikes')) {
+      this.player.spikes = true;
+    }
+    if (tools.has('storm_tank')) {
+      const boostedTank = 320;
+      if ((this.player.maxTank || 0) < boostedTank) {
+        this.player.maxTank = boostedTank;
+        this.player.tank = boostedTank;
+      }
+    }
+    if (tools.has('forge_plating')) {
+      const boostedHealth = 4;
+      if ((this.player.maxHealth || 0) < boostedHealth) {
+        const gained = boostedHealth - (this.player.maxHealth || boostedHealth);
+        this.player.maxHealth = boostedHealth;
+        this.player.health = Math.min(boostedHealth, (this.player.health || boostedHealth) + Math.max(0, gained));
+      }
+    }
+  }
+
   // Grant experience: fills the per-world mastery meter (persisted) and levels the blaster
   // at thresholds, so fighting woken mobs makes your gun stronger.
   addXP(n) {
@@ -2129,6 +2181,30 @@ class StarHopperGame {
         Particles.spawnBurst(m.x + m.w / 2, m.y + m.h / 2, '#f59e0b', 9, 2.5, 2.5, 'glow');
         continue;
       }
+      if (this.mobs && this.mobs.length) {
+        let mobHit = false;
+        for (let j = this.mobs.length - 1; j >= 0; j--) {
+          const mob = this.mobs[j];
+          if (!Physics.isOverlapping(mob, m)) continue;
+          const wasWoken = !!mob.woken;
+          mob.hp = (typeof mob.hp === 'number' ? mob.hp : 1) - 2;
+          if (mob.hp <= 0) {
+            this.killMob(j, 'meteor');
+            if (wasWoken) this.addXP(4);
+          } else {
+            mob.hitFlash = 8;
+            Particles.spawnBurst(mob.x + mob.w / 2, mob.y + mob.h / 2, '#f59e0b', 8, 2, 2, 'glow');
+          }
+          mobHit = true;
+          break;
+        }
+        if (mobHit) {
+          this.meteors.splice(i, 1);
+          Particles.spawnBurst(m.x + m.w / 2, m.y + m.h / 2, '#f59e0b', 12, 2.8, 2.8, 'glow');
+          if (typeof SFX !== 'undefined' && SFX.playStomp) SFX.playStomp();
+          continue;
+        }
+      }
       if (Physics.isOverlapping(this.player, m) && !this.isSheltered(this.player)) {
         this.meteors.splice(i, 1);
         Particles.spawnBurst(m.x + m.w / 2, m.y + m.h / 2, '#f59e0b', 9, 2.5, 2.5, 'glow');
@@ -2264,7 +2340,7 @@ class StarHopperGame {
   }
 
   getGemKeyForPlanet(index) {
-    const keys = ['emerald', 'quartz', 'amber', 'ice', 'flux'];
+    const keys = ['emerald', 'quartz', 'amber', 'ice', 'flux', 'forge'];
     return keys[index] || 'emerald';
   }
 
@@ -2279,7 +2355,7 @@ class StarHopperGame {
       const alreadyBanked = this.gemsAwardedForPlanet[this.currentPlanetIndex] || 0;
       const newGems = Math.max(0, this.requiredCollectiblesCollected - alreadyBanked);
       if (newGems > 0) {
-        this.gemsWallet = this.gemsWallet || { emerald: 0, quartz: 0, amber: 0, ice: 0, flux: 0 };
+        this.gemsWallet = this.gemsWallet || { emerald: 0, quartz: 0, amber: 0, ice: 0, flux: 0, forge: 0 };
         this.gemsWallet[gemKey] = (this.gemsWallet[gemKey] || 0) + newGems;
         this.gemsAwardedForPlanet[this.currentPlanetIndex] = this.requiredCollectiblesCollected;
         if (typeof ui_log_output === 'function') {

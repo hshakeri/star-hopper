@@ -842,7 +842,7 @@ body.resizing-panes * {
   width: min(480px, calc(100% - 28px));
   max-width: 480px;
   padding: 10px 14px;
-  background: #fbf3da;
+  background: rgba(251, 243, 218, 0.72);
   border: 3.5px solid #15233e;
   border-radius: 12px;
   display: flex;
@@ -852,6 +852,7 @@ body.resizing-panes * {
   box-shadow: 
     5px 5px 0 rgba(11, 16, 34, 0.6),
     inset 0 0 0 2px rgba(21, 35, 62, 0.15); /* double keyline */
+  backdrop-filter: blur(2px);
   color: #15233e;
 }
 
@@ -871,7 +872,7 @@ body.resizing-panes * {
   left: 29px;
   bottom: -12px;
   border: 8px solid transparent;
-  border-top-color: #fbf3da;
+  border-top-color: rgba(251, 243, 218, 0.72);
   border-right: 0;
 }
 

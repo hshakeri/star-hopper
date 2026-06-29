@@ -18,10 +18,10 @@ const PLANETS = [
     },
 
     npcs: [
-      { id: "geary", name: "Machinist Geary", profession: "Machinist", x: 260, y: 320, type: "npc_geary", color: "#4ade80" },
-      { id: "bitbyte", name: "Logician Bit-Byte", profession: "Logician", x: 500, y: 320, type: "npc_bitbyte", color: "#38bdf8" },
-      { id: "horizon", name: "Cartographer Horizon", profession: "Cartographer", x: 740, y: 320, type: "npc_horizon", color: "#f97316" },
-      { id: "tesla", name: "Magnetist Tesla", profession: "Magnetist", x: 980, y: 320, type: "npc_tesla", color: "#ec4899" }
+      { id: "geary", name: "Machinist Geary", profession: "Machinist", x: 150, type: "npc", color: "#4ade80", roleMark: "E" },
+      { id: "bitbyte", name: "Logician Bit-Byte", profession: "Logician", x: 205, type: "npc", color: "#38bdf8", roleMark: "J" },
+      { id: "horizon", name: "Cartographer Horizon", profession: "Cartographer", x: 260, type: "npc", color: "#f97316", roleMark: "M" },
+      { id: "tesla", name: "Magnetist Tesla", profession: "Magnetist", x: 315, type: "npc", color: "#ec4899", roleMark: "A" }
     ],
 
     physics: {
@@ -87,6 +87,27 @@ const PLANETS = [
       payoff: "Quartz shard locked in. Two fragments now, and the star-map is pointing outward — toward Jupiter."
     },
 
+    npcs: [
+      {
+        id: "selene",
+        name: "Springwright Selene",
+        profession: "Springwright",
+        x: 170,
+        type: "npc",
+        color: "#38bdf8",
+        roleMark: "J",
+        dialogue: [
+          "Quartz stores a clean bounce. Trade me Moon Quartz and I will tune your jump springs.",
+          "Loops build the bridge; springs make the bridge fun.",
+          "A good outpost always keeps spare launch coils."
+        ],
+        trades: [
+          { id: "moon_jump_springs", cost: { type: "quartz", amount: 1 }, desc: "Craft Quartz Jump Springs: Jump Max +3", reward: { type: "cap", key: "jump", amount: 3 } },
+          { id: "moon_dual_blaster", cost: { type: "quartz", amount: 2 }, desc: "Focus Quartz Lens: Dual-shot Blaster", reward: { type: "tool", key: "dual_blaster", label: "dual-shot blaster" } }
+        ]
+      }
+    ],
+
     physics: {
       gravity: 0.12, // ~1/6th Earth
       friction: 0.9,
@@ -145,6 +166,27 @@ const PLANETS = [
       arrival: "Heavy gravity here, cadet. The signal's source is fighting to climb out of a gravity well — exactly like us. Engineer Hopper with more rocket force and less mass to recover the Amber shard.",
       payoff: "Amber shard recovered. Whatever is sending this signal came from beyond the gas giants..."
     },
+
+    npcs: [
+      {
+        id: "ion",
+        name: "Booster Ion",
+        profession: "Rocketwright",
+        x: 165,
+        type: "npc",
+        color: "#f97316",
+        roleMark: "R",
+        dialogue: [
+          "Amber Storm shards burn hot enough to reinforce rocket nozzles.",
+          "On Jupiter, every useful tool is either stronger thrust or more tank.",
+          "Trade local Amber if you want Hopper to climb out of this gravity well."
+        ],
+        trades: [
+          { id: "jupiter_rocket_nozzle", cost: { type: "amber", amount: 1 }, desc: "Forge Rocket Nozzle: Rocket Max +10", reward: { type: "cap", key: "rocket", amount: 10 } },
+          { id: "jupiter_storm_tank", cost: { type: "amber", amount: 2 }, desc: "Build Storm Tank: Larger fuel reserve", reward: { type: "tool", key: "storm_tank", label: "storm fuel tank" } }
+        ]
+      }
+    ],
 
     physics: {
       gravity: 1.5, // High! Fast falling.
@@ -209,6 +251,27 @@ const PLANETS = [
       payoff: "Violet shard decoded. The map is nearly whole — and the signal keeps repeating one word: Hopper-Zero. The first probe we ever lost."
     },
 
+    npcs: [
+      {
+        id: "cryo",
+        name: "Gripkeeper Cryo",
+        profession: "Gripkeeper",
+        x: 170,
+        type: "npc",
+        color: "#a78bfa",
+        roleMark: "G",
+        dialogue: [
+          "Violet Ice is slick until you cut it into boot spikes.",
+          "A village on ice survives by trading grip, not speed.",
+          "Bring Violet Ice and I will make the comet stop bullying your boots."
+        ],
+        trades: [
+          { id: "glacies_ice_spikes", cost: { type: "ice", amount: 1 }, desc: "Craft Ice Spikes: permanent grip boots", reward: { type: "tool", key: "ice_spikes", label: "ice spike boots" } },
+          { id: "glacies_light_alloy", cost: { type: "ice", amount: 2 }, desc: "Mill Lightweight Alloy: Mass floor -0.2", reward: { type: "cap", key: "mass", amount: 0.2 } }
+        ]
+      }
+    ],
+
     physics: {
       gravity: 0.25, // Low
       friction: 0.996, // Almost no friction! You slip and slide.
@@ -268,6 +331,27 @@ const PLANETS = [
       payoff: "Magenta shard secured — every fragment recovered, and the star-map is whole. The coordinates resolve past the asteroid belt, into the dark, to a gate that should not exist."
     },
 
+    npcs: [
+      {
+        id: "tesla_field",
+        name: "Magnetist Tesla",
+        profession: "Magnetist",
+        x: 165,
+        type: "npc",
+        color: "#ec4899",
+        roleMark: "A",
+        dialogue: [
+          "Flux is bottled polarity. Trade it and I can wake the antigrav coil.",
+          "The lost probe followed this same field line. I have been keeping the village beacon on.",
+          "Opposites attract; good tools keep you from becoming the experiment."
+        ],
+        trades: [
+          { id: "magnet_flux_coil", cost: { type: "flux", amount: 1 }, desc: "Charge Antigrav Coil: Antigrav Max +2", reward: { type: "cap", key: "antigravity", amount: 2 } },
+          { id: "magnet_engine_relay", cost: { type: "flux", amount: 2 }, desc: "Wire Magnetic Engine Relay: Engine Max +3", reward: { type: "cap", key: "engine", amount: 3 } }
+        ]
+      }
+    ],
+
     physics: {
       gravity: 0.05, // Almost weightless!
       friction: 0.9,
@@ -325,9 +409,30 @@ const PLANETS = [
     ambientMusicType: "moon",
 
     story: {
-      arrival: "We've entered the Asteroid Forge, cadet. The gravity is zero here, but space debris is blocking our path. Tune your suit's mass and the collision elasticity to push or bounce off these heavy boulders!",
+      arrival: "We've entered the Asteroid Forge, cadet. The gravity is zero here, and space debris blocks the village route. First make Hopper heavy enough to shove the first boulder; then add elasticity for the bounce section.",
       payoff: "Incredible! By manipulating mass and elasticity, you cleared the debris and secured the Forge shard. We are tracing the signal further into the dark."
     },
+
+    npcs: [
+      {
+        id: "anvil",
+        name: "Forgekeeper Anvil",
+        profession: "Forgekeeper",
+        x: 165,
+        type: "npc",
+        color: "#fb923c",
+        roleMark: "F",
+        dialogue: [
+          "Orange Forge cores are dense. Trade them and I can plate your suit for impacts.",
+          "The first trick is mass. The second trick is bounce. Do not teach both at once.",
+          "Hopper-Zero passed through here. The village kept the forge warm in case it returned."
+        ],
+        trades: [
+          { id: "forge_impact_plating", cost: { type: "forge", amount: 1 }, desc: "Hammer Impact Plating: +1 heart", reward: { type: "tool", key: "forge_plating", label: "impact plating" } },
+          { id: "forge_mass_driver", cost: { type: "forge", amount: 2 }, desc: "Tune Mass Driver: Engine Max +4", reward: { type: "cap", key: "engine", amount: 4 } }
+        ]
+      }
+    ],
 
     physics: {
       gravity: 0.0, // Zero gravity!
@@ -339,14 +444,14 @@ const PLANETS = [
     },
     
     tutorial: [
-      { trigger: "start", text: "Welcome to the Asteroid Forge! In zero gravity, you float continuously. Use arrows to steer and Space/Up to jump/thrust." },
-      { trigger: "boulder", text: "The huge boulders ahead can be pushed! Try changing hopper.mass to be heavier than the boulders, or tune the collision elasticity to 1.0 to bounce off them." }
+      { trigger: "start", text: "Welcome to the Asteroid Forge! In zero gravity, you drift. The first lesson is one number: set hopper.mass = 4.0 so Hopper has enough momentum to shove the first boulder." },
+      { trigger: "boulder", text: "Nice shove. Now introduce the second collision idea: set elasticity = 1.0 so hits bounce cleanly instead of feeling sticky." }
     ],
 
     missions: [
       {
         id: "asteroid-momentum",
-        prompt: "Tune elasticity to 1.0 (elasticity = 1.0) and make Hopper heavy (hopper.mass = 4.0) to shove the heavy boulders.",
+        prompt: "First set hopper.mass = 4.0 to shove the nearby boulder. Then set elasticity = 1.0 for the later bounce section.",
         validate: (game) => (typeof Compiler !== 'undefined' && Compiler.env && Compiler.env.elasticity >= 0.9) && game.player.mass >= 3.5
       }
     ],
