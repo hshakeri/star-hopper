@@ -5,7 +5,9 @@ class SoundEngine {
     this.ctx = null;
     this.bgmInterval = null;
     this.currentBgm = null;
+    this.preSurvivalBgm = null;
     this.isMuted = true;
+    this.trackNames = ["Earth Base", "Moon Orbit", "Jupiter Core", "Glacies Ice", "Mag Field", "Tears"];
     this.notes = {
       C3: 130.81, D3: 146.83, E3: 164.81, F3: 174.61, G3: 196.00, A3: 220.00, B3: 246.94,
       C4: 261.63, D4: 293.66, E4: 329.63, F4: 349.23, G4: 392.00, A4: 440.00, B4: 493.88,
@@ -286,6 +288,97 @@ class SoundEngine {
   }
 
   // Loopable Background Chiptune Tracks
+  getTrackName(trackId) {
+    if (trackId === 'survival') return "Survival Rush";
+    return this.trackNames[trackId] || "No Music";
+  }
+
+  getTrackPattern(trackId) {
+    if (trackId === 'survival') {
+      return {
+        // Original arcade-funk chiptune: fast backbeat, short notes, syncopated bass.
+        melody: ["E4", "G4", "A4", " ", "B4", "A4", "G4", "E4", "D4", "E4", "G4", " ", "A4", "G4", "E4", "D4"],
+        bass: ["E2", " ", "E2", "G2", " ", "A2", " ", "G2", "D2", " ", "D2", "F#2", " ", "A2", " ", "B2"],
+        tempo: 112,
+        melodyWave: 'square',
+        bassWave: 'sawtooth',
+        melodyGain: 0.026,
+        bassGain: 0.052,
+        noteLength: 0.55,
+        bassEvery: 1,
+        drums: true
+      };
+    }
+
+    if (trackId === 0) { // Earth: Uplifting, major chord arpeggio
+      return {
+        melody: ["C4", "E4", "G4", "C5", "G4", "E4", "F4", "A4", "C5", "F4", "G4", "B4", "D5", "G4", "C4", "C4"],
+        bass: ["C3", "C3", "C3", "C3", "F3", "F3", "F3", "F3", "G3", "G3", "G3", "G3", "C3", "C3", "C3", "C3"],
+        tempo: 180
+      };
+    }
+    if (trackId === 1) { // Moon: Floatier, slower pace
+      return {
+        melody: ["E4", "G4", "B4", "E5", "D5", "B4", "A4", "G4", "A4", "C5", "E5", "A4", "B4", "G4", "E4", "E4"],
+        bass: ["E3", "E3", "E3", "E3", "G3", "G3", "G3", "G3", "A3", "A3", "A3", "A3", "E3", "E3", "E3", "E3"],
+        tempo: 240
+      };
+    }
+    if (trackId === 2) { // Jupiter: Heavy, minor, energetic
+      return {
+        melody: ["A4", "C5", "E5", "A4", "D5", "F5", "D5", "A4", "E5", "G5", "E5", "A4", "A4", "A4", "A4", "A4"],
+        bass: ["A3", "A3", "A3", "A3", "D3", "D3", "D3", "D3", "E3", "E3", "E3", "E3", "A3", "A3", "A3", "A3"],
+        tempo: 140
+      };
+    }
+    if (trackId === 3) { // Glacies: Crystal chimes, high frequencies
+      return {
+        melody: ["C5", "G5", "E5", "C5", "A5", "E5", "C5", "A4", "G4", "D5", "B4", "G4", "C5", "E5", "G5", "C5"],
+        bass: ["C3", "C3", "G3", "G3", "A3", "A3", "F3", "F3", "G3", "G3", "D3", "D3", "C3", "C3", "C3", "C3"],
+        tempo: 200,
+        melodyWave: 'sine'
+      };
+    }
+    if (trackId === 4) { // Mag-Net: Sci-fi, chromatic, eerie
+      return {
+        melody: ["C4", "F#4", "G4", "C#5", "D5", "G#4", "A4", "D#4", "E4", "A4", "B4", "E5", "C4", "C4", "C4", "C4"],
+        bass: ["C3", "C3", "F#3", "F#3", "D3", "D3", "G#3", "G#3", "A3", "A3", "A3", "A3", "C3", "C3", "C3", "C3"],
+        tempo: 160
+      };
+    }
+    return { // Tears: Ambient Minecraft style (by Amos Roddy)
+      melody: [
+        "F#4", "C#4", "A4", "C#4", "C#5", "C#4", "E5", "C#4",
+        "D5",  "A4",  "C#5", "A4",  "B4",  "A4",  "A4", "F#4",
+        "D5",  "A4",  "C#5", "A4",  "B4",  "A4",  "A4", "F4",
+        "C#5", "G#4", "B4",  "G#4", "A4",  "G#4", "G#4", "E4"
+      ],
+      bass: [
+        "F#2", " ", "F#3", " ", "F#2", " ", "F#3", " ",
+        "D2",  " ", "D3",  " ", "D2",  " ", "D3",  " ",
+        "D2",  " ", "D3",  " ", "D2",  " ", "D3",  " ",
+        "C#2", " ", "C#3", " ", "C#2", " ", "C#3", " "
+      ],
+      tempo: 400
+    };
+  }
+
+  startSurvivalBGM(baseTrack) {
+    const fallback = (baseTrack !== undefined && baseTrack !== 'survival')
+      ? baseTrack
+      : (this.currentBgm !== null && this.currentBgm !== 'survival' ? this.currentBgm : this.preSurvivalBgm);
+    this.preSurvivalBgm = fallback !== undefined && fallback !== null ? fallback : 0;
+    this.startBGM('survival');
+  }
+
+  stopSurvivalBGM(fallbackTrack) {
+    const nextTrack = fallbackTrack !== undefined && fallbackTrack !== null
+      ? fallbackTrack
+      : (this.preSurvivalBgm !== null && this.preSurvivalBgm !== undefined ? this.preSurvivalBgm : 0);
+    this.preSurvivalBgm = null;
+    this.startBGM(nextTrack);
+  }
+
   startBGM(planetId) {
     this.resume();
     this.stopBGM();
@@ -295,77 +388,82 @@ class SoundEngine {
     }
     if (this.isMuted || !this.ctx) return;
     let step = 0;
+    const pattern = this.getTrackPattern(planetId);
+    const melody = pattern.melody;
+    const bass = pattern.bass;
+    const tempo = pattern.tempo || 180;
+    const beatSeconds = tempo / 1000;
 
-    // Define different looping notes/patterns based on planets
-    let melody = [];
-    let bass = [];
-    let tempo = 180; // ms per beat
+    const playTone = (freq, start, duration, type, volume) => {
+      if (!freq) return;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.type = type || 'triangle';
+      osc.frequency.setValueAtTime(freq, start);
+      gain.gain.setValueAtTime(volume || 0.02, start);
+      gain.gain.linearRampToValueAtTime(0.001, start + duration);
+      osc.start(start);
+      osc.stop(start + duration + 0.01);
+    };
 
-    if (planetId === 0) { // Earth: Uplifting, major chord arpeggio
-      melody = ["C4", "E4", "G4", "C5", "G4", "E4", "F4", "A4", "C5", "F4", "G4", "B4", "D5", "G4", "C4", "C4"];
-      bass = ["C3", "C3", "C3", "C3", "F3", "F3", "F3", "F3", "G3", "G3", "G3", "G3", "C3", "C3", "C3", "C3"];
-    } else if (planetId === 1) { // Moon: Floatier, slower pace
-      melody = ["E4", "G4", "B4", "E5", "D5", "B4", "A4", "G4", "A4", "C5", "E5", "A4", "B4", "G4", "E4", "E4"];
-      bass = ["E3", "E3", "E3", "E3", "G3", "G3", "G3", "G3", "A3", "A3", "A3", "A3", "E3", "E3", "E3", "E3"];
-      tempo = 240;
-    } else if (planetId === 2) { // Jupiter: Heavy, minor, energetic
-      melody = ["A4", "C5", "E5", "A4", "D5", "F5", "D5", "A4", "E5", "G5", "E5", "A4", "A4", "A4", "A4", "A4"];
-      bass = ["A3", "A3", "A3", "A3", "D3", "D3", "D3", "D3", "E3", "E3", "E3", "E3", "A3", "A3", "A3", "A3"];
-      tempo = 140;
-    } else if (planetId === 3) { // Glacies: Crystal chimes, high frequencies
-      melody = ["C5", "G5", "E5", "C5", "A5", "E5", "C5", "A4", "G4", "D5", "B4", "G4", "C5", "E5", "G5", "C5"];
-      bass = ["C3", "C3", "G3", "G3", "A3", "A3", "F3", "F3", "G3", "G3", "D3", "D3", "C3", "C3", "C3", "C3"];
-      tempo = 200;
-    } else if (planetId === 4) { // Mag-Net: Sci-fi, chromatic, eerie
-      melody = ["C4", "F#4", "G4", "C#5", "D5", "G#4", "A4", "D#4", "E4", "A4", "B4", "E5", "C4", "C4", "C4", "C4"];
-      bass = ["C3", "C3", "F#3", "F#3", "D3", "D3", "G#3", "G#3", "A3", "A3", "A3", "A3", "C3", "C3", "C3", "C3"];
-      tempo = 160;
-    } else { // Tears: Ambient Minecraft style (by Amos Roddy)
-      melody = [
-        "F#4", "C#4", "A4", "C#4", "C#5", "C#4", "E5", "C#4", // F#m arpeggio
-        "D5",  "A4",  "C#5", "A4",  "B4",  "A4",  "A4", "F#4", // D Major arpeggio
-        "D5",  "A4",  "C#5", "A4",  "B4",  "A4",  "A4", "F4",  // D Minor arpeggio (haunting shift)
-        "C#5", "G#4", "B4",  "G#4", "A4",  "G#4", "G#4", "E4"  // C# sus/resolution
-      ];
-      bass = [
-        "F#2", " ", "F#3", " ", "F#2", " ", "F#3", " ",
-        "D2",  " ", "D3",  " ", "D2",  " ", "D3",  " ",
-        "D2",  " ", "D3",  " ", "D2",  " ", "D3",  " ",
-        "C#2", " ", "C#3", " ", "C#2", " ", "C#3", " "
-      ];
-      tempo = 400; // Slower, floatier ambient pace
-    }
+    const playKick = (now) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(128, now);
+      osc.frequency.exponentialRampToValueAtTime(45, now + 0.08);
+      gain.gain.setValueAtTime(0.09, now);
+      gain.gain.linearRampToValueAtTime(0.001, now + 0.1);
+      osc.start(now);
+      osc.stop(now + 0.11);
+    };
+
+    const playSnare = (now) => {
+      playTone(210, now, 0.055, 'sawtooth', 0.026);
+      playTone(1180, now + 0.004, 0.035, 'square', 0.012);
+    };
+
+    const playHat = (now) => {
+      playTone(6400, now, 0.022, 'square', 0.006);
+    };
 
     const scheduleNext = () => {
       if (!this.ctx || this.isMuted) return;
       const now = this.ctx.currentTime;
+      const mNote = melody[step];
+      const bNote = bass[step];
       
       // Melody note (sine/triangle wave, soft volume)
-      if (melody[step] && melody[step] !== " ") {
-        const oscMel = this.ctx.createOscillator();
-        const gainMel = this.ctx.createGain();
-        oscMel.connect(gainMel);
-        gainMel.connect(this.ctx.destination);
-        oscMel.type = (planetId === 3) ? 'sine' : 'triangle';
-        oscMel.frequency.setValueAtTime(this.getNoteFreq(melody[step]), now);
-        gainMel.gain.setValueAtTime(0.015, now);
-        gainMel.gain.linearRampToValueAtTime(0.001, now + (tempo / 1000) * 0.95);
-        oscMel.start(now);
-        oscMel.stop(now + (tempo / 1000));
+      if (mNote && mNote !== " ") {
+        playTone(
+          this.getNoteFreq(mNote),
+          now,
+          beatSeconds * (pattern.noteLength || 0.95),
+          pattern.melodyWave || 'triangle',
+          pattern.melodyGain || 0.015
+        );
       }
 
       // Bass note (triangle/saw wave, low volume)
-      if (step % 2 === 0 && bass[step]) {
-        const oscBass = this.ctx.createOscillator();
-        const gainBass = this.ctx.createGain();
-        oscBass.connect(gainBass);
-        gainBass.connect(this.ctx.destination);
-        oscBass.type = 'triangle';
-        oscBass.frequency.setValueAtTime(this.getNoteFreq(bass[step]), now);
-        gainBass.gain.setValueAtTime(0.03, now);
-        gainBass.gain.linearRampToValueAtTime(0.001, now + (tempo / 1000) * 1.9);
-        oscBass.start(now);
-        oscBass.stop(now + (tempo / 1000) * 2);
+      if (step % (pattern.bassEvery || 2) === 0 && bNote && bNote !== " ") {
+        playTone(
+          this.getNoteFreq(bNote),
+          now,
+          beatSeconds * (pattern.bassLength || 1.85),
+          pattern.bassWave || 'triangle',
+          pattern.bassGain || 0.03
+        );
+      }
+
+      if (pattern.drums) {
+        const beat = step % 16;
+        if (beat === 0 || beat === 6 || beat === 8 || beat === 14) playKick(now);
+        if (beat === 4 || beat === 12) playSnare(now);
+        if (beat % 2 === 1 || beat === 10) playHat(now);
       }
 
       step = (step + 1) % melody.length;

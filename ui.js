@@ -330,8 +330,8 @@ function updateHUD(game) {
 
   const musicTrack = document.getElementById("hud-music-track");
   if (musicTrack) {
-    const trackNames = ["Earth Base", "Moon Orbit", "Jupiter Core", "Glacies Ice", "Mag Field", "Tears"];
-    musicTrack.textContent = SFX.isMuted ? "Muted" : (trackNames[SFX.currentBgm] || "No Music");
+    const trackName = SFX.getTrackName ? SFX.getTrackName(SFX.currentBgm) : "No Music";
+    musicTrack.textContent = SFX.isMuted ? "Muted" : trackName;
   }
 
   // 5. Active Character Indicators
@@ -1571,10 +1571,15 @@ function setupUIBindings(game) {
     musicItems.forEach(item => {
       item.addEventListener("click", () => {
         const trackId = parseInt(item.getAttribute("data-track"));
-        SFX.startBGM(trackId);
-        
-        const trackNames = ["Earth Base", "Moon Orbit", "Jupiter Core", "Glacies Ice", "Magnet Field", "Tears (Jazz)"];
-        ui_log_output(`Music set to: ${trackNames[trackId]}`, "success");
+        const game = window.Game || null;
+        if (game && game.survivalMode && SFX.startSurvivalBGM) {
+          SFX.startSurvivalBGM(trackId);
+        } else {
+          SFX.startBGM(trackId);
+        }
+
+        const trackName = SFX.getTrackName ? SFX.getTrackName(trackId) : `Track ${trackId + 1}`;
+        ui_log_output(`Music set to: ${trackName}${game && game.survivalMode ? " under Survival Rush" : ""}`, "success");
         
         updateMusicMenuState();
         musicDropdown.classList.remove("show");
@@ -1582,7 +1587,7 @@ function setupUIBindings(game) {
     });
 
     function updateMusicMenuState() {
-      const activeTrack = SFX.currentBgm;
+      const activeTrack = SFX.currentBgm === 'survival' ? SFX.preSurvivalBgm : SFX.currentBgm;
       musicItems.forEach(item => {
         const trackId = parseInt(item.getAttribute("data-track"));
         if (trackId === activeTrack) {

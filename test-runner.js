@@ -1441,6 +1441,27 @@ function runCombatTests() {
     renderTestResult(SUITE, "Combat: bullets travel to the scene edge", false, err.message);
   }
 
+  // C2c: Survival mode uses a faster, drum-backed chiptune and restores the planet track.
+  try {
+    const s = new SoundEngine();
+    s.isMuted = true; // state test only; no AudioContext needed.
+    const earth = s.getTrackPattern(0);
+    const survival = s.getTrackPattern('survival');
+    assertEquals(true, survival.tempo < earth.tempo, "Survival pattern should beat faster than Earth BGM");
+    assertEquals(true, !!survival.drums, "Survival pattern should include a drum layer");
+    assertEquals("Survival Rush", s.getTrackName('survival'), "Survival track has a HUD-friendly name");
+    s.startBGM(2);
+    assertEquals(2, s.currentBgm, "Planet track starts normally");
+    s.startSurvivalBGM();
+    assertEquals('survival', s.currentBgm, "Survival mode swaps to the battle groove");
+    assertEquals(2, s.preSurvivalBgm, "Previous planet track is remembered");
+    s.stopSurvivalBGM();
+    assertEquals(2, s.currentBgm, "Turning survival off restores the planet track");
+    renderTestResult(SUITE, "Music: survival mode raises beat intensity", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Music: survival mode raises beat intensity", false, err.message);
+  }
+
   // C3: XP accrues to the per-world mastery meter and levels the weapon
   try {
     const game = new StarHopperGame();

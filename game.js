@@ -903,8 +903,10 @@ class StarHopperGame {
     const subText = document.getElementById("header-planet-sub");
     if (subText) subText.textContent = `// Coordinate: ${this.currentPlanet.tagline}`;
 
-    // Start background music loop
-    SFX.startBGM(index);
+    // Start background music loop. Survival mode keeps its faster battle groove across
+    // planet loads, while remembering the planet track to restore when the fight ends.
+    if (this.survivalMode && SFX.startSurvivalBGM) SFX.startSurvivalBGM(index);
+    else SFX.startBGM(index);
 
     // Initial console dialogue
     ui_log_output(`--- Entering orbit of ${this.currentPlanet.name} ---`, "info");
@@ -1768,11 +1770,13 @@ class StarHopperGame {
     const touch = document.getElementById('touch-controls');
     if (touch) touch.classList.toggle('survival', this.survivalMode); // reveal the FIRE button
     if (this.survivalMode) {
+      if (typeof SFX !== 'undefined' && SFX.startSurvivalBGM) SFX.startSurvivalBGM(this.currentPlanetIndex);
       ui_log_output("👾 MOB SURVIVAL on! Jump on critters or press F to shoot. Score → bigger guns + a rave shield.", "success");
       if (this.player && typeof ComicBubbles !== 'undefined') {
         ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y - 4, "SURVIVE!", "jagged", "#ef4444", -0.4, { maxLife: 75, scale: 1.4 });
       }
     } else {
+      if (typeof SFX !== 'undefined' && SFX.stopSurvivalBGM) SFX.stopSurvivalBGM(this.currentPlanetIndex);
       ui_log_output("Mob Survival off — back to engineering.", "info");
     }
   }

@@ -75,7 +75,6 @@ global.localStorage = {
 };
 global.sessionStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {}, clear: () => {} };
 
-global.SFX = new Proxy({}, { get: () => () => {} });
 global.Particles = { spawn: () => {}, spawnBurst: () => {}, clear: () => {}, update: () => {}, draw: () => {} };
 global.ComicBubbles = { spawn: () => {}, update: () => {}, draw: () => {}, clear: () => {} };
 global.ui_log_output = () => {};
@@ -93,7 +92,7 @@ global.__logResult = (suiteId, name, success, errorMsg = '') => {
 global.renderTestResult = global.__logResult;
 
 const files = [
-  'interpreter.js', 'missions.js', 'planets.js', 'render-cache.js', 'entities.js',
+  'interpreter.js', 'missions.js', 'planets.js', 'audio.js', 'render-cache.js', 'entities.js',
   'physics.js', 'ui.js', 'nav-core.js', 'nav-bodies.js', 'nav-physics.js', 'nav-ship.js',
   'nav-transfer.js', 'nav-renderer.js', 'nav-missions.js', 'navigator.js', 'retry-variants.js',
   'diagnostics.js', 'attempt-log.js', 'github-sync.js', 'profiles.js', 'game.js', 'guided-mode.js', 'test-runner.js',
