@@ -23,6 +23,7 @@ function diagnoseFailure(game) {
   const cv = game && game.currentVariant;
   const constraint = cv && cv.constraint;
   const noAntigrav = !!(constraint && constraint.banAntigravity);
+  const noJumpPower = !!(constraint && constraint.banJumpPower);
   const planet = game ? game.currentPlanetIndex : 0;
   const cap = (k, fallback) =>
     (game && typeof game.getUpgradeCap === "function" && Number.isFinite(game.getUpgradeCap(k)))
@@ -45,7 +46,7 @@ function diagnoseFailure(game) {
     if (stat.key === "agility") {
       choices.push({ label: "Lower mass (squared payoff!)", command: `hopper.mass = ${cap("mass", 1.0)}` });
       choices.push({ label: "Stronger engine", command: `hopper.engine = ${cap("engine", 8)}` });
-      choices.push({ label: "Stronger jump", command: `hopper.jump_power = ${cap("jump", 22)}` });
+      if (!noJumpPower) choices.push({ label: "Stronger jump", command: `hopper.jump_power = ${cap("jump", 22)}` });
       if (!noAntigrav) choices.push({ label: "Push back gravity", command: `antigravity = ${Math.min(cap("antigravity", 6), 5)}` });
     } else {
       choices.push({ label: "Bigger rockets", command: `hopper.rocket_power = ${cap("rocket", 80)}` });
@@ -56,7 +57,9 @@ function diagnoseFailure(game) {
       title: `${stat.label} ${stat.value.toFixed(1)} / ${stat.target} — below target`,
       message: `${stat.label} is what unlocks this world's gems, and it isn't there yet. `
         + `Change exactly ONE variable, predict which way ${stat.label} moves, then run and compare the telemetry. `
-        + (noAntigrav ? `🚫 This remix bans antigravity — engineer it with mass, engine and jump only.` : `Any mix works — there's no single right answer.`),
+        + (noAntigrav ? `🚫 This remix bans antigravity — engineer it with mass, engine and jump only.`
+          : noJumpPower ? `🚫 This remix bans stronger jump_power — keep jump stock and engineer it with mass, engine and gravity.`
+          : `Any mix works — there's no single right answer.`),
       formula: stat.key === "agility" ? "Agility = (speed + jumpV) × 0.6 ÷ felt-gravity" : "Thrust = rocket × (2.5 ÷ mass) + speed",
       choices
     };
@@ -116,15 +119,16 @@ function diagnoseFailure(game) {
   // 5) Jump arc too short to clear what killed you (hazard hit / fell in a gap).
   if ((tag === "hazard" || tag === "fall") && jumpHeightPx < 120) {
     const choices = [
-      { label: "Lower mass (squared payoff!)", command: `hopper.mass = ${cap("mass", 1.0)}` },
-      { label: "Stronger jump", command: `hopper.jump_power = ${cap("jump", 22)}` }
+      { label: "Lower mass (squared payoff!)", command: `hopper.mass = ${cap("mass", 1.0)}` }
     ];
+    if (!noJumpPower) choices.push({ label: "Stronger jump", command: `hopper.jump_power = ${cap("jump", 22)}` });
     if (!noAntigrav) choices.push({ label: "Less felt gravity", command: `antigravity = ${Math.min(cap("antigravity", 6), 5)}` });
     return {
       title: "Jump arc too short",
       message: `Your jump tops out around ${Math.round(jumpHeightPx)}px (~${(jumpHeightPx / tile).toFixed(1)} tiles): vertical speed hits zero before you're over the obstacle. `
         + `Because h ≈ J²/(2·g·m²), mass is SQUARED — halving mass quadruples height, while jump force only squares once. Predict which lever lifts you most, then test it.`
-        + (noAntigrav ? ` 🚫 Antigravity is banned this remix.` : ``),
+        + (noAntigrav ? ` 🚫 Antigravity is banned this remix.` : ``)
+        + (noJumpPower ? ` 🚫 Stronger jump_power is banned this remix.` : ``),
       formula: `h ≈ J²/(2·g·m²)  →  ${J.toFixed(0)}²/(2·${g.toFixed(2)}·${m.toFixed(1)}²) ≈ ${Math.round(jumpHeightPx)}px`,
       choices
     };

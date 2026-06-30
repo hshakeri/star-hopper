@@ -1047,6 +1047,20 @@ class StarHopperGame {
         validate: (game) => game.isEarthHopperEngineered() && !(typeof Compiler !== 'undefined' && Compiler.env && Compiler.env.antigravity)
       };
     }
+    // Earth, "no jump_power": keep the jump impulse at the planet's stock value and
+    // solve Agility with mass, engine, gravity, and antigravity instead.
+    if (c && c.id === "earth-no-jump-power" && planetIndex === 0) {
+      const at = this.getAgilityTarget();
+      const stockJump = (this.currentPlanet && this.currentPlanet.physics && Number.isFinite(this.currentPlanet.physics.jumpPower))
+        ? this.currentPlanet.physics.jumpPower
+        : 10;
+      return {
+        id: "earth-no-jump-power-gems",
+        label: `reach Agility ${at}+ while keeping hopper.jump_power at ${stockJump} or lower — use mass, engine, and gravity instead`,
+        short: `AGILITY ${at}+ · NO JUMP_POWER!`,
+        validate: (game) => game.isEarthHopperEngineered() && game.getJumpForce() <= stockJump + 0.001
+      };
+    }
     // Moon, "loop budget": every gem now needs jump 18+ AND a repeat loop of N springs
     // (interleaves arithmetic with loops). Applied to all gems so the constraint always
     // bites, regardless of which rows this planet's gems happen to occupy.

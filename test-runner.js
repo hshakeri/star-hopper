@@ -632,6 +632,32 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Objectives: Forge gates introduce mass before elasticity", false, err.message);
   }
 
+  // Test 17c2: Earth no-jump replay locks gems unless Agility is met with stock jump_power.
+  try {
+    Compiler.reset();
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[0];
+    game.currentPlanetIndex = 0;
+    game.currentVariant = {
+      map: PLANETS[0].map,
+      targetOverrides: { agility: 30 },
+      constraint: { id: "earth-no-jump-power", banJumpPower: true }
+    };
+    game.player = { charType: 'hopper', jumpPower: 22, rocketPower: 40, mass: 1.0, spikes: false };
+    game.hopperMass = 1.0;
+    Compiler.env.engine = 8;
+    const noJumpGem = { type: 'coin', requiredCollectible: true, collected: false, gemGate: game.getGemGateForCollectible(0, 3, 34) };
+    assertEquals(true, game.isEarthHopperEngineered(), "Boosted-jump build should meet the Agility number");
+    assertEquals(false, game.canCollectGem(noJumpGem), "No-jump replay should reject boosted jump_power");
+    game.player.jumpPower = PLANETS[0].physics.jumpPower;
+    Compiler.env.gravity = 0.35;
+    assertEquals(true, game.isEarthHopperEngineered(), "Stock-jump build can still meet Agility using gravity and engine");
+    assertEquals(true, game.canCollectGem(noJumpGem), "No-jump replay unlocks with stock jump and alternate levers");
+    renderTestResult("engine-suite", "Objectives: Earth no-jump replay keeps jump stock", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Objectives: Earth no-jump replay keeps jump stock", false, err.message);
+  }
+
   // Test 17d: late mastery remixes add coding constraints without replacing the physics gate.
   try {
     Compiler.reset();
@@ -3067,6 +3093,17 @@ function runRetryRemixTests() {
     renderTestResult(SUITE, "Variant: Earth flavor rotation surfaces the no-antigravity run", false, err.message);
   }
 
+  // Test R7a: later Earth retries surface the no-jump-power constraint.
+  try {
+    const v = buildPlanetVariant(PLANETS[0], 0, 5);
+    assertEquals("earth-no-jump-power", v.constraint && v.constraint.id, "Earth retry 5 should require stock jump_power");
+    assertEquals(true, v.constraint.banJumpPower, "No-jump Earth remix should ban stronger jump_power");
+    assertEquals(30, v.targetOverrides.agility, "No-jump Agility target should match the regular Earth target");
+    renderTestResult(SUITE, "Variant: Earth rotation surfaces no-jump run", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Variant: Earth rotation surfaces no-jump run", false, err.message);
+  }
+
   // Test R8: Moon retry 2 is the loop "spring budget" constraint
   try {
     const v = buildPlanetVariant(PLANETS[1], 1, 2);
@@ -3573,6 +3610,20 @@ function runDiagnosticsTests() {
     renderTestResult(SUITE, "Diagnosis: remix constraint removes banned levers", true);
   } catch (err) {
     renderTestResult(SUITE, "Diagnosis: remix constraint removes banned levers", false, err.message);
+  }
+
+  // Test D2a: the no-jump-power remix never suggests jump_power.
+  try {
+    const d = diagnoseFailure(makeDiagGame({
+      currentVariant: { constraint: { id: "earth-no-jump-power", banJumpPower: true } },
+      getMissionStat: () => ({ key: "agility", label: "Agility", value: 9, target: 30 })
+    }));
+    assertEquals(false, d.choices.some((c) => /jump_power/.test(c.command)), "Banned remix must not stage jump_power");
+    assertEquals(true, /jump_power/i.test(d.message), "Message should explain the jump_power ban");
+    assertEquals(true, d.choices.some((c) => /hopper.engine/.test(c.command)), "No-jump remix should still suggest engine");
+    renderTestResult(SUITE, "Diagnosis: no-jump remix removes jump lever", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Diagnosis: no-jump remix removes jump lever", false, err.message);
   }
 
   // Test D2b: Moon strict-spring remix stages the repeat-loop pattern.

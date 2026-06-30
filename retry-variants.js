@@ -10,7 +10,7 @@
 // RETRY (attempt >= 1). Each retry cycles a deterministic FLAVOR for that planet:
 //   • geometry/target flavors — move collectibles, retune the numeric goal
 //   • constraint flavors      — same gate, but a new rule on HOW you may clear it
-//     (Earth: no antigravity · Moon: loop a spring budget / strict springs · Glacies: event rule / friction target)
+//     (Earth: no antigravity / no jump-power · Moon: loop a spring budget / strict springs · Glacies: event rule / friction target)
 // Seeded by (planetIndex, attemptNumber) so a given retry is reproducible/shareable.
 //
 // A flavor returns { map, variantLabel, targetOverrides, constraint }. The game reads
@@ -119,6 +119,18 @@ function earthNoAntigrav(planet, rng) {
     variantLabel: `🚫 No antigravity — reach Agility ${target} with mass/engine/jump only`,
     targetOverrides: { agility: target },
     constraint: { id: "earth-no-antigravity", banAntigravity: true }
+  };
+}
+function earthNoJumpPower(planet, rng) {
+  const map = cloneMap(planet.map);
+  rvShiftTilesH(map, 3, rvPick(rng, [-1, 1]));
+  rvShiftTilesV(map, 3, rvPick(rng, [-1, 1]));
+  const target = 30; // reachable with stock jump by combining mass, engine, and gravity.
+  return {
+    map,
+    variantLabel: `🚫 No jump_power — reach Agility ${target} with mass, engine, and gravity`,
+    targetOverrides: { agility: target },
+    constraint: { id: "earth-no-jump-power", banJumpPower: true }
   };
 }
 
@@ -324,7 +336,7 @@ function forgeBounceMixer(planet, rng) {
 // constraint flavors stay early (they match existing tutorial prose); pure procedural
 // geometry/target flavors fill out the rotation for depth.
 const PLANET_FLAVORS = {
-  0: [earthGeometry, earthNoAntigrav, earthVerticalShift, earthMixedShift],
+  0: [earthGeometry, earthNoAntigrav, earthVerticalShift, earthMixedShift, earthNoJumpPower],
   1: [moonGeometry, moonSpringBudget, moonVerticalGems, moonTrampolineMixer, moonStrictSpringLoop],
   2: [jupiterGeometry, jupiterVerticalCrates, jupiterThrustPush, jupiterRocketRule],
   3: [glaciesGeometry, glaciesEventOnly, glaciesVerticalSlide, glaciesFrictionTarget],
