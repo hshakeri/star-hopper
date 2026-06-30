@@ -1121,6 +1121,37 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: code runs create discovery rewards", false, err.message);
   }
 
+  // Test 22ba: successful KidCode runs summarize the live science delta.
+  try {
+    Compiler.reset();
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[0];
+    game.currentPlanetIndex = 0;
+    game.player = { charType: 'hopper', jumpPower: 10, rocketPower: 40, mass: 2.5, fuel: 100, w: 24, h: 32 };
+    game.hopper = game.player;
+    game.hopperMass = 2.5;
+    game.spawnedBoxes = [];
+    game.interactiveObjects = [];
+
+    const before = captureScienceDeltaSnapshot(game);
+    const code = "antigravity = 4.9\nhopper.mass = 1.2\nhopper.engine = 6";
+    const res = Compiler.runCommand(code, game);
+    const delta = recordScienceDelta(game, before, captureScienceDeltaSnapshot(game), code);
+    const labels = delta.changes.map(change => change.label).join(" ");
+    const text = delta.changes.map(change => `${change.label} ${change.value} ${change.cue || ""}`).join(" ");
+
+    assertEquals(true, res.success, res.msg);
+    assertEquals(true, !!delta, "Successful physics code should produce a delta");
+    assertEquals(true, /Mass/.test(labels), "Delta should include mass changes");
+    assertEquals(true, /Felt gravity/.test(labels), "Delta should include antigravity/felt-gravity changes");
+    assertEquals(true, /Agility/.test(labels), "Delta should include mission stat movement");
+    assertEquals(true, /Less mass/.test(text), "Delta should explain the mass science effect");
+    assertEquals(delta, game.lastScienceDelta, "Latest delta should be stored on the game for the CRT");
+    renderTestResult("engine-suite", "Curriculum: code runs create science delta feedback", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Curriculum: code runs create science delta feedback", false, err.message);
+  }
+
   // Test 22bb: correct predictions become one-time hypothesis confirmations.
   const oldGetElementById22bb = document.getElementById;
   try {
@@ -1811,10 +1842,18 @@ function runEngineTests() {
     game.remixContext = 'first';
     game.bestClearTimes = { 0: 12.4 };
     game.discoveredFormulaKinds = new Set(["antigravity"]);
+    game.lastScienceDelta = {
+      summary: "Agility changed",
+      changes: [
+        { label: "Mass", value: "2.5 -> 1.2 (-1.3)", direction: "down", cue: "Less mass makes the same force accelerate more." }
+      ]
+    };
 
     updateMissionList(game);
     const lens = findByClass(list, "lesson-lens-card");
     const lensText = flattenText(lens || list);
+    const scienceDelta = findByClass(list, "science-delta-card");
+    const scienceDeltaText = flattenText(scienceDelta || list);
     const contract = findByClass(list, "lab-star-contract");
     const replayBeforeProgress = findByClass(list, "run-replay-contract");
     const text = flattenText(contract || list);
@@ -1823,6 +1862,10 @@ function runEngineTests() {
     assertEquals(true, /Variable assignment and parameter tuning/.test(lensText), "Lesson lens should show the coding concept");
     assertEquals(true, /Change one number/.test(lensText), "Lesson lens should show the beginner concept");
     assertEquals(true, /Activate Hopper/.test(lensText), "Lesson lens should show the scaffold code idea");
+    assertEquals(true, !!scienceDelta, "Mission panel should show the latest science delta");
+    assertEquals(true, /WHAT CHANGED/.test(scienceDeltaText), "Science delta card should identify itself");
+    assertEquals(true, /Mass/.test(scienceDeltaText), "Science delta should list changed values");
+    assertEquals(true, /Less mass/.test(scienceDeltaText), "Science delta should include the science cue");
     assertEquals(true, !!contract, "Mission panel should append a lab-star contract");
     assertEquals(false, !!replayBeforeProgress, "First run should not show a replay contract even when profile progress exists");
     assertEquals(true, /LAB STARS/.test(text), "Contract should identify the star target");

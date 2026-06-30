@@ -418,6 +418,7 @@ function updateMissionList(game) {
 
   listContainer.innerHTML = "";
   appendLessonLensCard(listContainer, game);
+  appendScienceDeltaCard(listContainer, game);
   currentPlanet.missions.forEach(mission => {
     const isCompleted = game.completedMissions.has(mission.id);
     
@@ -511,6 +512,48 @@ function appendLessonLensCard(listContainer, game) {
     card.appendChild(cue);
   }
 
+  listContainer.appendChild(card);
+}
+
+function appendScienceDeltaCard(listContainer, game) {
+  const delta = game && game.lastScienceDelta;
+  if (!listContainer || !delta || !Array.isArray(delta.changes) || delta.changes.length === 0) return;
+
+  const card = document.createElement("div");
+  card.className = "science-delta-card";
+
+  const head = document.createElement("div");
+  head.className = "science-delta-head";
+
+  const title = document.createElement("span");
+  title.textContent = "WHAT CHANGED";
+
+  const reward = document.createElement("strong");
+  reward.textContent = delta.summary || "Code changed the experiment";
+
+  head.appendChild(title);
+  head.appendChild(reward);
+  card.appendChild(head);
+
+  const list = document.createElement("div");
+  list.className = "science-delta-list";
+  delta.changes.slice(0, 4).forEach(change => {
+    const row = document.createElement("div");
+    row.className = `science-delta-row ${change.direction || "same"}`;
+    const label = document.createElement("span");
+    label.textContent = change.label;
+    const value = document.createElement("strong");
+    value.textContent = change.value;
+    row.appendChild(label);
+    row.appendChild(value);
+    if (change.cue) {
+      const cue = document.createElement("em");
+      cue.textContent = change.cue;
+      row.appendChild(cue);
+    }
+    list.appendChild(row);
+  });
+  card.appendChild(list);
   listContainer.appendChild(card);
 }
 
@@ -1992,9 +2035,11 @@ function runCoachCode(game, code) {
   }
 
   const lockedBefore = typeof game.getLockedRequiredCollectibleCount === 'function' ? game.getLockedRequiredCollectibleCount() : 0;
+  const scienceBefore = captureScienceDeltaSnapshot(game);
   ui_log_input(trimmed);
   const res = Compiler.runCommand(trimmed, game);
   if (res.success) {
+    recordScienceDelta(game, scienceBefore, captureScienceDeltaSnapshot(game), trimmed);
     ui_log_output(res.msg, "success");
     SFX.playSuccess();
     if (activeMission) {
@@ -2181,6 +2226,122 @@ function getAutocompleteAcceptIndex(matches, activeIdx) {
 function completeAutocompleteText(text, cur, suggestion) {
   const idx = cur ? text.lastIndexOf(cur) : -1;
   return (idx >= 0 ? text.slice(0, idx) : text) + suggestion;
+}
+
+function scienceDeltaNumber(value) {
+  return Number.isFinite(value) ? Math.round(value * 10) / 10 : null;
+}
+
+function scienceDeltaCount(game, type) {
+  if (!game || !Array.isArray(game.interactiveObjects)) return 0;
+  return game.interactiveObjects.filter(obj => obj && !obj.collected && obj.type === type).length;
+}
+
+function captureScienceDeltaSnapshot(game) {
+  if (!game) return null;
+  const player = game.player || {};
+  const stat = typeof game.getMissionStat === 'function' ? game.getMissionStat() : null;
+  return {
+    suit: player.charType || null,
+    mass: typeof game.getActiveMass === 'function' ? game.getActiveMass() : (Number.isFinite(player.mass) ? player.mass : null),
+    engine: typeof game.getEngineForce === 'function' ? game.getEngineForce() : null,
+    jump: typeof game.getJumpForce === 'function' ? game.getJumpForce() : (Number.isFinite(player.jumpPower) ? player.jumpPower : null),
+    rocket: Number.isFinite(player.rocketPower) ? player.rocketPower : null,
+    gravity: typeof game.getDesignGravity === 'function' ? game.getDesignGravity() : (typeof game.getCurrentGravity === 'function' ? game.getCurrentGravity() : null),
+    friction: typeof game.getCurrentFriction === 'function' ? game.getCurrentFriction() : null,
+    missionStat: stat ? { key: stat.key, label: stat.label, value: stat.value, target: stat.target } : null,
+    springs: scienceDeltaCount(game, 'spring') + scienceDeltaCount(game, 'trampoline'),
+    boxes: game && Array.isArray(game.spawnedBoxes) ? game.spawnedBoxes.length : scienceDeltaCount(game, 'box'),
+    gems: scienceDeltaCount(game, 'coin'),
+    rules: (typeof Compiler !== 'undefined' && Array.isArray(Compiler.activeRules)) ? Compiler.activeRules.length : 0
+  };
+}
+
+function formatScienceDeltaValue(value) {
+  if (typeof value === "string") return value;
+  const rounded = scienceDeltaNumber(value);
+  if (rounded === null) return "?";
+  return Math.abs(rounded) >= 10 ? String(Math.round(rounded)) : rounded.toFixed(1);
+}
+
+function makeScienceDeltaChange(label, before, after, cueUp, cueDown, options = {}) {
+  const b = scienceDeltaNumber(before);
+  const a = scienceDeltaNumber(after);
+  if (b === null || a === null || Math.abs(a - b) < (options.epsilon || 0.05)) return null;
+  const up = a > b;
+  const delta = a - b;
+  return {
+    label,
+    value: `${formatScienceDeltaValue(b)} -> ${formatScienceDeltaValue(a)} (${delta > 0 ? "+" : ""}${formatScienceDeltaValue(delta)})`,
+    direction: up ? "up" : "down",
+    cue: up ? cueUp : cueDown
+  };
+}
+
+function buildScienceDelta(game, before, after, code) {
+  if (!game || !before || !after) return null;
+  const changes = [];
+  const add = (change) => { if (change) changes.push(change); };
+
+  if (before.suit !== after.suit && after.suit) {
+    changes.push({
+      label: "Suit",
+      value: `${before.suit || "none"} -> ${after.suit}`,
+      direction: "swap",
+      cue: after.suit === "hopper" ? "Hopper uses the heavy engineering knobs." : "Rover is lighter and nimble."
+    });
+  }
+
+  add(makeScienceDeltaChange("Mass", before.mass, after.mass, "More inertia: harder to speed up.", "Less mass: same force makes more acceleration."));
+  add(makeScienceDeltaChange("Engine force", before.engine, after.engine, "More force raises top speed.", "Less force lowers top speed."));
+  add(makeScienceDeltaChange("Jump force", before.jump, after.jump, "Bigger upward impulse.", "Smaller upward impulse."));
+  add(makeScienceDeltaChange("Rocket power", before.rocket, after.rocket, "More thrust for heavy worlds.", "Less thrust saves fuel but lifts less."));
+  add(makeScienceDeltaChange("Felt gravity", before.gravity, after.gravity, "Stronger pull shortens airtime.", "Lower pull gives longer airtime."));
+  add(makeScienceDeltaChange("Friction", before.friction, after.friction, "More grip, less sliding.", "Less grip, more sliding."));
+
+  if (before.missionStat && after.missionStat && before.missionStat.key === after.missionStat.key) {
+    add(makeScienceDeltaChange(after.missionStat.label, before.missionStat.value, after.missionStat.value, `Target ${Math.round(after.missionStat.target)} is closer.`, "The target moved farther away.", { epsilon: 0.4 }));
+  }
+
+  const countSpecs = [
+    { key: "springs", label: "Springs", cue: "Loop-built tools change the level." },
+    { key: "boxes", label: "Blocks", cue: "Mined or spawned blocks reshape the path." },
+    { key: "gems", label: "Gems", cue: "Spawned samples can support experiments." },
+    { key: "rules", label: "Event rules", cue: "Automation is now watching the game state." }
+  ];
+  countSpecs.forEach(spec => {
+    const b = Number(before[spec.key]) || 0;
+    const a = Number(after[spec.key]) || 0;
+    if (a !== b) {
+      changes.push({
+        label: spec.label,
+        value: `${b} -> ${a} (${a > b ? "+" : ""}${a - b})`,
+        direction: a > b ? "up" : "down",
+        cue: spec.cue
+      });
+    }
+  });
+
+  if (!changes.length) return null;
+  const strongest = changes.find(change => /Agility|Thrust/.test(change.label)) || changes[0];
+  return {
+    title: "What changed",
+    summary: strongest ? `${strongest.label} changed` : "Experiment changed",
+    changes,
+    code: String(code || "").slice(0, 160),
+    time: Date.now()
+  };
+}
+
+function recordScienceDelta(game, before, after, code) {
+  const delta = buildScienceDelta(game, before, after, code);
+  if (!game || !delta) return null;
+  game.lastScienceDelta = delta;
+  if (typeof ui_log_output === 'function') {
+    const first = delta.changes[0];
+    ui_log_output(`🔬 What changed: ${first.label} ${first.value}${first.cue ? ` — ${first.cue}` : ""}`, "info");
+  }
+  return delta;
 }
 
 // After a property is entered, echo the world's composite stat so the player can
@@ -2510,8 +2671,10 @@ function setupUIBindings(game) {
             if (suggestBox) suggestBox.style.display = "none";
             return;
           }
+          const scienceBefore = captureScienceDeltaSnapshot(game);
           const res = Compiler.runCommand(val, game);
           if (res.success) {
+            recordScienceDelta(game, scienceBefore, captureScienceDeltaSnapshot(game), val);
             ui_log_output(res.msg, "success");
             SFX.playSuccess();
             // Record the change on this attempt's experiment-log row.
