@@ -69,6 +69,43 @@ function toggleGamePause() {
   }
 }
 
+function syncReadableTextButton(enabled) {
+  const btn = document.getElementById("readable-text-btn");
+  if (!btn) return;
+  btn.classList.toggle("readable-on", !!enabled);
+  btn.setAttribute("aria-pressed", enabled ? "true" : "false");
+  btn.title = enabled ? "Readable text mode on" : "Readable text mode";
+}
+
+function applyReadableTextPreference(enabled) {
+  const on = !!enabled;
+  if (document.body && document.body.classList) {
+    document.body.classList.toggle("readable-text-mode", on);
+  }
+  syncReadableTextButton(on);
+  return on;
+}
+
+function setReadableTextPreference(enabled, persist = true) {
+  const on = applyReadableTextPreference(enabled);
+  if (persist && typeof localStorage !== "undefined") {
+    localStorage.setItem("starHopper.readableText", on ? "1" : "0");
+  }
+  return on;
+}
+
+function toggleReadableTextMode() {
+  const on = !(document.body && document.body.classList && document.body.classList.contains("readable-text-mode"));
+  setReadableTextPreference(on, true);
+  if (typeof SFX !== 'undefined' && typeof SFX.playType === 'function') SFX.playType();
+  return on;
+}
+
+function initReadableTextPreference() {
+  const saved = typeof localStorage !== "undefined" ? localStorage.getItem("starHopper.readableText") : null;
+  return setReadableTextPreference(saved === "1", false);
+}
+
 function isTradeScreenOpen() {
   const tradeScreen = document.getElementById("trade-screen");
   return !!(tradeScreen && !tradeScreen.classList.contains("hidden"));
@@ -2051,6 +2088,13 @@ function renderEngineerPanel(game) {
 function setupUIBindings(game) {
   setupResizablePanes();
   updatePauseControls();
+  initReadableTextPreference();
+
+  const readableBtn = document.getElementById("readable-text-btn");
+  if (readableBtn && readableBtn.dataset.bound !== "true") {
+    readableBtn.dataset.bound = "true";
+    readableBtn.addEventListener("click", toggleReadableTextMode);
+  }
 
   const input = document.getElementById("console-input");
   const suggestBox = document.getElementById("autocomplete-box");

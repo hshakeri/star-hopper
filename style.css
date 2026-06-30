@@ -2120,6 +2120,21 @@ body.resizing-panes * {
   box-shadow: 0 0 10px rgba(250, 204, 21, 0.2);
 }
 
+.readable-text-toggle {
+  width: 30px;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.readable-text-toggle.readable-on {
+  color: var(--neon-cyan);
+  border-color: rgba(56, 189, 248, 0.5);
+  background: rgba(56, 189, 248, 0.14);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.22);
+}
+
 .canvas-pause-button {
   position: absolute;
   top: 14px;
@@ -4692,6 +4707,105 @@ select:focus-visible,
 
 .console-input:focus-visible {
   outline-offset: 0;
+}
+
+body.readable-text-mode .bash-shell-title,
+body.readable-text-mode .terminal-sub-header,
+body.readable-text-mode .mini-save-btn,
+body.readable-text-mode .mode-tab .mode-lbl,
+body.readable-text-mode .mission-panel-title,
+body.readable-text-mode .mission-briefing-item,
+body.readable-text-mode .mission-item,
+body.readable-text-mode .formula-target-head,
+body.readable-text-mode .formula-target-body,
+body.readable-text-mode .discovery-pulse-head,
+body.readable-text-mode .discovery-pulse-body,
+body.readable-text-mode .discovery-pulse-foot,
+body.readable-text-mode .discovery-hypothesis,
+body.readable-text-mode .run-replay-contract-head,
+body.readable-text-mode .run-replay-contract-body p,
+body.readable-text-mode .lab-star-contract-head,
+body.readable-text-mode .lab-star-goal,
+body.readable-text-mode .mission-coach-summary,
+body.readable-text-mode .mission-coach-focus span,
+body.readable-text-mode .coach-prediction-card p,
+body.readable-text-mode .coach-result-box p,
+body.readable-text-mode .coach-mini-title,
+body.readable-text-mode .concept-progress-item,
+body.readable-text-mode .badge-shelf-item p,
+body.readable-text-mode .research-rank-kicker,
+body.readable-text-mode .research-rank-xp,
+body.readable-text-mode .research-rank-next,
+body.readable-text-mode .lab-quest-card span,
+body.readable-text-mode .lab-quest-card em,
+body.readable-text-mode .lab-quest-card p,
+body.readable-text-mode .research-perk span,
+body.readable-text-mode .research-perk p,
+body.readable-text-mode .formula-collection-head,
+body.readable-text-mode .discovery-card p,
+body.readable-text-mode .discovery-deck-empty,
+body.readable-text-mode .notebook-stat-card .label,
+body.readable-text-mode .notebook-prompt-title,
+body.readable-text-mode .notebook-entry,
+body.readable-text-mode .guide-container,
+body.readable-text-mode .guide-section-title,
+body.readable-text-mode .attempt-row,
+body.readable-text-mode .attempt-cell-code,
+body.readable-text-mode .attempt-cell-stats,
+body.readable-text-mode .daily-signal-label,
+body.readable-text-mode .frontier-record-kicker,
+body.readable-text-mode .frontier-record-label,
+body.readable-text-mode .frontier-record-detail,
+body.readable-text-mode .frontier-share-btn,
+body.readable-text-mode .signal-chapter p {
+  font-size: max(0.8rem, 1em);
+  line-height: 1.45;
+}
+
+body.readable-text-mode .console-area,
+body.readable-text-mode .console-input,
+body.readable-text-mode .code-card,
+body.readable-text-mode .code-tab,
+body.readable-text-mode .deck-group-header,
+body.readable-text-mode .notebook-textarea,
+body.readable-text-mode .notebook-btn,
+body.readable-text-mode .navigator-bridge-code,
+body.readable-text-mode .navigator-bridge-summary,
+body.readable-text-mode .navigator-bridge-hint {
+  font-size: max(0.92rem, 1em);
+  line-height: 1.45;
+}
+
+body.readable-text-mode .coach-bubble.mission-bubble {
+  width: min(340px, 52%);
+}
+
+body.readable-text-mode .coach-bubble {
+  width: min(340px, 60%);
+}
+
+body.readable-text-mode .mission-list {
+  max-height: 132px;
+}
+
+body.readable-text-mode .mission-briefing-log {
+  max-height: 132px;
+}
+
+body.readable-text-mode .formula-target-title,
+body.readable-text-mode .mission-coach-focus strong,
+body.readable-text-mode .coach-one-hint,
+body.readable-text-mode .coach-skip-note,
+body.readable-text-mode .coach-done-msg,
+body.readable-text-mode .badge-shelf-item strong,
+body.readable-text-mode .research-rank-top strong,
+body.readable-text-mode .lab-quest-card strong,
+body.readable-text-mode .research-perk strong,
+body.readable-text-mode .discovery-card-head strong,
+body.readable-text-mode .discovery-card code,
+body.readable-text-mode .signal-chapter strong {
+  font-size: max(0.9rem, 1em);
+  line-height: 1.35;
 }
 
 @media (prefers-reduced-motion: reduce) {

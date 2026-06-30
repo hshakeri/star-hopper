@@ -1859,6 +1859,61 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Accessibility: reduced motion tracks OS changes", false, err.message);
   }
 
+  // Test 24c: readable-text mode persists and updates the body/button state.
+  const oldGetElementById24c = document.getElementById;
+  const oldBody24c = document.body;
+  const readableKey = "starHopper.readableText";
+  const oldReadableSetting = localStorage.getItem(readableKey);
+  try {
+    const bodyClasses = new Set();
+    const btnClasses = new Set();
+    const attrs = {};
+    const makeToggle = (set) => ({
+      toggle: (name, force) => {
+        const on = force === undefined ? !set.has(name) : !!force;
+        if (on) set.add(name); else set.delete(name);
+        return on;
+      },
+      contains: (name) => set.has(name)
+    });
+    const button = {
+      classList: makeToggle(btnClasses),
+      setAttribute: (name, value) => { attrs[name] = value; },
+      getAttribute: (name) => attrs[name],
+      title: "",
+      dataset: {},
+      addEventListener: () => {}
+    };
+    document.body = { classList: makeToggle(bodyClasses) };
+    document.getElementById = (id) => id === "readable-text-btn" ? button : null;
+
+    assertEquals(true, setReadableTextPreference(true), "Readable mode should turn on");
+    assertEquals(true, bodyClasses.has("readable-text-mode"), "Body class should mark readable mode");
+    assertEquals(true, btnClasses.has("readable-on"), "Button should show active readable mode");
+    assertEquals("true", attrs["aria-pressed"], "Button aria-pressed should be true");
+    assertEquals("1", localStorage.getItem(readableKey), "Readable mode should persist on");
+
+    assertEquals(false, toggleReadableTextMode(), "Toggle should turn readable mode off");
+    assertEquals(false, bodyClasses.has("readable-text-mode"), "Body class should clear when toggled off");
+    assertEquals("0", localStorage.getItem(readableKey), "Readable mode should persist off");
+
+    localStorage.setItem(readableKey, "1");
+    assertEquals(true, initReadableTextPreference(), "Saved readable mode should restore on init");
+    assertEquals(true, bodyClasses.has("readable-text-mode"), "Init should apply the saved body class");
+
+    document.getElementById = oldGetElementById24c;
+    document.body = oldBody24c;
+    if (oldReadableSetting === null) localStorage.removeItem(readableKey);
+    else localStorage.setItem(readableKey, oldReadableSetting);
+    renderTestResult("engine-suite", "Accessibility: readable text mode persists", true);
+  } catch (err) {
+    document.getElementById = oldGetElementById24c;
+    document.body = oldBody24c;
+    if (oldReadableSetting === null) localStorage.removeItem(readableKey);
+    else localStorage.setItem(readableKey, oldReadableSetting);
+    renderTestResult("engine-suite", "Accessibility: readable text mode persists", false, err.message);
+  }
+
   // Test 25: Hopper pole assignment controls magnetic polarity state
   try {
     Compiler.reset();
