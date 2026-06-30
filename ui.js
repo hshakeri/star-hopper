@@ -1580,6 +1580,22 @@ function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems
   return pulse;
 }
 
+function finishSuccessfulCodeRunDiscovery(game, activeMission, code, resultState, lockedBefore = 0, lockedBeforeList = []) {
+  if (!game || !activeMission || !activeMission.fullMission || !resultState) return { opened: 0, pulse: null };
+  const lockedAfter = typeof game.getLockedRequiredCollectibleCount === 'function' ? game.getLockedRequiredCollectibleCount() : lockedBefore;
+  let opened = 0;
+  if (lockedBefore > lockedAfter) {
+    const unlockPulse = typeof game.spawnGemGateUnlockEffects === 'function' ? game.spawnGemGateUnlockEffects(lockedBeforeList) : null;
+    opened = unlockPulse && Number.isFinite(unlockPulse.opened) ? unlockPulse.opened : lockedBefore - lockedAfter;
+    if (opened > 0) ui_log_output(`◆ Code unlocked ${opened} mission gem${opened === 1 ? "" : "s"}!`, "success");
+    if (opened > 0 && typeof showDialogue === 'function') {
+      showDialogue(`Nice engineering. ${opened} gem gate${opened === 1 ? "" : "s"} opened!`, "badge");
+    }
+  }
+  const pulse = recordDiscoveryPulse(game, activeMission, code, resultState, opened);
+  return { opened, pulse, lockedAfter };
+}
+
 function updateDiscoveryPulse(game) {
   const panel = document.getElementById("discovery-pulse");
   if (!panel) return;
@@ -2101,17 +2117,7 @@ function runCoachCode(game, code) {
     const resultState = evaluateMissionResultChecks(game, activeMission.fullMission);
     game.coachLastResults[activeMission.id] = resultState;
     attachScienceDeltaNextExperiment(game, resultState, activeMission);
-    const lockedAfter = typeof game.getLockedRequiredCollectibleCount === 'function' ? game.getLockedRequiredCollectibleCount() : lockedBefore;
-    let opened = 0;
-    if (lockedBefore > lockedAfter) {
-      const unlockPulse = typeof game.spawnGemGateUnlockEffects === 'function' ? game.spawnGemGateUnlockEffects(lockedBeforeList) : null;
-      opened = unlockPulse && Number.isFinite(unlockPulse.opened) ? unlockPulse.opened : lockedBefore - lockedAfter;
-      if (opened > 0) ui_log_output(`◆ Code unlocked ${opened} mission gem${opened === 1 ? "" : "s"}!`, "success");
-      if (opened > 0 && typeof showDialogue === 'function') {
-        showDialogue(`Nice engineering. ${opened} gem gate${opened === 1 ? "" : "s"} opened!`, "badge");
-      }
-    }
-    recordDiscoveryPulse(game, activeMission, trimmed, resultState, opened);
+    finishSuccessfulCodeRunDiscovery(game, activeMission, trimmed, resultState, lockedBefore, lockedBeforeList);
     if (resultState.allPassed || game.completedMissions.has(activeMission.id)) {
       unlockCoachBadge(game, activeMission.fullMission);
     }
@@ -2829,15 +2835,7 @@ function setupUIBindings(game) {
             const activeMission = getActivePlatformerMission(game);
             const resultState = activeMission && activeMission.fullMission ? evaluateMissionResultChecks(game, activeMission.fullMission) : null;
             attachScienceDeltaNextExperiment(game, resultState, activeMission);
-            const lockedAfter = typeof game.getLockedRequiredCollectibleCount === 'function' ? game.getLockedRequiredCollectibleCount() : lockedBefore;
-            if (lockedBefore > lockedAfter) {
-              const unlockPulse = typeof game.spawnGemGateUnlockEffects === 'function' ? game.spawnGemGateUnlockEffects(lockedBeforeList) : null;
-              const opened = unlockPulse && Number.isFinite(unlockPulse.opened) ? unlockPulse.opened : lockedBefore - lockedAfter;
-              if (opened > 0) ui_log_output(`◆ Code unlocked ${opened} mission gem${opened === 1 ? "" : "s"}!`, "success");
-              if (opened > 0 && typeof showDialogue === 'function') {
-                showDialogue(`Nice engineering. ${opened} gem gate${opened === 1 ? "" : "s"} opened!`, "badge");
-              }
-            }
+            finishSuccessfulCodeRunDiscovery(game, activeMission, val, resultState, lockedBefore, lockedBeforeList);
             logMissionStat(game);
             updateMissionList(game);
           }

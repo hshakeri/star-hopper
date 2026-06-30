@@ -1348,6 +1348,50 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: code runs create discovery rewards", false, err.message);
   }
 
+  // Test 22b2: raw terminal code shares the same discovery reward path as Mission Coach.
+  const oldBubblePop22b2 = ComicBubbles.pop;
+  const oldParticleBurst22b2 = Particles.spawnBurst;
+  try {
+    const labels = [];
+    ComicBubbles.pop = (x, y, text) => { labels.push(text); };
+    Particles.spawnBurst = () => {};
+
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[0];
+    game.currentPlanetIndex = 0;
+    game.player = { x: 80, y: 100, w: 24, h: 32 };
+    const activeMission = PLANETS[0].missions.find(mission => mission.id === "earth-gravity-wall");
+    const partial = {
+      allPassed: false,
+      items: [
+        { id: "earth-hopper-active", label: "Hopper activated", passed: true, message: "Hopper active" },
+        { id: "earth-emerald-gates", label: "Agility 30+ reached", passed: false, message: "Still locked" }
+      ]
+    };
+
+    const outcome = finishSuccessfulCodeRunDiscovery(game, activeMission, "use_hopper()\nhopper.mass = 1.2", partial, 0, []);
+    assertEquals(true, !!outcome.pulse, "Terminal post-run helper should return the discovery pulse");
+    assertEquals("mass", outcome.pulse.kind, "Terminal mass code should map to the mass formula");
+    assertEquals(true, game.discoveryPulse === outcome.pulse, "Terminal reward should become the visible discovery pulse");
+    assertEquals(true, game.discoveredFormulaKinds.has("mass"), "Terminal code should collect formula cards");
+    assertEquals(true, labels.includes("CARD!"), "Terminal code should spawn the formula card pop");
+    assertEquals(true, game.researchXP > 0, "Terminal code should award Research XP for new lab progress");
+    assertEquals(1, game.discoveryCombo, "Terminal code should start the discovery combo");
+
+    const xpAfterFirst = game.researchXP;
+    finishSuccessfulCodeRunDiscovery(game, activeMission, "hopper.mass = 1.2", partial, 0, []);
+    assertEquals(xpAfterFirst, game.researchXP, "Repeating terminal progress should not farm Research XP");
+    assertEquals(1, game.discoveryCombo, "Repeating terminal progress should not extend the combo");
+
+    ComicBubbles.pop = oldBubblePop22b2;
+    Particles.spawnBurst = oldParticleBurst22b2;
+    renderTestResult("engine-suite", "Curriculum: terminal code earns discovery rewards", true);
+  } catch (err) {
+    ComicBubbles.pop = oldBubblePop22b2;
+    Particles.spawnBurst = oldParticleBurst22b2;
+    renderTestResult("engine-suite", "Curriculum: terminal code earns discovery rewards", false, err.message);
+  }
+
   // Test 22ba: successful KidCode runs summarize the live science delta.
   const oldGetElementById22ba = document.getElementById;
   const oldBubblePop22ba = ComicBubbles.pop;
