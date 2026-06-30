@@ -2464,8 +2464,14 @@ class NPC extends InteractiveObject {
 
   update(game) {
     if (!game || !game.player) return;
-    const threat = (typeof game.findThreateningMobForNPC === 'function') ? game.findThreateningMobForNPC(this, 128) : null;
-    const nightShelter = (typeof game.shouldVillagersShelterForNight === 'function') ? game.shouldVillagersShelterForNight() : false;
+    const shelter = (typeof game.getVillagerShelterSignal === 'function')
+      ? game.getVillagerShelterSignal(this, { radius: 128 })
+      : {
+          threat: (typeof game.findThreateningMobForNPC === 'function') ? game.findThreateningMobForNPC(this, 128) : null,
+          reason: (typeof game.shouldVillagersShelterForNight === 'function' && game.shouldVillagersShelterForNight()) ? "night" : null
+        };
+    const threat = shelter.threat;
+    const nightShelter = shelter.reason === "night";
     if (threat) {
       if (typeof game.markNPCShelterThreat === 'function') {
         game.markNPCShelterThreat(this, "nearby mob", { bubble: true });

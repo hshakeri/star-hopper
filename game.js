@@ -201,6 +201,16 @@ class StarHopperGame {
     return this.currentPlanetIndex === 0 && !this.getEarthDayNightPhase(nowMs).isDay;
   }
 
+  getVillagerShelterSignal(npc, options = {}) {
+    const radius = Number.isFinite(options.radius) ? options.radius : 128;
+    const threat = this.findThreateningMobForNPC(npc, radius);
+    if (threat) return { active: true, reason: "nearby mob", threat };
+    if (this.shouldVillagersShelterForNight(options.nowMs)) {
+      return { active: true, reason: "night", threat: null };
+    }
+    return { active: false, reason: null, threat: null };
+  }
+
   getVillageRescueSourceKey(npc, index = this.currentPlanetIndex) {
     const planetKey = Number.isFinite(index) ? index : 0;
     const npcKey = npc && npc.id ? String(npc.id).replace(/[^a-z0-9_-]/gi, "-").toLowerCase() : "villager";
@@ -340,17 +350,17 @@ class StarHopperGame {
 
   updateVillagerShelterStates() {
     if (!(this.interactiveObjects && typeof NPC !== 'undefined')) return;
-    const nightShelter = this.shouldVillagersShelterForNight();
     let touchNeedsSync = false;
     for (const obj of this.interactiveObjects) {
       if (!(obj instanceof NPC)) continue;
-      const threat = this.findThreateningMobForNPC(obj, 128);
+      const shelter = this.getVillagerShelterSignal(obj, { radius: 128 });
+      const threat = shelter.threat;
       if (threat) {
         if (this.markNPCShelterThreat(obj, "nearby mob")) touchNeedsSync = true;
         if (!obj.hiddenInCave && typeof obj.stepTowardCave === 'function') obj.stepTowardCave(2.2);
         continue;
       }
-      if (nightShelter) {
+      if (shelter.reason === "night") {
         if (!obj.rescuePending && !obj.shelterReason) obj.shelterReason = "night";
         if (this.activeNPC === obj) touchNeedsSync = true;
         if (obj.hiddenInCave) this.parkNPCInCave(obj, "night");

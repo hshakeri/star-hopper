@@ -3687,6 +3687,8 @@ function runCombatTests() {
     g.interactiveObjects = [npc];
     g.mobs = [mob];
     assertEquals(true, !!g.findThreateningMobForNPC(npc, 128), "Mob is recognized as a villager threat");
+    const shelterSignal = g.getVillagerShelterSignal(npc, { radius: 128 });
+    assertEquals("nearby mob", shelterSignal.reason, "Shared villager shelter signal points to close mob danger");
     assertEquals(true, g.damageNPCFromMob(npc, mob), "Mob attack damages the villager");
     assertEquals(true, npc.health < npc.maxHealth, "Villager health is chipped by mob attack");
     assertEquals(true, npc.panicTimer > 0, "Villager starts panic retreat");
@@ -3721,6 +3723,7 @@ function runCombatTests() {
     g.toggleSurvival();
     assertEquals(false, g.survivalMode, "Survival mode turns off");
     assertEquals(0, g.mobs.length, "Survival mobs are cleared");
+    assertEquals(false, g.getVillagerShelterSignal(npc).active, "Daylight shelter signal clears after Survival turns off");
     assertEquals(false, npc.hiddenInCave, "Villager reappears after survival danger ends");
     assertEquals(130, npc.x, "Daylight release returns the villager to the village home");
     assertEquals(60, npc.y, "Daylight release keeps the villager on the village surface");
@@ -3779,6 +3782,7 @@ function runCombatTests() {
     g.getEarthDayNightPhase = () => ({ t: 0, daylight: 0.1, isDay: false, sunX: 0.1, sunY: 0.2 });
     const npc = new NPC({ id: 'nightwatch', name: 'Nightwatch', profession: 'Miner', type: 'npc', x: 100, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60 });
     g.interactiveObjects = [npc];
+    assertEquals("night", g.getVillagerShelterSignal(npc).reason, "Earth night shelter signal points villagers to caves");
     const beforeNightX = npc.x;
     g.updateVillagerShelterStates();
     assertEquals(true, npc.x < beforeNightX, "Game loop night pass starts the cave retreat immediately");
