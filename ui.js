@@ -1009,6 +1009,7 @@ function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems
   updateDiscoveryPulse(game);
   updateFormulaTarget(game);
   if (typeof updateResearchProgress === 'function') updateResearchProgress(game);
+  if (typeof game.checkLabStarProgress === 'function') game.checkLabStarProgress("science");
   const isLiveGame = typeof window !== 'undefined' && window.Game === game;
   if (earned && isLiveGame && typeof saveLocalProgress === 'function') saveLocalProgress();
   return pulse;

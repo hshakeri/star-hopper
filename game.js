@@ -105,6 +105,8 @@ class StarHopperGame {
     this.discoveredFormulaKinds = new Set();
     this.formulaCardEffects = [];
     this.confirmedHypotheses = new Set();
+    this._labStarPreviewCount = 0;
+    this.lastLabStarPulse = null;
     this.pendingNavigationTargetIndex = null;
     this.navigationReturnTimer = null;
 
@@ -995,6 +997,8 @@ class StarHopperGame {
         }
       }
     }
+    this._labStarPreviewCount = this.getClearLabStarSummary().stars;
+    this.lastLabStarPulse = null;
 
     // Set document head name
     const titleText = document.getElementById("header-planet-title");
@@ -1336,6 +1340,7 @@ class StarHopperGame {
       }
     }
     if (anyCompletedThisFrame) {
+      this.checkLabStarProgress("mission");
       updateMissionList(this);
       if (typeof handleGuidedClearHook === 'function') handleGuidedClearHook();
       if (typeof triggerCloudSave === 'function') triggerCloudSave();
@@ -1415,6 +1420,36 @@ class StarHopperGame {
     this.bestLabStars = this.bestLabStars || {};
     if (summary.stars > summary.previousBest) this.bestLabStars[summary.key] = summary.stars;
     return { ...summary, best: Math.max(summary.previousBest, summary.stars) };
+  }
+
+  checkLabStarProgress(reason = "progress") {
+    const summary = this.getClearLabStarSummary();
+    const current = Number(summary.stars) || 0;
+    const previous = Number.isFinite(this._labStarPreviewCount) ? this._labStarPreviewCount : current;
+    if (!Number.isFinite(this._labStarPreviewCount)) {
+      this._labStarPreviewCount = current;
+      return 0;
+    }
+    if (current <= previous) {
+      this._labStarPreviewCount = Math.min(previous, current);
+      return 0;
+    }
+
+    const gained = current - previous;
+    this._labStarPreviewCount = current;
+    this.lastLabStarPulse = { stars: current, gained, reason };
+    const label = gained > 1 ? `LAB STARS +${gained}` : "LAB STAR +1";
+    if (typeof ui_log_output === 'function') {
+      ui_log_output(`${label}: ${current}/${summary.maxStars} mastery goals complete.`, "success");
+    }
+    if (typeof SFX !== 'undefined' && SFX.playSuccess) SFX.playSuccess();
+    if (this.player && typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+      ComicBubbles.pop(this.player.x + this.player.w / 2, this.player.y - 18, label, "#facc15", 1.12);
+    }
+    if (this.player && typeof Particles !== 'undefined' && Particles.spawnBurst) {
+      Particles.spawnBurst(this.player.x + this.player.w / 2, this.player.y + this.player.h / 2, '#facc15', 16, 2.8, 2.8, 'glow');
+    }
+    return gained;
   }
 
   canCollectGem(obj) {
@@ -1919,6 +1954,7 @@ class StarHopperGame {
           }
           if (obj.requiredCollectible) {
             ui_log_output(`◆ ${gem.name} gem collected: ${this.requiredCollectiblesCollected}/${this.requiredCollectiblesTotal}`, "success");
+            this.checkLabStarProgress("gems");
             updateMissionList(this);
             // Each gem nudges this planet's cap up one notch (green balloon).
             this.applyGemUpgradeProgress(this.currentPlanetIndex);

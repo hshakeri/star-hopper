@@ -1110,7 +1110,48 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: clear lab stars reward mastery actions", false, err.message);
   }
 
-  // Test 22g: The start-screen galaxy map shows saved lab stars and unlocked planets.
+  // Test 22g: Lab-star progress pops a one-shot reward during play.
+  const oldBubblePop22g = ComicBubbles.pop;
+  const oldParticleBurst22g = Particles.spawnBurst;
+  const oldSfxSuccess22g = SFX.playSuccess;
+  try {
+    let bubbleCount = 0;
+    let particleCount = 0;
+    let sfxCount = 0;
+    ComicBubbles.pop = () => { bubbleCount++; };
+    Particles.spawnBurst = () => { particleCount++; };
+    SFX.playSuccess = () => { sfxCount++; };
+
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[0];
+    game.currentPlanetIndex = 0;
+    game.player = { x: 40, y: 50, w: 20, h: 28 };
+    game.completedMissions = new Set(PLANETS[0].missions.map(mission => mission.id));
+    game.requiredCollectiblesTotal = 2;
+    game.requiredCollectiblesCollected = 2;
+    game.discoveryPassCounts = { "earth-gravity-wall": 1 };
+    game._labStarPreviewCount = 1;
+
+    assertEquals(2, game.checkLabStarProgress("test"), "Two newly earned stars should be reported");
+    assertEquals(3, game._labStarPreviewCount, "Preview count should advance to the current star count");
+    assertEquals("test", game.lastLabStarPulse.reason, "Pulse should remember why it fired");
+    assertEquals(1, bubbleCount, "Visual reward bubble should pop once");
+    assertEquals(1, particleCount, "Particle reward should burst once");
+    assertEquals(1, sfxCount, "Success chime should play once");
+    assertEquals(0, game.checkLabStarProgress("test"), "Calling again without progress should not repeat the reward");
+
+    ComicBubbles.pop = oldBubblePop22g;
+    Particles.spawnBurst = oldParticleBurst22g;
+    SFX.playSuccess = oldSfxSuccess22g;
+    renderTestResult("engine-suite", "Curriculum: lab-star progress pops reward feedback", true);
+  } catch (err) {
+    ComicBubbles.pop = oldBubblePop22g;
+    Particles.spawnBurst = oldParticleBurst22g;
+    SFX.playSuccess = oldSfxSuccess22g;
+    renderTestResult("engine-suite", "Curriculum: lab-star progress pops reward feedback", false, err.message);
+  }
+
+  // Test 22h: The start-screen galaxy map shows saved lab stars and unlocked planets.
   const oldQuerySelectorAll22g = document.querySelectorAll;
   try {
     const makeClassList = (initial = []) => {
@@ -1164,7 +1205,7 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: galaxy map surfaces lab-star mastery", false, err.message);
   }
 
-  // Test 22h: The in-run mission panel shows the lab-star contract.
+  // Test 22i: The in-run mission panel shows the lab-star contract.
   const oldGetElementById22h = document.getElementById;
   const oldCreateElement22h = document.createElement;
   try {
