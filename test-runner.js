@@ -923,6 +923,35 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: research ranks render discovery deck", false, err.message);
   }
 
+  // Test 22d: Mission CRT names the next formula card from the active mission scaffold.
+  const oldGetElementById22d = document.getElementById;
+  try {
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[0];
+    game.currentPlanetIndex = 0;
+    game.discoveredFormulaKinds = new Set();
+    const earthMission = PLANETS[0].missions.find(mission => mission.id === "earth-gravity-wall");
+    const firstTarget = getActiveFormulaTarget(game, earthMission);
+    assertEquals("Gravity Lab", firstTarget.title, "Earth scaffold should target antigravity first");
+
+    game.discoveredFormulaKinds = new Set(["antigravity", "mass", "engine", "jump"]);
+    const fallbackTarget = getActiveFormulaTarget(game, earthMission);
+    assertEquals("Rocket Lab", fallbackTarget.title, "After Earth cards, target should fall back to next global card");
+
+    const panel = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };
+    document.getElementById = (id) => id === "formula-target" ? panel : null;
+    game.discoveredFormulaKinds = new Set(["antigravity"]);
+    updateFormulaTarget(game);
+    assertEquals(true, /NEXT FORMULA CARD/.test(panel.innerHTML), "CRT should label the next card target");
+    assertEquals(true, /Mass Lab/.test(panel.innerHTML), "CRT should advance to the next Earth formula card");
+    assertEquals(true, /1\/9/.test(panel.innerHTML), "CRT should show collection progress");
+    document.getElementById = oldGetElementById22d;
+    renderTestResult("engine-suite", "Curriculum: CRT surfaces next formula card target", true);
+  } catch (err) {
+    document.getElementById = oldGetElementById22d;
+    renderTestResult("engine-suite", "Curriculum: CRT surfaces next formula card target", false, err.message);
+  }
+
   // Test 23: Mission Coach copy avoids hidden old mode names
   try {
     const texts = [];

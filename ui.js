@@ -357,6 +357,7 @@ function updateMissionList(game) {
     updateLearningConceptProgress(game);
   }
   updateDiscoveryPulse(game);
+  updateFormulaTarget(game);
 
   const listContainer = document.getElementById("mission-list");
   if (!listContainer) return;
@@ -586,7 +587,7 @@ const DISCOVERY_RULES = [
   },
   {
     kind: "loop",
-    pattern: /\brepeat\s+\d+/i,
+    pattern: /\brepeat\s+(?:\d+|\{[^}]+\})/i,
     title: "Loop Lab",
     formula: "repeat n = command x n",
     insight: "A loop turns one instruction into a pattern, saving lines and building faster.",
@@ -661,6 +662,52 @@ function getFormulaCollection(game) {
     locked: cards.filter(card => !card.unlocked),
     nextLocked: cards.find(card => !card.unlocked) || null
   };
+}
+
+function patternIndexInText(rule, text) {
+  if (!rule || !text) return -1;
+  const m = String(text).match(rule.pattern);
+  return m && Number.isFinite(m.index) ? m.index : -1;
+}
+
+function getActiveFormulaTarget(game, activeMission = null) {
+  const collection = getFormulaCollection(game);
+  if (!collection.locked.length) return null;
+  const mission = activeMission || (typeof getActivePlatformerMission === 'function' ? getActivePlatformerMission(game) : null);
+  const scaffold = mission && mission.fullMission && mission.fullMission.scaffold ? mission.fullMission.scaffold : null;
+  const template = scaffold && scaffold.template ? scaffold.template : "";
+  const missionCards = collection.locked
+    .map(card => ({ card, index: patternIndexInText(card, template) }))
+    .filter(item => item.index >= 0)
+    .sort((a, b) => a.index - b.index);
+  return missionCards.length ? missionCards[0].card : collection.nextLocked;
+}
+
+function updateFormulaTarget(game) {
+  const panel = document.getElementById("formula-target");
+  if (!panel) return;
+  const collection = getFormulaCollection(game);
+  const target = getActiveFormulaTarget(game);
+  if (!target) {
+    panel.classList.remove("hidden");
+    panel.innerHTML = `
+      <div class="formula-target-head">
+        <span>FORMULA DECK</span>
+        <strong>Complete</strong>
+      </div>
+      <div class="formula-target-body">All formula cards collected. Keep experimenting for better ranks and mastery clears.</div>
+    `;
+    return;
+  }
+  panel.classList.remove("hidden");
+  panel.innerHTML = `
+    <div class="formula-target-head">
+      <span>NEXT FORMULA CARD</span>
+      <strong>${collection.unlocked.length}/${collection.cards.length}</strong>
+    </div>
+    <div class="formula-target-title">${escapeHTML(target.title)}</div>
+    <div class="formula-target-body">${escapeHTML(target.cue)}</div>
+  `;
 }
 
 function unlockFormulaKind(game, kind) {
@@ -751,6 +798,7 @@ function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems
   game.discoveryPulse = pulse;
   game.discoveryLog = [pulse].concat(Array.isArray(game.discoveryLog) ? game.discoveryLog : []).slice(0, 8);
   updateDiscoveryPulse(game);
+  updateFormulaTarget(game);
   if (typeof updateResearchProgress === 'function') updateResearchProgress(game);
   return pulse;
 }
