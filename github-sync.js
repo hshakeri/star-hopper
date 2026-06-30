@@ -127,7 +127,8 @@ function normalizeProgress(progress) {
     discoveryCombo: Number(p.discoveryCombo) || 0,
     discoveryLog: Array.isArray(p.discoveryLog) ? p.discoveryLog.slice(0, 8) : [],
     discoveryPassCounts: plainObject(p.discoveryPassCounts),
-    discoveredFormulaKinds: Array.isArray(p.discoveredFormulaKinds) ? p.discoveredFormulaKinds : []
+    discoveredFormulaKinds: Array.isArray(p.discoveredFormulaKinds) ? p.discoveredFormulaKinds : [],
+    confirmedHypotheses: Array.isArray(p.confirmedHypotheses) ? p.confirmedHypotheses : []
   };
 }
 
@@ -152,7 +153,8 @@ function getActiveProgressSnapshot() {
     discoveryCombo: typeof Game !== 'undefined' ? Game.discoveryCombo : 0,
     discoveryLog: typeof Game !== 'undefined' && Array.isArray(Game.discoveryLog) ? Game.discoveryLog : [],
     discoveryPassCounts: typeof Game !== 'undefined' && Game.discoveryPassCounts ? { ...Game.discoveryPassCounts } : {},
-    discoveredFormulaKinds: typeof Game !== 'undefined' && Game.discoveredFormulaKinds ? Array.from(Game.discoveredFormulaKinds) : []
+    discoveredFormulaKinds: typeof Game !== 'undefined' && Game.discoveredFormulaKinds ? Array.from(Game.discoveredFormulaKinds) : [],
+    confirmedHypotheses: typeof Game !== 'undefined' && Game.confirmedHypotheses ? Array.from(Game.confirmedHypotheses) : []
   });
 }
 
@@ -208,7 +210,8 @@ function mergeProgress(localProgress, incomingProgress) {
     discoveryCombo: Math.max(local.discoveryCombo || 0, incoming.discoveryCombo || 0),
     discoveryLog: (incoming.discoveryLog && incoming.discoveryLog.length ? incoming.discoveryLog : local.discoveryLog).slice(0, 8),
     discoveryPassCounts: mergeNumberMax(local.discoveryPassCounts, incoming.discoveryPassCounts),
-    discoveredFormulaKinds: arrayUnion(local.discoveredFormulaKinds, incoming.discoveredFormulaKinds)
+    discoveredFormulaKinds: arrayUnion(local.discoveredFormulaKinds, incoming.discoveredFormulaKinds),
+    confirmedHypotheses: arrayUnion(local.confirmedHypotheses, incoming.confirmedHypotheses)
   });
 }
 
@@ -237,6 +240,7 @@ function applyProgressSnapshot(progress) {
     Game.discoveryPulse = Game.discoveryLog[0] || null;
     Game.discoveryPassCounts = { ...normalized.discoveryPassCounts };
     Game.discoveredFormulaKinds = new Set(normalized.discoveredFormulaKinds || []);
+    Game.confirmedHypotheses = new Set(normalized.confirmedHypotheses || []);
   }
   if (typeof notebookEntries !== 'undefined') {
     Object.keys(notebookEntries).forEach(key => delete notebookEntries[key]);

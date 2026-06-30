@@ -1950,6 +1950,19 @@ html {
   color: #fef08a;
   text-shadow: 0 0 8px rgba(250, 204, 21, 0.22);
 }
+.discovery-hypothesis {
+  justify-self: start;
+  border: 1px solid rgba(74, 222, 128, 0.42);
+  border-radius: 4px;
+  background: rgba(20, 83, 45, 0.36);
+  color: #bbf7d0;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  padding: 2px 5px;
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.12);
+}
 .discovery-pulse-body {
   font-size: 0.68rem;
   line-height: 1.35;

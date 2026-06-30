@@ -898,6 +898,50 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: code runs create discovery rewards", false, err.message);
   }
 
+  // Test 22bb: correct predictions become one-time hypothesis confirmations.
+  const oldGetElementById22bb = document.getElementById;
+  try {
+    const activeMission = PLANETS[0].missions.find(mission => mission.id === "earth-gravity-wall");
+    const partial = {
+      allPassed: false,
+      items: [
+        { id: "earth-hopper-active", label: "Hopper activated", passed: true, message: "Hopper active" },
+        { id: "earth-emerald-gates", label: "Agility 30+ reached", passed: false, message: "Still locked" }
+      ]
+    };
+    const panel = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };
+    document.getElementById = (id) => id === "discovery-pulse" ? panel : null;
+
+    const game = new StarHopperGame();
+    game.player = { x: 100, y: 120, w: 24, h: 32 };
+    game.coachPredictions = { [activeMission.id]: "lighter-longer" };
+    const pulse = recordDiscoveryPulse(game, activeMission, "hopper.mass = 1.2", partial, 0);
+    const firstXP = game.researchXP;
+    assertEquals(true, !!pulse.hypothesisConfirmed, "Correct prediction should confirm the hypothesis on new progress");
+    assertEquals(6, pulse.hypothesisBonusXP, "Hypothesis confirmation should award the bonus XP");
+    assertEquals(true, game.confirmedHypotheses.has(activeMission.id), "Confirmed hypothesis should be stored by mission");
+    assertEquals(true, /HYPOTHESIS CONFIRMED \+6 XP/.test(panel.innerHTML), "Discovery pulse should render the hypothesis chip");
+
+    const complete = { allPassed: true, items: partial.items.map(item => ({ ...item, passed: true })) };
+    const secondPulse = recordDiscoveryPulse(game, activeMission, "hopper.engine = 6", complete, 0);
+    assertEquals(false, !!secondPulse.hypothesisConfirmed, "Same mission should not pay the prediction bonus twice");
+    assertEquals(1, game.confirmedHypotheses.size, "Confirmed hypothesis set should not grow on repeat mission progress");
+    assertEquals(true, game.researchXP > firstXP, "Regular progress XP should still apply after the one-time bonus");
+
+    const wrong = new StarHopperGame();
+    wrong.player = { x: 100, y: 120, w: 24, h: 32 };
+    wrong.coachPredictions = { [activeMission.id]: "heavier" };
+    const wrongPulse = recordDiscoveryPulse(wrong, activeMission, "hopper.mass = 1.2", partial, 0);
+    assertEquals(false, !!wrongPulse.hypothesisConfirmed, "Wrong prediction should not award the hypothesis bonus");
+    assertEquals(0, wrong.confirmedHypotheses.size, "Wrong prediction should not be marked confirmed");
+
+    document.getElementById = oldGetElementById22bb;
+    renderTestResult("engine-suite", "Curriculum: correct predictions earn hypothesis bonuses", true);
+  } catch (err) {
+    document.getElementById = oldGetElementById22bb;
+    renderTestResult("engine-suite", "Curriculum: correct predictions earn hypothesis bonuses", false, err.message);
+  }
+
   // Test 22c: Research rank and discovery deck render a readable learning collection.
   const oldGetElementById22c = document.getElementById;
   try {
@@ -2563,11 +2607,12 @@ function runRetryRemixTests() {
       bestClearTimes: { 0: 12.4 }, masteryCleared: { 1: true }, masteryMeters: {},
       dailySignalClears: 3, lastPlayedDate: "2026-06-13", streakCount: 5,
       researchXP: 24, discoveryCombo: 1, discoveryLog: [], discoveryPassCounts: {},
-      discoveredFormulaKinds: new Set(["mass"])
+      discoveredFormulaKinds: new Set(["mass"]),
+      confirmedHypotheses: new Set(["earth-gravity-wall"])
     };
     window.Game = Game;
     const snap = shCaptureProgress();
-    Game.bestClearTimes = {}; Game.dailySignalClears = 0; Game.lastPlayedDate = null; Game.streakCount = 0; Game.masteryCleared = {}; Game.researchXP = 0; Game.discoveredFormulaKinds = new Set();
+    Game.bestClearTimes = {}; Game.dailySignalClears = 0; Game.lastPlayedDate = null; Game.streakCount = 0; Game.masteryCleared = {}; Game.researchXP = 0; Game.discoveredFormulaKinds = new Set(); Game.confirmedHypotheses = new Set();
     shApplyProgress(snap);
     assertEquals(12.4, Game.bestClearTimes[0], "best clear time round-trips");
     assertEquals(true, Game.masteryCleared[1], "mastery-cleared flag round-trips");
@@ -2576,6 +2621,7 @@ function runRetryRemixTests() {
     assertEquals(5, Game.streakCount, "streakCount round-trips");
     assertEquals(24, Game.researchXP, "Research XP round-trips");
     assertEquals(true, Game.discoveredFormulaKinds.has("mass"), "Formula cards round-trip");
+    assertEquals(true, Game.confirmedHypotheses.has("earth-gravity-wall"), "Confirmed hypotheses round-trip");
     Game = oldGameR16; window.Game = oldGameR16;
     renderTestResult(SUITE, "Persistence: Phase-2 progression fields survive save/load", true);
   } catch (err) {
@@ -2628,7 +2674,8 @@ function runRetryRemixTests() {
       discoveryCombo: 2,
       discoveryLog: [{ title: "Mass Lab", formula: "a = F / m" }],
       discoveryPassCounts: { "earth-gravity-wall": 1 },
-      discoveredFormulaKinds: new Set(["mass", "loop"])
+      discoveredFormulaKinds: new Set(["mass", "loop"]),
+      confirmedHypotheses: new Set(["earth-gravity-wall"])
     };
     window.Game = Game;
     const payload = buildSavePayload();
@@ -2639,8 +2686,9 @@ function runRetryRemixTests() {
     assertEquals(42, payload.profileProgress.researchXP, "Research XP should export");
     assertEquals(1, payload.profileProgress.discoveryPassCounts["earth-gravity-wall"], "Discovery progress should export");
     assertEquals(true, payload.profileProgress.discoveredFormulaKinds.includes("loop"), "Formula card kinds should export");
+    assertEquals(true, payload.profileProgress.confirmedHypotheses.includes("earth-gravity-wall"), "Confirmed hypotheses should export");
     const merged = mergeProgress(
-      { unlockedUpgrades: ["jump"], upgradeLevels: { engine: 0.25 }, planetClears: { 0: 1 }, researchXP: 8, discoveryPassCounts: { "earth-gravity-wall": 0 }, discoveredFormulaKinds: ["friction"] },
+      { unlockedUpgrades: ["jump"], upgradeLevels: { engine: 0.25 }, planetClears: { 0: 1 }, researchXP: 8, discoveryPassCounts: { "earth-gravity-wall": 0 }, discoveredFormulaKinds: ["friction"], confirmedHypotheses: ["moon-canyon-jump"] },
       progressFromSavePayload(payload)
     );
     assertEquals(true, merged.unlockedUpgrades.includes("engine"), "Incoming unlocked upgrade survives merge");
@@ -2651,6 +2699,8 @@ function runRetryRemixTests() {
     assertEquals(1, merged.discoveryPassCounts["earth-gravity-wall"], "Merge keeps discovery pass progress");
     assertEquals(true, merged.discoveredFormulaKinds.includes("mass"), "Incoming formula card survives merge");
     assertEquals(true, merged.discoveredFormulaKinds.includes("friction"), "Local formula card survives merge");
+    assertEquals(true, merged.confirmedHypotheses.includes("earth-gravity-wall"), "Incoming confirmed hypothesis survives merge");
+    assertEquals(true, merged.confirmedHypotheses.includes("moon-canyon-jump"), "Local confirmed hypothesis survives merge");
     Game = oldGameR19; window.Game = oldGameR19;
     renderTestResult(SUITE, "Persistence: backup/cloud payload keeps rich profile progress", true);
   } catch (err) {

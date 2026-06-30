@@ -103,6 +103,7 @@ class StarHopperGame {
     this.discoveryPassCounts = {};
     this.discoveredFormulaKinds = new Set();
     this.formulaCardEffects = [];
+    this.confirmedHypotheses = new Set();
     this.pendingNavigationTargetIndex = null;
     this.navigationReturnTimer = null;
 

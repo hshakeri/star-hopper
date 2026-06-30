@@ -727,6 +727,36 @@ function countPassedResultChecks(resultState) {
   return resultState.items.filter(item => item && item.passed).length;
 }
 
+function getConfirmedHypothesisSet(game) {
+  const set = new Set();
+  if (!game || !game.confirmedHypotheses) return set;
+  const values = game.confirmedHypotheses instanceof Set
+    ? Array.from(game.confirmedHypotheses)
+    : (Array.isArray(game.confirmedHypotheses) ? game.confirmedHypotheses : []);
+  values.forEach(id => {
+    if (id) set.add(id);
+  });
+  return set;
+}
+
+function confirmHypothesisForPulse(game, activeMission, earned) {
+  if (!game || !activeMission || !earned) return null;
+  const missionId = activeMission.id;
+  const option = getCoachPredictionOption(game, missionId);
+  if (!option || !option.correct) return null;
+  const confirmed = getConfirmedHypothesisSet(game);
+  if (confirmed.has(missionId)) {
+    game.confirmedHypotheses = confirmed;
+    return null;
+  }
+  confirmed.add(missionId);
+  game.confirmedHypotheses = confirmed;
+  return {
+    xp: 6,
+    label: "Hypothesis confirmed"
+  };
+}
+
 function inferDiscoveryPulse(game, activeMission, code, resultState, openedGems = 0) {
   const fullMission = activeMission && activeMission.fullMission ? activeMission.fullMission : null;
   const rule = DISCOVERY_RULES.find(item => item.pattern.test(String(code || ""))) || null;
@@ -767,10 +797,13 @@ function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems
   if (earned) {
     const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(game.researchXP || 0) : null;
     const cardUnlocked = unlockFormulaKind(game, pulse.kind);
+    const hypothesis = confirmHypothesisForPulse(game, activeMission, earned);
     game.discoveryCombo = Math.min(99, (game.discoveryCombo || 0) + 1);
     pulse.combo = game.discoveryCombo;
     pulse.cardUnlocked = cardUnlocked;
-    pulse.rewardXP = 5 + newPasses * 4 + opened * 3 + (finalPassBonus ? 6 : 0) + (cardUnlocked ? 5 : 0) + Math.min(8, game.discoveryCombo);
+    pulse.hypothesisConfirmed = !!hypothesis;
+    pulse.hypothesisBonusXP = hypothesis ? hypothesis.xp : 0;
+    pulse.rewardXP = 5 + newPasses * 4 + opened * 3 + (finalPassBonus ? 6 : 0) + (cardUnlocked ? 5 : 0) + Math.min(8, game.discoveryCombo) + pulse.hypothesisBonusXP;
     if (cardUnlocked && typeof game.spawnFormulaCardEffect === 'function') {
       game.spawnFormulaCardEffect(pulse);
     }
@@ -789,6 +822,9 @@ function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems
     }
     if (typeof ui_log_output === 'function') {
       ui_log_output(`Research +${pulse.rewardXP} XP: ${pulse.formula}`, "success");
+      if (pulse.hypothesisConfirmed) {
+        ui_log_output(`Hypothesis confirmed +${pulse.hypothesisBonusXP} XP.`, "success");
+      }
     }
     if (typeof logMissionBriefing === 'function') {
       logMissionBriefing(`${pulse.title}: ${pulse.insight}`);
@@ -803,6 +839,8 @@ function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems
   updateDiscoveryPulse(game);
   updateFormulaTarget(game);
   if (typeof updateResearchProgress === 'function') updateResearchProgress(game);
+  const isLiveGame = typeof window !== 'undefined' && window.Game === game;
+  if (earned && isLiveGame && typeof saveLocalProgress === 'function') saveLocalProgress();
   return pulse;
 }
 
@@ -819,12 +857,16 @@ function updateDiscoveryPulse(game) {
   const progress = pulse.total > 0 ? `${pulse.passed}/${pulse.total} checks` : "free test";
   const reward = pulse.rankUp ? `Rank Up: ${pulse.rankTitle}` : (pulse.rewardXP > 0 ? `+${pulse.rewardXP} Research XP` : "insight logged");
   const combo = pulse.combo > 1 ? ` x${pulse.combo} combo` : "";
+  const hypothesis = pulse.hypothesisConfirmed
+    ? `<div class="discovery-hypothesis">HYPOTHESIS CONFIRMED +${escapeHTML(String(pulse.hypothesisBonusXP || 0))} XP</div>`
+    : "";
   panel.innerHTML = `
     <div class="discovery-pulse-head">
       <span>DISCOVERY PULSE</span>
       <strong>${escapeHTML(reward)}${escapeHTML(combo)}</strong>
     </div>
     <div class="discovery-pulse-formula">${escapeHTML(pulse.formula)}</div>
+    ${hypothesis}
     <div class="discovery-pulse-body">${escapeHTML(pulse.insight)}</div>
     <div class="discovery-pulse-foot">${escapeHTML(pulse.missionTitle)} · ${escapeHTML(progress)}${pulse.openedGems ? ` · ${escapeHTML(String(pulse.openedGems))} gem gate${pulse.openedGems === 1 ? "" : "s"}` : ""}</div>
   `;
