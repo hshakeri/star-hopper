@@ -1029,6 +1029,17 @@ class StarHopperGame {
         validate: (game) => game.hasIceTouchRule()
       };
     }
+    // Glacies, "friction target": spikes are useful on normal runs, but this replay
+    // deliberately asks for the numeric friction variable so the lesson is measurable.
+    if (c && c.id === "glacies-friction-target" && planetIndex === 3) {
+      const minFriction = Number.isFinite(c.minFriction) ? c.minFriction : 7;
+      return {
+        id: "glacies-friction-target-gems",
+        label: `set friction = ${minFriction} or higher before crossing ice — spikes do not count for this science target`,
+        short: `FRICTION ${minFriction}+ REQUIRED!`,
+        validate: (game) => game.getCurrentFriction() >= minFriction
+      };
+    }
     // Jupiter, "rocket rule": keep the usual thrust engineering, but require a
     // rocket event rule so the replay teaches timed code, not just bigger numbers.
     if (c && c.id === "jupiter-rocket-rule" && planetIndex === 2) {

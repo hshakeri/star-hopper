@@ -668,6 +668,20 @@ function runEngineTests() {
     assertEquals(true, magnet.canCollectGem(magnetGem), "Rocket rule plus magnet-touch rule should unlock Mag-Net replay gems");
 
     Compiler.reset();
+    const glacies = new StarHopperGame();
+    glacies.currentPlanet = PLANETS[3];
+    glacies.currentPlanetIndex = 3;
+    glacies.currentVariant = {
+      map: PLANETS[3].map,
+      constraint: { id: "glacies-friction-target", minFriction: 8 }
+    };
+    glacies.player = { charType: 'hopper', jumpPower: 12, rocketPower: 40, mass: 1.2, spikes: true };
+    const glaciesGem = { type: 'coin', requiredCollectible: true, collected: false, gemGate: glacies.getGemGateForCollectible(3, 4, 16) };
+    assertEquals(false, glacies.canCollectGem(glaciesGem), "Spikes should not satisfy the numeric Glacies friction-target remix");
+    Compiler.env.friction = 8;
+    assertEquals(true, glacies.canCollectGem(glaciesGem), "Setting friction to the target should unlock Glacies replay gems");
+
+    Compiler.reset();
     renderTestResult("engine-suite", "Objectives: mastery remix gates require extra coding rules", true);
   } catch (err) {
     Compiler.reset();
@@ -3046,6 +3060,16 @@ function runRetryRemixTests() {
     renderTestResult(SUITE, "Variant: Glacies flavor rotation surfaces an event-only run", false, err.message);
   }
 
+  // Test R9a: Glacies later retries also surface a numeric friction-target run.
+  try {
+    const v = buildPlanetVariant(PLANETS[3], 3, 4);
+    assertEquals("glacies-friction-target", v.constraint && v.constraint.id, "Glacies retry 4 should require a numeric friction target");
+    assertEquals(true, Number.isFinite(v.constraint.minFriction) && v.constraint.minFriction >= 7, "Friction target should set a measurable threshold");
+    renderTestResult(SUITE, "Variant: Glacies rotation surfaces a friction target", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Variant: Glacies rotation surfaces a friction target", false, err.message);
+  }
+
   // Test R9b: later Jupiter and Mag-Net remixes add event-rule constraints, not only geometry.
   try {
     const jupiter = buildPlanetVariant(PLANETS[2], 2, 4);
@@ -3511,6 +3535,22 @@ function runDiagnosticsTests() {
     renderTestResult(SUITE, "Diagnosis: remix constraint removes banned levers", true);
   } catch (err) {
     renderTestResult(SUITE, "Diagnosis: remix constraint removes banned levers", false, err.message);
+  }
+
+  // Test D2b: Glacies friction-target remix stages the exact numeric variable.
+  try {
+    const d = diagnoseFailure(makeDiagGame({
+      currentPlanetIndex: 3,
+      currentVariant: { constraint: { id: "glacies-friction-target", minFriction: 8 } },
+      player: { charType: "hopper", spikes: true },
+      getCurrentFriction: () => 5
+    }));
+    assertEquals(true, /Friction 5\.0 \/ 8/.test(d.title), "Title should show the current friction gap: " + d.title);
+    assertEquals(true, d.choices.some((c) => c.command === "friction = 8"), "Should stage the exact friction target");
+    assertEquals(false, d.choices.some((c) => /spikes/.test(c.command)), "Friction-target remix should not stage spikes");
+    renderTestResult(SUITE, "Diagnosis: Glacies friction target stages numeric fix", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Diagnosis: Glacies friction target stages numeric fix", false, err.message);
   }
 
   // Test D3: short jump arc → h ≈ J²/(2·g·m²) report with the squared-mass insight

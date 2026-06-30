@@ -62,7 +62,24 @@ function diagnoseFailure(game) {
     };
   }
 
-  // 2) Glacies: died sliding on ice with weak grip — friction/conditionals lesson first.
+  // 2) Glacies remix: the target is a specific friction value, not generic spikes.
+  if (planet === 3 && constraint && constraint.id === "glacies-friction-target"
+      && game && typeof game.getCurrentFriction === "function") {
+    const minFriction = Number.isFinite(constraint.minFriction) ? constraint.minFriction : 7;
+    if (game.getCurrentFriction() < minFriction) {
+      return {
+        title: `Friction ${game.getCurrentFriction().toFixed(1)} / ${minFriction} — target missing`,
+        message: `This remix is measuring the friction variable directly. Spikes help in normal Glacies runs, but this target needs a number you can compare before and after.`,
+        formula: "more friction → shorter slide distance",
+        choices: [
+          { label: `Set friction ${minFriction}`, command: `friction = ${minFriction}` },
+          { label: "Over-test grip", command: `friction = ${minFriction + 1}` }
+        ]
+      };
+    }
+  }
+
+  // 3) Glacies: died sliding on ice with weak grip — friction/conditionals lesson first.
   if (planet === 3 && (tag === "hazard" || tag === "fall")
       && game && typeof game.getCurrentFriction === "function"
       && game.getCurrentFriction() < 5 && !(game.player && game.player.spikes)) {
@@ -78,7 +95,7 @@ function diagnoseFailure(game) {
     };
   }
 
-  // 3) Jump arc too short to clear what killed you (hazard hit / fell in a gap).
+  // 4) Jump arc too short to clear what killed you (hazard hit / fell in a gap).
   if ((tag === "hazard" || tag === "fall") && jumpHeightPx < 120) {
     const choices = [
       { label: "Lower mass (squared payoff!)", command: `hopper.mass = ${cap("mass", 1.0)}` },
@@ -95,7 +112,7 @@ function diagnoseFailure(game) {
     };
   }
 
-  // 4) Eaten by a critter — that's timing, not physics.
+  // 5) Eaten by a critter — that's timing, not physics.
   if (tag === "enemy") {
     return {
       title: "Critter contact — timing, not physics",
@@ -105,7 +122,7 @@ function diagnoseFailure(game) {
     };
   }
 
-  // 5) Physics looks strong enough — route/timing/event problem.
+  // 6) Physics looks strong enough — route/timing/event problem.
   return {
     title: "Control or timing issue",
     message: "The numbers look strong enough for this world. Try a different route or jump timing — or solve it with code: an event rule can react faster than thumbs.",

@@ -10,7 +10,7 @@
 // RETRY (attempt >= 1). Each retry cycles a deterministic FLAVOR for that planet:
 //   • geometry/target flavors — move collectibles, retune the numeric goal
 //   • constraint flavors      — same gate, but a new rule on HOW you may clear it
-//     (Earth: no antigravity · Moon: loop a spring budget · Glacies: event-rule only)
+//     (Earth: no antigravity · Moon: loop a spring budget · Glacies: event rule / friction target)
 // Seeded by (planetIndex, attemptNumber) so a given retry is reproducible/shareable.
 //
 // A flavor returns { map, variantLabel, targetOverrides, constraint }. The game reads
@@ -252,6 +252,18 @@ function glaciesVerticalSlide(planet, rng) {
   rvShiftTilesH(map, 3, rvPick(rng, [-1, 1]));
   return { map, variantLabel: "ice gems re-placed · re-read the slide", targetOverrides: {}, constraint: null };
 }
+function glaciesFrictionTarget(planet, rng) {
+  const map = cloneMap(planet.map);
+  rvShiftTilesH(map, 3, rvPick(rng, [-1, 1]));
+  rvShiftTilesV(map, 3, rvPick(rng, [-1, 1]));
+  const minFriction = rvPick(rng, [7, 8]);
+  return {
+    map,
+    variantLabel: `🧊 Friction target — set friction = ${minFriction}+ before crossing ice`,
+    targetOverrides: {},
+    constraint: { id: "glacies-friction-target", minFriction }
+  };
+}
 
 // MAG-NET — was a single flavor. Add a maybe-flip and a gem drift (poles stay put so the
 // magnetic puzzle structure remains solvable).
@@ -303,7 +315,7 @@ const PLANET_FLAVORS = {
   0: [earthGeometry, earthNoAntigrav, earthVerticalShift, earthMixedShift],
   1: [moonGeometry, moonSpringBudget, moonVerticalGems, moonTrampolineMixer],
   2: [jupiterGeometry, jupiterVerticalCrates, jupiterThrustPush, jupiterRocketRule],
-  3: [glaciesGeometry, glaciesEventOnly, glaciesVerticalSlide],
+  3: [glaciesGeometry, glaciesEventOnly, glaciesVerticalSlide, glaciesFrictionTarget],
   4: [magnetPoleFlip, magnetDoubleFlip, magnetGemDrift, magnetPolarityEvent],
   5: [forgeCoreDrift, forgeBounceMixer]
 };
