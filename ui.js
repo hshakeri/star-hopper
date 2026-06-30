@@ -2067,7 +2067,8 @@ function runCoachCode(game, code) {
     }
   }
 
-  const lockedBefore = typeof game.getLockedRequiredCollectibleCount === 'function' ? game.getLockedRequiredCollectibleCount() : 0;
+  const lockedBeforeList = typeof game.getLockedRequiredCollectibles === 'function' ? game.getLockedRequiredCollectibles() : [];
+  const lockedBefore = lockedBeforeList.length || (typeof game.getLockedRequiredCollectibleCount === 'function' ? game.getLockedRequiredCollectibleCount() : 0);
   const scienceBefore = captureScienceDeltaSnapshot(game);
   ui_log_input(trimmed);
   const res = Compiler.runCommand(trimmed, game);
@@ -2103,9 +2104,10 @@ function runCoachCode(game, code) {
     const lockedAfter = typeof game.getLockedRequiredCollectibleCount === 'function' ? game.getLockedRequiredCollectibleCount() : lockedBefore;
     let opened = 0;
     if (lockedBefore > lockedAfter) {
-      opened = lockedBefore - lockedAfter;
-      ui_log_output(`◆ Code unlocked ${opened} mission gem${opened === 1 ? "" : "s"}!`, "success");
-      if (typeof showDialogue === 'function') {
+      const unlockPulse = typeof game.spawnGemGateUnlockEffects === 'function' ? game.spawnGemGateUnlockEffects(lockedBeforeList) : null;
+      opened = unlockPulse && Number.isFinite(unlockPulse.opened) ? unlockPulse.opened : lockedBefore - lockedAfter;
+      if (opened > 0) ui_log_output(`◆ Code unlocked ${opened} mission gem${opened === 1 ? "" : "s"}!`, "success");
+      if (opened > 0 && typeof showDialogue === 'function') {
         showDialogue(`Nice engineering. ${opened} gem gate${opened === 1 ? "" : "s"} opened!`, "badge");
       }
     }
@@ -2797,6 +2799,8 @@ function setupUIBindings(game) {
             return;
           }
           const scienceBefore = captureScienceDeltaSnapshot(game);
+          const lockedBeforeList = typeof game.getLockedRequiredCollectibles === 'function' ? game.getLockedRequiredCollectibles() : [];
+          const lockedBefore = lockedBeforeList.length || (typeof game.getLockedRequiredCollectibleCount === 'function' ? game.getLockedRequiredCollectibleCount() : 0);
           const res = Compiler.runCommand(val, game);
           if (res.success) {
             recordScienceDelta(game, scienceBefore, captureScienceDeltaSnapshot(game), val);
@@ -2825,6 +2829,15 @@ function setupUIBindings(game) {
             const activeMission = getActivePlatformerMission(game);
             const resultState = activeMission && activeMission.fullMission ? evaluateMissionResultChecks(game, activeMission.fullMission) : null;
             attachScienceDeltaNextExperiment(game, resultState, activeMission);
+            const lockedAfter = typeof game.getLockedRequiredCollectibleCount === 'function' ? game.getLockedRequiredCollectibleCount() : lockedBefore;
+            if (lockedBefore > lockedAfter) {
+              const unlockPulse = typeof game.spawnGemGateUnlockEffects === 'function' ? game.spawnGemGateUnlockEffects(lockedBeforeList) : null;
+              const opened = unlockPulse && Number.isFinite(unlockPulse.opened) ? unlockPulse.opened : lockedBefore - lockedAfter;
+              if (opened > 0) ui_log_output(`◆ Code unlocked ${opened} mission gem${opened === 1 ? "" : "s"}!`, "success");
+              if (opened > 0 && typeof showDialogue === 'function') {
+                showDialogue(`Nice engineering. ${opened} gem gate${opened === 1 ? "" : "s"} opened!`, "badge");
+              }
+            }
             logMissionStat(game);
             updateMissionList(game);
           }

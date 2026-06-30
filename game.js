@@ -2670,13 +2670,52 @@ class StarHopperGame {
     }
   }
 
-  getLockedRequiredCollectibleCount() {
+  getLockedRequiredCollectibles() {
+    if (!Array.isArray(this.interactiveObjects)) return [];
     return this.interactiveObjects.filter(obj =>
       obj.type === 'coin'
       && obj.requiredCollectible
       && !obj.collected
       && !this.canCollectGem(obj)
-    ).length;
+    );
+  }
+
+  getLockedRequiredCollectibleCount() {
+    return this.getLockedRequiredCollectibles().length;
+  }
+
+  spawnGemGateUnlockEffects(previouslyLocked) {
+    const before = previouslyLocked instanceof Set
+      ? previouslyLocked
+      : new Set(Array.isArray(previouslyLocked) ? previouslyLocked : []);
+    if (!before.size || !Array.isArray(this.interactiveObjects)) return { opened: 0, targets: [] };
+    const targets = [];
+
+    for (const obj of before) {
+      if (!obj || obj.type !== 'coin' || !obj.requiredCollectible || obj.collected) continue;
+      if (!this.interactiveObjects.includes(obj)) continue;
+      if (obj.gateOpenEffectPlayed) continue;
+      if (!this.canCollectGem(obj)) continue;
+      targets.push(obj);
+    }
+
+    const limit = 5;
+    for (const obj of targets) obj.gateOpenEffectPlayed = true;
+    for (const obj of targets.slice(0, limit)) {
+      const gem = obj.gem || this.getGemConfig();
+      const color = gem && gem.color ? gem.color : "#facc15";
+      const cx = (Number.isFinite(obj.x) ? obj.x : 0) + (Number.isFinite(obj.w) ? obj.w : 16) / 2;
+      const cy = (Number.isFinite(obj.y) ? obj.y : 0) + (Number.isFinite(obj.h) ? obj.h : 16) / 2;
+      obj.unlockPulse = 1;
+      if (typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+        ComicBubbles.pop(cx, cy - 16, "OPEN!", color, 1.05);
+      }
+      if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+        Particles.spawnBurst(cx, cy, color, 12, 2.2, 2.0, 'glow');
+        Particles.spawnBurst(cx, cy, '#bbf7d0', 6, 1.7, 1.6, 'glow');
+      }
+    }
+    return { opened: targets.length, targets };
   }
 
   getNextMissionSampleTarget() {

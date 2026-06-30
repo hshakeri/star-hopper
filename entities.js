@@ -1972,6 +1972,9 @@ class InteractiveObject {
     if (this.rejectPulse > 0) {
       this.rejectPulse = Math.max(0, this.rejectPulse - 0.06);
     }
+    if (this.unlockPulse > 0) {
+      this.unlockPulse = Math.max(0, this.unlockPulse - 0.04);
+    }
 
     if (this.type === 'boulder') {
       this.mass = (typeof Compiler !== 'undefined' && Compiler.env && Compiler.env.asteroidMass !== null && Compiler.env.asteroidMass !== undefined) ? Compiler.env.asteroidMass : 2.0;
@@ -2059,6 +2062,17 @@ class InteractiveObject {
       } else {
         ctx.shadowColor = color;
         ctx.shadowBlur = 14;
+      }
+      if (this.unlockPulse > 0) {
+        const unlockedPulse = Math.max(0, Math.min(1, this.unlockPulse));
+        ctx.save();
+        ctx.globalAlpha = 0.85 * unlockedPulse;
+        ctx.strokeStyle = '#bbf7d0';
+        ctx.lineWidth = 2.4;
+        ctx.beginPath();
+        ctx.arc(0, 0, 15 + (1 - unlockedPulse) * 12, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
       }
       ctx.fillStyle = color;
       drawGemShape(ctx, 0, 0, 9, 12);

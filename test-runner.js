@@ -655,6 +655,46 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Objectives: beacon marks unlocked mission samples", false, err.message);
   }
 
+  // Test 17b3: code-opened gem gates pop once on the newly unlocked samples.
+  const oldBubblePop17b3 = ComicBubbles.pop;
+  const oldParticleBurst17b3 = Particles.spawnBurst;
+  try {
+    const game = new StarHopperGame();
+    const gate = { open: false, validate: () => gate.open };
+    const lockedSample = { type: 'coin', requiredCollectible: true, collected: false, x: 40, y: 64, w: 16, h: 16, gemGate: gate, gem: { color: '#4ade80' } };
+    const alreadyOpen = { type: 'coin', requiredCollectible: true, collected: false, x: 96, y: 64, w: 16, h: 16, gemGate: { validate: () => true }, gem: { color: '#67e8f9' } };
+    game.interactiveObjects = [lockedSample, alreadyOpen];
+    const labels = [];
+    let bursts = 0;
+    ComicBubbles.pop = (x, y, text) => { labels.push(text); };
+    Particles.spawnBurst = () => { bursts++; };
+
+    const before = game.getLockedRequiredCollectibles();
+    assertEquals(1, before.length, "Snapshot should include only the locked required sample");
+    assertEquals(lockedSample, before[0], "Snapshot should keep the exact locked gem reference");
+
+    gate.open = true;
+    const pulse = game.spawnGemGateUnlockEffects(before);
+    assertEquals(1, pulse.opened, "Exactly one previously locked sample should open");
+    assertEquals(lockedSample, pulse.targets[0], "Open pulse should target the newly collectible sample");
+    assertEquals(1, lockedSample.unlockPulse, "Newly opened sample should get the expanding unlock ring");
+    assertEquals(true, lockedSample.gateOpenEffectPlayed, "Opened sample should be marked so the cue cannot be replayed");
+    assertEquals(true, labels.includes("OPEN!"), "Newly opened sample should pop an OPEN label");
+    assertEquals(true, bursts >= 2, "Newly opened sample should spawn a sparkle burst");
+
+    const replay = game.spawnGemGateUnlockEffects(before);
+    assertEquals(0, replay.opened, "Same snapshot should not replay gate-open effects");
+    assertEquals(1, labels.filter(label => label === "OPEN!").length, "OPEN label should remain one-time");
+
+    ComicBubbles.pop = oldBubblePop17b3;
+    Particles.spawnBurst = oldParticleBurst17b3;
+    renderTestResult("engine-suite", "Objectives: newly opened gem gates pop once", true);
+  } catch (err) {
+    ComicBubbles.pop = oldBubblePop17b3;
+    Particles.spawnBurst = oldParticleBurst17b3;
+    renderTestResult("engine-suite", "Objectives: newly opened gem gates pop once", false, err.message);
+  }
+
   // Test 17c: Asteroid Forge teaches one concept first: mass unlocks the first gem, then
   // elasticity is required for later boulder-bounce gems.
   try {
