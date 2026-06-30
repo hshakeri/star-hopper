@@ -1389,6 +1389,32 @@ body.resizing-panes * {
   text-shadow: 0 0 5px rgba(250, 204, 21, 0.5);
 }
 
+.map-mastery-meter {
+  display: block;
+  width: 72px;
+  height: 4px;
+  margin: 3px auto 1px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.82);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  overflow: hidden;
+}
+
+.map-mastery-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #67e8f9, #bef264, #facc15);
+}
+
+.map-mastery-label {
+  display: block;
+  color: #c4b5fd;
+  font-size: 0.48rem;
+  line-height: 1.08;
+  margin-top: 1px;
+}
+
 .start-action-btn {
   margin-top: 10px;
   padding: 9px 26px;
@@ -1559,6 +1585,63 @@ body.resizing-panes * {
 
 .clear-lab-mastery.new {
   box-shadow: 0 0 14px rgba(250, 204, 21, 0.22);
+}
+
+.clear-world-mastery {
+  border: 1px solid rgba(168, 85, 247, 0.32);
+  border-radius: 6px;
+  background:
+    linear-gradient(90deg, rgba(103, 232, 249, 0.13), rgba(168, 85, 247, 0.14), rgba(250, 204, 21, 0.09));
+  padding: 6px 7px;
+  margin: -1px 0 8px;
+}
+
+.clear-world-mastery.new {
+  border-color: rgba(250, 204, 21, 0.44);
+  box-shadow: 0 0 14px rgba(168, 85, 247, 0.18);
+}
+
+.clear-world-mastery-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+  font-family: var(--font-mono);
+}
+
+.clear-world-mastery-head span {
+  color: #c4b5fd;
+  font-size: 0.56rem;
+  font-weight: 800;
+}
+
+.clear-world-mastery-head strong {
+  color: #bef264;
+  font-size: 0.64rem;
+  text-align: right;
+}
+
+.clear-world-mastery-bar {
+  height: 6px;
+  margin: 5px 0 4px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.64);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  overflow: hidden;
+}
+
+.clear-world-mastery-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #67e8f9, #bef264, #facc15);
+}
+
+.clear-world-mastery p {
+  margin: 0;
+  color: #dff6ff;
+  font-size: 0.62rem;
+  line-height: 1.25;
 }
 
 .clear-lab-time {
@@ -3502,6 +3585,12 @@ body.navigator-active .coach-bubble { display: none !important; }
   border-color: rgba(249, 115, 22, 0.32);
   background: rgba(249, 115, 22, 0.06);
   color: var(--text-primary);
+}
+
+.badge-shelf-item.world-mastery-badge {
+  border-color: rgba(168, 85, 247, 0.36);
+  background:
+    linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(34, 197, 94, 0.06));
 }
 
 .badge-shelf-icon {

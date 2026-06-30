@@ -13,6 +13,11 @@ const HOPPER_UPGRADES = {
 const MASTERY_CLEAR_RESEARCH_XP = 25;
 const RETURN_STREAK_RESEARCH_BASE_XP = 4;
 const RETURN_STREAK_RESEARCH_CAP_BONUS_XP = 6;
+const WORLD_MASTERY_TIERS = [
+  { id: "scout", xp: 50, label: "Signal Scout" },
+  { id: "engineer", xp: 110, label: "World Engineer" },
+  { id: "mentor", xp: 180, label: "Planet Mentor" }
+];
 
 class StarHopperGame {
   constructor() {
@@ -520,12 +525,99 @@ class StarHopperGame {
     return Math.max(0, Math.min(3, Number.isFinite(raw) ? Math.floor(raw) : 0));
   }
 
+  normalizeWorldMasteryMeter(index = this.currentPlanetIndex) {
+    const key = String(index || 0);
+    this.masteryMeters = this.masteryMeters || {};
+    const raw = this.masteryMeters[key] || this.masteryMeters[index] || {};
+    const xp = Math.max(0, Math.floor(Number(raw.xp) || 0));
+    const sources = raw.sources && typeof raw.sources === 'object' ? { ...raw.sources } : {};
+    const badges = Array.isArray(raw.badges)
+      ? raw.badges.slice()
+      : WORLD_MASTERY_TIERS.filter(tier => xp >= tier.xp).map(tier => tier.id);
+    const normalized = { ...raw, xp, sources, badges: Array.from(new Set(badges)) };
+    this.masteryMeters[key] = normalized;
+    if (key !== String(index) && this.masteryMeters[index]) delete this.masteryMeters[index];
+    return normalized;
+  }
+
+  getWorldMasteryProgress(index = this.currentPlanetIndex) {
+    const meter = this.normalizeWorldMasteryMeter(index);
+    const earnedTiers = WORLD_MASTERY_TIERS.filter(tier => meter.badges.includes(tier.id) || meter.xp >= tier.xp);
+    const nextTier = WORLD_MASTERY_TIERS.find(tier => meter.xp < tier.xp) || null;
+    const currentTier = earnedTiers.length ? earnedTiers[earnedTiers.length - 1] : null;
+    const finalTier = WORLD_MASTERY_TIERS[WORLD_MASTERY_TIERS.length - 1];
+    return {
+      xp: meter.xp,
+      badges: meter.badges.slice(),
+      earnedTiers,
+      currentTier,
+      nextTier,
+      title: currentTier ? currentTier.label : "Unranked",
+      pct: finalTier ? Math.max(0, Math.min(100, Math.round((meter.xp / finalTier.xp) * 100))) : 0
+    };
+  }
+
+  awardWorldMasteryXP(amount, reason = "practice", options = {}) {
+    const add = Math.max(0, Math.floor(Number(amount) || 0));
+    if (add <= 0) return { addedXP: 0, tierAwards: [], duplicate: false, progress: this.getWorldMasteryProgress(options.index) };
+    const index = Number.isFinite(options.index) ? options.index : this.currentPlanetIndex;
+    const key = String(index || 0);
+    const meter = this.normalizeWorldMasteryMeter(index);
+    const sourceKey = options.sourceKey ? String(options.sourceKey) : null;
+    if (sourceKey && meter.sources[sourceKey]) {
+      return { addedXP: 0, tierAwards: [], duplicate: true, progress: this.getWorldMasteryProgress(index) };
+    }
+
+    const beforeXP = meter.xp;
+    meter.xp += add;
+    if (sourceKey) meter.sources[sourceKey] = add;
+    const tierAwards = [];
+    for (const tier of WORLD_MASTERY_TIERS) {
+      if (beforeXP < tier.xp && meter.xp >= tier.xp && !meter.badges.includes(tier.id)) {
+        meter.badges.push(tier.id);
+        tierAwards.push(tier);
+      }
+    }
+    this.masteryMeters[key] = meter;
+
+    if (tierAwards.length) {
+      this.earnedBadges = this.earnedBadges || new Set();
+      tierAwards.forEach(tier => this.earnedBadges.add(`world-${key}-${tier.id}`));
+      const topTier = tierAwards[tierAwards.length - 1];
+      if (typeof showBadgeToast === 'function') {
+        showBadgeToast({
+          icon: "🏅",
+          label: topTier.label,
+          description: `${this.currentPlanet ? this.currentPlanet.name : "World"} mastery reached ${meter.xp} XP.`
+        });
+      }
+      if (typeof ui_log_output === 'function') {
+        ui_log_output(`World mastery: ${topTier.label} unlocked (${meter.xp} XP).`, "success");
+      }
+    } else if (!options.silent && typeof ui_log_output === 'function') {
+      ui_log_output(`World mastery +${add} XP: ${reason}.`, "success");
+    }
+
+    return {
+      addedXP: add,
+      tierAwards,
+      duplicate: false,
+      progress: this.getWorldMasteryProgress(index)
+    };
+  }
+
   renderMapStarMeter(index) {
     const stars = this.getPlanetLabStarCount(index);
     const icons = Array.from({ length: 3 }, (_, i) =>
       `<span class="${i < stars ? "earned" : ""}" aria-hidden="true">★</span>`
     ).join("");
     return `<span class="map-star-meter" aria-label="${stars} of 3 Lab Stars">${icons}</span>`;
+  }
+
+  renderMapMasteryMeter(index) {
+    const progress = this.getWorldMasteryProgress(index);
+    const next = progress.nextTier ? `Next ${progress.nextTier.label}` : "Max tier";
+    return `<span class="map-mastery-meter" aria-label="${progress.xp} world mastery XP"><span style="width: ${progress.pct}%"></span></span><span class="map-mastery-label">${progress.title} · ${progress.xp} XP · ${next}</span>`;
   }
 
   refreshGalaxyMapProgress() {
@@ -549,12 +641,13 @@ class StarHopperGame {
           meta.textContent = "Locked";
         } else {
           const label = mastered ? "Mastered" : (clears > 0 ? `Clear ${clears}` : (index === 0 ? "Start" : "Unlocked"));
-          meta.innerHTML = `${label} · ${this.renderMapStarMeter(index)}`;
+          meta.innerHTML = `${label} · ${this.renderMapStarMeter(index)}${this.renderMapMasteryMeter(index)}`;
         }
       }
       const stars = this.getPlanetLabStarCount(index);
+      const worldMastery = this.getWorldMasteryProgress(index);
       node.title = available
-        ? `${planets[index].name}: ${stars}/3 Lab Stars${mastered ? " · Mastered" : (clears > 0 ? " · Mastery Remix ready" : "")}`
+        ? `${planets[index].name}: ${stars}/3 Lab Stars · ${worldMastery.title} (${worldMastery.xp} XP)${mastered ? " · Mastered" : (clears > 0 ? " · Mastery Remix ready" : "")}`
         : `${planets[index].name}: locked until the previous signal shard is recovered.`;
     });
   }
@@ -1600,7 +1693,17 @@ class StarHopperGame {
   recordClearLabStars({ isDailyRun = false } = {}) {
     const summary = this.getClearLabStarSummary({ isDailyRun });
     this.bestLabStars = this.bestLabStars || {};
-    if (summary.stars > summary.previousBest) this.bestLabStars[summary.key] = summary.stars;
+    const starGain = Math.max(0, summary.stars - summary.previousBest);
+    let masteryMeter = null;
+    if (summary.stars > summary.previousBest) {
+      this.bestLabStars[summary.key] = summary.stars;
+      if (!isDailyRun && starGain > 0) {
+        masteryMeter = this.awardWorldMasteryXP(starGain * 20, "lab-star best", {
+          sourceKey: `lab-stars:${summary.key}:${summary.stars}`,
+          silent: true
+        });
+      }
+    }
     const mastered = !isDailyRun && summary.maxStars > 0 && summary.stars >= summary.maxStars;
     const masteryKey = String(this.currentPlanetIndex || 0);
     const wasMastered = !!(this.masteryCleared && this.masteryCleared[masteryKey]);
@@ -1612,7 +1715,10 @@ class StarHopperGame {
       ...summary,
       best: Math.max(summary.previousBest, summary.stars),
       mastered,
-      isNewMastery: mastered && !wasMastered
+      isNewMastery: mastered && !wasMastered,
+      worldMastery: masteryMeter ? masteryMeter.progress : this.getWorldMasteryProgress(this.currentPlanetIndex),
+      worldMasteryAddedXP: masteryMeter ? masteryMeter.addedXP : 0,
+      worldMasteryTierAwards: masteryMeter ? masteryMeter.tierAwards : []
     };
   }
 
@@ -2930,11 +3036,7 @@ class StarHopperGame {
   // at thresholds, so fighting woken mobs makes your gun stronger.
   addXP(n) {
     if (!n || !this.player) return;
-    const idx = this.currentPlanetIndex;
-    this.masteryMeters = this.masteryMeters || {};
-    const cur = this.masteryMeters[idx] || { xp: 0 };
-    cur.xp = (cur.xp || 0) + n;
-    this.masteryMeters[idx] = cur;
+    this.awardWorldMasteryXP(n, "combat practice", { silent: true });
     this.totalXP = (this.totalXP || 0) + n;
     if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(this.player.x + this.player.w / 2, this.player.y - 12, "+" + n + " XP", "#a3e635", 0.85);
     const lvl = this.totalXP >= 120 ? 3 : this.totalXP >= 45 ? 2 : 1;
@@ -3307,6 +3409,15 @@ class StarHopperGame {
       this.planetClears[this.currentPlanetIndex] = (this.planetClears[this.currentPlanetIndex] || 0) + 1;
     }
     let labStars = this.recordClearLabStars({ isDailyRun });
+    const clearMastery = this.awardWorldMasteryXP(isDailyRun ? 8 : 12, isDailyRun ? "daily signal clear" : "campaign clear", {
+      sourceKey: isDailyRun
+        ? `daily-clear:${this.dailyInfo && this.dailyInfo.dateStr ? this.dailyInfo.dateStr : this.getTodayDateStr()}:${this.currentPlanetIndex}`
+        : `campaign-clear:${this.currentPlanetIndex}:${this.planetClears && this.planetClears[this.currentPlanetIndex] ? this.planetClears[this.currentPlanetIndex] : 1}`,
+      silent: true
+    });
+    labStars.worldMastery = clearMastery.progress;
+    labStars.worldMasteryAddedXP = (labStars.worldMasteryAddedXP || 0) + clearMastery.addedXP;
+    labStars.worldMasteryTierAwards = (labStars.worldMasteryTierAwards || []).concat(clearMastery.tierAwards || []);
     labStars = this.grantMasteryClearReward(labStars);
     const clearTime = this.recordClearTime({ isDailyRun });
     this.refreshGalaxyMapProgress();
@@ -3412,6 +3523,24 @@ class StarHopperGame {
         <strong>${safe(starSummary.isNewMastery ? `3-star scientist clear unlocked${masteryReward}` : "World mastered")}</strong>
       </div>
     ` : "";
+    const worldMastery = starSummary.worldMastery || this.getWorldMasteryProgress(this.currentPlanetIndex);
+    const worldMasteryPct = worldMastery ? Math.max(0, Math.min(100, Number(worldMastery.pct) || 0)) : 0;
+    const newWorldTiers = Array.isArray(starSummary.worldMasteryTierAwards) && starSummary.worldMasteryTierAwards.length
+      ? starSummary.worldMasteryTierAwards.map(tier => tier.label).join(", ")
+      : "";
+    const worldMasteryNext = worldMastery && worldMastery.nextTier
+      ? `${worldMastery.nextTier.label} at ${worldMastery.nextTier.xp} XP`
+      : "Max world tier reached";
+    const worldMasteryBlock = worldMastery ? `
+      <div class="clear-world-mastery${newWorldTiers ? " new" : ""}">
+        <div class="clear-world-mastery-head">
+          <span>WORLD MASTERY</span>
+          <strong>${safe(newWorldTiers || worldMastery.title)}</strong>
+        </div>
+        <div class="clear-world-mastery-bar" aria-label="${safe(`${worldMastery.xp} world mastery XP`)}"><span style="width: ${worldMasteryPct}%"></span></div>
+        <p>${safe(`${worldMastery.xp} XP${starSummary.worldMasteryAddedXP ? ` · +${starSummary.worldMasteryAddedXP} this run` : ""} · ${worldMasteryNext}`)}</p>
+      </div>
+    ` : "";
     const nextLabel = isDailyRun
       ? "Open the log and compare today's remix."
       : (nextIndex === null ? "Open the log or accept today's signal." : `Launch toward ${typeof PLANETS !== 'undefined' && PLANETS[nextIndex] ? PLANETS[nextIndex].name : "the next planet"}.`);
@@ -3427,6 +3556,7 @@ class StarHopperGame {
       </div>
       <div class="clear-lab-star-list">${starChecklist}</div>
       ${masteryRibbon}
+      ${worldMasteryBlock}
       ${timeBadge}
       ${replayContractBlock}
       <div class="clear-lab-grid">

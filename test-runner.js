@@ -873,10 +873,13 @@ function runEngineTests() {
     assertEquals(1, game.formulaCardEffects.length, "Formula card unlock should spawn an in-world card effect");
     assertEquals("Mass Lab", game.formulaCardEffects[0].title, "Formula card effect should name the collected card");
     assertEquals(true, firstXP > 0, "New check/gem progress should award Research XP");
+    const firstWorldXP = game.getWorldMasteryProgress(0).xp;
+    assertEquals(true, firstWorldXP > 0, "Science progress should also feed the world mastery meter");
     assertEquals(1, game.discoveryCombo, "New discovery starts the combo");
 
     recordDiscoveryPulse(game, activeMission, "hopper.mass = 1.2", partial, 0);
     assertEquals(firstXP, game.researchXP, "Repeating the same progress should not farm Research XP");
+    assertEquals(firstWorldXP, game.getWorldMasteryProgress(0).xp, "Repeating the same progress should not farm world mastery XP");
     assertEquals(1, game.discoveryCombo, "Repeating without progress should not raise combo");
     assertEquals(1, game.discoveredFormulaKinds.size, "Repeating without progress should not unlock new cards");
     assertEquals(1, game.formulaCardEffects.length, "Repeating without a new card should not spawn another effect");
@@ -888,6 +891,7 @@ function runEngineTests() {
     const finalPulse = recordDiscoveryPulse(game, activeMission, "hopper.engine = 6", complete, 0);
     assertEquals("engine", finalPulse.kind, "Engine command should map to the speed formula");
     assertEquals(true, game.researchXP > firstXP, "Newly passed checks should add more Research XP");
+    assertEquals(true, game.getWorldMasteryProgress(0).xp > firstWorldXP, "New science progress should keep filling world mastery");
     assertEquals(2, game.discoveryCombo, "Second new discovery extends combo");
     assertEquals(true, !!finalPulse.rankUp, "Crossing a Research XP threshold should flag rank-up");
     assertEquals("Variable Scout", finalPulse.rankTitle, "Rank-up should name the new rank");
@@ -1132,6 +1136,8 @@ function runEngineTests() {
     assertEquals(true, /3\/3 Lab Stars/.test(report.innerHTML), "Clear report should include the mastery star rating");
     assertEquals(true, /NEW MASTERY BADGE/.test(report.innerHTML), "Clear report should celebrate a first 3-star mastery");
     assertEquals(true, /\+25 Research XP/.test(report.innerHTML), "Clear report should show the mastery XP reward");
+    assertEquals(true, /WORLD MASTERY/.test(report.innerHTML), "Clear report should include per-world mastery progress");
+    assertEquals(true, /Signal Scout/.test(report.innerHTML), "Clear report should show newly earned world mastery tier");
     assertEquals(true, /OK Mission tasks/.test(report.innerHTML), "Clear report should credit completed mission tasks");
     assertEquals(true, /OK Science proof/.test(report.innerHTML), "Clear report should credit the science-proof action");
     assertEquals(true, /222px/.test(report.innerHTML), "Clear report should include max height");
@@ -1171,6 +1177,10 @@ function runEngineTests() {
     assertEquals(true, summary.isNewMastery, "First 3-star clear should be a new mastery");
     assertEquals(3, game.bestLabStars[0], "Best lab-star score should persist on the game state");
     assertEquals(true, game.masteryCleared[0], "3-star clear should mark the planet mastered");
+    assertEquals(20, summary.worldMasteryAddedXP, "A new lab star should add world mastery XP");
+    assertEquals(20, game.getWorldMasteryProgress(0).xp, "World mastery meter should persist the lab-star XP");
+    const repeat = game.recordClearLabStars({ isDailyRun: false });
+    assertEquals(0, repeat.worldMasteryAddedXP, "Repeating the same star best should not farm world mastery XP");
     assertEquals(true, summary.checks.some(check => check.id === "science" && check.earned), "Science proof should count for a lab star");
     renderTestResult("engine-suite", "Curriculum: clear lab stars reward mastery actions", true);
   } catch (err) {
@@ -1370,6 +1380,7 @@ function runEngineTests() {
     game.planetClears = { 0: 2 };
     game.bestLabStars = { 0: 3, 1: 1 };
     game.masteryCleared = { 0: true };
+    game.masteryMeters = { 0: { xp: 110, badges: ["scout", "engineer"], sources: {} } };
     game.refreshGalaxyMapProgress();
 
     assertEquals(false, nodes[0].disabled, "Cleared Earth node should be selectable");
@@ -1377,6 +1388,8 @@ function runEngineTests() {
     assertEquals(true, nodes[0].classList.contains("mastered"), "Mastered node should get a map class");
     assertEquals(true, /Mastered/.test(nodes[0]._meta.innerHTML), "Mastered node should show mastered status");
     assertEquals(true, /3 of 3 Lab Stars/.test(nodes[0]._meta.innerHTML), "Cleared node should show best lab stars");
+    assertEquals(true, /World Engineer/.test(nodes[0]._meta.innerHTML), "Cleared node should show world mastery tier");
+    assertEquals(true, /110 XP/.test(nodes[0]._meta.innerHTML), "Cleared node should show world mastery XP");
     assertEquals(false, nodes[1].disabled, "Moon should unlock after Earth clear");
     assertEquals(true, /Unlocked/.test(nodes[1]._meta.innerHTML), "Next planet should read as unlocked");
     assertEquals(true, /1 of 3 Lab Stars/.test(nodes[1]._meta.innerHTML), "Saved next-planet stars should render");
@@ -2113,6 +2126,8 @@ function runCombatTests() {
     game.addXP(50);
     assertEquals(2, game.weaponLevel, "45+ XP reaches weapon level 2");
     assertEquals(true, (game.masteryMeters[0].xp || 0) >= 50, "XP fills the per-world mastery meter");
+    assertEquals(true, game.masteryMeters[0].badges.includes("scout"), "World mastery awards the first tier badge at 50 XP");
+    assertEquals(true, game.earnedBadges.has("world-0-scout"), "World mastery tier badge is tracked idempotently");
     renderTestResult(SUITE, "XP: fills mastery meter + levels the weapon", true);
   } catch (err) {
     renderTestResult(SUITE, "XP: fills mastery meter + levels the weapon", false, err.message);
@@ -3198,7 +3213,7 @@ function runRetryRemixTests() {
       bestClearTimes: { 0: 38.2 },
       bestLabStars: { 0: 3 },
       masteryCleared: { 0: true },
-      masteryMeters: { 0: { xp: 5 } },
+      masteryMeters: { 0: { xp: 80, badges: ["scout"], sources: { combat: 50 } } },
       dailySignalClears: 4,
       lastPlayedDate: "2026-06-18",
       streakCount: 3,
@@ -3221,7 +3236,7 @@ function runRetryRemixTests() {
     assertEquals(true, payload.profileProgress.discoveredFormulaKinds.includes("loop"), "Formula card kinds should export");
     assertEquals(true, payload.profileProgress.confirmedHypotheses.includes("earth-gravity-wall"), "Confirmed hypotheses should export");
     const merged = mergeProgress(
-      { unlockedUpgrades: ["jump"], upgradeLevels: { engine: 0.25 }, planetClears: { 0: 1 }, bestLabStars: { 0: 1, 1: 2 }, researchXP: 8, discoveryPassCounts: { "earth-gravity-wall": 0 }, discoveredFormulaKinds: ["friction"], confirmedHypotheses: ["moon-canyon-jump"] },
+      { unlockedUpgrades: ["jump"], upgradeLevels: { engine: 0.25 }, planetClears: { 0: 1 }, bestLabStars: { 0: 1, 1: 2 }, masteryMeters: { 0: { xp: 95, badges: ["engineer"], sources: { stars: 40 } } }, researchXP: 8, discoveryPassCounts: { "earth-gravity-wall": 0 }, discoveredFormulaKinds: ["friction"], confirmedHypotheses: ["moon-canyon-jump"] },
       progressFromSavePayload(payload)
     );
     assertEquals(true, merged.unlockedUpgrades.includes("engine"), "Incoming unlocked upgrade survives merge");
@@ -3230,6 +3245,11 @@ function runRetryRemixTests() {
     assertEquals(2, merged.planetClears[0], "Merge keeps the higher clear count");
     assertEquals(3, merged.bestLabStars[0], "Merge keeps the higher lab-star count");
     assertEquals(2, merged.bestLabStars[1], "Merge keeps local lab-star counts for other planets");
+    assertEquals(95, merged.masteryMeters[0].xp, "Merge keeps the higher world mastery XP");
+    assertEquals(true, merged.masteryMeters[0].badges.includes("scout"), "Incoming world mastery badge survives merge");
+    assertEquals(true, merged.masteryMeters[0].badges.includes("engineer"), "Local world mastery badge survives merge");
+    assertEquals(50, merged.masteryMeters[0].sources.combat, "Incoming mastery source survives merge");
+    assertEquals(40, merged.masteryMeters[0].sources.stars, "Local mastery source survives merge");
     assertEquals(42, merged.researchXP, "Merge keeps the higher Research XP");
     assertEquals(1, merged.discoveryPassCounts["earth-gravity-wall"], "Merge keeps discovery pass progress");
     assertEquals(true, merged.discoveredFormulaKinds.includes("mass"), "Incoming formula card survives merge");

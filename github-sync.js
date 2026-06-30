@@ -89,6 +89,24 @@ function mergeBooleanObject(local, incoming) {
   return out;
 }
 
+function mergeMasteryMeters(local, incoming) {
+  const out = { ...plainObject(local) };
+  Object.entries(plainObject(incoming)).forEach(([key, value]) => {
+    const incomingMeter = plainObject(value);
+    const currentMeter = plainObject(out[key]);
+    const currentXP = Number(currentMeter.xp) || 0;
+    const incomingXP = Number(incomingMeter.xp) || 0;
+    out[key] = {
+      ...currentMeter,
+      ...incomingMeter,
+      xp: Math.max(currentXP, incomingXP),
+      badges: arrayUnion(currentMeter.badges, incomingMeter.badges),
+      sources: { ...plainObject(currentMeter.sources), ...plainObject(incomingMeter.sources) }
+    };
+  });
+  return out;
+}
+
 function mergeNotebookEntries(local, incoming) {
   const out = { ...plainObject(local) };
   Object.entries(plainObject(incoming)).forEach(([key, value]) => {
@@ -205,7 +223,7 @@ function mergeProgress(localProgress, incomingProgress) {
     bestClearTimes: mergeBestTimes(local.bestClearTimes, incoming.bestClearTimes),
     bestLabStars: mergeNumberMax(local.bestLabStars, incoming.bestLabStars),
     masteryCleared: mergeBooleanObject(local.masteryCleared, incoming.masteryCleared),
-    masteryMeters: { ...local.masteryMeters, ...incoming.masteryMeters },
+    masteryMeters: mergeMasteryMeters(local.masteryMeters, incoming.masteryMeters),
     dailySignalClears: Math.max(local.dailySignalClears || 0, incoming.dailySignalClears || 0),
     lastPlayedDate: latestPlayed,
     streakCount,

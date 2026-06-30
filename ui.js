@@ -1128,6 +1128,12 @@ function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems
     if (cardUnlocked && typeof game.spawnFormulaCardEffect === 'function') {
       game.spawnFormulaCardEffect(pulse);
     }
+    if (typeof game.awardWorldMasteryXP === 'function') {
+      game.awardWorldMasteryXP(6 + newPasses * 3 + opened * 2 + (cardUnlocked ? 6 : 0), "science proof", {
+        sourceKey: `concept:${missionId}:${pulse.kind}:${passed}:${opened}:${cardUnlocked ? "card" : "progress"}`,
+        silent: true
+      });
+    }
     game.researchXP = Math.max(0, (game.researchXP || 0) + pulse.rewardXP);
     const afterRank = (typeof getResearchRank === 'function') ? getResearchRank(game.researchXP || 0) : null;
     if (beforeRank && afterRank && afterRank.level > beforeRank.level) {

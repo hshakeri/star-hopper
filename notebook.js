@@ -323,6 +323,33 @@ function updateBadgeShelf(game = window.Game) {
     `;
     list.appendChild(item);
   });
+
+  const worldTiers = (typeof WORLD_MASTERY_TIERS !== 'undefined' && Array.isArray(WORLD_MASTERY_TIERS)) ? WORLD_MASTERY_TIERS : [];
+  const planets = (typeof PLANETS !== 'undefined' && Array.isArray(PLANETS)) ? PLANETS : [];
+  const meters = game && game.masteryMeters && typeof game.masteryMeters === 'object' ? game.masteryMeters : {};
+  Object.keys(meters).sort((a, b) => Number(a) - Number(b)).forEach(key => {
+    const index = Number(key);
+    if (!Number.isFinite(index)) return;
+    const progress = typeof game.getWorldMasteryProgress === 'function'
+      ? game.getWorldMasteryProgress(index)
+      : { xp: Number(meters[key] && meters[key].xp) || 0, earnedTiers: [] };
+    const earnedTiers = progress.earnedTiers && progress.earnedTiers.length
+      ? progress.earnedTiers
+      : worldTiers.filter(tier => progress.xp >= tier.xp);
+    earnedTiers.forEach(tier => {
+      const item = document.createElement("div");
+      item.className = "badge-shelf-item earned world-mastery-badge";
+      const planetName = planets[index] ? planets[index].name : `World ${index + 1}`;
+      item.innerHTML = `
+        <span class="badge-shelf-icon">🏅</span>
+        <div>
+          <strong>${escapeHTML(`${planetName}: ${tier.label}`)}</strong>
+          <p>${escapeHTML(`${progress.xp} XP world mastery`)}</p>
+        </div>
+      `;
+      list.appendChild(item);
+    });
+  });
 }
 
 // Print specific student/parent/teacher sheets selectively
