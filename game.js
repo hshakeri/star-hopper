@@ -274,6 +274,52 @@ class StarHopperGame {
     return gems[index] || gems[0];
   }
 
+  getPlanetMissionGemTotal(index = this.currentPlanetIndex) {
+    const planet = (typeof PLANETS !== 'undefined' && PLANETS[index]) || null;
+    const map = planet && Array.isArray(planet.map) ? planet.map : null;
+    if (!map) return 0;
+    let total = 0;
+    for (let r = 0; r < map.length; r++) {
+      for (let c = 0; c < map[r].length; c++) {
+        if (map[r][c] === 3) total++;
+      }
+    }
+    return total;
+  }
+
+  getBankedMissionGemCount(index = this.currentPlanetIndex) {
+    const key = String(index || 0);
+    const wallet = this.gemsAwardedForPlanet || {};
+    const raw = wallet[index] !== undefined ? wallet[index] : wallet[key];
+    return Math.max(0, Math.floor(Number(raw) || 0));
+  }
+
+  hasCollectedAllMissionGems(index = this.currentPlanetIndex) {
+    const key = String(index || 0);
+    if (this.masteryCleared && this.masteryCleared[key]) return true;
+    if (this.bestLabStars && Number(this.bestLabStars[key] || this.bestLabStars[index]) >= 3) return true;
+    const total = this.getPlanetMissionGemTotal(index);
+    if (total <= 0) return true;
+    return this.getBankedMissionGemCount(index) >= total;
+  }
+
+  isMasteryReplayUnlocked(index = this.currentPlanetIndex) {
+    const clears = Math.max(0, Math.floor(Number((this.planetClears || {})[index] || (this.planetClears || {})[String(index)] || 0)));
+    return clears > 0 && this.hasCollectedAllMissionGems(index);
+  }
+
+  getFreshReplayPlan(index = this.currentPlanetIndex) {
+    const clears = Math.max(0, Math.floor(Number((this.planetClears || {})[index] || (this.planetClears || {})[String(index)] || 0)));
+    if (clears <= 0) return { context: "first", attempt: 0, clears, masteryUnlocked: false };
+    const masteryUnlocked = this.isMasteryReplayUnlocked(index);
+    return {
+      context: masteryUnlocked ? "mastery" : "cleanup",
+      attempt: masteryUnlocked ? Math.max(1, clears) : 0,
+      clears,
+      masteryUnlocked
+    };
+  }
+
   getActiveCadetProfile() {
     if (typeof window !== 'undefined' && window.StarHopperProfiles && typeof window.StarHopperProfiles.getActive === 'function') {
       try { return window.StarHopperProfiles.getActive(); } catch (e) { return null; }
@@ -1486,8 +1532,8 @@ class StarHopperGame {
     // each same-level retry (preserveTunings) bumps the attempt so the world is
     // procedurally re-spun — same lesson, new instance. Deterministic per (planet, attempt).
     // Two more ways into a remix:
-    //   • MASTERY: a fresh visit to a world you've already cleared starts remixed (the
-    //     clear count picks the flavor), so replays are a new angle, never a rerun.
+    //   • MASTERY: a fresh visit to a world you've cleared AND fully sampled starts
+    //     remixed (the clear count picks the flavor), so mastery is earned by evidence.
     //   • DAILY SIGNAL: an explicit attempt override seeded from today's date.
     this.planetAttempts = this.planetAttempts || {};
     if (preserveTunings) {
@@ -1498,9 +1544,9 @@ class StarHopperGame {
       this._pendingAttemptOverride = null;
       this.remixContext = 'daily';
     } else {
-      const clears = (this.planetClears && this.planetClears[index]) || 0;
-      this.planetAttempts[index] = clears > 0 ? clears : 0;
-      this.remixContext = clears > 0 ? 'mastery' : 'first';
+      const plan = this.getFreshReplayPlan(index);
+      this.planetAttempts[index] = plan.attempt;
+      this.remixContext = plan.context;
     }
     this.retryAttempt = this.planetAttempts[index];
     this.currentVariant = (typeof buildPlanetVariant === 'function')
@@ -1712,6 +1758,14 @@ class StarHopperGame {
       if (this.player && typeof ComicBubbles !== 'undefined') {
         ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y - 22, pop, "rounded", "#c4b5fd", -0.6, { maxLife: 95, scale: 1.25 });
       }
+    }
+    if (this.state === 'playing' && this.remixContext === 'cleanup') {
+      const total = this.getPlanetMissionGemTotal(index);
+      const banked = this.getBankedMissionGemCount(index);
+      const gem = this.getGemConfig(index);
+      const headline = `◆ Sample cleanup: bank ${Math.max(0, total - banked)} more ${gem.shortName} mission gem${Math.max(0, total - banked) === 1 ? "" : "s"} to unlock the Mastery Remix.`;
+      if (typeof ui_log_output === 'function') ui_log_output(headline, "info");
+      if (typeof logMissionBriefing === 'function') logMissionBriefing(headline);
     }
     // Draw initial mission list
     updateMissionList(this);

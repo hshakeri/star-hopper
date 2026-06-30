@@ -854,6 +854,47 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Villages: NPC placement avoids gems, spikes, and crates", false, err.message);
   }
 
+  // Test 17f: Mastery remixes unlock only after the mission gems were fully banked.
+  try {
+    const game = new StarHopperGame();
+    const total = game.getPlanetMissionGemTotal(0);
+    assertEquals(true, total > 0, "Earth should have mission gems to gate mastery");
+
+    game.planetClears = { 0: 1 };
+    game.gemsAwardedForPlanet = { 0: Math.max(0, total - 1) };
+    let plan = game.getFreshReplayPlan(0);
+    assertEquals("cleanup", plan.context, "A clear with missing samples should replay the canonical cleanup run");
+    assertEquals(0, plan.attempt, "Cleanup run should keep the hand-built layout");
+    assertEquals(false, game.isMasteryReplayUnlocked(0), "Partial mission gems do not unlock mastery remix");
+
+    game.gemsAwardedForPlanet = { 0: total };
+    plan = game.getFreshReplayPlan(0);
+    assertEquals("mastery", plan.context, "All mission gems unlock the mastery remix");
+    assertEquals(1, plan.attempt, "First mastered revisit should use the first remix attempt");
+    assertEquals(true, game.isMasteryReplayUnlocked(0), "Full mission gems unlock mastery replay");
+
+    game.planetClears = { 0: 3 };
+    plan = game.getFreshReplayPlan(0);
+    assertEquals(3, plan.attempt, "Later mastered revisits rotate by clear count");
+
+    const legacyStarSave = new StarHopperGame();
+    legacyStarSave.planetClears = { 0: 1 };
+    legacyStarSave.bestLabStars = { 0: 3 };
+    assertEquals("mastery", legacyStarSave.getFreshReplayPlan(0).context, "Old 3-star saves still unlock mastery");
+
+    const legacyMasterySave = new StarHopperGame();
+    legacyMasterySave.planetClears = { 0: 1 };
+    legacyMasterySave.masteryCleared = { 0: true };
+    assertEquals("mastery", legacyMasterySave.getFreshReplayPlan(0).context, "Old mastery flags still unlock mastery");
+
+    const noClear = new StarHopperGame();
+    noClear.gemsAwardedForPlanet = { 0: total };
+    assertEquals("first", noClear.getFreshReplayPlan(0).context, "Samples alone do not skip the first canonical clear");
+    renderTestResult("engine-suite", "Mastery: remixes are gated behind full mission gems", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Mastery: remixes are gated behind full mission gems", false, err.message);
+  }
+
   // Test 18: Campaign mission validators read the same derived physics used by gates/HUD.
   try {
     Compiler.reset();
