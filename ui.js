@@ -418,6 +418,7 @@ function updateMissionList(game) {
 
   listContainer.innerHTML = "";
   appendLessonLensCard(listContainer, game);
+  appendMissionLabQuestionCard(listContainer, game);
   appendMissionMentorSignal(listContainer, game);
   appendStagedExperimentCard(listContainer, game);
   appendScienceDeltaCard(listContainer, game);
@@ -532,6 +533,52 @@ function appendLessonLensCard(listContainer, game) {
       }));
     }
     card.appendChild(action);
+  }
+
+  listContainer.appendChild(card);
+}
+
+function appendMissionLabQuestionCard(listContainer, game) {
+  if (!listContainer || !game || typeof getAttemptLogNextQuestion !== "function") return;
+  const cue = getAttemptLogNextQuestion(game);
+  if (!cue) return;
+
+  const card = document.createElement("div");
+  card.className = `mission-lab-question-card ${cue.kind || "mission"}`;
+
+  const head = document.createElement("div");
+  head.className = "mission-lab-question-head";
+  const label = document.createElement("span");
+  label.textContent = cue.label || "NEXT";
+  const title = document.createElement("strong");
+  title.textContent = cue.title || "Next lab question";
+  head.appendChild(label);
+  head.appendChild(title);
+  card.appendChild(head);
+
+  const body = document.createElement("p");
+  body.textContent = cue.body || "Run one focused experiment, then compare the evidence.";
+  card.appendChild(body);
+
+  if (cue.command) {
+    const code = document.createElement("code");
+    code.textContent = cue.command;
+    card.appendChild(code);
+
+    const stage = document.createElement("button");
+    stage.type = "button";
+    stage.className = "mission-lab-question-stage-btn";
+    stage.textContent = cue.kind === "prediction" ? "STAGE AFTER PREDICT" : "STAGE TEST";
+    stage.disabled = cue.kind === "prediction";
+    if (!stage.disabled && typeof stage.addEventListener === "function") {
+      stage.addEventListener("click", () => stageScienceDeltaCommand(cue.command, {
+        title: cue.title || "Lab question",
+        kind: cue.kind || "mission",
+        source: "mission-lab-question",
+        color: "#67e8f9"
+      }));
+    }
+    card.appendChild(stage);
   }
 
   listContainer.appendChild(card);

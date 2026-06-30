@@ -2547,6 +2547,8 @@ function runEngineTests() {
     const lensText = flattenText(lens || list);
     const scienceDelta = findByClass(list, "science-delta-card");
     const scienceDeltaText = flattenText(scienceDelta || list);
+    const labQuestion = findByClass(list, "mission-lab-question-card");
+    const labQuestionText = flattenText(labQuestion || list);
     const mentor = findByClass(list, "mentor-signal-card");
     const mentorText = flattenText(mentor || list);
     const staged = findByClass(list, "staged-experiment-card");
@@ -2563,6 +2565,12 @@ function runEngineTests() {
     assertEquals(true, !!blockedLensButton, "Lesson lens should render a stage action");
     assertEquals("PREDICT FIRST", blockedLensButton.textContent, "Lesson lens should preserve the prediction-first flow");
     assertEquals(true, !!blockedLensButton.disabled, "Lesson lens staging should stay disabled until a prediction is chosen");
+    assertEquals(true, !!labQuestion, "Mission panel should pin the active lab question");
+    assertEquals(true, /PREDICT/.test(labQuestionText), "Lab question should ask for prediction before code");
+    assertEquals(true, /Which change will help Hopper/.test(labQuestionText), "Lab question should reuse the mission prediction");
+    const blockedQuestionButton = findByClass(labQuestion || list, "mission-lab-question-stage-btn");
+    assertEquals("STAGE AFTER PREDICT", blockedQuestionButton && blockedQuestionButton.textContent, "Prediction card should explain why staging waits");
+    assertEquals(true, !!blockedQuestionButton.disabled, "Prediction card staging stays disabled until the kid predicts");
     assertEquals(true, !!mentor, "Mission panel should pin the active mentor signal");
     assertEquals(true, /MENTOR SIGNAL/.test(mentorText), "Mentor signal should identify itself");
     assertEquals(true, /Machinist Geary/.test(mentorText), "Mentor signal should name the science villager");
@@ -2587,8 +2595,15 @@ function runEngineTests() {
     updateMissionList(game);
     const activeLens = findByClass(list, "lesson-lens-card");
     const activeLensButton = findByClass(activeLens || list, "lesson-lens-stage-btn");
+    const activeLabQuestion = findByClass(list, "mission-lab-question-card");
+    const activeLabQuestionText = flattenText(activeLabQuestion || list);
+    const activeLabQuestionButton = findByClass(activeLabQuestion || list, "mission-lab-question-stage-btn");
     assertEquals("STAGE LESSON CODE", activeLensButton && activeLensButton.textContent, "Lesson lens should stage code after prediction");
     assertEquals(false, !!activeLensButton.disabled, "Lesson lens staging should enable after prediction");
+    assertEquals(true, /NEXT TEST/.test(activeLabQuestionText), "After prediction, lab question should move to the next test");
+    assertEquals(true, /Hopper activated|Agility 30\+ reached/.test(activeLabQuestionText), "Next test should name a live mission check");
+    assertEquals("STAGE TEST", activeLabQuestionButton && activeLabQuestionButton.textContent, "Next-test card should stage its code");
+    assertEquals(false, !!activeLabQuestionButton.disabled, "Next-test staging should be enabled");
     const inputEl22j = {
       value: "",
       focused: false,
@@ -2602,6 +2617,13 @@ function runEngineTests() {
     assertEquals(true, /use_hopper\(\)/.test(inputEl22j.value), "Lesson lens stage action should include mission setup code");
     assertEquals(true, /hopper\.mass/.test(inputEl22j.value), "Lesson lens stage action should include the scaffold tuning code");
     assertEquals(true, inputEl22j.focused, "Lesson lens stage action should focus the terminal");
+    inputEl22j.value = "";
+    inputEl22j.focused = false;
+    activeLabQuestionButton._events.click();
+    assertEquals(true, /use_hopper\(\)/.test(inputEl22j.value), "Lab question stage action should include setup code");
+    assertEquals(false, /hopper\.mass/.test(inputEl22j.value), "Lab question should stage the focused setup fix for the active failed check");
+    assertEquals(true, inputEl22j.focused, "Lab question stage action should focus the terminal");
+    assertEquals("mission-lab-question", game.lastStagedExperiment && game.lastStagedExperiment.source, "Lab question staging should remember its source");
     const activeMentor = findByClass(list, "mentor-signal-card");
     const activeMentorButton = findByClass(activeMentor || list, "mentor-signal-stage-btn");
     inputEl22j.value = "";

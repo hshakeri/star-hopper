@@ -3550,6 +3550,105 @@ html {
   color: #052e16;
 }
 
+.mission-lab-question-card {
+  border: 1px solid rgba(103, 232, 249, 0.32);
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgba(14, 116, 144, 0.22), rgba(15, 23, 42, 0.58)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.028) 0 1px, transparent 1px 4px);
+  box-shadow: inset 0 0 14px rgba(34, 211, 238, 0.08);
+  display: grid;
+  gap: 5px;
+  padding: 7px 8px;
+}
+
+.mission-lab-question-card.prediction {
+  border-color: rgba(250, 204, 21, 0.38);
+  background:
+    linear-gradient(180deg, rgba(113, 63, 18, 0.24), rgba(8, 47, 73, 0.38)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.028) 0 1px, transparent 1px 4px);
+}
+
+.mission-lab-question-card.reflection {
+  border-color: rgba(167, 139, 250, 0.34);
+  background:
+    linear-gradient(180deg, rgba(88, 28, 135, 0.22), rgba(15, 23, 42, 0.56)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.026) 0 1px, transparent 1px 4px);
+}
+
+.mission-lab-question-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+  font-family: var(--font-mono);
+  line-height: 1.2;
+}
+
+.mission-lab-question-head span {
+  color: #67e8f9;
+  font-size: 0.55rem;
+  font-weight: 900;
+}
+
+.mission-lab-question-card.prediction .mission-lab-question-head span { color: #fef08a; }
+.mission-lab-question-card.reflection .mission-lab-question-head span { color: #c4b5fd; }
+
+.mission-lab-question-head strong {
+  color: #ecfeff;
+  font-size: 0.64rem;
+  text-align: right;
+}
+
+.mission-lab-question-card p {
+  margin: 0;
+  color: #dff6ff;
+  font-size: 0.61rem;
+  line-height: 1.28;
+}
+
+.mission-lab-question-card code {
+  display: block;
+  max-height: 54px;
+  overflow: hidden;
+  color: #bbf7d0;
+  background: rgba(2, 6, 23, 0.42);
+  border: 1px solid rgba(103, 232, 249, 0.18);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  line-height: 1.28;
+  padding: 4px 5px;
+  white-space: pre-wrap;
+}
+
+.mission-lab-question-stage-btn {
+  justify-self: start;
+  border: 1px solid rgba(103, 232, 249, 0.48);
+  border-radius: 4px;
+  background: rgba(8, 47, 73, 0.72);
+  color: #ecfeff;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.53rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0;
+  padding: 5px 7px;
+}
+
+.mission-lab-question-stage-btn:hover {
+  background: rgba(103, 232, 249, 0.86);
+  color: #082f49;
+}
+
+.mission-lab-question-stage-btn:disabled {
+  border-color: rgba(250, 204, 21, 0.28);
+  background: rgba(71, 47, 11, 0.4);
+  color: rgba(254, 240, 138, 0.62);
+  cursor: not-allowed;
+}
+
 .lab-chain-target-card {
   border: 1px solid rgba(103, 232, 249, 0.34);
   border-radius: 6px;
@@ -6317,6 +6416,10 @@ body.readable-text-mode .lab-chain-target-head,
 body.readable-text-mode .lab-chain-target-body p,
 body.readable-text-mode .lab-chain-target-card code,
 body.readable-text-mode .lab-chain-target-stage-btn,
+body.readable-text-mode .mission-lab-question-head,
+body.readable-text-mode .mission-lab-question-card p,
+body.readable-text-mode .mission-lab-question-card code,
+body.readable-text-mode .mission-lab-question-stage-btn,
 body.readable-text-mode .science-delta-row,
 body.readable-text-mode .science-delta-row em,
 body.readable-text-mode .science-delta-next span,
@@ -6436,6 +6539,7 @@ body.readable-text-mode .formula-target-title,
 body.readable-text-mode .mission-coach-focus strong,
 body.readable-text-mode .science-delta-next strong,
 body.readable-text-mode .lab-chain-target-body strong,
+body.readable-text-mode .mission-lab-question-head strong,
 body.readable-text-mode .coach-one-hint,
 body.readable-text-mode .coach-skip-note,
 body.readable-text-mode .coach-done-msg,
