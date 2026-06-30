@@ -2679,6 +2679,27 @@ class StarHopperGame {
     ).length;
   }
 
+  getNextMissionSampleTarget() {
+    if (!this.player || !Array.isArray(this.interactiveObjects)) return null;
+    const px = (Number.isFinite(this.player.x) ? this.player.x : 0) + (Number.isFinite(this.player.w) ? this.player.w : 24) / 2;
+    const py = (Number.isFinite(this.player.y) ? this.player.y : 0) + (Number.isFinite(this.player.h) ? this.player.h : 32) / 2;
+    let best = null;
+    let bestDist = Infinity;
+
+    for (const obj of this.interactiveObjects) {
+      if (!obj || obj.type !== 'coin' || !obj.requiredCollectible || obj.collected) continue;
+      if (!this.canCollectGem(obj)) continue;
+      const ox = (Number.isFinite(obj.x) ? obj.x : 0) + (Number.isFinite(obj.w) ? obj.w : 16) / 2;
+      const oy = (Number.isFinite(obj.y) ? obj.y : 0) + (Number.isFinite(obj.h) ? obj.h : 16) / 2;
+      const dist = (ox - px) * (ox - px) + (oy - py) * (oy - py);
+      if (dist < bestDist) {
+        best = obj;
+        bestDist = dist;
+      }
+    }
+    return best;
+  }
+
   // The gem gate of the first still-locked required gem (for accurate hints).
   getFirstLockedGemGate() {
     const obj = this.interactiveObjects.find(o =>
@@ -4637,6 +4658,60 @@ class StarHopperGame {
     }
   }
 
+  drawMissionSampleBeacon(ctx) {
+    if (!ctx || this.state !== 'playing') return null;
+    const target = this.getNextMissionSampleTarget();
+    if (!target) return null;
+    const width = Number.isFinite(target.w) ? target.w : 16;
+    const height = Number.isFinite(target.h) ? target.h : 16;
+    const cx = (Number.isFinite(target.x) ? target.x : 0) + width / 2 - (this.cameraX || 0);
+    const cy = (Number.isFinite(target.y) ? target.y : 0) + height / 2;
+    if (this.canvas && (cx < -48 || cx > this.canvas.width + 48 || cy < -48 || cy > this.canvas.height + 48)) {
+      return { target, visible: false };
+    }
+
+    const gem = target.gem || (typeof this.getGemConfig === 'function' ? this.getGemConfig() : null);
+    const color = gem && gem.color ? gem.color : "#facc15";
+    const t = this.reducedMotion ? 0 : Date.now() / 360;
+    const pulse = this.reducedMotion ? 0.5 : 0.5 + 0.5 * Math.sin(t);
+    const ring = 18 + pulse * 4;
+    const bob = this.reducedMotion ? 0 : Math.sin(t * 1.4) * 2;
+
+    ctx.save();
+    ctx.globalAlpha = 0.78;
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = 2;
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = color;
+    if (ctx.setLineDash) ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.arc(cx, cy, ring, 0, Math.PI * 2);
+    ctx.stroke();
+    if (ctx.setLineDash) ctx.setLineDash([]);
+
+    ctx.globalAlpha = 0.62;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 44 + bob);
+    ctx.lineTo(cx - 7, cy - 31 + bob);
+    ctx.lineTo(cx + 7, cy - 31 + bob);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 0.92;
+    ctx.font = "bold 8px 'Share Tech Mono', monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "rgba(3, 7, 18, 0.86)";
+    ctx.fillStyle = "#f8fafc";
+    ctx.strokeText("SAMPLE", cx, cy - 52 + bob);
+    ctx.fillText("SAMPLE", cx, cy - 52 + bob);
+    ctx.restore();
+    return { target, visible: true, color, x: cx, y: cy };
+  }
+
   draw() {
     if (window.navigatorModeActive) {
       if (typeof drawNavigator === 'function') {
@@ -4679,7 +4754,8 @@ class StarHopperGame {
     // 2. Draw active platform level tilemap
     this.drawTilemap();
 
-    // 3. Draw interactive objects
+    // 3. Draw the next collectible mission sample beacon, then objects
+    this.drawMissionSampleBeacon(this.ctx);
     for (const obj of this.interactiveObjects) {
       obj.draw(this.ctx, this.cameraX, this);
     }

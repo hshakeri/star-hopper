@@ -607,6 +607,42 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Objectives: Earth low gems unlock upon meeting Agility target", false, err.message);
   }
 
+  // Test 17b2: the in-world sample beacon points to the next collectible mission gem, not locked gates.
+  try {
+    const game = new StarHopperGame();
+    game.state = 'playing';
+    game.player = { x: 0, y: 0, w: 24, h: 32 };
+    game.canvas = { width: 300, height: 180 };
+    game.cameraX = 0;
+    game.reducedMotion = true;
+    const lockedNear = { type: 'coin', requiredCollectible: true, collected: false, x: 24, y: 40, w: 16, h: 16, gemGate: { validate: () => false } };
+    const bonusNear = { type: 'coin', requiredCollectible: false, collected: false, x: 28, y: 44, w: 16, h: 16 };
+    const unlockedNear = { type: 'coin', requiredCollectible: true, collected: false, x: 64, y: 40, w: 16, h: 16, gemGate: { validate: () => true }, gem: { color: '#4ade80' } };
+    const unlockedFar = { type: 'coin', requiredCollectible: true, collected: false, x: 220, y: 40, w: 16, h: 16, gemGate: { validate: () => true } };
+    game.interactiveObjects = [lockedNear, bonusNear, unlockedFar, unlockedNear];
+
+    assertEquals(unlockedNear, game.getNextMissionSampleTarget(), "Beacon should choose the nearest unlocked required gem");
+
+    const labels = [];
+    const ctx = {
+      save() {}, restore() {}, beginPath() {}, closePath() {}, arc() {}, stroke() {}, fill() {},
+      moveTo() {}, lineTo() {}, setLineDash() {}, strokeText(text) { labels.push(text); }, fillText(text) { labels.push(text); }
+    };
+    const beacon = game.drawMissionSampleBeacon(ctx);
+    assertEquals(unlockedNear, beacon.target, "Beacon render should use the selected sample");
+    assertEquals(true, beacon.visible, "Beacon should be visible for an onscreen sample");
+    assertEquals('#4ade80', beacon.color, "Beacon should use the sample gem color");
+    assertEquals(true, labels.includes("SAMPLE"), "Beacon should label the sample target");
+
+    unlockedNear.collected = true;
+    unlockedFar.gemGate.validate = () => false;
+    assertEquals(null, game.getNextMissionSampleTarget(), "No beacon target remains when all mission gems are locked or collected");
+    assertEquals(null, game.drawMissionSampleBeacon(ctx), "Draw helper should no-op without a collectible target");
+    renderTestResult("engine-suite", "Objectives: beacon marks unlocked mission samples", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Objectives: beacon marks unlocked mission samples", false, err.message);
+  }
+
   // Test 17c: Asteroid Forge teaches one concept first: mass unlocks the first gem, then
   // elasticity is required for later boulder-bounce gems.
   try {
