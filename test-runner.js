@@ -1449,6 +1449,7 @@ function runEngineTests() {
     game.discoveryPassCounts = { "earth-gravity-wall": 1 };
     game.discoveredFormulaKinds = new Set(["antigravity"]);
     game.researchXP = 60;
+    game.planetClears = { 0: 1 };
     let labStars22e = game.recordClearLabStars({ isDailyRun: false });
     labStars22e = game.grantMasteryClearReward(labStars22e);
     game.renderClearLabReport({
@@ -1473,6 +1474,10 @@ function runEngineTests() {
     assertEquals(true, /NEW LAB TIME/.test(report.innerHTML), "Clear report should celebrate a new personal-best time");
     assertEquals(true, /12.4s/.test(report.innerHTML), "Clear report should include the lab clear time");
     assertEquals(true, /Best Time/.test(report.innerHTML), "Clear report should include best-time progress");
+    assertEquals(true, /NEXT SIGNAL CHAPTER/.test(report.innerHTML), "Clear report should preview the next story chapter");
+    assertEquals(true, /Moon Loop Echo/.test(report.innerHTML), "Clear report should name the next Signal Story chapter");
+    assertEquals(true, /Loops build repeatable patterns/.test(report.innerHTML), "Clear report should show the next chapter concept");
+    assertEquals(true, /2\/10 decoded/.test(report.innerHTML), "Clear report should show story progress");
     assertEquals(true, /NEXT RUN CONTRACT/.test(report.innerHTML), "Clear report should include a replay contract");
     assertEquals(true, /Collect Mass Lab/.test(report.innerHTML), "Replay contract should target the next formula card");
     assertEquals(true, /1\/9/.test(report.innerHTML), "Clear report should include formula deck progress");

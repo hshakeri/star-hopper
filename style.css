@@ -1675,6 +1675,60 @@ body.resizing-panes * {
   box-shadow: 0 0 14px rgba(103, 232, 249, 0.18);
 }
 
+.clear-story-preview {
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  border-radius: 6px;
+  background:
+    linear-gradient(135deg, rgba(34, 211, 238, 0.13), rgba(168, 85, 247, 0.14)),
+    rgba(15, 23, 42, 0.34);
+  padding: 7px 8px;
+  margin: -1px 0 8px;
+}
+
+.clear-story-preview-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  font-weight: 800;
+}
+
+.clear-story-preview-head span {
+  color: #67e8f9;
+}
+
+.clear-story-preview-head em {
+  color: #c4b5fd;
+  font-style: normal;
+  text-align: right;
+}
+
+.clear-story-preview strong {
+  display: block;
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  line-height: 1.2;
+  margin-top: 3px;
+}
+
+.clear-story-preview code {
+  display: block;
+  color: #fef08a;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  white-space: normal;
+  margin-top: 3px;
+}
+
+.clear-story-preview p {
+  margin: 4px 0 0;
+  color: #dff6ff;
+  font-size: 0.66rem;
+  line-height: 1.3;
+}
+
 .clear-lab-contract {
   border: 1px solid rgba(168, 85, 247, 0.32);
   border-radius: 6px;
@@ -4934,6 +4988,7 @@ body.readable-text-mode .run-replay-contract-head,
 body.readable-text-mode .run-replay-contract-body p,
 body.readable-text-mode .lab-star-contract-head,
 body.readable-text-mode .lab-star-goal,
+body.readable-text-mode .clear-story-preview p,
 body.readable-text-mode .mission-coach-summary,
 body.readable-text-mode .mission-coach-focus span,
 body.readable-text-mode .coach-prediction-card p,
@@ -5018,6 +5073,7 @@ body.readable-text-mode .coach-skip-note,
 body.readable-text-mode .coach-done-msg,
 body.readable-text-mode .badge-shelf-item strong,
 body.readable-text-mode .start-mission-radar > strong,
+body.readable-text-mode .clear-story-preview strong,
 body.readable-text-mode .research-rank-top strong,
 body.readable-text-mode .lab-quest-card strong,
 body.readable-text-mode .research-perk strong,

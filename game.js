@@ -2419,6 +2419,21 @@ class StarHopperGame {
     };
   }
 
+  getClearSignalStoryPreview({ isDailyRun = false, isFrontierRun = false, nextIndex = null } = {}) {
+    if (isDailyRun || isFrontierRun || nextIndex === null || typeof getSignalStoryProgress !== 'function') return null;
+    const story = getSignalStoryProgress(this);
+    const chapter = story && story.nextChapter ? story.nextChapter : null;
+    if (!chapter) return null;
+    const targetName = typeof PLANETS !== 'undefined' && PLANETS[nextIndex] ? PLANETS[nextIndex].name : "the next world";
+    return {
+      kicker: "NEXT SIGNAL CHAPTER",
+      title: chapter.title,
+      concept: chapter.concept,
+      body: `Launch toward ${targetName} to decode the next science story.`,
+      progress: `${story.unlocked.length}/${story.total} decoded`
+    };
+  }
+
   getClearLabStarSummary({ isDailyRun = false, isFrontierRun = false } = {}) {
     const status = (typeof this.getLevelObjectiveStatus === 'function')
       ? this.getLevelObjectiveStatus()
@@ -4310,6 +4325,18 @@ class StarHopperGame {
         <em>${safe(replayContract.reward)}</em>
       </div>
     ` : "";
+    const storyPreview = this.getClearSignalStoryPreview({ isDailyRun, isFrontierRun, nextIndex });
+    const storyPreviewBlock = storyPreview ? `
+      <div class="clear-story-preview">
+        <div class="clear-story-preview-head">
+          <span>${safe(storyPreview.kicker)}</span>
+          <em>${safe(storyPreview.progress)}</em>
+        </div>
+        <strong>${safe(storyPreview.title)}</strong>
+        <code>${safe(storyPreview.concept)}</code>
+        <p>${safe(storyPreview.body)}</p>
+      </div>
+    ` : "";
     const starIcons = Array.from({ length: starSummary.maxStars }, (_, index) =>
       `<span class="clear-lab-star${index < starSummary.stars ? " earned" : ""}" aria-hidden="true">★</span>`
     ).join("");
@@ -4367,6 +4394,7 @@ class StarHopperGame {
       ${masteryRibbon}
       ${worldMasteryBlock}
       ${timeBadge}
+      ${storyPreviewBlock}
       ${replayContractBlock}
       <div class="clear-lab-grid">
         <div class="clear-lab-stat"><span>Max Height</span><strong>${safe(`${maxH}px`)}</strong></div>
