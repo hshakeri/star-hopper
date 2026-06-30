@@ -695,6 +695,40 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Objectives: newly opened gem gates pop once", false, err.message);
   }
 
+  // Test 17b4: collecting mission samples shows explicit sample progress in the level.
+  const oldBubblePop17b4 = ComicBubbles.pop;
+  const oldParticleBurst17b4 = Particles.spawnBurst;
+  try {
+    const game = new StarHopperGame();
+    game.requiredCollectiblesTotal = 3;
+    game.requiredCollectiblesCollected = 2;
+    const sample = { x: 40, y: 64, w: 16, h: 16 };
+    const labels = [];
+    let bursts = 0;
+    ComicBubbles.pop = (x, y, text) => { labels.push(text); };
+    Particles.spawnBurst = () => { bursts++; };
+
+    const partial = game.spawnMissionSampleCollectedEffect(sample, { color: '#4ade80' }, false);
+    assertEquals("SAMPLE 2/3", partial.label, "Partial sample pickup should show collected/total progress");
+    assertEquals(true, labels.includes("SAMPLE 2/3"), "Partial sample pickup should pop the explicit progress label");
+    assertEquals(false, partial.complete, "Partial sample pickup should not claim completion");
+
+    game.requiredCollectiblesCollected = 3;
+    const complete = game.spawnMissionSampleCollectedEffect(sample, { color: '#4ade80' }, true);
+    assertEquals("ALL SAMPLES!", complete.label, "Final sample pickup should call out the milestone");
+    assertEquals(true, labels.includes("ALL SAMPLES!"), "Final sample pickup should pop the milestone label");
+    assertEquals(true, complete.complete, "Final sample pickup should report completion");
+    assertEquals(true, bursts >= 3, "Sample pickups should keep their sparkle feedback");
+
+    ComicBubbles.pop = oldBubblePop17b4;
+    Particles.spawnBurst = oldParticleBurst17b4;
+    renderTestResult("engine-suite", "Objectives: sample pickups show mission progress", true);
+  } catch (err) {
+    ComicBubbles.pop = oldBubblePop17b4;
+    Particles.spawnBurst = oldParticleBurst17b4;
+    renderTestResult("engine-suite", "Objectives: sample pickups show mission progress", false, err.message);
+  }
+
   // Test 17c: Asteroid Forge teaches one concept first: mass unlocks the first gem, then
   // elasticity is required for later boulder-bounce gems.
   try {

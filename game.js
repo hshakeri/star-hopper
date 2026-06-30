@@ -2718,6 +2718,28 @@ class StarHopperGame {
     return { opened: targets.length, targets };
   }
 
+  spawnMissionSampleCollectedEffect(obj, gem, collectedAllSamples = false) {
+    if (!obj) return null;
+    const color = gem && gem.color ? gem.color : "#facc15";
+    const cx = (Number.isFinite(obj.x) ? obj.x : 0) + (Number.isFinite(obj.w) ? obj.w : 16) / 2;
+    const cy = (Number.isFinite(obj.y) ? obj.y : 0) + (Number.isFinite(obj.h) ? obj.h : 16) / 2;
+    const total = Math.max(0, Math.floor(Number(this.requiredCollectiblesTotal) || 0));
+    const collected = Math.max(0, Math.floor(Number(this.requiredCollectiblesCollected) || 0));
+    const label = collectedAllSamples
+      ? "ALL SAMPLES!"
+      : (total > 0 ? `SAMPLE ${collected}/${total}` : "SAMPLE");
+    const popColor = collectedAllSamples ? "#4ade80" : color;
+
+    if (typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+      ComicBubbles.pop(cx, cy - 16, label, popColor, collectedAllSamples ? 1.25 : 1.05);
+    }
+    if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+      Particles.spawnBurst(cx, cy, color, collectedAllSamples ? 16 : 10, collectedAllSamples ? 2.6 : 2.0, 2.4, 'glow');
+      if (collectedAllSamples) Particles.spawnBurst(cx, cy, '#bbf7d0', 8, 1.8, 1.7, 'glow');
+    }
+    return { label, color: popColor, x: cx, y: cy, collected, total, complete: !!collectedAllSamples };
+  }
+
   getNextMissionSampleTarget() {
     if (!this.player || !Array.isArray(this.interactiveObjects)) return null;
     const px = (Number.isFinite(this.player.x) ? this.player.x : 0) + (Number.isFinite(this.player.w) ? this.player.w : 24) / 2;
@@ -3205,17 +3227,13 @@ class StarHopperGame {
           }
           SFX.playCoin();
           const gem = obj.gem || this.getGemConfig();
-          Particles.spawnBurst(obj.x + 8, obj.y + 8, gem.color, 10, 2, 2.5, 'glow');
           const collectedAllSamples = obj.requiredCollectible && this.requiredCollectiblesTotal > 0 &&
             this.requiredCollectiblesCollected >= this.requiredCollectiblesTotal;
-          if (typeof ComicBubbles !== 'undefined') {
-            if (collectedAllSamples) {
-              // Milestone: every sample on the world collected — biggest comic pop.
-              ComicBubbles.pop(obj.x + 8, obj.y - 4, SPEECH.pick("powerup"), "#4ade80", 1.35);
-            } else if (obj.requiredCollectible) {
-              // Mission gem — a satisfying impact pop (these are limited per world).
-              ComicBubbles.pop(obj.x + 8, obj.y - 4, SPEECH.pick("get"), "#facc15", 1.1);
-            } else {
+          if (obj.requiredCollectible) {
+            this.spawnMissionSampleCollectedEffect(obj, gem, collectedAllSamples);
+          } else {
+            Particles.spawnBurst(obj.x + 8, obj.y + 8, gem.color, 10, 2, 2.5, 'glow');
+            if (typeof ComicBubbles !== 'undefined') {
               // Bonus gems are frequent — keep them as the lighter small balloon.
               ComicBubbles.spawn(obj.x + 8, obj.y, SPEECH.pick("get"), "rounded", "#facc15");
             }
