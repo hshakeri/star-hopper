@@ -2071,6 +2071,54 @@ body.resizing-panes * {
   color: #fef08a;
 }
 
+.frontier-rival-target {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+  min-height: 28px;
+  padding: 5px 7px;
+  background: rgba(2, 6, 23, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 6px;
+  color: #cbd5e1;
+  font-size: 0.66rem;
+  line-height: 1.25;
+}
+
+.frontier-rival-target span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.frontier-rival-target.is-chase {
+  color: #fef08a;
+  border-color: rgba(250, 204, 21, 0.48);
+  background: rgba(250, 204, 21, 0.08);
+}
+
+.frontier-rival-target.is-leading {
+  color: #bbf7d0;
+  border-color: rgba(74, 222, 128, 0.42);
+  background: rgba(22, 163, 74, 0.08);
+}
+
+.frontier-rival-btn {
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  padding: 3px 8px;
+  background: #facc15;
+  border: 1px solid rgba(250, 204, 21, 0.65);
+  border-radius: 6px;
+  color: #120817;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
 .frontier-board-import {
   display: flex;
   gap: 6px;
@@ -4827,6 +4875,8 @@ body.readable-text-mode .frontier-record-detail,
 body.readable-text-mode .frontier-share-btn,
 body.readable-text-mode .frontier-board-head,
 body.readable-text-mode .frontier-board-list,
+body.readable-text-mode .frontier-rival-target,
+body.readable-text-mode .frontier-rival-btn,
 body.readable-text-mode .frontier-board-import input,
 body.readable-text-mode .signal-chapter p {
   font-size: max(0.8rem, 1em);

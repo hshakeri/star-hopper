@@ -3556,6 +3556,12 @@ function runRetryRemixTests() {
     const upgraded = g.importFrontierShareText(`${frontier.shareCode} · Pilot Ada · Tier 2 Earth Base Camp: remix lane · best 3/3 · 60.0s`);
     assertEquals(true, upgraded.isNewBest, "Higher-star imported Frontier record replaces the board entry");
     assertEquals(3, g.getFrontierBoardList()[0].stars, "Frontier board returns the strongest imported record");
+    const rival = g.importFrontierShareText(`${frontier.shareCode} · Pilot Grace · Tier ${frontier.tier} Earth Base Camp: remix lane · best 3/3 · 35.0s`);
+    assertEquals(true, rival.isNewBest, "Faster same-star rival replaces the class board entry");
+    const target = g.getFrontierRivalTarget(frontier);
+    assertEquals("chase", target.state, "A stronger classmate record becomes a chase target");
+    assertEquals("Grace", target.entry.pilot, "Rival target names the classmate to beat");
+    assertEquals(true, /under 35\.0s/.test(target.label), "Rival target names the time to beat");
 
     const els = {
       "daily-signal-label": { textContent: "" },
@@ -3565,7 +3571,10 @@ function runRetryRemixTests() {
       "frontier-record-detail": { textContent: "" },
       "frontier-share-btn": { textContent: "", title: "" },
       "frontier-board": { style: {} },
-      "frontier-board-list": { innerHTML: "" }
+      "frontier-board-list": { innerHTML: "" },
+      "frontier-rival-target": { classList: { toggle: () => {} } },
+      "frontier-rival-copy": { textContent: "" },
+      "frontier-rival-btn": { style: {} }
     };
     document.getElementById = (id) => els[id] || null;
     g.refreshDailySignalBanner();
@@ -3574,7 +3583,16 @@ function runRetryRemixTests() {
     assertEquals(true, /Best T/.test(els["frontier-record-detail"].textContent), "Banner should show the local best tier");
     assertEquals(true, els["frontier-share-btn"].title.indexOf("FRONTIER-") >= 0, "Copy button should carry the share code");
     assertEquals("grid", els["frontier-board"].style.display, "Frontier board should appear after star-map completion");
-    assertEquals(true, /Ada/.test(els["frontier-board-list"].innerHTML), "Frontier board should render imported pilots");
+    assertEquals(true, /Grace/.test(els["frontier-board-list"].innerHTML), "Frontier board should render the leading imported pilot");
+    assertEquals(true, /Beat Grace/.test(els["frontier-rival-copy"].textContent), "Frontier board should render a specific rival target");
+    assertEquals("inline-flex", els["frontier-rival-btn"].style.display, "Rival chase target should expose a direct start button");
+    g.recordFrontierClear({
+      frontierInfo: frontier,
+      labStars: { stars: 3 },
+      clearTime: { elapsed: 34.0 }
+    });
+    const leadingTarget = g.getFrontierRivalTarget(frontier);
+    assertEquals("leading", leadingTarget.state, "A stronger local clear flips the rival target into leading state");
     document.getElementById = oldGetElementByIdR11c;
     renderTestResult(SUITE, "Frontier Records: local best and class board", true);
   } catch (err) {

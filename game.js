@@ -704,18 +704,22 @@ class StarHopperGame {
     };
   }
 
-  isFrontierRecordBetter(candidate, existing) {
+  compareFrontierRecords(candidate, existing) {
     const next = this.normalizeFrontierRecord(candidate);
     const prev = this.normalizeFrontierRecord(existing);
-    if (!next) return false;
-    if (!prev) return true;
-    if (next.tier !== prev.tier) return next.tier > prev.tier;
-    if (next.stars !== prev.stars) return next.stars > prev.stars;
-    if (Number.isFinite(next.bestTime) && Number.isFinite(prev.bestTime) && next.bestTime !== prev.bestTime) {
-      return next.bestTime < prev.bestTime;
-    }
-    if (Number.isFinite(next.bestTime) && !Number.isFinite(prev.bestTime)) return true;
-    return false;
+    if (!next && !prev) return 0;
+    if (next && !prev) return 1;
+    if (!next && prev) return -1;
+    if (next.tier !== prev.tier) return next.tier - prev.tier;
+    if (next.stars !== prev.stars) return next.stars - prev.stars;
+    const nextTime = Number.isFinite(next.bestTime) ? next.bestTime : Infinity;
+    const prevTime = Number.isFinite(prev.bestTime) ? prev.bestTime : Infinity;
+    if (nextTime !== prevTime) return prevTime - nextTime;
+    return 0;
+  }
+
+  isFrontierRecordBetter(candidate, existing) {
+    return this.compareFrontierRecords(candidate, existing) > 0;
   }
 
   getFrontierRecordList() {
@@ -848,6 +852,41 @@ class StarHopperGame {
       .slice(0, limit);
   }
 
+  getFrontierRivalTarget(frontier = null) {
+    const challenge = frontier || this.getFrontierChallenge();
+    if (!challenge || !challenge.shareCode) return null;
+    const rivals = Object.values(this.frontierBoard || {})
+      .map(entry => this.normalizeFrontierBoardEntry(entry))
+      .filter(entry => entry && entry.shareCode === challenge.shareCode)
+      .sort((a, b) => this.compareFrontierRecords(b, a));
+    const leader = rivals[0] || null;
+    if (!leader) {
+      return {
+        state: "empty",
+        label: "Paste today's Frontier line to create a rival target.",
+        entry: null,
+        local: null
+      };
+    }
+    const local = this.normalizeFrontierRecord((this.frontierRecords || {})[challenge.dateStr]);
+    if (local && this.compareFrontierRecords(local, leader) >= 0) {
+      return {
+        state: "leading",
+        label: `You lead ${leader.pilot}. Share your Frontier code so classmates can chase it.`,
+        entry: leader,
+        local
+      };
+    }
+    const timeText = Number.isFinite(leader.bestTime) ? ` under ${leader.bestTime.toFixed(1)}s` : "";
+    const label = `Beat ${leader.pilot}: clear T${leader.tier} with ${leader.stars}/3 stars${timeText}.`;
+    return {
+      state: "chase",
+      label,
+      entry: leader,
+      local
+    };
+  }
+
   escapeFrontierHTML(value) {
     return String(value == null ? "" : value)
       .replace(/&/g, "&amp;")
@@ -875,6 +914,20 @@ class StarHopperGame {
           return `<span><strong>${this.escapeFrontierHTML(entry.pilot)}</strong> T${entry.tier} · ${entry.stars}/3${time} · ${this.escapeFrontierHTML(entry.shareCode)}</span>`;
         }).join("")
         : "<span>Paste a classmate's Frontier line to start a local board.</span>";
+    }
+    const rival = this.getFrontierRivalTarget(challenge);
+    const rivalCopy = document.getElementById('frontier-rival-copy');
+    const rivalBtn = document.getElementById('frontier-rival-btn');
+    const rivalBox = document.getElementById('frontier-rival-target');
+    if (rivalBox && rivalBox.classList) {
+      rivalBox.classList.toggle('is-chase', !!rival && rival.state === 'chase');
+      rivalBox.classList.toggle('is-leading', !!rival && rival.state === 'leading');
+    }
+    if (rivalCopy) {
+      rivalCopy.textContent = rival ? rival.label : "Paste today's Frontier line to create a rival target.";
+    }
+    if (rivalBtn) {
+      rivalBtn.style.display = rival && rival.state === 'chase' ? 'inline-flex' : 'none';
     }
     board.style.display = 'grid';
   }
