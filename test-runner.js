@@ -630,7 +630,51 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Objectives: Forge gates introduce mass before elasticity", false, err.message);
   }
 
-  // Test 17d: village NPCs are placed away from locked/required gem tiles.
+  // Test 17d: late mastery remixes add coding constraints without replacing the physics gate.
+  try {
+    Compiler.reset();
+    const jupiter = new StarHopperGame();
+    jupiter.currentPlanet = PLANETS[2];
+    jupiter.currentPlanetIndex = 2;
+    jupiter.currentVariant = {
+      map: PLANETS[2].map,
+      targetOverrides: { thrust: 46 },
+      constraint: { id: "jupiter-rocket-rule", requireRocketRule: true }
+    };
+    jupiter.player = { charType: 'hopper', jumpPower: 8, rocketPower: 75, mass: 1.2, spikes: false };
+    Compiler.env.engine = 6;
+    const jupiterGem = { type: 'coin', requiredCollectible: true, collected: false, gemGate: jupiter.getGemGateForCollectible(2, 4, 12) };
+    assertEquals(true, jupiter.isJupiterHopperEngineered(), "Jupiter replay build should meet the Thrust target");
+    assertEquals(false, jupiter.canCollectGem(jupiterGem), "Jupiter replay gems should stay locked until the rocket event rule exists");
+    Compiler.activeRules = [{ target: 'hopper.rocket_on', action: () => {} }];
+    assertEquals(true, jupiter.canCollectGem(jupiterGem), "Rocket event rule plus Thrust should unlock Jupiter replay gems");
+
+    Compiler.reset();
+    const magnet = new StarHopperGame();
+    magnet.currentPlanet = PLANETS[4];
+    magnet.currentPlanetIndex = 4;
+    magnet.currentVariant = {
+      map: PLANETS[4].map,
+      constraint: { id: "magnet-polarity-event", requireMagnetTouchRule: true }
+    };
+    magnet.player = { charType: 'hopper', jumpPower: 12, rocketPower: 50, mass: 1.2, spikes: false };
+    const magnetGem = { type: 'coin', requiredCollectible: true, collected: false, gemGate: magnet.getGemGateForCollectible(4, 3, 20) };
+    Compiler.activeRules = [
+      { target: 'hopper.rocket_on', action: () => {} },
+      { target: 'player.touching', eventArgs: [{ value: 'ice' }], action: () => {} }
+    ];
+    assertEquals(false, magnet.canCollectGem(magnetGem), "Generic touching rules should not satisfy the magnet polarity remix");
+    Compiler.activeRules[1] = { target: 'player.touching', eventArgs: [{ value: 'magnet' }], action: () => {} };
+    assertEquals(true, magnet.canCollectGem(magnetGem), "Rocket rule plus magnet-touch rule should unlock Mag-Net replay gems");
+
+    Compiler.reset();
+    renderTestResult("engine-suite", "Objectives: mastery remix gates require extra coding rules", true);
+  } catch (err) {
+    Compiler.reset();
+    renderTestResult("engine-suite", "Objectives: mastery remix gates require extra coding rules", false, err.message);
+  }
+
+  // Test 17e: village NPCs are placed away from locked/required gem tiles.
   try {
     const game = new StarHopperGame();
     for (let i = 0; i < PLANETS.length; i++) {
@@ -2977,6 +3021,21 @@ function runRetryRemixTests() {
     renderTestResult(SUITE, "Variant: Glacies flavor rotation surfaces an event-only run", true);
   } catch (err) {
     renderTestResult(SUITE, "Variant: Glacies flavor rotation surfaces an event-only run", false, err.message);
+  }
+
+  // Test R9b: later Jupiter and Mag-Net remixes add event-rule constraints, not only geometry.
+  try {
+    const jupiter = buildPlanetVariant(PLANETS[2], 2, 4);
+    assertEquals("jupiter-rocket-rule", jupiter.constraint && jupiter.constraint.id, "Jupiter retry 4 should require a rocket event rule");
+    assertEquals(true, jupiter.constraint.requireRocketRule, "Jupiter rocket remix should expose the rocket-rule requirement");
+    assertEquals(true, Number.isFinite(jupiter.targetOverrides.thrust) && jupiter.targetOverrides.thrust >= 46 && jupiter.targetOverrides.thrust <= 49, "Jupiter rocket-rule target should stay feasible");
+
+    const magnet = buildPlanetVariant(PLANETS[4], 4, 4);
+    assertEquals("magnet-polarity-event", magnet.constraint && magnet.constraint.id, "Mag-Net retry 4 should require a magnet-touch polarity event");
+    assertEquals(true, magnet.constraint.requireMagnetTouchRule, "Mag-Net polarity remix should expose the magnet-touch requirement");
+    renderTestResult(SUITE, "Variant: Jupiter and Mag-Net add event-rule remixes", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Variant: Jupiter and Mag-Net add event-rule remixes", false, err.message);
   }
 
   // Test R10: Daily Signal is deterministic per date and always a playable remix

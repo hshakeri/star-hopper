@@ -709,6 +709,13 @@ class StarHopperGame {
       && rule.eventArgs[0].value === 'ice');
   }
 
+  hasMagnetTouchRule() {
+    return this.hasActiveRule(rule => rule.target === 'player.touching'
+      && rule.eventArgs
+      && rule.eventArgs[0]
+      && rule.eventArgs[0].value === 'magnet');
+  }
+
   hasPlayerTouchingRule() {
     return this.hasActiveRule(rule => rule.target === 'player.touching');
   }
@@ -751,6 +758,27 @@ class StarHopperGame {
         label: "add a when player.touching('ice') rule to recover grip — an event rule is required this run",
         short: "USE A when touching('ice') RULE!",
         validate: (game) => game.hasIceTouchRule()
+      };
+    }
+    // Jupiter, "rocket rule": keep the usual thrust engineering, but require a
+    // rocket event rule so the replay teaches timed code, not just bigger numbers.
+    if (c && c.id === "jupiter-rocket-rule" && planetIndex === 2) {
+      const tt = this.getThrustTarget();
+      return {
+        id: "jupiter-rocket-rule-gems",
+        label: `reach Thrust ${tt}+ and add a when hopper.rocket_on rule for the rocket burst`,
+        short: `THRUST ${tt}+ & ROCKET RULE!`,
+        validate: (game) => game.isJupiterHopperEngineered() && game.hasRocketEventRule()
+      };
+    }
+    // Mag-Net, "polarity event": the standard gate accepts any player-touching
+    // event. This remix requires the precise magnet-touch rule that changes pole.
+    if (c && c.id === "magnet-polarity-event" && planetIndex === 4) {
+      return {
+        id: "magnet-polarity-event-gems",
+        label: "combine the rocket rule with when player.touching('magnet') so polarity changes at the field",
+        short: "ROCKET + MAGNET TOUCH RULE!",
+        validate: (game) => game.hasRocketEventRule() && game.hasMagnetTouchRule()
       };
     }
 

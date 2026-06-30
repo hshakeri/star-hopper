@@ -233,6 +233,17 @@ function jupiterThrustPush(planet, rng) {
   const target = 49 + Math.floor(rng() * 4); // 49..52 — a real engineering stretch
   return { map, variantLabel: `⚡ Heavy haul — push Thrust to ${target} (lighter mass + more rocket)`, targetOverrides: { thrust: target }, constraint: null };
 }
+function jupiterRocketRule(planet, rng) {
+  const map = cloneMap(planet.map);
+  rvShiftTilesH(map, 3, rvPick(rng, [-1, 1]));
+  const target = 46 + Math.floor(rng() * 4); // 46..49 — feasible, with an event-rule twist
+  return {
+    map,
+    variantLabel: `🚀 Rocket timing — reach Thrust ${target} and add a when hopper.rocket_on rule`,
+    targetOverrides: { thrust: target },
+    constraint: { id: "jupiter-rocket-rule", requireRocketRule: true }
+  };
+}
 
 // GLACIES — vertical drift on the slippery slopes.
 function glaciesVerticalSlide(planet, rng) {
@@ -256,6 +267,16 @@ function magnetGemDrift(planet, rng) {
   rvShiftTilesV(map, 3, rvPick(rng, [-1, 1]));
   return { map, variantLabel: "magenta shard relocated along the tracks", targetOverrides: {}, constraint: null };
 }
+function magnetPolarityEvent(planet, rng) {
+  const map = cloneMap(planet.map);
+  rvShiftTilesH(map, 3, rvPick(rng, [-1, 1]));
+  return {
+    map,
+    variantLabel: "🧲 Polarity event — switch pole with when player.touching('magnet')",
+    targetOverrides: {},
+    constraint: { id: "magnet-polarity-event", requireMagnetTouchRule: true }
+  };
+}
 
 // Flavor rotation per planet. Retry N (1-based) uses flavor (N-1) % flavors.length, so
 // consecutive retries deal out DIFFERENT challenge types, then cycle. Ordering: hand-tuned
@@ -264,9 +285,9 @@ function magnetGemDrift(planet, rng) {
 const PLANET_FLAVORS = {
   0: [earthGeometry, earthNoAntigrav, earthVerticalShift, earthMixedShift],
   1: [moonGeometry, moonSpringBudget, moonVerticalGems, moonTrampolineMixer],
-  2: [jupiterGeometry, jupiterVerticalCrates, jupiterThrustPush],
+  2: [jupiterGeometry, jupiterVerticalCrates, jupiterThrustPush, jupiterRocketRule],
   3: [glaciesGeometry, glaciesEventOnly, glaciesVerticalSlide],
-  4: [magnetPoleFlip, magnetDoubleFlip, magnetGemDrift]
+  4: [magnetPoleFlip, magnetDoubleFlip, magnetGemDrift, magnetPolarityEvent]
 };
 
 // Build the variant for a given planet + attempt.
