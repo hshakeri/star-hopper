@@ -7,7 +7,10 @@ class SoundEngine {
     this.currentBgm = null;
     this.preSurvivalBgm = null;
     this.isMuted = true;
-    this.trackNames = ["Earth Base", "Moon Orbit", "Jupiter Core", "Glacies Ice", "Mag Field", "Tears"];
+    this.trackNames = [
+      "Earth Base", "Moon Orbit", "Jupiter Core", "Glacies Ice", "Mag Field", "Tears",
+      "Budget Master", "Acid Craft"
+    ];
     this.notes = {
       C3: 130.81, D3: 146.83, E3: 164.81, F3: 174.61, G3: 196.00, A3: 220.00, B3: 246.94,
       C4: 261.63, D4: 293.66, E4: 329.63, F4: 349.23, G4: 392.00, A4: 440.00, B4: 493.88,
@@ -344,6 +347,32 @@ class SoundEngine {
         melody: ["C4", "F#4", "G4", "C#5", "D5", "G#4", "A4", "D#4", "E4", "A4", "B4", "E5", "C4", "C4", "C4", "C4"],
         bass: ["C3", "C3", "F#3", "F#3", "D3", "D3", "G#3", "G#3", "A3", "A3", "A3", "A3", "C3", "C3", "C3", "C3"],
         tempo: 160
+      };
+    }
+    if (trackId === 6) { // Budget Master: original crunchy, under-mastered arcade pop.
+      return {
+        melody: ["A4", "C5", "E5", " ", "A4", "G4", "E4", "C4", "D4", "F4", "A4", " ", "G4", "E4", "C4", "A3"],
+        bass: ["A2", "A2", " ", "A2", "F2", "F2", " ", "F2", "D2", "D2", " ", "D2", "E2", "E2", "G2", "E2"],
+        tempo: 135,
+        melodyWave: 'square',
+        bassWave: 'triangle',
+        melodyGain: 0.022,
+        bassGain: 0.046,
+        drums: true
+      };
+    }
+    if (trackId === 7) { // Acid Craft: original hypnotic cave-rave arpeggio.
+      return {
+        melody: ["C4", "C5", "G4", "C5", "D#4", "C5", "G4", "C5", "F4", "C5", "G#4", "C5", "G4", "C5", "A#4", "C5"],
+        bass: ["C2", " ", "C2", "G2", "C2", " ", "D#2", "G2", "F2", " ", "F2", "G#2", "G2", " ", "A#2", "G2"],
+        tempo: 125,
+        melodyWave: 'square',
+        bassWave: 'sawtooth',
+        melodyGain: 0.018,
+        bassGain: 0.04,
+        noteLength: 0.42,
+        bassEvery: 1,
+        drums: true
       };
     }
     return { // Tears: Ambient Minecraft style (by Amos Roddy)

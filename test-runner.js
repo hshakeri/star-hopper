@@ -652,6 +652,7 @@ function runEngineTests() {
         const placed = game.placeNpcAwayFromCollectibles(npcConf);
         assertEquals(false, game.npcOverlapsRequiredGem(placed.x, placed.y), `${planet.name} NPC ${npcConf.id} should not overlap a required gem`);
         assertEquals(false, game.npcHasUnsafePlacement(placed.x, placed.y), `${planet.name} NPC ${npcConf.id} should not stand on hazards or crates`);
+        assertEquals(true, Number.isFinite(placed.caveX) && Number.isFinite(placed.caveY), `${planet.name} NPC ${npcConf.id} should have a cave home`);
       }
     }
 
@@ -1447,9 +1448,14 @@ function runCombatTests() {
     s.isMuted = true; // state test only; no AudioContext needed.
     const earth = s.getTrackPattern(0);
     const survival = s.getTrackPattern('survival');
+    const budget = s.getTrackPattern(6);
+    const acid = s.getTrackPattern(7);
     assertEquals(true, survival.tempo < earth.tempo, "Survival pattern should beat faster than Earth BGM");
     assertEquals(true, !!survival.drums, "Survival pattern should include a drum layer");
     assertEquals("Survival Rush", s.getTrackName('survival'), "Survival track has a HUD-friendly name");
+    assertEquals("Budget Master", s.getTrackName(6), "Budget Master track is selectable");
+    assertEquals("Acid Craft", s.getTrackName(7), "Acid Craft track is selectable");
+    assertEquals(true, !!budget.drums && !!acid.drums, "New original tracks include beat layers");
     s.startBGM(2);
     assertEquals(2, s.currentBgm, "Planet track starts normally");
     s.startSurvivalBGM();
@@ -1460,6 +1466,34 @@ function runCombatTests() {
     renderTestResult(SUITE, "Music: survival mode raises beat intensity", true);
   } catch (err) {
     renderTestResult(SUITE, "Music: survival mode raises beat intensity", false, err.message);
+  }
+
+  // C2d: the drill mines a solid block into inventory, then places a stackable crate.
+  try {
+    const g = new StarHopperGame();
+    g.state = 'playing';
+    g.currentPlanetIndex = 0; g.currentPlanet = PLANETS[0];
+    g.currentVariant = {
+      map: [
+        [0,0,0,0,0,0],
+        [0,0,0,0,0,0],
+        [0,0,1,0,0,0],
+        [1,1,1,1,1,1]
+      ]
+    };
+    g.player = new Player(50, 64);
+    g.player.facing = 1;
+    g.spawnedBoxes = [];
+    g.minedBlocks = 0;
+    assertEquals(true, g.tryDrillMine(), "Drill mines the facing solid tile");
+    assertEquals(0, g.getActiveMap()[2][2], "Drilled tile is carved from the map");
+    assertEquals(1, g.minedBlocks, "Mining adds one block to inventory");
+    assertEquals(true, g.tryPlaceMinedBlock(), "Drill places one mined block when no tile is in reach");
+    assertEquals(1, g.spawnedBoxes.length, "Placed block becomes a spawned crate");
+    assertEquals(0, g.minedBlocks, "Placing consumes one mined block");
+    renderTestResult(SUITE, "Drill: mines terrain and places stackable blocks", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Drill: mines terrain and places stackable blocks", false, err.message);
   }
 
   // C3: XP accrues to the per-world mastery meter and levels the weapon
@@ -1526,6 +1560,19 @@ function runCombatTests() {
     renderTestResult(SUITE, "Agility: uses commanded design gravity (stable when out of fuel)", true);
   } catch (err) {
     renderTestResult(SUITE, "Agility: uses commanded design gravity (stable when out of fuel)", false, err.message);
+  }
+
+  // C5c: Earth cycles between night and day values for the sky overlay.
+  try {
+    const g = new StarHopperGame();
+    const night = g.getEarthDayNightPhase(0);
+    const day = g.getEarthDayNightPhase(32000);
+    assertEquals(true, day.daylight > night.daylight, "Halfway through the cycle is brighter than midnight");
+    assertEquals(false, night.isDay, "Cycle start is night");
+    assertEquals(true, day.isDay, "Cycle midpoint is day");
+    renderTestResult(SUITE, "Earth: day/night sky phase cycles", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Earth: day/night sky phase cycles", false, err.message);
   }
 
   // C6: bumping a breakable block (tile 10) carves it out of the world
@@ -1865,6 +1912,60 @@ function runCombatTests() {
     renderTestResult(SUITE, "Mobs/Villagers: hazards and crates hurt them", true);
   } catch (err) {
     renderTestResult(SUITE, "Mobs/Villagers: hazards and crates hurt them", false, err.message);
+  }
+
+  // C19c: special food restores one heart when the cadet is hurt.
+  try {
+    const g = new StarHopperGame();
+    g.state = 'playing'; g.currentPlanetIndex = 0; g.currentPlanet = PLANETS[0];
+    g.currentVariant = {
+      map: [
+        [0,0,0,0,0,0],
+        [0,0,0,0,0,0],
+        [0,0,0,0,0,0],
+        [1,1,1,1,1,1]
+      ]
+    };
+    g.player = new Player(64, 64);
+    g.canvas = { width: 720, height: 448 };
+    g.player.health = 2;
+    g.enemies = []; g.mobs = []; g.spawnedBoxes = []; g.spawnedSprings = []; g.projectiles = []; g.debris = []; g.meteors = [];
+    g.interactiveObjects = [new InteractiveObject(60, 60, 'food')];
+    g.update();
+    assertEquals(3, g.player.health, "Food restores one missing heart");
+    assertEquals(true, g.interactiveObjects[0].collected, "Food is consumed on pickup");
+    renderTestResult(SUITE, "Food: restores cadet health", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Food: restores cadet health", false, err.message);
+  }
+
+  // C19d: mobs can attack villagers, causing them to flee into their cave homes.
+  try {
+    const g = new StarHopperGame();
+    g.state = 'playing'; g.currentPlanetIndex = 0; g.currentPlanet = PLANETS[0];
+    g.currentVariant = {
+      map: [
+        [0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0],
+        [1,1,1,1,1,1,1,1]
+      ]
+    };
+    g.player = new Player(220, 64);
+    const npc = new NPC({ id: 'caver', name: 'Caver', profession: 'Miner', type: 'npc', x: 100, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60 });
+    const mob = new Mob(102, 60, 'hog', '#9a6b4f', 1);
+    mob.speed = 0; mob.behaviorTimer = 999;
+    g.interactiveObjects = [npc];
+    g.mobs = [mob];
+    assertEquals(true, !!g.findThreateningMobForNPC(npc, 128), "Mob is recognized as a villager threat");
+    assertEquals(true, g.damageNPCFromMob(npc, mob), "Mob attack damages the villager");
+    assertEquals(true, npc.health < npc.maxHealth, "Villager health is chipped by mob attack");
+    assertEquals(true, npc.panicTimer > 0, "Villager starts panic retreat");
+    for (let i = 0; i < 40 && !npc.hiddenInCave; i++) npc.update(g);
+    assertEquals(true, npc.hiddenInCave, "Villager reaches and hides inside the cave");
+    renderTestResult(SUITE, "Villagers: mobs attack and villagers run to caves", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Villagers: mobs attack and villagers run to caves", false, err.message);
   }
 
   // C20: a meteor smashing a block drops gem/rubble but NEVER conjures a mob (survival-off fix) —

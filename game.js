@@ -54,6 +54,9 @@ class StarHopperGame {
     this.shootCooldown = 0;
     this.survivalHitCooldown = 0;
     this._raveMilestone = 0;
+    this.minedBlocks = 0;
+    this.drillCooldown = 0;
+    this.drillHintCooldown = 0;
     
     // Camera coordinates
     this.cameraX = 0;
@@ -103,6 +106,20 @@ class StarHopperGame {
     this.maxAccumulatedFrameMs = 1000 / 15;
     this.maxPhysicsSteps = 5;
     this.isPaused = false;
+  }
+
+  getEarthDayNightPhase(nowMs) {
+    const now = Number.isFinite(nowMs) ? nowMs : Date.now();
+    const cycle = 64000;
+    const t = ((now % cycle) / cycle);
+    const daylight = 0.5 + 0.5 * Math.sin(t * Math.PI * 2 - Math.PI / 2);
+    return {
+      t,
+      daylight,
+      isDay: daylight >= 0.45,
+      sunX: 0.1 + t * 0.8,
+      sunY: 0.18 + Math.sin(t * Math.PI) * 0.16
+    };
   }
 
   getGemConfig(index = this.currentPlanetIndex) {
@@ -885,6 +902,8 @@ class StarHopperGame {
     this.placeBreakableBlocks();
     // Drop a couple of fuel canisters on reachable ledges so the finite tank is refillable.
     this.placeFuelCanisters();
+    // Drop one or two food pickups so health can recover after hazards or mobs.
+    this.placeFoodPickups();
 
     // Spawn planet villages. NPCs snap onto the nearest surface so config can focus on
     // the stage layout instead of pixel-perfect y positions.
@@ -1024,12 +1043,20 @@ class StarHopperGame {
       if (!this.npcHasUnsafePlacement(candidateX, candidateY)) {
         placed.x = candidateX;
         placed.y = candidateY;
+        placed.homeX = candidateX;
+        placed.homeY = candidateY;
+        placed.caveX = Math.max(20, candidateX - 42);
+        placed.caveY = candidateY;
         return placed;
       }
     }
 
     placed.x = Math.max(48, Math.min(mapW - 96, baseX + 360));
     if (placed.snapToGround !== false) placed.y = this.findSurfaceYForNpc(placed.x, placed.y);
+    placed.homeX = placed.x;
+    placed.homeY = placed.y;
+    placed.caveX = Math.max(20, placed.x - 42);
+    placed.caveY = placed.y;
     return placed;
   }
 
@@ -1098,6 +1125,11 @@ class StarHopperGame {
       this.spawnedSprings.push(spring);
       this.interactiveObjects.push(spring);
       Particles.spawnBurst(px + ox + 16, py + 16, '#f87171', 8, 2, 2.5);
+    } else if (type === 'food') {
+      const ox = useCoords ? 0 : this.spawnStackOffset(this.interactiveObjects.filter(o => o.type === 'food'), px, py, step);
+      const food = new InteractiveObject(px + ox, py, 'food');
+      this.interactiveObjects.push(food);
+      Particles.spawnBurst(px + ox + 9, py + 9, '#fb7185', 8, 2, 2, 'glow');
     }
   }
 
@@ -1111,6 +1143,94 @@ class StarHopperGame {
   bouncePlayer() {
     this.player.vy = -12;
     this.player.onGround = false;
+  }
+
+  updateDrill() {
+    if (!this.player || this.state !== 'playing') return;
+    if (this.drillCooldown > 0) this.drillCooldown--;
+    if (this.drillHintCooldown > 0) this.drillHintCooldown--;
+    if (!(this.keys && (this.keys.d || this.keys.D))) return;
+    if (this.drillCooldown > 0) return;
+    this.drillCooldown = 14;
+
+    if (this.tryDrillMine()) return;
+    if (this.tryPlaceMinedBlock()) return;
+    if (this.drillHintCooldown <= 0) {
+      this.drillHintCooldown = 90;
+      if (typeof ComicBubbles !== 'undefined') {
+        ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y - 8, "NO BLOCKS", "rounded", "#cbd5e1", -0.25, { maxLife: 48, scale: 0.75 });
+      }
+    }
+  }
+
+  getDrillTileCandidates() {
+    const map = this.getActiveMap();
+    if (!this.player || !map || !map.length || !map[0]) return [];
+    const dir = this.player.facing || 1;
+    const probeX = dir > 0 ? this.player.x + this.player.w + 9 : this.player.x - 9;
+    const downPressed = !!(this.keys && (this.keys.s || this.keys.S || this.keys.ArrowDown || this.keys.arrowdown || this.keys.Down || this.keys.down));
+    const points = [
+      { x: probeX, y: this.player.y + this.player.h * 0.35 },
+      { x: probeX, y: this.player.y + this.player.h * 0.72 }
+    ];
+    if (downPressed) points.push({ x: this.player.x + this.player.w / 2, y: this.player.y + this.player.h + 10 });
+    const out = [];
+    const seen = new Set();
+    for (const p of points) {
+      const c = Math.floor(p.x / TILE_SIZE);
+      const r = Math.floor(p.y / TILE_SIZE);
+      const key = `${r}:${c}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (r <= 0 || c <= 0 || r >= map.length - 1 || c >= map[0].length - 1) continue;
+      out.push({ r, c, val: map[r] && map[r][c] });
+    }
+    return out;
+  }
+
+  tryDrillMine() {
+    const map = this.getActiveMap();
+    if (!map) return false;
+    for (const t of this.getDrillTileCandidates()) {
+      if (t.val !== 1 && t.val !== 10) continue;
+      if (t.val === 10) this.breakBlock(t.r, t.c, 'drill');
+      else this.carveTile(t.r, t.c);
+      this.minedBlocks = Math.min(99, (this.minedBlocks || 0) + 1);
+      if (typeof SFX !== 'undefined' && SFX.playStomp) SFX.playStomp();
+      if (typeof ComicBubbles !== 'undefined') {
+        ComicBubbles.pop(t.c * TILE_SIZE + 16, t.r * TILE_SIZE - 2, `BLOCK +${this.minedBlocks}`, "#cbd5e1", 0.82);
+      }
+      return true;
+    }
+    return false;
+  }
+
+  boxOccupiesCell(c, r) {
+    return (this.spawnedBoxes || []).some((box) => {
+      if (!box || box.collected) return false;
+      return Math.floor((box.x + box.w / 2) / TILE_SIZE) === c && Math.floor((box.y + box.h / 2) / TILE_SIZE) === r;
+    });
+  }
+
+  tryPlaceMinedBlock() {
+    if ((this.minedBlocks || 0) <= 0 || !this.player) return false;
+    const map = this.getActiveMap();
+    if (!map || !map.length || !map[0]) return false;
+    const dir = this.player.facing || 1;
+    const cols = map[0].length;
+    const c = Math.max(1, Math.min(cols - 2, Math.floor((this.player.x + this.player.w / 2 + dir * 42) / TILE_SIZE)));
+    let r = Math.max(1, Math.min(map.length - 2, Math.floor((this.player.y + this.player.h - 2) / TILE_SIZE) - 1));
+    while (r > 1 && (map[r][c] !== 0 || this.boxOccupiesCell(c, r))) r--;
+    if (map[r][c] !== 0 || this.boxOccupiesCell(c, r)) return false;
+    const box = new InteractiveObject(c * TILE_SIZE, r * TILE_SIZE, 'box');
+    const playerPad = { x: this.player.x - 2, y: this.player.y - 2, w: this.player.w + 4, h: this.player.h + 4 };
+    if (Physics.isOverlapping(playerPad, box)) return false;
+    this.spawnedBoxes.push(box);
+    this.minedBlocks = Math.max(0, (this.minedBlocks || 0) - 1);
+    if (typeof SFX !== 'undefined' && SFX.playLanding) SFX.playLanding();
+    if (typeof Particles !== 'undefined') Particles.spawnBurst(box.x + box.w / 2, box.y + box.h / 2, '#d97706', 8, 1.8, 2.0);
+    if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(box.x + box.w / 2, box.y - 2, `STACK ${this.minedBlocks}`, "#f59e0b", 0.78);
+    return true;
   }
 
   checkMissions() {
@@ -1517,6 +1637,7 @@ class StarHopperGame {
     const _preFallVy = this.player.vy;
     const _wasAirborne = !this.player.onGround;
     Physics.resolveWorldCollisions(this.player, this.getActiveMap(), this.spawnedBoxes, this);
+    this.updateDrill();
     if (_wasAirborne && this.player.onGround) {
       // Soft "tick" on any real landing closes the jump loop; the bigger dust + bubble
       // only fire on a hard landing so light hops stay subtle.
@@ -1684,6 +1805,14 @@ class StarHopperGame {
           Particles.spawnBurst(obj.x + obj.w / 2, obj.y + obj.h / 2, '#f97316', 12, 2.2, 2.6, 'glow');
           if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(obj.x + obj.w / 2, obj.y - 4, "REFUEL!", "#f97316", 1.1);
           ui_log_output("⛽ Fuel canister — tank refilled!", "success");
+        } else if (obj.type === 'food') {
+          obj.collected = true;
+          const before = this.player.health || 0;
+          this.player.health = Math.min(this.player.maxHealth || 3, before + 1);
+          if (typeof SFX !== 'undefined' && SFX.playCoin) SFX.playCoin();
+          Particles.spawnBurst(obj.x + obj.w / 2, obj.y + obj.h / 2, '#fb7185', 12, 2.2, 2.6, 'glow');
+          if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(obj.x + obj.w / 2, obj.y - 4, this.player.health > before ? "+HP" : "YUM!", "#fb7185", 1.05);
+          ui_log_output(this.player.health > before ? "🍎 Snack restored one heart." : "🍎 Snack saved for morale — health already full.", "success");
         } else if (obj.type === 'trampoline' || obj.type === 'spring') {
           const isTopBounce = (this.player.vy > 0.1 && this.player.y + this.player.h - this.player.vy <= obj.y + 6);
           if (isTopBounce) {
@@ -2013,6 +2142,8 @@ class StarHopperGame {
       m.update(tilemap, this.player, flee);
       if (m.y > 470 || m.x < -60 || m.x > mapW + 60) { this.mobs.splice(j, 1); continue; }
       if (this.damageMobFromHazards(j)) continue;
+      const npcVictim = (m.attackCooldown || 0) <= 0 ? this.findNPCForMobAttack(m) : null;
+      if (npcVictim && this.damageNPCFromMob(npcVictim, m)) continue;
       if (flee && this.tryTameMob(j)) continue;
       if (!Physics.isOverlapping(this.player, m)) continue;
       const isStomp = (this.player.vy > 0.5 && this.player.y + this.player.h - this.player.vy <= m.y + 9);
@@ -2092,6 +2223,11 @@ class StarHopperGame {
     });
     npc.x = placed.x;
     npc.y = placed.y;
+    npc.homeX = placed.x;
+    npc.homeY = placed.y;
+    npc.caveX = placed.caveX;
+    npc.caveY = placed.caveY;
+    npc.hiddenInCave = false;
     npc.proximity = false;
     if (this.activeNPC === npc) this.activeNPC = null;
   }
@@ -2114,6 +2250,54 @@ class StarHopperGame {
     }
     this.relocateNPCToSafeSpot(npc);
     if (npc.health <= 0) npc.health = npc.maxHealth || 3;
+  }
+
+  findThreateningMobForNPC(npc, radius = 128) {
+    if (!npc || npc.hiddenInCave || !this.mobs) return null;
+    let best = null;
+    let bestD = Infinity;
+    const nx = npc.x + npc.w / 2;
+    const ny = npc.y + npc.h / 2;
+    for (const m of this.mobs) {
+      if (!m || m.pet) continue;
+      const mx = m.x + m.w / 2;
+      const my = m.y + m.h / 2;
+      const d = Math.hypot(mx - nx, my - ny);
+      if (d < radius && d < bestD) {
+        best = m;
+        bestD = d;
+      }
+    }
+    return best;
+  }
+
+  findNPCForMobAttack(mob, radius = 34) {
+    if (!mob || mob.pet || !this.interactiveObjects) return null;
+    for (const obj of this.interactiveObjects) {
+      if (!(typeof NPC !== 'undefined' && obj instanceof NPC) || obj.hiddenInCave) continue;
+      if (Physics.isOverlapping(mob, obj) || this.entityDistance(mob, obj) <= radius) return obj;
+    }
+    return null;
+  }
+
+  damageNPCFromMob(npc, mob) {
+    if (!npc || !mob || (npc.hazardCooldown || 0) > 0) return false;
+    npc.hazardCooldown = 54;
+    npc.hitFlash = 14;
+    npc.panicTimer = 150;
+    npc.health = Math.max(0, (npc.health || npc.maxHealth || 3) - 1);
+    mob.attackCooldown = 42;
+    mob.say(SPEECH.pick('mobChatter'));
+    if (typeof SFX !== 'undefined' && SFX.playError) SFX.playError();
+    if (typeof Particles !== 'undefined') Particles.spawnBurst(npc.x + npc.w / 2, npc.y + npc.h / 2, '#ef4444', 8, 2.2, 2.1, 'glow');
+    if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(npc.x + npc.w / 2, npc.y - 5, "RUN!", "#facc15", 0.95);
+    if (npc.health <= 0) {
+      npc.health = npc.maxHealth || 3;
+      npc.hiddenInCave = true;
+      npc.x = npc.caveX + 10;
+    }
+    if (this.activeNPC === npc) this.activeNPC = null;
+    return true;
   }
 
   // ---- BREAKABLE BLOCKS + CRATERS --------------------------------------------
@@ -2159,7 +2343,10 @@ class StarHopperGame {
     } else if (roll < 0.66) {
       this.interactiveObjects.push(new InteractiveObject(dropX, dropY, 'fuel'));
       if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(dropX + 16, dropY, "FUEL!", "#f97316", 1.1);
-    } else if (roll < 0.85) {
+    } else if (roll < 0.78) {
+      this.interactiveObjects.push(new InteractiveObject(dropX, dropY, 'food'));
+      if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(dropX + 16, dropY, "SNACK!", "#fb7185", 1.0);
+    } else if (roll < 0.90) {
       this.wakeMob(dropX, dropY);
     } else if (typeof ComicBubbles !== 'undefined') {
       ComicBubbles.pop(dropX + 16, dropY, "POOF!", "#cbd5e1", 0.9);
@@ -2207,6 +2394,30 @@ class StarHopperGame {
       if (!(map[r + 1] && map[r + 1][c] === 1)) continue;    // solid ledge directly underneath
       if (map[r - 1] && map[r - 1][c] === 1) continue;       // headroom above
       this.interactiveObjects.push(new InteractiveObject(c * TILE_SIZE, r * TILE_SIZE, 'fuel'));
+      placed++;
+    }
+  }
+
+  placeFoodPickups() {
+    const map = this.getActiveMap();
+    if (!map || !map.length) return;
+    const rng = (typeof mulberry32 === 'function')
+      ? mulberry32(((this.currentPlanetIndex * 1103515245) ^ ((this.retryAttempt || 0) * 31337) ^ 0x51f15e) >>> 0)
+      : Math.random;
+    const rows = map.length, cols = map[0].length;
+    let placed = 0, guard = 0;
+    const target = this.currentPlanetIndex === 0 ? 1 : 2;
+    while (placed < target && guard++ < 500) {
+      const c = 3 + Math.floor(rng() * (cols - 6));
+      const r = 3 + Math.floor(rng() * (rows - 6));
+      if (map[r][c] !== 0) continue;
+      if (!(map[r + 1] && map[r + 1][c] === 1)) continue;
+      if (map[r - 1] && map[r - 1][c] === 1) continue;
+      const px = c * TILE_SIZE;
+      const py = r * TILE_SIZE;
+      const tooClose = this.interactiveObjects.some(o => o && !o.collected && Math.abs(o.x - px) < 80 && Math.abs(o.y - py) < 40);
+      if (tooClose) continue;
+      this.interactiveObjects.push(new InteractiveObject(px, py, 'food'));
       placed++;
     }
   }
@@ -2852,6 +3063,7 @@ class StarHopperGame {
     this.drawHealthHUD(this.ctx);
     this.drawFuelHUD(this.ctx);
     this.drawWeaponHUD(this.ctx);
+    this.drawDrillHUD(this.ctx);
 
     // 9f. Meteor-shower "take shelter" warning banner (screen-space).
     this.drawMeteorBanner(this.ctx);
@@ -2960,6 +3172,22 @@ class StarHopperGame {
     ctx.restore();
   }
 
+  drawDrillHUD(ctx) {
+    if (!this.player || this.state !== 'playing') return;
+    const x = 8, y = 94, w = 162, h = 20;
+    ctx.save();
+    ctx.fillStyle = "rgba(11,16,34,0.55)";
+    ctx.strokeStyle = "rgba(203,213,225,0.26)";
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(x, y, w, h, 8); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#cbd5e1";
+    ctx.font = "bold 10px 'Outfit', sans-serif";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText(`D DRILL   BLOCKS ${this.minedBlocks || 0}`, x + 10, y + h / 2 + 1);
+    ctx.restore();
+  }
+
   drawSpaceBackground() {
     // Fast path: cached sky + two wrapped parallax starfields + a dozen live
     // twinkles — ~5 drawImage calls instead of a gradient and 80 shimmer arcs.
@@ -2989,10 +3217,55 @@ class StarHopperGame {
           this.ctx.fill();
         }
         this.ctx.globalAlpha = 1;
+        this.drawEarthDayNightOverlay();
         return;
       }
     }
     this.drawSpaceBackgroundDirect();
+  }
+
+  drawEarthDayNightOverlay() {
+    if (this.currentPlanetIndex !== 0 || !this.canvas || !this.ctx) return;
+    const phase = this.getEarthDayNightPhase();
+    const W = this.canvas.width, H = this.canvas.height;
+    const dayAlpha = Math.max(0, Math.min(1, phase.daylight));
+    const nightAlpha = 1 - dayAlpha;
+    const ctx = this.ctx;
+
+    ctx.save();
+    if (dayAlpha > 0.05) {
+      const sky = ctx.createLinearGradient(0, 0, 0, H);
+      sky.addColorStop(0, `rgba(96, 165, 250, ${0.62 * dayAlpha})`);
+      sky.addColorStop(0.58, `rgba(125, 211, 252, ${0.34 * dayAlpha})`);
+      sky.addColorStop(1, `rgba(187, 247, 208, ${0.16 * dayAlpha})`);
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, W, H);
+      const sx = W * phase.sunX;
+      const sy = H * phase.sunY;
+      ctx.shadowBlur = 24;
+      ctx.shadowColor = '#fde68a';
+      ctx.fillStyle = `rgba(254, 240, 138, ${0.85 * dayAlpha})`;
+      ctx.beginPath();
+      ctx.arc(sx, sy, 14, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (nightAlpha > 0.08) {
+      ctx.fillStyle = `rgba(2, 6, 23, ${0.5 * nightAlpha})`;
+      ctx.fillRect(0, 0, W, H);
+      const mx = W * (1 - phase.sunX);
+      const my = H * (0.16 + Math.sin((phase.t + 0.5) * Math.PI) * 0.12);
+      ctx.shadowBlur = 16;
+      ctx.shadowColor = '#cbd5e1';
+      ctx.fillStyle = `rgba(226, 232, 240, ${0.75 * nightAlpha})`;
+      ctx.beginPath();
+      ctx.arc(mx, my, 11, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = `rgba(2, 6, 23, ${0.72 * nightAlpha})`;
+      ctx.beginPath();
+      ctx.arc(mx + 5, my - 3, 11, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
   }
 
   // Draw spacetime warping coordinate grid mesh (general relativity grid)
@@ -3174,6 +3447,7 @@ class StarHopperGame {
     skyGradient.addColorStop(1, "#020617");
     this.ctx.fillStyle = skyGradient;
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    this.drawEarthDayNightOverlay();
 
     this.ctx.save();
     this.ctx.globalAlpha = 0.2;

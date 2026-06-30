@@ -1934,7 +1934,7 @@ class InteractiveObject {
   constructor(x, y, type) {
     this.x = x;
     this.y = y;
-    this.type = type; // 'coin', 'trampoline', 'spring', 'box', 'portal', 'pos_node', 'neg_node', 'boulder'
+    this.type = type; // 'coin', 'trampoline', 'spring', 'box', 'portal', 'pos_node', 'neg_node', 'boulder', 'food'
     this.w = 32;
     this.h = 32;
 
@@ -1950,6 +1950,7 @@ class InteractiveObject {
     }
     if (this.type === 'weapon') { this.w = 22; this.h = 18; this.y += 8; this.x += 5; }
     if (this.type === 'fuel') { this.w = 16; this.h = 20; this.y += 6; this.x += 8; }
+    if (this.type === 'food') { this.w = 18; this.h = 18; this.y += 7; this.x += 7; }
 
     this.collected = false;
     this.bounceTimer = 0;
@@ -1960,6 +1961,9 @@ class InteractiveObject {
   update(game) {
     if (this.type === 'coin') {
       this.angle += 0.05;
+    }
+    if (this.type === 'food') {
+      this.angle += 0.06;
     }
     if (this.bounceTimer > 0) {
       this.bounceTimer--;
@@ -2282,6 +2286,28 @@ class InteractiveObject {
       ctx.fillStyle = '#fff7ed'; ctx.font = "bold 9px 'Outfit', sans-serif"; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText('⛽', cx, top + this.h / 2 + 1);                                              // fuel glyph
       ctx.restore();
+    } else if (this.type === 'food') {
+      const x = this.x - cameraX;
+      const cx = x + this.w / 2;
+      const cy = this.y + this.h / 2 + Math.sin(this.angle) * 2;
+      ctx.save();
+      ctx.shadowBlur = 11; ctx.shadowColor = '#fb7185';
+      ctx.fillStyle = '#f97316';
+      ctx.strokeStyle = '#0b1224';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, this.w * 0.42, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#22c55e';
+      ctx.beginPath();
+      ctx.ellipse(cx + 4, cy - 8, 5, 2.5, -0.55, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fff7ed';
+      ctx.beginPath();
+      ctx.arc(cx - 4, cy - 3, 2.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
     }
 
     ctx.restore();
@@ -2324,6 +2350,13 @@ class NPC extends InteractiveObject {
     this.health = this.maxHealth;
     this.hazardCooldown = 0;
     this.hitFlash = 0;
+    this.homeX = Number.isFinite(config.homeX) ? config.homeX : config.x;
+    this.homeY = Number.isFinite(config.homeY) ? config.homeY : config.y;
+    this.caveX = Number.isFinite(config.caveX) ? config.caveX : this.homeX - 38;
+    this.caveY = Number.isFinite(config.caveY) ? config.caveY : this.homeY;
+    this.hiddenInCave = !!config.hiddenInCave;
+    this.panicTimer = 0;
+    this.caveCooldown = 0;
     
     // Set dialogue lists
     if (Array.isArray(config.dialogue)) this.dialogue = config.dialogue.slice();
@@ -2389,13 +2422,48 @@ class NPC extends InteractiveObject {
 
   update(game) {
     if (!game || !game.player) return;
+    const threat = (typeof game.findThreateningMobForNPC === 'function') ? game.findThreateningMobForNPC(this, 128) : null;
+    if (threat) {
+      this.panicTimer = 120;
+      if (typeof ComicBubbles !== 'undefined' && this.caveCooldown <= 0) {
+        ComicBubbles.spawn(this.x + this.w / 2, this.y - 8, "CAVE!", "jagged", "#facc15", -0.35, { maxLife: 60, scale: 0.8 });
+      }
+      this.caveCooldown = 90;
+    }
+    if (this.panicTimer > 0) this.panicTimer--;
+    if (this.caveCooldown > 0) this.caveCooldown--;
+
+    const goingHome = this.panicTimer > 0 || !!threat;
+    if (goingHome && !this.hiddenInCave) {
+      const targetX = this.caveX + 10;
+      const dxHome = targetX - this.x;
+      this.x += Math.max(-2.2, Math.min(2.2, dxHome * 0.18));
+      if (Math.abs(dxHome) < 5) this.hiddenInCave = true;
+    } else if (!goingHome && this.hiddenInCave) {
+      const caveDx = (this.caveX + 16) - (game.player.x + game.player.w / 2);
+      const caveDy = (this.caveY + 18) - (game.player.y + game.player.h / 2);
+      if (Math.hypot(caveDx, caveDy) < 82) {
+        this.hiddenInCave = false;
+        if (typeof ComicBubbles !== 'undefined') {
+          ComicBubbles.spawn(this.caveX + 16, this.caveY - 4, "Trading?", "rounded", this.color, -0.35, { maxLife: 80 });
+        }
+      }
+    } else if (!goingHome && !this.hiddenInCave) {
+      const dxHome = this.homeX - this.x;
+      if (Math.abs(dxHome) > 1) this.x += Math.max(-1.1, Math.min(1.1, dxHome * 0.08));
+      else this.x = this.homeX;
+    }
+
     // Track distance to player
     const dx = (this.x + this.w / 2) - (game.player.x + game.player.w / 2);
     const dy = (this.y + this.h / 2) - (game.player.y + game.player.h / 2);
     const dist = Math.sqrt(dx * dx + dy * dy);
+    const caveDx = (this.caveX + 16) - (game.player.x + game.player.w / 2);
+    const caveDy = (this.caveY + 18) - (game.player.y + game.player.h / 2);
+    const caveDist = Math.sqrt(caveDx * caveDx + caveDy * caveDy);
     
     const wasProx = this.proximity;
-    this.proximity = (dist < 48);
+    this.proximity = this.hiddenInCave ? (!goingHome && caveDist < 58) : (dist < 48 || caveDist < 52);
     if (this.hazardCooldown > 0) this.hazardCooldown--;
     if (this.hitFlash > 0) this.hitFlash--;
 
@@ -2410,8 +2478,38 @@ class NPC extends InteractiveObject {
   draw(ctx, cameraX, game) {
     const cx = this.x - cameraX;
     const cy = this.y;
+    const caveX = this.caveX - cameraX;
+    const caveY = this.caveY;
 
     ctx.save();
+    ctx.fillStyle = 'rgba(2, 6, 23, 0.88)';
+    ctx.strokeStyle = 'rgba(148, 163, 184, 0.75)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(caveX + 16, caveY + 21, 28, 24, 0, Math.PI, 0);
+    ctx.lineTo(caveX + 44, caveY + 40);
+    ctx.lineTo(caveX - 12, caveY + 40);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(148, 163, 184, 0.22)';
+    ctx.fillRect(caveX - 2, caveY + 37, 36, 4);
+
+    if (this.hiddenInCave) {
+      if (this.proximity && game && game.activeNPC === this) {
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.74)';
+        ctx.beginPath();
+        ctx.roundRect(caveX - 25, caveY - 18, 82, 15, 5);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = "bold 9px 'Share Tech Mono', sans-serif";
+        ctx.textAlign = 'center';
+        ctx.fillText('[E] CALL', caveX + 16, caveY - 7);
+      }
+      ctx.restore();
+      return;
+    }
+
     if (this.hitFlash > 0) {
       ctx.shadowBlur = 16;
       ctx.shadowColor = '#ef4444';
