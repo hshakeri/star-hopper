@@ -1606,6 +1606,32 @@ function getStartSignalStoryPreview(game = window.Game) {
   };
 }
 
+function getStartWorldMasteryPreview(game = window.Game) {
+  if (!game || typeof game.getWorldMasteryProgress !== "function") {
+    return {
+      label: "WORLD MASTERY",
+      title: "World progress loading",
+      body: "Tasks, samples, proof, rescues, and remixes fill this world ladder.",
+      progress: 0
+    };
+  }
+  const index = Number.isFinite(Number(game.currentPlanetIndex)) ? Number(game.currentPlanetIndex) : 0;
+  const progress = game.getWorldMasteryProgress(index);
+  const xp = Math.max(0, Math.floor(Number(progress && progress.xp) || 0));
+  const title = progress && progress.title ? progress.title : "Unranked";
+  const planet = game.currentPlanet && game.currentPlanet.name ? game.currentPlanet.name : "This world";
+  const next = progress && progress.nextTier ? progress.nextTier : null;
+  const body = next
+    ? `${Math.max(0, Math.floor(Number(next.xp) || 0) - xp)} XP to ${next.label} on ${planet}.`
+    : `${planet} mastery ladder is maxed. Keep Daily Signals and Frontier runs alive.`;
+  return {
+    label: "WORLD MASTERY",
+    title: `${title} · ${xp} XP`,
+    body,
+    progress: Math.max(0, Math.min(1, ((progress && Number(progress.pct)) || 0) / 100))
+  };
+}
+
 function updateSignalStoryPanel(game = window.Game) {
   const panel = document.getElementById("signal-story-panel");
   if (!panel) return;
@@ -2019,6 +2045,7 @@ function updateStartMissionRadar(game = window.Game) {
   const rank = getResearchRank(game && Number.isFinite(game.researchXP) ? game.researchXP : 0);
   const unlockPreview = getResearchUnlockPreview(rank);
   const storyPreview = getStartSignalStoryPreview(game);
+  const worldPreview = getStartWorldMasteryPreview(game);
   const action = getStartMissionRadarAction(game, quest);
   const kicker = panel.querySelector ? panel.querySelector(".start-mission-radar-head span") : null;
   const progress = document.getElementById("start-mission-radar-progress");
@@ -2030,6 +2057,10 @@ function updateStartMissionRadar(game = window.Game) {
   const unlockTitle = document.getElementById("start-rank-preview-title");
   const unlockBody = document.getElementById("start-rank-preview-body");
   const unlockBar = document.getElementById("start-rank-preview-bar");
+  const worldLabel = document.getElementById("start-world-preview-label");
+  const worldTitle = document.getElementById("start-world-preview-title");
+  const worldBody = document.getElementById("start-world-preview-body");
+  const worldBar = document.getElementById("start-world-preview-bar");
   const storyLabel = document.getElementById("start-story-preview-label");
   const storyTitle = document.getElementById("start-story-preview-title");
   const storyBody = document.getElementById("start-story-preview-body");
@@ -2044,6 +2075,10 @@ function updateStartMissionRadar(game = window.Game) {
   if (unlockTitle) unlockTitle.textContent = unlockPreview.title;
   if (unlockBody) unlockBody.textContent = unlockPreview.body;
   if (unlockBar && unlockBar.style) unlockBar.style.width = `${Math.round(unlockPreview.progress * 100)}%`;
+  if (worldLabel) worldLabel.textContent = worldPreview.label;
+  if (worldTitle) worldTitle.textContent = worldPreview.title;
+  if (worldBody) worldBody.textContent = worldPreview.body;
+  if (worldBar && worldBar.style) worldBar.style.width = `${Math.round(worldPreview.progress * 100)}%`;
   if (storyLabel) storyLabel.textContent = storyPreview.label;
   if (storyTitle) storyTitle.textContent = storyPreview.title;
   if (storyBody) storyBody.textContent = storyPreview.body;

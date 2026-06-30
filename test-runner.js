@@ -1992,6 +1992,10 @@ function runEngineTests() {
       "start-rank-preview-title": { textContent: "" },
       "start-rank-preview-body": { textContent: "" },
       "start-rank-preview-bar": { style: { width: "" } },
+      "start-world-preview-label": { textContent: "" },
+      "start-world-preview-title": { textContent: "" },
+      "start-world-preview-body": { textContent: "" },
+      "start-world-preview-bar": { style: { width: "" } },
       "start-story-preview-label": { textContent: "" },
       "start-story-preview-title": { textContent: "" },
       "start-story-preview-body": { textContent: "" },
@@ -2001,6 +2005,7 @@ function runEngineTests() {
     document.getElementById = (id) => els[id] || null;
     game.discoveredFormulaKinds = new Set(["antigravity"]);
     game.planetClears = { 0: 1 };
+    game.masteryMeters = { 0: { xp: 80, badges: ["scout"], sources: { "lab-star:0": 20 } } };
     updateResearchProgress(game);
     assertEquals(true, /NEXT LAB QUEST/.test(els["research-rank-card"].innerHTML), "Rank card should render the lab quest");
     assertEquals(true, /Collect Mass Lab/.test(els["research-rank-card"].innerHTML), "Rendered quest should point to the next formula card");
@@ -2012,6 +2017,10 @@ function runEngineTests() {
     assertEquals("Combo Amplifier in 40 XP", els["start-rank-preview-title"].textContent, "Start radar should name the next perk and remaining XP");
     assertEquals(true, /Reach Loop Engineer/.test(els["start-rank-preview-body"].textContent), "Start radar should connect the perk to the next rank");
     assertEquals("11%", els["start-rank-preview-bar"].style.width, "Start radar should show rank progress toward the next unlock");
+    assertEquals("WORLD MASTERY", els["start-world-preview-label"].textContent, "Start radar should label world mastery preview");
+    assertEquals("Signal Scout · 80 XP", els["start-world-preview-title"].textContent, "Start radar should show current world mastery tier and XP");
+    assertEquals(true, /30 XP to World Engineer/.test(els["start-world-preview-body"].textContent), "Start radar should show next world mastery gap");
+    assertEquals("44%", els["start-world-preview-bar"].style.width, "Start radar should show world mastery progress");
     assertEquals("NEXT TRANSMISSION", els["start-story-preview-label"].textContent, "Start radar should label the next story hook");
     assertEquals("Moon Loop Echo", els["start-story-preview-title"].textContent, "Start radar should preview the next Signal Story chapter");
     assertEquals(true, /Loops build repeatable patterns/.test(els["start-story-preview-body"].textContent), "Start radar should show the next story concept");
