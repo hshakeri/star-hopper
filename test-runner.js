@@ -2588,6 +2588,20 @@ function runEngineTests() {
     assertEquals(true, /Combo evidence \+2 XP/.test(testedDeltaText), "Completed staged result should name the chain payoff");
     assertEquals(true, /STAGE NEXT/.test(testedDeltaText), "Completed staged result should offer the follow-up experiment");
     const testedNextButton = findByClass(testedDelta || list, "science-delta-tested-stage-btn");
+    const chainTarget = findByClass(list, "lab-chain-target-card");
+    const chainTargetText = flattenText(chainTarget || list);
+    assertEquals(true, !!chainTarget, "Mission panel should keep the lab-chain target visible");
+    assertEquals(true, /LAB CHAIN x2/.test(chainTargetText), "Lab-chain target should show the active combo");
+    assertEquals(true, /Next new progress can reach x3/.test(chainTargetText), "Lab-chain target should name the next combo step");
+    assertEquals(true, /Engine Lab/.test(chainTargetText), "Lab-chain target should use the next experiment title");
+    assertEquals(true, /hopper\.engine = 7/.test(chainTargetText), "Lab-chain target should render the next command");
+    const chainStageButton = findByClass(chainTarget || list, "lab-chain-target-stage-btn");
+    inputEl22j.value = "";
+    inputEl22j.focused = false;
+    chainStageButton._events.click();
+    assertEquals("hopper.engine = 7", inputEl22j.value, "Lab-chain target should stage the next experiment command");
+    assertEquals(true, inputEl22j.focused, "Lab-chain target should focus the terminal");
+    assertEquals("lab-chain-target", game.lastStagedExperiment && game.lastStagedExperiment.source, "Lab-chain staging should remember its source");
     inputEl22j.value = "";
     inputEl22j.focused = false;
     testedNextButton._events.click();
@@ -2600,6 +2614,29 @@ function runEngineTests() {
     const testedResultStaged = findByClass(list, "staged-experiment-card");
     const testedResultStagedText = flattenText(testedResultStaged || list);
     assertEquals(true, /Tested result/.test(testedResultStagedText), "Follow-up staging should show the tested-result source label");
+
+    list = makeEl();
+    game.lastStagedExperiment = null;
+    game.lastScienceDelta = {
+      code: "hopper.mass = 1.0",
+      changes: [{ label: "Mass", value: "2.5 -> 1.0" }],
+      nextExperiment: {
+        title: "Engine Lab",
+        body: "Raise engine, then compare speed.",
+        command: "hopper.engine = 7"
+      }
+    };
+    game.discoveryPulse = {
+      code: "hopper.mass = 1.0",
+      combo: 2,
+      rewardXP: 0,
+      openedGems: 0
+    };
+    updateMissionList(game);
+    const pausedChainTarget = findByClass(list, "lab-chain-target-card");
+    const pausedChainText = flattenText(pausedChainTarget || list);
+    assertEquals(true, /CHAIN PAUSED/.test(pausedChainText), "Repeat runs should pause the lab-chain target");
+    assertEquals(true, /Repeat commands do not extend the chain/.test(pausedChainText), "Paused chain should explain why the repeat did not pay out");
 
     list.children = [];
     game.remixContext = 'mastery';

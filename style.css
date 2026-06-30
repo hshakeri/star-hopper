@@ -3476,6 +3476,105 @@ html {
   color: #052e16;
 }
 
+.lab-chain-target-card {
+  border: 1px solid rgba(103, 232, 249, 0.34);
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgba(8, 47, 73, 0.42), rgba(15, 23, 42, 0.72)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.03) 0 1px, transparent 1px 4px);
+  box-shadow: inset 0 0 14px rgba(103, 232, 249, 0.1);
+  padding: 7px 8px;
+  display: grid;
+  gap: 5px;
+}
+
+.lab-chain-target-card.active {
+  border-color: rgba(250, 204, 21, 0.42);
+  background:
+    linear-gradient(180deg, rgba(113, 63, 18, 0.34), rgba(8, 47, 73, 0.42)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.032) 0 1px, transparent 1px 4px);
+}
+
+.lab-chain-target-card.paused {
+  border-color: rgba(148, 163, 184, 0.32);
+  background:
+    linear-gradient(180deg, rgba(30, 41, 59, 0.58), rgba(15, 23, 42, 0.46)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.026) 0 1px, transparent 1px 4px);
+}
+
+.lab-chain-target-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  line-height: 1.2;
+}
+
+.lab-chain-target-head span {
+  color: #67e8f9;
+  font-weight: 900;
+}
+
+.lab-chain-target-card.active .lab-chain-target-head span { color: #fef08a; }
+.lab-chain-target-card.paused .lab-chain-target-head span { color: #cbd5e1; }
+
+.lab-chain-target-head strong {
+  color: #bef264;
+  text-align: right;
+}
+
+.lab-chain-target-body strong {
+  display: block;
+  color: #ecfeff;
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  line-height: 1.22;
+}
+
+.lab-chain-target-body p {
+  margin: 3px 0 0;
+  color: #dff6ff;
+  font-size: 0.61rem;
+  line-height: 1.28;
+}
+
+.lab-chain-target-card code {
+  display: block;
+  max-height: 54px;
+  overflow: hidden;
+  color: #bbf7d0;
+  background: rgba(2, 6, 23, 0.42);
+  border: 1px solid rgba(103, 232, 249, 0.18);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  line-height: 1.28;
+  padding: 4px 5px;
+  white-space: pre-wrap;
+}
+
+.lab-chain-target-stage-btn {
+  justify-self: start;
+  border: 1px solid rgba(103, 232, 249, 0.48);
+  border-radius: 4px;
+  background: rgba(8, 47, 73, 0.72);
+  color: #ecfeff;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.53rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0;
+  padding: 5px 7px;
+}
+
+.lab-chain-target-stage-btn:hover {
+  background: rgba(103, 232, 249, 0.86);
+  color: #082f49;
+}
+
 .mission-item {
   display: flex;
   align-items: center;
@@ -6023,6 +6122,10 @@ body.readable-text-mode .science-delta-chain-badge span,
 body.readable-text-mode .science-delta-chain-badge strong,
 body.readable-text-mode .science-delta-chain-badge p,
 body.readable-text-mode .science-delta-tested-stage-btn,
+body.readable-text-mode .lab-chain-target-head,
+body.readable-text-mode .lab-chain-target-body p,
+body.readable-text-mode .lab-chain-target-card code,
+body.readable-text-mode .lab-chain-target-stage-btn,
 body.readable-text-mode .science-delta-row,
 body.readable-text-mode .science-delta-row em,
 body.readable-text-mode .science-delta-next span,
@@ -6138,6 +6241,7 @@ body.readable-text-mode .mission-briefing-log {
 body.readable-text-mode .formula-target-title,
 body.readable-text-mode .mission-coach-focus strong,
 body.readable-text-mode .science-delta-next strong,
+body.readable-text-mode .lab-chain-target-body strong,
 body.readable-text-mode .coach-one-hint,
 body.readable-text-mode .coach-skip-note,
 body.readable-text-mode .coach-done-msg,

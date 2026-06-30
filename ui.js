@@ -421,6 +421,7 @@ function updateMissionList(game) {
   appendMissionMentorSignal(listContainer, game);
   appendStagedExperimentCard(listContainer, game);
   appendScienceDeltaCard(listContainer, game);
+  appendLabChainTargetCard(listContainer, game);
   currentPlanet.missions.forEach(mission => {
     const isCompleted = game.completedMissions.has(mission.id);
     
@@ -728,6 +729,7 @@ function getStagedExperimentSourceLabel(source) {
     "mentor-signal": "Village mentor",
     "science-delta": "What Changed",
     "tested-result": "Tested result",
+    "lab-chain-target": "Lab chain",
     "formula-focus": "Formula Deck",
     "formula-target": "Formula target",
     "staged-reminder": "Mission CRT"
@@ -767,6 +769,125 @@ function getScienceDeltaChainBadge(game, delta) {
     title: "First evidence logged",
     body: "Change one variable next to turn this result into a lab chain."
   };
+}
+
+function getLabChainTarget(game) {
+  const pulse = game && game.discoveryPulse;
+  const combo = Math.max(0, Math.floor(Number(pulse && pulse.combo) || 0));
+  if (!pulse || combo <= 0) return null;
+
+  const earned = (pulse.rewardXP || 0) > 0 || !!pulse.cardUnlocked || !!pulse.hypothesisConfirmed || (pulse.openedGems || 0) > 0;
+  const activeMission = typeof getActivePlatformerMission === 'function' ? getActivePlatformerMission(game) : null;
+  const fullMission = activeMission && activeMission.fullMission ? activeMission.fullMission : null;
+  const delta = game && game.lastScienceDelta ? game.lastScienceDelta : null;
+  const next = delta && delta.nextExperiment ? delta.nextExperiment : null;
+  const formulaTarget = typeof getActiveFormulaTarget === 'function' ? getActiveFormulaTarget(game, activeMission) : null;
+
+  let title = "Make one fresh change";
+  let body = "Change one variable, run it, and compare the new result.";
+  let command = "";
+  let kind = null;
+
+  if (next && (next.title || next.body || next.command)) {
+    title = next.title || title;
+    body = next.body || body;
+    command = next.command || "";
+  } else if (formulaTarget) {
+    title = `Collect ${formulaTarget.title}`;
+    body = formulaTarget.cue || formulaTarget.axis || body;
+    command = formulaTarget.sampleCode || "";
+    kind = formulaTarget.kind || null;
+  } else if (fullMission) {
+    title = fullMission.title || title;
+    body = fullMission.scaffold && (fullMission.scaffold.codeIdea || fullMission.scaffold.physicsIdea)
+      ? (fullMission.scaffold.codeIdea || fullMission.scaffold.physicsIdea)
+      : (fullMission.beginnerConcept || body);
+    command = typeof buildNextExperimentCommand === 'function' ? buildNextExperimentCommand(fullMission) : (fullMission.starterCode || "");
+  }
+
+  if (!earned) {
+    return {
+      state: "paused",
+      label: "CHAIN PAUSED",
+      reward: "Repeat logged - change one new target",
+      title,
+      body: `Repeat commands do not extend the chain. ${body}`,
+      command,
+      kind
+    };
+  }
+
+  if (combo > 1) {
+    return {
+      state: "active",
+      label: `LAB CHAIN x${combo}`,
+      reward: `Next new progress can reach x${Math.min(99, combo + 1)}`,
+      title,
+      body,
+      command,
+      kind
+    };
+  }
+
+  return {
+    state: "ready",
+    label: "CHAIN READY",
+    reward: "Next new progress starts x2 combo",
+    title,
+    body,
+    command,
+    kind
+  };
+}
+
+function appendLabChainTargetCard(listContainer, game) {
+  const target = getLabChainTarget(game);
+  if (!listContainer || !target) return;
+
+  const card = document.createElement("div");
+  card.className = `lab-chain-target-card ${target.state || "ready"}`;
+
+  const head = document.createElement("div");
+  head.className = "lab-chain-target-head";
+  const label = document.createElement("span");
+  label.textContent = target.label;
+  const reward = document.createElement("strong");
+  reward.textContent = target.reward;
+  head.appendChild(label);
+  head.appendChild(reward);
+  card.appendChild(head);
+
+  const body = document.createElement("div");
+  body.className = "lab-chain-target-body";
+  const title = document.createElement("strong");
+  title.textContent = target.title;
+  const copy = document.createElement("p");
+  copy.textContent = target.body;
+  body.appendChild(title);
+  body.appendChild(copy);
+  card.appendChild(body);
+
+  if (target.command) {
+    const code = document.createElement("code");
+    code.textContent = target.command;
+    card.appendChild(code);
+
+    const stage = document.createElement("button");
+    stage.type = "button";
+    stage.className = "lab-chain-target-stage-btn";
+    stage.textContent = "STAGE CHAIN";
+    if (typeof stage.addEventListener === "function") {
+      stage.addEventListener("click", () => stageScienceDeltaCommand(target.command, {
+        title: target.title,
+        kind: target.kind,
+        source: "lab-chain-target",
+        color: "#67e8f9"
+      }));
+    }
+    card.appendChild(stage);
+  }
+
+  listContainer.appendChild(card);
 }
 
 function appendStagedExperimentCard(listContainer, game) {
