@@ -417,6 +417,7 @@ function updateMissionList(game) {
   }
 
   listContainer.innerHTML = "";
+  appendLessonLensCard(listContainer, game);
   currentPlanet.missions.forEach(mission => {
     const isCompleted = game.completedMissions.has(mission.id);
     
@@ -474,6 +475,43 @@ function updateMissionList(game) {
 
   appendRunReplayContract(listContainer, game);
   appendLabStarContract(listContainer, game);
+}
+
+function appendLessonLensCard(listContainer, game) {
+  if (!listContainer || !game) return;
+  const activeMission = getActivePlatformerMission(game);
+  const fullMission = activeMission && activeMission.fullMission ? activeMission.fullMission : null;
+  if (!fullMission) return;
+
+  const card = document.createElement("div");
+  card.className = "lesson-lens-card";
+
+  const head = document.createElement("div");
+  head.className = "lesson-lens-head";
+
+  const label = document.createElement("span");
+  label.textContent = "LESSON LENS";
+
+  const concept = document.createElement("strong");
+  concept.textContent = fullMission.codingConcept || fullMission.title || "Code + science";
+
+  head.appendChild(label);
+  head.appendChild(concept);
+  card.appendChild(head);
+
+  const body = document.createElement("p");
+  body.textContent = fullMission.beginnerConcept || fullMission.concept || "Tune one idea, test the motion, then explain what changed.";
+  card.appendChild(body);
+
+  const scaffold = fullMission.scaffold || {};
+  const cueText = scaffold.codeIdea || scaffold.physicsIdea || fullMission.objective || "";
+  if (cueText) {
+    const cue = document.createElement("code");
+    cue.textContent = cueText;
+    card.appendChild(cue);
+  }
+
+  listContainer.appendChild(card);
 }
 
 function appendRunReplayContract(listContainer, game) {

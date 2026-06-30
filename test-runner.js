@@ -1813,9 +1813,16 @@ function runEngineTests() {
     game.discoveredFormulaKinds = new Set(["antigravity"]);
 
     updateMissionList(game);
+    const lens = findByClass(list, "lesson-lens-card");
+    const lensText = flattenText(lens || list);
     const contract = findByClass(list, "lab-star-contract");
     const replayBeforeProgress = findByClass(list, "run-replay-contract");
     const text = flattenText(contract || list);
+    assertEquals(true, !!lens, "Mission panel should pin the active lesson lens");
+    assertEquals(true, /LESSON LENS/.test(lensText), "Lesson lens should identify itself");
+    assertEquals(true, /Variable assignment and parameter tuning/.test(lensText), "Lesson lens should show the coding concept");
+    assertEquals(true, /Change one number/.test(lensText), "Lesson lens should show the beginner concept");
+    assertEquals(true, /Activate Hopper/.test(lensText), "Lesson lens should show the scaffold code idea");
     assertEquals(true, !!contract, "Mission panel should append a lab-star contract");
     assertEquals(false, !!replayBeforeProgress, "First run should not show a replay contract even when profile progress exists");
     assertEquals(true, /LAB STARS/.test(text), "Contract should identify the star target");
