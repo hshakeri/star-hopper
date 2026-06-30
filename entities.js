@@ -2683,6 +2683,13 @@ class NPC extends InteractiveObject {
     const cy = this.y;
     const caveX = this.caveX - cameraX;
     const caveY = this.caveY;
+    const caveStatus = (game && typeof game.getVillagerCaveStatus === 'function')
+      ? game.getVillagerCaveStatus(this)
+      : {
+          label: this.shelterReason === 'night' ? 'NIGHT' : (this.rescuePending ? 'WAIT' : 'SAFE'),
+          color: this.shelterReason === 'night' ? '#93c5fd' : '#a7f3d0',
+          fill: this.shelterReason === 'night' ? 'rgba(147, 197, 253, 0.24)' : 'rgba(167, 243, 208, 0.22)'
+        };
 
     ctx.save();
     ctx.fillStyle = 'rgba(2, 6, 23, 0.88)';
@@ -2699,10 +2706,19 @@ class NPC extends InteractiveObject {
     ctx.fillRect(caveX - 2, caveY + 37, 36, 4);
 
     if (this.hiddenInCave) {
-      ctx.fillStyle = 'rgba(250, 204, 21, 0.28)';
+      const pulse = 0.08 + 0.05 * Math.sin(Date.now() / 220 + this.x * 0.02);
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = caveStatus.color || this.color;
+      ctx.fillStyle = caveStatus.fill || 'rgba(250, 204, 21, 0.28)';
       ctx.beginPath();
       ctx.roundRect(caveX + 3, caveY + 15, 26, 17, 5);
       ctx.fill();
+      ctx.strokeStyle = caveStatus.color || this.color;
+      ctx.lineWidth = 1.3;
+      ctx.globalAlpha = 0.75 + pulse;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
       ctx.fillStyle = 'rgba(15, 23, 42, 0.78)';
       ctx.beginPath();
       ctx.roundRect(caveX + 8, caveY + 20, 16, 10, 4);
@@ -2723,9 +2739,9 @@ class NPC extends InteractiveObject {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(this.roleMark, caveX + 16, caveY + 27);
-      ctx.fillStyle = 'rgba(226, 232, 240, 0.92)';
+      ctx.fillStyle = caveStatus.color || 'rgba(226, 232, 240, 0.92)';
       ctx.font = "bold 7px 'Share Tech Mono', monospace";
-      ctx.fillText(this.shelterReason === 'night' ? 'NIGHT' : 'SAFE', caveX + 16, caveY + 39);
+      ctx.fillText(caveStatus.label || 'SAFE', caveX + 16, caveY + 39);
       if (this.proximity && game && game.activeNPC === this) {
         ctx.fillStyle = 'rgba(15, 23, 42, 0.74)';
         ctx.beginPath();

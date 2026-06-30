@@ -3988,6 +3988,7 @@ function runCombatTests() {
     assertEquals(true, !!g.findThreateningMobForNPC(npc, 128), "Mob is recognized as a villager threat");
     const shelterSignal = g.getVillagerShelterSignal(npc, { radius: 128 });
     assertEquals("nearby mob", shelterSignal.reason, "Shared villager shelter signal points to close mob danger");
+    assertEquals("DANGER", g.getVillagerCaveStatus(npc, shelterSignal).label, "Occupied cave marker labels active mob danger");
     assertEquals(true, g.damageNPCFromMob(npc, mob), "Mob attack damages the villager");
     assertEquals(true, npc.health < npc.maxHealth, "Villager health is chipped by mob attack");
     assertEquals(true, npc.panicTimer > 0, "Villager starts panic retreat");
@@ -4064,6 +4065,7 @@ function runCombatTests() {
     nightGame.toggleSurvival();
     assertEquals(true, nightNpc.hiddenInCave, "Earth night keeps villagers sheltered after survival danger ends");
     assertEquals(82, nightNpc.x, "Earth night parks the villager at the cave mouth");
+    assertEquals("NIGHT", nightGame.getVillagerCaveStatus(nightNpc).label, "Survival-off night cave marker explains the villager did not disappear");
     assertEquals("VILLAGE NIGHT: traders wait in caves", nightGame.missionBalloon && nightGame.missionBalloon.text, "Survival-off night release explains villagers stayed in caves");
     assertEquals(0, nightNpc.panicTimer, "Night shelter clears mob panic without forcing villagers outside");
     assertEquals(0, nightGame.researchXP, "Night shelter waits to reward until the villager can actually return");
@@ -4123,6 +4125,7 @@ function runCombatTests() {
     assertEquals(loadedNpc.caveX + 10, loadedNpc.x, "Night-loaded villager is parked at the cave mouth");
     assertEquals(false, !!loadedNpc.rescuePending, "Night shelter does not count as a mob rescue");
     assertEquals("night", loadedNpc.shelterReason, "Night-loaded cave state is marked as night shelter");
+    assertEquals("NIGHT", loadGame.getVillagerCaveStatus(loadedNpc).label, "Night-loaded cave marker labels the occupied cave");
     loadGame.getEarthDayNightPhase = () => ({ t: 0.5, daylight: 1, isDay: true, sunX: 0.5, sunY: 0.34 });
     loadedNpc.update(loadGame);
     assertEquals(false, loadedNpc.hiddenInCave, "Night-loaded villager comes out at daylight");

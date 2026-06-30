@@ -211,6 +211,23 @@ class StarHopperGame {
     return { active: false, reason: null, threat: null };
   }
 
+  getVillagerCaveStatus(npc, signal = null) {
+    const shelter = signal || this.getVillagerShelterSignal(npc, { radius: 128 });
+    if (shelter && shelter.threat) {
+      return { label: "DANGER", reason: "nearby mob", color: "#facc15", fill: "rgba(250, 204, 21, 0.32)" };
+    }
+    if (shelter && shelter.reason === "night") {
+      return { label: "NIGHT", reason: "night", color: "#93c5fd", fill: "rgba(147, 197, 253, 0.28)" };
+    }
+    if (npc && npc.rescuePending) {
+      return { label: "WAIT", reason: npc.shelterReason || "danger", color: "#facc15", fill: "rgba(250, 204, 21, 0.26)" };
+    }
+    if (npc && npc.shelterReason === "night") {
+      return { label: "NIGHT", reason: "night", color: "#93c5fd", fill: "rgba(147, 197, 253, 0.24)" };
+    }
+    return { label: "SAFE", reason: "clear", color: "#a7f3d0", fill: "rgba(167, 243, 208, 0.22)" };
+  }
+
   getVillageRescueSourceKey(npc, index = this.currentPlanetIndex) {
     const planetKey = Number.isFinite(index) ? index : 0;
     const npcKey = npc && npc.id ? String(npc.id).replace(/[^a-z0-9_-]/gi, "-").toLowerCase() : "villager";
