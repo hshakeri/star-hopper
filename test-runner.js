@@ -685,6 +685,45 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Objectives: Earth no-mass replay keeps Hopper heavy", false, err.message);
   }
 
+  // Test 17c4: Earth engine-only replay accepts only the engine knob.
+  try {
+    Compiler.reset();
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[0];
+    game.currentPlanetIndex = 0;
+    game.currentVariant = {
+      map: PLANETS[0].map,
+      targetOverrides: { agility: 7 },
+      constraint: {
+        id: "earth-engine-only",
+        engineOnly: true,
+        engineMin: 8,
+        banAntigravity: true,
+        banJumpPower: true,
+        banMassLower: true,
+        banGravityOverride: true,
+        minMass: 2.5
+      }
+    };
+    game.player = { charType: 'hopper', jumpPower: 22, rocketPower: 40, mass: 1.0, spikes: false };
+    game.hopperMass = 1.0;
+    Compiler.env.engine = 8;
+    const engineOnlyGem = { type: 'coin', requiredCollectible: true, collected: false, gemGate: game.getGemGateForCollectible(0, 6, 34) };
+    assertEquals(true, game.isEarthHopperEngineered(), "Alternate-lever build should meet the low Agility number");
+    assertEquals(false, game.canCollectGem(engineOnlyGem), "Engine-only replay should reject mass/jump shortcuts");
+    game.player.mass = 2.5;
+    game.hopperMass = 2.5;
+    game.player.jumpPower = PLANETS[0].physics.jumpPower;
+    Compiler.env.antigravity = 0.1;
+    assertEquals(false, game.canCollectGem(engineOnlyGem), "Engine-only replay should reject antigravity");
+    Compiler.env.antigravity = 0;
+    assertEquals(true, game.isEarthHopperEngineered(), "Stock-lever engine build should meet the Agility target");
+    assertEquals(true, game.canCollectGem(engineOnlyGem), "Engine-only replay unlocks with engine alone");
+    renderTestResult("engine-suite", "Objectives: Earth engine-only replay isolates engine", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Objectives: Earth engine-only replay isolates engine", false, err.message);
+  }
+
   // Test 17d: late mastery remixes add coding constraints without replacing the physics gate.
   try {
     Compiler.reset();
@@ -3143,6 +3182,20 @@ function runRetryRemixTests() {
     renderTestResult(SUITE, "Variant: Earth rotation surfaces no-mass run", false, err.message);
   }
 
+  // Test R7c: the Earth rotation now includes the engine-only replay with a reachable low-ledged map.
+  try {
+    const v = buildPlanetVariant(PLANETS[0], 0, 7);
+    assertEquals("earth-engine-only", v.constraint && v.constraint.id, "Earth retry 7 should isolate the engine knob");
+    assertEquals(true, v.constraint.engineOnly, "Engine-only Earth remix should expose the engine-only flag");
+    assertEquals(8, v.constraint.engineMin, "Engine-only Earth remix should ask for the base engine cap");
+    assertEquals(7, v.targetOverrides.agility, "Engine-only Agility target should stay reachable at stock mass/jump/gravity");
+    assertEquals(rvCountTiles(PLANETS[0].map, 3), rvCountTiles(v.map, 3), "Engine-only remix preserves required gem count");
+    assertEquals(3, v.map[6].slice(31, 38).filter((tile) => tile === 3).length, "Engine-only remix relocates high gems to the low runway");
+    renderTestResult(SUITE, "Variant: Earth rotation surfaces engine-only run", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Variant: Earth rotation surfaces engine-only run", false, err.message);
+  }
+
   // Test R8: Moon retry 2 is the loop "spring budget" constraint
   try {
     const v = buildPlanetVariant(PLANETS[1], 1, 2);
@@ -3679,7 +3732,32 @@ function runDiagnosticsTests() {
     renderTestResult(SUITE, "Diagnosis: no-mass remix removes mass lever", false, err.message);
   }
 
-  // Test D2c: Moon strict-spring remix stages the repeat-loop pattern.
+  // Test D2c: the engine-only remix stages only the engine knob.
+  try {
+    const d = diagnoseFailure(makeDiagGame({
+      currentVariant: {
+        constraint: {
+          id: "earth-engine-only",
+          engineOnly: true,
+          engineMin: 8,
+          banAntigravity: true,
+          banJumpPower: true,
+          banMassLower: true,
+          banGravityOverride: true,
+          minMass: 2.5
+        }
+      },
+      getMissionStat: () => ({ key: "agility", label: "Agility", value: 5, target: 7 })
+    }));
+    assertEquals(true, /engine-only/i.test(d.message), "Message should explain the engine-only rule");
+    assertEquals(true, d.choices.some((c) => c.command === "hopper.engine = 8"), "Engine-only remix should stage the engine target");
+    assertEquals(false, d.choices.some((c) => /hopper\.mass|jump_power|antigravity/.test(c.command)), "Engine-only remix must not stage banned levers");
+    renderTestResult(SUITE, "Diagnosis: engine-only remix stages engine fix", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Diagnosis: engine-only remix stages engine fix", false, err.message);
+  }
+
+  // Test D2d: Moon strict-spring remix stages the repeat-loop pattern.
   try {
     const d = diagnoseFailure(makeDiagGame({
       currentPlanetIndex: 1,
@@ -3695,7 +3773,7 @@ function runDiagnosticsTests() {
     renderTestResult(SUITE, "Diagnosis: Moon strict spring stages loop fix", false, err.message);
   }
 
-  // Test D2d: Glacies friction-target remix stages the exact numeric variable.
+  // Test D2e: Glacies friction-target remix stages the exact numeric variable.
   try {
     const d = diagnoseFailure(makeDiagGame({
       currentPlanetIndex: 3,

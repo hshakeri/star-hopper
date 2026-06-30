@@ -25,6 +25,7 @@ function diagnoseFailure(game) {
   const noAntigrav = !!(constraint && constraint.banAntigravity);
   const noJumpPower = !!(constraint && constraint.banJumpPower);
   const noMassLower = !!(constraint && constraint.banMassLower);
+  const engineOnly = !!(constraint && constraint.engineOnly);
   const planet = game ? game.currentPlanetIndex : 0;
   const cap = (k, fallback) =>
     (game && typeof game.getUpgradeCap === "function" && Number.isFinite(game.getUpgradeCap(k)))
@@ -45,10 +46,11 @@ function diagnoseFailure(game) {
     const choices = [];
     if (!isHopper) choices.push({ label: "Suit up first", command: "use_hopper()" });
     if (stat.key === "agility") {
-      if (!noMassLower) choices.push({ label: "Lower mass (squared payoff!)", command: `hopper.mass = ${cap("mass", 1.0)}` });
-      choices.push({ label: "Stronger engine", command: `hopper.engine = ${cap("engine", 8)}` });
-      if (!noJumpPower) choices.push({ label: "Stronger jump", command: `hopper.jump_power = ${cap("jump", 22)}` });
-      if (!noAntigrav) choices.push({ label: "Push back gravity", command: `antigravity = ${Math.min(cap("antigravity", 6), 5)}` });
+      const engineTarget = (engineOnly && Number.isFinite(constraint.engineMin)) ? constraint.engineMin : cap("engine", 8);
+      if (!engineOnly && !noMassLower) choices.push({ label: "Lower mass (squared payoff!)", command: `hopper.mass = ${cap("mass", 1.0)}` });
+      choices.push({ label: "Stronger engine", command: `hopper.engine = ${engineTarget}` });
+      if (!engineOnly && !noJumpPower) choices.push({ label: "Stronger jump", command: `hopper.jump_power = ${cap("jump", 22)}` });
+      if (!engineOnly && !noAntigrav) choices.push({ label: "Push back gravity", command: `antigravity = ${Math.min(cap("antigravity", 6), 5)}` });
     } else {
       choices.push({ label: "Bigger rockets", command: `hopper.rocket_power = ${cap("rocket", 80)}` });
       if (!noMassLower) choices.push({ label: "Lower mass", command: `hopper.mass = ${cap("mass", 1.0)}` });
@@ -58,7 +60,8 @@ function diagnoseFailure(game) {
       title: `${stat.label} ${stat.value.toFixed(1)} / ${stat.target} — below target`,
       message: `${stat.label} is what unlocks this world's gems, and it isn't there yet. `
         + `Change exactly ONE variable, predict which way ${stat.label} moves, then run and compare the telemetry. `
-        + (noAntigrav ? `🚫 This remix bans antigravity — engineer it with mass, engine and jump only.`
+        + (engineOnly ? `⚙️ This remix is engine-only — leave mass, jump_power, gravity, and antigravity stock.`
+          : noAntigrav ? `🚫 This remix bans antigravity — engineer it with mass, engine and jump only.`
           : noJumpPower ? `🚫 This remix bans stronger jump_power — keep jump stock and engineer it with mass, engine and gravity.`
           : noMassLower ? `🚫 This remix bans lowering hopper.mass — keep Hopper heavy and engineer it with engine, jump and gravity.`
           : `Any mix works — there's no single right answer.`),
@@ -124,13 +127,18 @@ function diagnoseFailure(game) {
     if (!noMassLower) choices.push({ label: "Lower mass (squared payoff!)", command: `hopper.mass = ${cap("mass", 1.0)}` });
     if (!noJumpPower) choices.push({ label: "Stronger jump", command: `hopper.jump_power = ${cap("jump", 22)}` });
     if (!noAntigrav) choices.push({ label: "Less felt gravity", command: `antigravity = ${Math.min(cap("antigravity", 6), 5)}` });
+    if (engineOnly) {
+      choices.length = 0;
+      choices.push({ label: "Engine only", command: `hopper.engine = ${Number.isFinite(constraint.engineMin) ? constraint.engineMin : cap("engine", 8)}` });
+    }
     return {
       title: "Jump arc too short",
       message: `Your jump tops out around ${Math.round(jumpHeightPx)}px (~${(jumpHeightPx / tile).toFixed(1)} tiles): vertical speed hits zero before you're over the obstacle. `
         + `Because h ≈ J²/(2·g·m²), mass is SQUARED — halving mass quadruples height, while jump force only squares once. Predict which lever lifts you most, then test it.`
         + (noAntigrav ? ` 🚫 Antigravity is banned this remix.` : ``)
         + (noJumpPower ? ` 🚫 Stronger jump_power is banned this remix.` : ``)
-        + (noMassLower ? ` 🚫 Lowering hopper.mass is banned this remix.` : ``),
+        + (noMassLower ? ` 🚫 Lowering hopper.mass is banned this remix.` : ``)
+        + (engineOnly ? ` ⚙️ Only the engine knob counts this remix.` : ``),
       formula: `h ≈ J²/(2·g·m²)  →  ${J.toFixed(0)}²/(2·${g.toFixed(2)}·${m.toFixed(1)}²) ≈ ${Math.round(jumpHeightPx)}px`,
       choices
     };

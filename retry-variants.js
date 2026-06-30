@@ -10,7 +10,7 @@
 // RETRY (attempt >= 1). Each retry cycles a deterministic FLAVOR for that planet:
 //   • geometry/target flavors — move collectibles, retune the numeric goal
 //   • constraint flavors      — same gate, but a new rule on HOW you may clear it
-//     (Earth: no antigravity / no jump-power / no mass-cut · Moon: loop a spring budget / strict springs · Glacies: event rule / friction target)
+//     (Earth: no antigravity / no jump-power / no mass-cut / engine-only · Moon: loop a spring budget / strict springs · Glacies: event rule / friction target)
 // Seeded by (planetIndex, attemptNumber) so a given retry is reproducible/shareable.
 //
 // A flavor returns { map, variantLabel, targetOverrides, constraint }. The game reads
@@ -92,6 +92,16 @@ function rvSwapTiles(map, a, b) {
   return map;
 }
 
+function rvPlaceTiles(map, tileVal, positions) {
+  for (let r = 0; r < map.length; r++)
+    for (let c = 0; c < map[r].length; c++)
+      if (map[r][c] === tileVal) map[r][c] = 0;
+  for (const [r, c] of positions) {
+    if (map[r] && map[r][c] === 0) map[r][c] = tileVal;
+  }
+  return map;
+}
+
 const rvSign = (n) => (n > 0 ? "+" : "");
 
 // ---- Per-planet remix flavors. Each is (planet, rng) -> partial variant. ----
@@ -142,6 +152,26 @@ function earthNoMassCut(planet, rng) {
     variantLabel: `🚫 No mass cut — keep Hopper heavy and reach Agility ${target}`,
     targetOverrides: { agility: target },
     constraint: { id: "earth-no-mass-cut", banMassLower: true, minMass: 2.5 }
+  };
+}
+function earthEngineOnly(planet, rng) {
+  const map = cloneMap(planet.map);
+  rvPlaceTiles(map, 3, [[6, 5], [6, 6], [6, 7], [6, 31], [6, 34], [6, 37]]);
+  const target = 7; // stock Hopper + hopper.engine = 8 reaches about 7.2 Agility.
+  return {
+    map,
+    variantLabel: `⚙️ Engine-only — set hopper.engine = 8 and leave mass/jump/gravity stock`,
+    targetOverrides: { agility: target },
+    constraint: {
+      id: "earth-engine-only",
+      engineOnly: true,
+      engineMin: 8,
+      banAntigravity: true,
+      banJumpPower: true,
+      banMassLower: true,
+      banGravityOverride: true,
+      minMass: 2.5
+    }
   };
 }
 
@@ -347,7 +377,7 @@ function forgeBounceMixer(planet, rng) {
 // constraint flavors stay early (they match existing tutorial prose); pure procedural
 // geometry/target flavors fill out the rotation for depth.
 const PLANET_FLAVORS = {
-  0: [earthGeometry, earthNoAntigrav, earthVerticalShift, earthMixedShift, earthNoJumpPower, earthNoMassCut],
+  0: [earthGeometry, earthNoAntigrav, earthVerticalShift, earthMixedShift, earthNoJumpPower, earthNoMassCut, earthEngineOnly],
   1: [moonGeometry, moonSpringBudget, moonVerticalGems, moonTrampolineMixer, moonStrictSpringLoop],
   2: [jupiterGeometry, jupiterVerticalCrates, jupiterThrustPush, jupiterRocketRule],
   3: [glaciesGeometry, glaciesEventOnly, glaciesVerticalSlide, glaciesFrictionTarget],

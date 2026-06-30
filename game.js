@@ -1073,6 +1073,35 @@ class StarHopperGame {
         validate: (game) => game.isEarthHopperEngineered() && game.getActiveMass() >= minMass - 0.001
       };
     }
+    // Earth, "engine-only": all required gems are placed on lower ledges for this
+    // replay, and only the engine knob may move. This isolates F = m * a: more
+    // force creates more speed without leaning on mass, jump, or gravity.
+    if (c && c.id === "earth-engine-only" && planetIndex === 0) {
+      const at = this.getAgilityTarget();
+      const engineMin = Number.isFinite(c.engineMin) ? c.engineMin : 8;
+      const minMass = Number.isFinite(c.minMass) ? c.minMass : 2.5;
+      const stockJump = (this.currentPlanet && this.currentPlanet.physics && Number.isFinite(this.currentPlanet.physics.jumpPower))
+        ? this.currentPlanet.physics.jumpPower
+        : 10;
+      const stockGravity = (this.currentPlanet && this.currentPlanet.physics && Number.isFinite(this.currentPlanet.physics.gravity))
+        ? this.currentPlanet.physics.gravity
+        : 0.6;
+      return {
+        id: "earth-engine-only-gems",
+        label: `engine-only lab: set hopper.engine to ${engineMin}+ and keep mass, jump_power, gravity, and antigravity stock`,
+        short: `ENGINE ${engineMin}+ ONLY!`,
+        validate: (game) => {
+          const env = (typeof Compiler !== 'undefined' && Compiler.env) ? Compiler.env : {};
+          const gravityStock = env.gravity === null || env.gravity === undefined || Math.abs(env.gravity - stockGravity) < 0.001;
+          return game.isEarthHopperEngineered()
+            && game.getEngineForce() >= engineMin
+            && game.getActiveMass() >= minMass - 0.001
+            && game.getJumpForce() <= stockJump + 0.001
+            && !(env.antigravity)
+            && gravityStock;
+        }
+      };
+    }
     // Moon, "loop budget": every gem now needs jump 18+ AND a repeat loop of N springs
     // (interleaves arithmetic with loops). Applied to all gems so the constraint always
     // bites, regardless of which rows this planet's gems happen to occupy.
