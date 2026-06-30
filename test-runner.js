@@ -5469,7 +5469,60 @@ function runExperimentLogTests() {
     renderTestResult(SUITE, "Experiment log: hypothesis staging + retried auto-close", false, err.message);
   }
 
-  // Test E4: notebook reflection starter turns code/prediction/attempt data into an evidence prompt.
+  // Test E4: the attempt log picks the next learning question from mission state.
+  try {
+    const mission = {
+      id: "mass-door",
+      fullMission: {
+        title: "Mass Door",
+        starterCode: "hopper.mass = 1.2",
+        prediction: {
+          question: "Will lowering mass make the same push accelerate faster?",
+          options: [{ id: "yes", label: "Yes", correct: true }]
+        },
+        resultChecks: [
+          {
+            id: "mass-ready",
+            label: "Mass tuned",
+            success: "The same push now accelerates better.",
+            waiting: "Mass is still too high; lower one number and compare speed.",
+            check: (game) => !!game.massReady
+          }
+        ],
+        reflection: ["Why did changing mass alter the acceleration evidence?"]
+      }
+    };
+    const game = {
+      currentPlanetIndex: 0,
+      currentPlanet: { missions: [mission] },
+      completedMissions: new Set(),
+      coachPredictions: {},
+      massReady: false
+    };
+
+    const predictCue = getAttemptLogNextQuestion(game);
+    assertEquals("PREDICT", predictCue.label, "Unpredicted missions ask for a hypothesis first");
+    assertEquals("Predict before code", predictCue.title, "Prediction cue has a kid-readable title");
+    assertEquals(true, /lowering mass/.test(predictCue.body), "Prediction cue uses the mission question");
+    assertEquals("hopper.mass = 1.2", predictCue.command, "Prediction cue can stage the starter command");
+
+    game.coachPredictions["mass-door"] = "yes";
+    const testCue = getAttemptLogNextQuestion(game);
+    assertEquals("NEXT TEST", testCue.label, "After prediction, the next failed check drives the prompt");
+    assertEquals("Mass tuned", testCue.title, "Failed result check becomes the next test title");
+    assertEquals(true, /Mass is still too high/.test(testCue.body), "Failed result check gives the actionable body");
+
+    game.massReady = true;
+    const explainCue = getAttemptLogNextQuestion(game);
+    assertEquals("EXPLAIN", explainCue.label, "Passed checks move the log into explanation");
+    assertEquals("Explain the evidence", explainCue.title, "Reflection prompt is explicitly about evidence");
+    assertEquals(true, /alter the acceleration/.test(explainCue.body), "Reflection cue comes from the mission");
+    renderTestResult(SUITE, "Experiment log: next lab question follows mission state", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Experiment log: next lab question follows mission state", false, err.message);
+  }
+
+  // Test E5: notebook reflection starter turns code/prediction/attempt data into an evidence prompt.
   let oldGetElementByIdE4 = null;
   try {
     oldGetElementByIdE4 = document.getElementById;
