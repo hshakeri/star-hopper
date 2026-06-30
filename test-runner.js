@@ -658,6 +658,33 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Objectives: Earth no-jump replay keeps jump stock", false, err.message);
   }
 
+  // Test 17c3: Earth no-mass replay locks gems unless Agility is met at stock mass.
+  try {
+    Compiler.reset();
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[0];
+    game.currentPlanetIndex = 0;
+    game.currentVariant = {
+      map: PLANETS[0].map,
+      targetOverrides: { agility: 26 },
+      constraint: { id: "earth-no-mass-cut", banMassLower: true, minMass: 2.5 }
+    };
+    game.player = { charType: 'hopper', jumpPower: 22, rocketPower: 40, mass: 1.0, spikes: false };
+    game.hopperMass = 1.0;
+    Compiler.env.engine = 8;
+    Compiler.env.antigravity = 0.36;
+    const noMassGem = { type: 'coin', requiredCollectible: true, collected: false, gemGate: game.getGemGateForCollectible(0, 3, 34) };
+    assertEquals(true, game.isEarthHopperEngineered(), "Light build should meet the Agility number");
+    assertEquals(false, game.canCollectGem(noMassGem), "No-mass replay should reject lightened Hopper");
+    game.player.mass = 2.5;
+    game.hopperMass = 2.5;
+    assertEquals(true, game.isEarthHopperEngineered(), "Stock-mass build can still meet Agility with force and gravity");
+    assertEquals(true, game.canCollectGem(noMassGem), "No-mass replay unlocks at stock mass with alternate levers");
+    renderTestResult("engine-suite", "Objectives: Earth no-mass replay keeps Hopper heavy", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Objectives: Earth no-mass replay keeps Hopper heavy", false, err.message);
+  }
+
   // Test 17d: late mastery remixes add coding constraints without replacing the physics gate.
   try {
     Compiler.reset();
@@ -3104,6 +3131,18 @@ function runRetryRemixTests() {
     renderTestResult(SUITE, "Variant: Earth rotation surfaces no-jump run", false, err.message);
   }
 
+  // Test R7b: still later Earth retries surface the no-mass-cut constraint.
+  try {
+    const v = buildPlanetVariant(PLANETS[0], 0, 6);
+    assertEquals("earth-no-mass-cut", v.constraint && v.constraint.id, "Earth retry 6 should require stock mass");
+    assertEquals(true, v.constraint.banMassLower, "No-mass Earth remix should ban lowering hopper.mass");
+    assertEquals(2.5, v.constraint.minMass, "No-mass Earth remix should keep Hopper at stock mass");
+    assertEquals(26, v.targetOverrides.agility, "No-mass Agility target should remain feasible");
+    renderTestResult(SUITE, "Variant: Earth rotation surfaces no-mass run", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Variant: Earth rotation surfaces no-mass run", false, err.message);
+  }
+
   // Test R8: Moon retry 2 is the loop "spring budget" constraint
   try {
     const v = buildPlanetVariant(PLANETS[1], 1, 2);
@@ -3626,7 +3665,21 @@ function runDiagnosticsTests() {
     renderTestResult(SUITE, "Diagnosis: no-jump remix removes jump lever", false, err.message);
   }
 
-  // Test D2b: Moon strict-spring remix stages the repeat-loop pattern.
+  // Test D2b: the no-mass-cut remix never suggests lowering hopper.mass.
+  try {
+    const d = diagnoseFailure(makeDiagGame({
+      currentVariant: { constraint: { id: "earth-no-mass-cut", banMassLower: true, minMass: 2.5 } },
+      getMissionStat: () => ({ key: "agility", label: "Agility", value: 11, target: 26 })
+    }));
+    assertEquals(false, d.choices.some((c) => /hopper\.mass/.test(c.command)), "Banned remix must not stage hopper.mass");
+    assertEquals(true, /mass/i.test(d.message), "Message should explain the mass ban");
+    assertEquals(true, d.choices.some((c) => /hopper.engine/.test(c.command)), "No-mass remix should still suggest engine");
+    renderTestResult(SUITE, "Diagnosis: no-mass remix removes mass lever", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Diagnosis: no-mass remix removes mass lever", false, err.message);
+  }
+
+  // Test D2c: Moon strict-spring remix stages the repeat-loop pattern.
   try {
     const d = diagnoseFailure(makeDiagGame({
       currentPlanetIndex: 1,
@@ -3642,7 +3695,7 @@ function runDiagnosticsTests() {
     renderTestResult(SUITE, "Diagnosis: Moon strict spring stages loop fix", false, err.message);
   }
 
-  // Test D2c: Glacies friction-target remix stages the exact numeric variable.
+  // Test D2d: Glacies friction-target remix stages the exact numeric variable.
   try {
     const d = diagnoseFailure(makeDiagGame({
       currentPlanetIndex: 3,

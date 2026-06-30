@@ -1061,6 +1061,18 @@ class StarHopperGame {
         validate: (game) => game.isEarthHopperEngineered() && game.getJumpForce() <= stockJump + 0.001
       };
     }
+    // Earth, "no mass cut": keep Hopper at stock mass or heavier and solve the
+    // Agility target with force and gravity levers instead of lightening the suit.
+    if (c && c.id === "earth-no-mass-cut" && planetIndex === 0) {
+      const at = this.getAgilityTarget();
+      const minMass = Number.isFinite(c.minMass) ? c.minMass : 2.5;
+      return {
+        id: "earth-no-mass-cut-gems",
+        label: `reach Agility ${at}+ while keeping hopper.mass at ${minMass} or heavier — use engine, jump_power, and gravity instead`,
+        short: `AGILITY ${at}+ · MASS ${minMass}+!`,
+        validate: (game) => game.isEarthHopperEngineered() && game.getActiveMass() >= minMass - 0.001
+      };
+    }
     // Moon, "loop budget": every gem now needs jump 18+ AND a repeat loop of N springs
     // (interleaves arithmetic with loops). Applied to all gems so the constraint always
     // bites, regardless of which rows this planet's gems happen to occupy.
