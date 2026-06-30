@@ -1436,9 +1436,10 @@ class Player {
 
   draw(ctx, cameraX, game) {
     const isActive = (game && game.player === this);
+    const reducedMotion = !!(game && game.reducedMotion);
     const cx = this.x + this.w / 2 - cameraX;
     const footY = this.y + this.h;
-    const bob = Math.sin(Date.now() / 170 + this.x * 0.03) * (this.onGround ? 0.7 : 0.25);
+    const bob = reducedMotion ? 0 : Math.sin(Date.now() / 170 + this.x * 0.03) * (this.onGround ? 0.7 : 0.25);
 
     ctx.save();
 
@@ -1470,7 +1471,7 @@ class Player {
     // Rave mode colors
     let primaryColor = (this.charType === 'star') ? '#38bdf8' : '#f97316';
     let visorColor = (this.charType === 'star') ? '#0ea5e9' : '#facc15';
-    if (Compiler.env.raveMode) {
+    if (Compiler.env.raveMode && !reducedMotion) {
       const hue = (Date.now() / 3) % 360;
       primaryColor = `hsl(${hue}, 90%, 60%)`;
       visorColor = `hsl(${(hue + 180) % 360}, 90%, 60%)`;

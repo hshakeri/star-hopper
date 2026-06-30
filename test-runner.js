@@ -1821,6 +1821,44 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Guided mode: clears stale speech and restores hidden state", false, err.message);
   }
 
+  // Test 24b: reduced-motion preference is live and suppresses high-motion rave visuals.
+  const oldMatchMedia = window.matchMedia;
+  try {
+    Compiler.reset();
+    let listener = null;
+    const mediaQuery = {
+      matches: false,
+      addEventListener: (type, cb) => { if (type === "change") listener = cb; },
+      removeEventListener: () => {}
+    };
+    window.matchMedia = () => mediaQuery;
+
+    const game = new StarHopperGame();
+    assertEquals(false, game.setupReducedMotionPreference(), "Initial non-reduced media query should leave motion on");
+    assertEquals(false, game.reducedMotion, "Game should start with reduced motion off");
+    assertEquals(true, typeof listener === "function", "Game should listen for OS preference changes");
+
+    Compiler.env.raveMode = true;
+    mediaQuery.matches = true;
+    listener({ matches: true });
+    assertEquals(true, game.reducedMotion, "OS reduce-motion changes should update the game flag");
+    assertEquals(false, Compiler.env.raveMode, "Reduce motion should clear rainbow rave visuals");
+
+    mediaQuery.matches = false;
+    listener({ matches: false });
+    assertEquals(false, game.reducedMotion, "Turning reduce motion off should restore the game flag");
+
+    if (oldMatchMedia === undefined) delete window.matchMedia;
+    else window.matchMedia = oldMatchMedia;
+    Compiler.reset();
+    renderTestResult("engine-suite", "Accessibility: reduced motion tracks OS changes", true);
+  } catch (err) {
+    if (oldMatchMedia === undefined) delete window.matchMedia;
+    else window.matchMedia = oldMatchMedia;
+    Compiler.reset();
+    renderTestResult("engine-suite", "Accessibility: reduced motion tracks OS changes", false, err.message);
+  }
+
   // Test 25: Hopper pole assignment controls magnetic polarity state
   try {
     Compiler.reset();

@@ -153,6 +153,33 @@ class StarHopperGame {
     this.maxAccumulatedFrameMs = 1000 / 15;
     this.maxPhysicsSteps = 5;
     this.isPaused = false;
+    this.reducedMotion = false;
+    this.reducedMotionQuery = null;
+    this.reducedMotionListener = null;
+  }
+
+  applyReducedMotionPreference(matches) {
+    this.reducedMotion = !!matches;
+    if (this.reducedMotion && typeof Compiler !== 'undefined' && Compiler.env) {
+      Compiler.env.raveMode = false;
+    }
+    return this.reducedMotion;
+  }
+
+  setupReducedMotionPreference() {
+    if (typeof window === 'undefined' || !window.matchMedia) {
+      return this.applyReducedMotionPreference(false);
+    }
+    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
+    this.reducedMotionQuery = query;
+    this.applyReducedMotionPreference(!!query.matches);
+    const onChange = (event) => this.applyReducedMotionPreference(
+      event && typeof event.matches === 'boolean' ? event.matches : !!query.matches
+    );
+    this.reducedMotionListener = onChange;
+    if (typeof query.addEventListener === 'function') query.addEventListener('change', onChange);
+    else if (typeof query.addListener === 'function') query.addListener(onChange);
+    return this.reducedMotion;
   }
 
   getEarthDayNightPhase(nowMs) {
@@ -1408,8 +1435,7 @@ class StarHopperGame {
 
   setupControls() {
     // Honor the OS "reduce motion" setting — gates screen shake / heavy animation.
-    this.reducedMotion = !!(typeof window !== 'undefined' && window.matchMedia &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    this.setupReducedMotionPreference();
 
     // Capture keyboard buttons
     window.addEventListener("keydown", (e) => {
@@ -3185,7 +3211,12 @@ class StarHopperGame {
     if (milestone > this._raveMilestone) {
       this._raveMilestone = milestone;
       this.raveImmuneTimer = 420; // ~7s shield
-      if (typeof Compiler !== 'undefined') { Compiler.env.raveMode = true; setTimeout(() => { Compiler.env.raveMode = false; }, 7000); }
+      if (!this.reducedMotion && typeof Compiler !== 'undefined' && Compiler.env) {
+        Compiler.env.raveMode = true;
+        setTimeout(() => { Compiler.env.raveMode = false; }, 7000);
+      } else if (typeof Compiler !== 'undefined' && Compiler.env) {
+        Compiler.env.raveMode = false;
+      }
       if (typeof ComicBubbles !== 'undefined') ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y - 6, "RAVE SHIELD!", "jagged", "#ec4899", -0.5, { maxLife: 95, scale: 1.6 });
       ui_log_output("🌈 RAVE SHIELD! For 7s, just touching mobs zaps them!", "success");
     }
@@ -4507,7 +4538,7 @@ class StarHopperGame {
         const layers = RenderCache.starLayers(W, H);
         if (layers) {
           const wrap = (img, speed) => {
-            let off = (this.cameraX * speed) % W;
+            let off = (this.reducedMotion ? 0 : this.cameraX * speed) % W;
             if (off < 0) off += W;
             this.ctx.drawImage(img, -off, 0);
             this.ctx.drawImage(img, W - off, 0);
@@ -4516,12 +4547,13 @@ class StarHopperGame {
           wrap(layers.near, 0.16);
         }
         const tw = RenderCache.twinkles(W, H);
-        const t = Date.now() / 700;
+        const t = this.reducedMotion ? 0 : Date.now() / 700;
         for (const s of tw) {
-          this.ctx.globalAlpha = 0.35 + Math.abs(Math.sin(t + s.ph)) * 0.6;
+          this.ctx.globalAlpha = this.reducedMotion ? 0.55 : 0.35 + Math.abs(Math.sin(t + s.ph)) * 0.6;
           this.ctx.fillStyle = '#f8fafc';
           this.ctx.beginPath();
-          this.ctx.arc(((s.x - this.cameraX * 0.1) % W + W) % W, s.y, s.s, 0, Math.PI * 2);
+          const sx = this.reducedMotion ? s.x : ((s.x - this.cameraX * 0.1) % W + W) % W;
+          this.ctx.arc(sx, s.y, s.s, 0, Math.PI * 2);
           this.ctx.fill();
         }
         this.ctx.globalAlpha = 1;
@@ -4691,7 +4723,7 @@ class StarHopperGame {
   drawStartBackdrop() {
     const ctx = this.ctx;
     const W = this.canvas.width, H = this.canvas.height;
-    const t = Date.now() / 1000;
+    const t = this.reducedMotion ? 0 : Date.now() / 1000;
 
     // Big home planet rising at the bottom-left — mostly off-screen so only its arc shows.
     const px = W * 0.22, py = H * 1.32, pr = H * 0.95;
@@ -4762,7 +4794,7 @@ class StarHopperGame {
     this.ctx.fillStyle = ["#86efac", "#67e8f9", "#fdba74", "#c4b5fd", "#f9a8d4"][this.currentPlanetIndex] || "#93c5fd";
     this.ctx.beginPath();
     this.ctx.ellipse(
-      this.canvas.width * 0.78 - (this.cameraX * 0.035 % 90),
+      this.canvas.width * 0.78 - ((this.reducedMotion ? 0 : this.cameraX) * 0.035 % 90),
       this.canvas.height * 0.18,
       86,
       26,
@@ -4773,16 +4805,16 @@ class StarHopperGame {
     this.ctx.fill();
     this.ctx.globalAlpha = 0.12;
     this.ctx.beginPath();
-    this.ctx.ellipse(this.canvas.width * 0.2 - (this.cameraX * 0.02 % 70), this.canvas.height * 0.26, 52, 18, 0.28, 0, Math.PI * 2);
+    this.ctx.ellipse(this.canvas.width * 0.2 - ((this.reducedMotion ? 0 : this.cameraX) * 0.02 % 70), this.canvas.height * 0.26, 52, 18, 0.28, 0, Math.PI * 2);
     this.ctx.fill();
     this.ctx.restore();
 
     // Parallax stars
     for (const star of this.bgStars) {
-      let sx = (star.x - this.cameraX * star.speed) % this.canvas.width;
+      let sx = this.reducedMotion ? star.x : (star.x - this.cameraX * star.speed) % this.canvas.width;
       if (sx < 0) sx += this.canvas.width;
 
-      const shimmer = 0.45 + Math.abs(Math.sin(Date.now() / 900 + star.x)) * 0.55;
+      const shimmer = this.reducedMotion ? 0.62 : 0.45 + Math.abs(Math.sin(Date.now() / 900 + star.x)) * 0.55;
       this.ctx.fillStyle = `rgba(255, 255, 255, ${shimmer.toFixed(2)})`;
       this.ctx.beginPath();
       this.ctx.arc(sx, star.y, star.size, 0, Math.PI * 2);
