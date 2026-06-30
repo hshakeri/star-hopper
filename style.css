@@ -2328,6 +2328,50 @@ html {
   line-height: 1.3;
 }
 
+.run-replay-contract {
+  border: 1px solid rgba(168, 85, 247, 0.34);
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgba(76, 29, 149, 0.22), rgba(15, 23, 42, 0.2)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.022) 0 1px, transparent 1px 4px);
+  padding: 7px 8px;
+  display: grid;
+  gap: 5px;
+}
+
+.run-replay-contract-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+}
+
+.run-replay-contract-head span {
+  color: #c4b5fd;
+  font-weight: 800;
+}
+
+.run-replay-contract-head strong {
+  color: #bef264;
+  text-align: right;
+}
+
+.run-replay-contract-body strong {
+  display: block;
+  color: var(--text-primary);
+  font-size: 0.74rem;
+  line-height: 1.2;
+}
+
+.run-replay-contract-body p {
+  margin: 3px 0 0;
+  color: #dff6ff;
+  font-size: 0.64rem;
+  line-height: 1.28;
+}
+
 .lab-star-contract {
   border: 1px solid rgba(250, 204, 21, 0.22);
   border-radius: 6px;

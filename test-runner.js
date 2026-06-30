@@ -1424,23 +1424,39 @@ function runEngineTests() {
     game.requiredCollectiblesTotal = 2;
     game.requiredCollectiblesCollected = 1;
     game.discoveryPassCounts = { "earth-gravity-wall": 1 };
+    game.remixContext = 'first';
+    game.bestClearTimes = { 0: 12.4 };
+    game.discoveredFormulaKinds = new Set(["antigravity"]);
 
     updateMissionList(game);
     const contract = findByClass(list, "lab-star-contract");
+    const replayBeforeProgress = findByClass(list, "run-replay-contract");
     const text = flattenText(contract || list);
     assertEquals(true, !!contract, "Mission panel should append a lab-star contract");
+    assertEquals(false, !!replayBeforeProgress, "First run should not show a replay contract even when profile progress exists");
     assertEquals(true, /LAB STARS/.test(text), "Contract should identify the star target");
     assertEquals(true, /2\/3/.test(text), "Contract should show current star count");
     assertEquals(true, /OK Mission tasks/.test(text), "Contract should credit completed mission tasks");
     assertEquals(true, /NEXT Mission gems/.test(text), "Contract should show missing gem star");
     assertEquals(true, /OK Science proof/.test(text), "Contract should credit science proof");
+
+    list.children = [];
+    game.remixContext = 'mastery';
+    game.requiredCollectiblesCollected = 2;
+    updateMissionList(game);
+    const replayContract = findByClass(list, "run-replay-contract");
+    const replayText = flattenText(replayContract || list);
+    assertEquals(true, !!replayContract, "Replay run should pin the next run contract in the mission panel");
+    assertEquals(true, /RUN CONTRACT/.test(replayText), "Replay card should identify itself as a run contract");
+    assertEquals(true, /Collect Mass Lab/.test(replayText), "Replay card should show the active contract title");
+    assertEquals(true, /Reward: formula card \+ Research XP/.test(replayText), "Replay card should show the contract reward");
     document.getElementById = oldGetElementById22h;
     document.createElement = oldCreateElement22h;
-    renderTestResult("engine-suite", "Curriculum: mission panel shows lab-star contract", true);
+    renderTestResult("engine-suite", "Curriculum: mission panel shows lab-star and replay contracts", true);
   } catch (err) {
     document.getElementById = oldGetElementById22h;
     document.createElement = oldCreateElement22h;
-    renderTestResult("engine-suite", "Curriculum: mission panel shows lab-star contract", false, err.message);
+    renderTestResult("engine-suite", "Curriculum: mission panel shows lab-star and replay contracts", false, err.message);
   }
 
   // Test 23: Mission Coach copy avoids hidden old mode names
@@ -2595,6 +2611,19 @@ function runCombatTests() {
     assertEquals(0, g.mobs.length, "Survival mobs are cleared");
     assertEquals(false, npc.hiddenInCave, "Villager reappears after survival danger ends");
     assertEquals(0, npc.panicTimer, "Villager panic clears after survival mode ends");
+
+    const nightGame = new StarHopperGame();
+    nightGame.state = 'playing'; nightGame.currentPlanetIndex = 0; nightGame.currentPlanet = PLANETS[0];
+    nightGame.player = new Player(0, 0);
+    nightGame.getEarthDayNightPhase = () => ({ t: 0, daylight: 0.1, isDay: false, sunX: 0.1, sunY: 0.2 });
+    const nightNpc = new NPC({ id: 'night-release', name: 'Night Release', profession: 'Miner', type: 'npc', x: 82, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60, hiddenInCave: true });
+    nightNpc.panicTimer = 80;
+    nightGame.interactiveObjects = [nightNpc];
+    nightGame.survivalMode = true;
+    nightGame.mobs = [new Mob(90, 60, 'hog', '#9a6b4f', 1)];
+    nightGame.toggleSurvival();
+    assertEquals(true, nightNpc.hiddenInCave, "Earth night keeps villagers sheltered after survival danger ends");
+    assertEquals(0, nightNpc.panicTimer, "Night shelter clears mob panic without forcing villagers outside");
     renderTestResult(SUITE, "Villagers: survival off releases cave hiding", true);
   } catch (err) {
     renderTestResult(SUITE, "Villagers: survival off releases cave hiding", false, err.message);

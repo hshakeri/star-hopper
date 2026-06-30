@@ -424,7 +424,49 @@ function updateMissionList(game) {
     listContainer.appendChild(portalItem);
   }
 
+  appendRunReplayContract(listContainer, game);
   appendLabStarContract(listContainer, game);
+}
+
+function appendRunReplayContract(listContainer, game) {
+  if (!listContainer || !game || typeof game.getClearReplayContract !== 'function') return;
+  const isReplayContext = game.remixContext === 'mastery' || game.remixContext === 'retry' || game.remixContext === 'daily';
+  if (!isReplayContext) return;
+  const contractData = game.getClearReplayContract({
+    labStars: typeof game.getClearLabStarSummary === 'function' ? game.getClearLabStarSummary({ isDailyRun: game.remixContext === 'daily' }) : null,
+    clearTime: null,
+    isDailyRun: game.remixContext === 'daily',
+    nextIndex: typeof game.getNextPlanetIndex === 'function' ? game.getNextPlanetIndex() : null
+  });
+  if (!contractData) return;
+
+  const card = document.createElement("div");
+  card.className = "run-replay-contract";
+
+  const head = document.createElement("div");
+  head.className = "run-replay-contract-head";
+
+  const title = document.createElement("span");
+  title.textContent = "RUN CONTRACT";
+
+  const reward = document.createElement("strong");
+  reward.textContent = contractData.reward || "Replay reward";
+
+  head.appendChild(title);
+  head.appendChild(reward);
+  card.appendChild(head);
+
+  const body = document.createElement("div");
+  body.className = "run-replay-contract-body";
+  const bodyTitle = document.createElement("strong");
+  bodyTitle.textContent = contractData.title || "Replay with one clear goal";
+  const bodyCopy = document.createElement("p");
+  bodyCopy.textContent = contractData.body || "Use the lab report to decide what to test next.";
+  body.appendChild(bodyTitle);
+  body.appendChild(bodyCopy);
+  card.appendChild(body);
+
+  listContainer.appendChild(card);
 }
 
 function appendLabStarContract(listContainer, game) {
