@@ -1523,7 +1523,9 @@ function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems
     if (pulse.hypothesisConfirmed && typeof game.spawnHypothesisEffect === 'function') {
       game.spawnHypothesisEffect(pulse);
     }
-    if (pulse.combo > 1 && typeof game.spawnDiscoveryComboEffect === 'function') {
+    if (pulse.combo === 1 && typeof game.spawnDiscoveryComboPrimerEffect === 'function') {
+      pulse.comboPrimer = game.spawnDiscoveryComboPrimerEffect(pulse);
+    } else if (pulse.combo > 1 && typeof game.spawnDiscoveryComboEffect === 'function') {
       game.spawnDiscoveryComboEffect(pulse);
     }
     if (cardUnlocked && typeof game.spawnFormulaCardEffect === 'function') {

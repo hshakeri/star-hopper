@@ -1310,6 +1310,9 @@ function runEngineTests() {
     const firstWorldXP = game.getWorldMasteryProgress(0).xp;
     assertEquals(true, firstWorldXP > 0, "Science progress should also feed the world mastery meter");
     assertEquals(1, game.discoveryCombo, "New discovery starts the combo");
+    assertEquals("CHAIN READY!", firstPulse.comboPrimer.label, "First discovery should prime the next-experiment chain");
+    assertEquals(true, bubbleLabels22b.includes("CHAIN READY!"), "First discovery should pop a chain-ready cue");
+    assertEquals("CHAIN READY: make one new change", game.missionBalloon.text, "CRT should explain how to keep the chain alive");
     const firstBubbleCount = bubbleLabels22b.length;
     const firstBurstCount = particleBursts22b;
     assertEquals(false, bubbleLabels22b.some(label => /LAB CHAIN/.test(label)), "First discovery should not claim a chain yet");
@@ -1375,6 +1378,7 @@ function runEngineTests() {
     assertEquals(true, game.discoveryPulse === outcome.pulse, "Terminal reward should become the visible discovery pulse");
     assertEquals(true, game.discoveredFormulaKinds.has("mass"), "Terminal code should collect formula cards");
     assertEquals(true, labels.includes("CARD!"), "Terminal code should spawn the formula card pop");
+    assertEquals(true, labels.includes("CHAIN READY!"), "Terminal code should prime the discovery combo visually");
     assertEquals(true, game.researchXP > 0, "Terminal code should award Research XP for new lab progress");
     assertEquals(1, game.discoveryCombo, "Terminal code should start the discovery combo");
 
