@@ -4744,6 +4744,12 @@ body.navigator-active .coach-bubble { display: none !important; }
   color: var(--text-primary);
 }
 
+.badge-shelf-item.active {
+  border-color: rgba(56, 189, 248, 0.36);
+  background: rgba(56, 189, 248, 0.065);
+  color: var(--text-primary);
+}
+
 .badge-shelf-item.world-mastery-badge {
   border-color: rgba(168, 85, 247, 0.36);
   background:
@@ -4760,6 +4766,26 @@ body.navigator-active .coach-bubble { display: none !important; }
 .badge-shelf-item.earned .badge-shelf-icon {
   filter: none;
   opacity: 1;
+}
+
+.badge-shelf-item.active .badge-shelf-icon {
+  filter: grayscale(0.2);
+  opacity: 0.84;
+}
+
+.badge-shelf-state {
+  display: block;
+  margin-bottom: 2px;
+  color: #67e8f9;
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.badge-shelf-item.earned .badge-shelf-state {
+  color: #fdba74;
 }
 
 .badge-shelf-item strong {
@@ -6028,6 +6054,7 @@ body.readable-text-mode .coach-result-box p,
 body.readable-text-mode .coach-mini-title,
 body.readable-text-mode .coach-loop-chip,
 body.readable-text-mode .concept-progress-item,
+body.readable-text-mode .badge-shelf-state,
 body.readable-text-mode .badge-shelf-item p,
 body.readable-text-mode .research-rank-kicker,
 body.readable-text-mode .research-rank-xp,

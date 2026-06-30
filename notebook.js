@@ -406,17 +406,23 @@ function updateBadgeShelf(game = window.Game) {
 
   const completedMissions = game && game.completedMissions ? game.completedMissions : new Set();
   const earnedBadges = game && game.earnedBadges ? game.earnedBadges : new Set();
+  const activeMission = typeof getActivePlatformerMission === 'function' ? getActivePlatformerMission(game) : null;
+  const activeMissionId = activeMission && activeMission.id ? activeMission.id : null;
   list.innerHTML = "";
 
   PlatformerMissions.filter(mission => mission.badge).forEach(mission => {
     const earned = earnedBadges.has(mission.badge.id) || completedMissions.has(mission.id);
+    const active = !earned && mission.id === activeMissionId;
+    const stateLabel = earned ? "EARNED" : (active ? "NEXT BADGE" : "LOCKED GOAL");
+    const body = earned ? mission.badge.description : getBadgeShelfLockedPreview(mission, active);
     const item = document.createElement("div");
-    item.className = `badge-shelf-item ${earned ? "earned" : ""}`;
+    item.className = `badge-shelf-item ${earned ? "earned" : ""} ${active ? "active" : ""}`;
     item.innerHTML = `
       <span class="badge-shelf-icon">${escapeHTML(mission.badge.icon)}</span>
       <div>
+        <span class="badge-shelf-state">${escapeHTML(stateLabel)}</span>
         <strong>${escapeHTML(mission.badge.label)}</strong>
-        <p>${escapeHTML(earned ? mission.badge.description : "Locked")}</p>
+        <p>${escapeHTML(body)}</p>
       </div>
     `;
     list.appendChild(item);
@@ -448,6 +454,17 @@ function updateBadgeShelf(game = window.Game) {
       list.appendChild(item);
     });
   });
+}
+
+function getBadgeShelfLockedPreview(mission, active = false) {
+  if (!mission) return active ? "Next mission concept" : "Future mission concept";
+  const title = mission.title || "Mission";
+  const concept = mission.beginnerConcept || mission.concept || mission.codingConcept || "";
+  const codeCue = mission.scaffold && (mission.scaffold.codeIdea || mission.scaffold.physicsIdea || mission.scaffold.explain);
+  const parts = [`${active ? "Next" : "Goal"}: ${title}`];
+  if (concept) parts.push(concept);
+  if (codeCue) parts.push(codeCue);
+  return parts.join(" - ");
 }
 
 // Print specific student/parent/teacher sheets selectively

@@ -1231,6 +1231,62 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: mission completion unlocks concept badges", false, err.message);
   }
 
+  // Test 22a: Locked notebook badges preview the next learning target instead of hiding it.
+  const oldGetElementById22badge = document.getElementById;
+  const oldCreateElement22badge = document.createElement;
+  try {
+    const makeBadgeEl = () => {
+      let html = "";
+      return {
+        className: "",
+        textContent: "",
+        children: [],
+        style: {},
+        get innerHTML() { return html; },
+        set innerHTML(value) { html = value; this.children = []; },
+        appendChild(child) { this.children.push(child); return child; },
+        classList: { add: () => {}, remove: () => {}, toggle: () => {}, contains: () => false }
+      };
+    };
+    const list = makeBadgeEl();
+    document.getElementById = (id) => id === "badge-shelf-list" ? list : null;
+    document.createElement = () => makeBadgeEl();
+
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[0];
+    game.currentPlanetIndex = 0;
+    game.completedMissions = new Set();
+    game.earnedBadges = new Set();
+    game.masteryMeters = {};
+    const earthMission = PlatformerMissions.find(mission => mission.id === "earth-gravity-wall");
+
+    updateBadgeShelf(game);
+    const lockedCard = list.children[0];
+    assertEquals(true, !!lockedCard, "Badge shelf should render mission badges");
+    assertEquals(true, /active/.test(lockedCard.className), "Current locked badge should be marked active");
+    assertEquals(true, /NEXT BADGE/.test(lockedCard.innerHTML), "Active locked badge should name the next reward state");
+    assertEquals(true, new RegExp(earthMission.title).test(lockedCard.innerHTML), "Locked preview should name the next mission");
+    assertEquals(true, /Change one number/.test(lockedCard.innerHTML), "Locked preview should show the beginner concept");
+    assertEquals(true, /Activate Hopper/.test(lockedCard.innerHTML), "Locked preview should show the scaffold code cue");
+
+    game.completedMissions.add(earthMission.id);
+    game.earnedBadges.add(earthMission.badge.id);
+    updateBadgeShelf(game);
+    const earnedCard = list.children[0];
+    assertEquals(true, /earned/.test(earnedCard.className), "Completed badge should render as earned");
+    assertEquals(true, /EARNED/.test(earnedCard.innerHTML), "Completed badge should show earned state");
+    assertEquals(true, new RegExp(earthMission.badge.description).test(earnedCard.innerHTML), "Earned badge should restore the reward description");
+    assertEquals(false, /NEXT BADGE/.test(earnedCard.innerHTML), "Earned badge should not keep the locked next-state label");
+
+    document.getElementById = oldGetElementById22badge;
+    document.createElement = oldCreateElement22badge;
+    renderTestResult("engine-suite", "Curriculum: badge shelf previews locked goals", true);
+  } catch (err) {
+    document.getElementById = oldGetElementById22badge;
+    document.createElement = oldCreateElement22badge;
+    renderTestResult("engine-suite", "Curriculum: badge shelf previews locked goals", false, err.message);
+  }
+
   // Test 22a: Mission completion gets an in-level task progress cue and CRT next step.
   const oldBubblePop22a = ComicBubbles.pop;
   const oldParticleBurst22a = Particles.spawnBurst;
