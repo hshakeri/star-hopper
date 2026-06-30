@@ -122,6 +122,25 @@ class StarHopperGame {
     };
   }
 
+  shouldVillagersShelterForNight(nowMs) {
+    return this.currentPlanetIndex === 0 && !this.getEarthDayNightPhase(nowMs).isDay;
+  }
+
+  releaseVillagersFromCaves() {
+    const keepSheltered = this.shouldVillagersShelterForNight();
+    for (const obj of this.interactiveObjects || []) {
+      if (!(typeof NPC !== 'undefined' && obj instanceof NPC)) continue;
+      obj.panicTimer = 0;
+      obj.caveCooldown = 0;
+      if (keepSheltered) continue;
+      obj.hiddenInCave = false;
+      if (Number.isFinite(obj.caveX)) obj.x = obj.caveX + 10;
+      if (Number.isFinite(obj.homeY)) obj.y = obj.homeY;
+      obj.proximity = false;
+    }
+    if (this.activeNPC && this.activeNPC.hiddenInCave) this.activeNPC = null;
+  }
+
   getGemConfig(index = this.currentPlanetIndex) {
     const gems = [
       { id: "earth", name: "Emerald Core", shortName: "Emerald", color: "#4ade80", glow: "rgba(74, 222, 128, 0.72)" },
@@ -1906,6 +1925,7 @@ class StarHopperGame {
       }
     } else {
       if (typeof SFX !== 'undefined' && SFX.stopSurvivalBGM) SFX.stopSurvivalBGM(this.currentPlanetIndex);
+      if (typeof this.releaseVillagersFromCaves === 'function') this.releaseVillagersFromCaves();
       ui_log_output("Mob Survival off — back to engineering.", "info");
     }
   }
@@ -2253,11 +2273,11 @@ class StarHopperGame {
   }
 
   findThreateningMobForNPC(npc, radius = 128) {
-    if (!npc || npc.hiddenInCave || !this.mobs) return null;
+    if (!npc || !this.mobs) return null;
     let best = null;
     let bestD = Infinity;
-    const nx = npc.x + npc.w / 2;
-    const ny = npc.y + npc.h / 2;
+    const nx = npc.hiddenInCave ? npc.caveX + 16 : npc.x + npc.w / 2;
+    const ny = npc.hiddenInCave ? npc.caveY + 18 : npc.y + npc.h / 2;
     for (const m of this.mobs) {
       if (!m || m.pet) continue;
       const mx = m.x + m.w / 2;

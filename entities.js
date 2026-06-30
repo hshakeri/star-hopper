@@ -2423,9 +2423,10 @@ class NPC extends InteractiveObject {
   update(game) {
     if (!game || !game.player) return;
     const threat = (typeof game.findThreateningMobForNPC === 'function') ? game.findThreateningMobForNPC(this, 128) : null;
+    const nightShelter = (typeof game.shouldVillagersShelterForNight === 'function') ? game.shouldVillagersShelterForNight() : false;
     if (threat) {
       this.panicTimer = 120;
-      if (typeof ComicBubbles !== 'undefined' && this.caveCooldown <= 0) {
+      if (!this.hiddenInCave && typeof ComicBubbles !== 'undefined' && this.caveCooldown <= 0) {
         ComicBubbles.spawn(this.x + this.w / 2, this.y - 8, "CAVE!", "jagged", "#facc15", -0.35, { maxLife: 60, scale: 0.8 });
       }
       this.caveCooldown = 90;
@@ -2433,20 +2434,19 @@ class NPC extends InteractiveObject {
     if (this.panicTimer > 0) this.panicTimer--;
     if (this.caveCooldown > 0) this.caveCooldown--;
 
-    const goingHome = this.panicTimer > 0 || !!threat;
+    const goingHome = nightShelter || this.panicTimer > 0 || !!threat;
+    if (goingHome && game.activeNPC === this) game.activeNPC = null;
     if (goingHome && !this.hiddenInCave) {
       const targetX = this.caveX + 10;
       const dxHome = targetX - this.x;
       this.x += Math.max(-2.2, Math.min(2.2, dxHome * 0.18));
       if (Math.abs(dxHome) < 5) this.hiddenInCave = true;
     } else if (!goingHome && this.hiddenInCave) {
-      const caveDx = (this.caveX + 16) - (game.player.x + game.player.w / 2);
-      const caveDy = (this.caveY + 18) - (game.player.y + game.player.h / 2);
-      if (Math.hypot(caveDx, caveDy) < 82) {
-        this.hiddenInCave = false;
-        if (typeof ComicBubbles !== 'undefined') {
-          ComicBubbles.spawn(this.caveX + 16, this.caveY - 4, "Trading?", "rounded", this.color, -0.35, { maxLife: 80 });
-        }
+      this.hiddenInCave = false;
+      if (Number.isFinite(this.caveX)) this.x = this.caveX + 10;
+      if (Number.isFinite(this.homeY)) this.y = this.homeY;
+      if (typeof ComicBubbles !== 'undefined') {
+        ComicBubbles.spawn(this.caveX + 16, this.caveY - 4, "Trading?", "rounded", this.color, -0.35, { maxLife: 80 });
       }
     } else if (!goingHome && !this.hiddenInCave) {
       const dxHome = this.homeX - this.x;
@@ -2463,7 +2463,7 @@ class NPC extends InteractiveObject {
     const caveDist = Math.sqrt(caveDx * caveDx + caveDy * caveDy);
     
     const wasProx = this.proximity;
-    this.proximity = this.hiddenInCave ? (!goingHome && caveDist < 58) : (dist < 48 || caveDist < 52);
+    this.proximity = goingHome ? false : (this.hiddenInCave ? (caveDist < 58) : (dist < 48 || caveDist < 52));
     if (this.hazardCooldown > 0) this.hazardCooldown--;
     if (this.hitFlash > 0) this.hitFlash--;
 

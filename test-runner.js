@@ -1942,7 +1942,7 @@ function runCombatTests() {
   // C19d: mobs can attack villagers, causing them to flee into their cave homes.
   try {
     const g = new StarHopperGame();
-    g.state = 'playing'; g.currentPlanetIndex = 0; g.currentPlanet = PLANETS[0];
+    g.state = 'playing'; g.currentPlanetIndex = 1; g.currentPlanet = PLANETS[1];
     g.currentVariant = {
       map: [
         [0,0,0,0,0,0,0,0],
@@ -1963,9 +1963,55 @@ function runCombatTests() {
     assertEquals(true, npc.panicTimer > 0, "Villager starts panic retreat");
     for (let i = 0; i < 40 && !npc.hiddenInCave; i++) npc.update(g);
     assertEquals(true, npc.hiddenInCave, "Villager reaches and hides inside the cave");
+    npc.panicTimer = 0;
+    npc.update(g);
+    assertEquals(true, npc.hiddenInCave, "Villager stays hidden while the mob is near the cave");
+    g.mobs = [];
+    npc.panicTimer = 0;
+    npc.update(g);
+    assertEquals(false, npc.hiddenInCave, "Villager comes out when danger clears");
     renderTestResult(SUITE, "Villagers: mobs attack and villagers run to caves", true);
   } catch (err) {
     renderTestResult(SUITE, "Villagers: mobs attack and villagers run to caves", false, err.message);
+  }
+
+  // C19e: turning survival off clears panic hiding unless the stage itself is night.
+  try {
+    const g = new StarHopperGame();
+    g.state = 'playing'; g.currentPlanetIndex = 1; g.currentPlanet = PLANETS[1];
+    g.player = new Player(0, 0);
+    const npc = new NPC({ id: 'release', name: 'Release', profession: 'Miner', type: 'npc', x: 82, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60, hiddenInCave: true });
+    npc.panicTimer = 80;
+    g.interactiveObjects = [npc];
+    g.survivalMode = true;
+    g.mobs = [new Mob(90, 60, 'hog', '#9a6b4f', 1)];
+    g.toggleSurvival();
+    assertEquals(false, g.survivalMode, "Survival mode turns off");
+    assertEquals(0, g.mobs.length, "Survival mobs are cleared");
+    assertEquals(false, npc.hiddenInCave, "Villager reappears after survival danger ends");
+    assertEquals(0, npc.panicTimer, "Villager panic clears after survival mode ends");
+    renderTestResult(SUITE, "Villagers: survival off releases cave hiding", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Villagers: survival off releases cave hiding", false, err.message);
+  }
+
+  // C19f: Earth night sends villagers into caves, and daylight brings them back out.
+  try {
+    const g = new StarHopperGame();
+    g.state = 'playing'; g.currentPlanetIndex = 0; g.currentPlanet = PLANETS[0];
+    g.player = new Player(220, 64);
+    g.mobs = [];
+    g.getEarthDayNightPhase = () => ({ t: 0, daylight: 0.1, isDay: false, sunX: 0.1, sunY: 0.2 });
+    const npc = new NPC({ id: 'nightwatch', name: 'Nightwatch', profession: 'Miner', type: 'npc', x: 100, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60 });
+    g.interactiveObjects = [npc];
+    for (let i = 0; i < 40 && !npc.hiddenInCave; i++) npc.update(g);
+    assertEquals(true, npc.hiddenInCave, "Villager shelters in a cave at night");
+    g.getEarthDayNightPhase = () => ({ t: 0.5, daylight: 1, isDay: true, sunX: 0.5, sunY: 0.34 });
+    npc.update(g);
+    assertEquals(false, npc.hiddenInCave, "Villager comes out in daylight");
+    renderTestResult(SUITE, "Villagers: Earth night and day controls caves", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Villagers: Earth night and day controls caves", false, err.message);
   }
 
   // C20: a meteor smashing a block drops gem/rubble but NEVER conjures a mob (survival-off fix) —
