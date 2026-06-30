@@ -2780,10 +2780,25 @@ class StarHopperGame {
         return check.label || "Goal";
       });
     const goalLabel = earnedGoals.length ? earnedGoals.join(" + ") : "Mastery goal";
-    this.lastLabStarPulse = { stars: current, gained, reason, goals: earnedGoals, goalLabel };
     const label = gained > 1 ? `LAB STARS +${gained}` : "LAB STAR +1";
+    const nextMissing = summary.checks.find(check => check && !check.earned);
+    const nextLabel = nextMissing
+      ? (nextMissing.id === "missions" ? "Tasks" : nextMissing.id === "gems" ? "Samples" : nextMissing.id === "science" ? "Proof" : (nextMissing.label || "Goal"))
+      : null;
+    const monitorText = nextLabel
+      ? `LAB STARS ${current}/${summary.maxStars}: ${goalLabel}; next ${nextLabel}`
+      : `LAB STARS ${current}/${summary.maxStars}: mastery proof ready`;
+    this.lastLabStarPulse = { stars: current, gained, reason, goals: earnedGoals, goalLabel, nextGoal: nextLabel, monitorText };
     if (typeof ui_log_output === 'function') {
       ui_log_output(`${label}: ${goalLabel} (${current}/${summary.maxStars} mastery goals complete).`, "success");
+    }
+    const hasActiveMonitorCue = !!(this.missionBalloon && (this.missionBalloon.timer || 0) > 0 && this.missionBalloon.title !== "LAB STARS");
+    if (!hasActiveMonitorCue && typeof this.showMissionBalloon === 'function') {
+      this.showMissionBalloon(monitorText, {
+        title: "LAB STARS",
+        color: "#facc15",
+        timer: 260
+      });
     }
     if (typeof SFX !== 'undefined' && SFX.playSuccess) SFX.playSuccess();
     if (this.player && typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {

@@ -2114,12 +2114,43 @@ function runEngineTests() {
     assertEquals(3, game._labStarPreviewCount, "Preview count should advance to the current star count");
     assertEquals("test", game.lastLabStarPulse.reason, "Pulse should remember why it fired");
     assertEquals("Samples + Proof", game.lastLabStarPulse.goalLabel, "Pulse should name the earned mastery goals");
+    assertEquals(null, game.lastLabStarPulse.nextGoal, "A complete 3-star run should have no next missing star");
+    assertEquals("LAB STARS 3/3: mastery proof ready", game.lastLabStarPulse.monitorText, "Pulse should store the CRT mastery message");
+    assertEquals("LAB STARS 3/3: mastery proof ready", game.missionBalloon.text, "CRT should explain that all lab stars are complete");
+    assertEquals("LAB STARS", game.missionBalloon.title, "CRT should label lab-star progress");
     assertEquals(2, bubbleLabels22g.length, "Visual reward should pop the star and goal bubbles");
     assertEquals(true, bubbleLabels22g.includes("LAB STARS +2"), "Visual reward should show the lab-star gain");
     assertEquals(true, bubbleLabels22g.includes("SAMPLES + PROOF"), "Visual reward should name the earned goal categories");
     assertEquals(1, particleCount, "Particle reward should burst once");
     assertEquals(1, sfxCount, "Success chime should play once");
     assertEquals(0, game.checkLabStarProgress("test"), "Calling again without progress should not repeat the reward");
+
+    const partialGame = new StarHopperGame();
+    partialGame.currentPlanet = PLANETS[0];
+    partialGame.currentPlanetIndex = 0;
+    partialGame.player = { x: 40, y: 50, w: 20, h: 28 };
+    partialGame.completedMissions = new Set(PLANETS[0].missions.map(mission => mission.id));
+    partialGame.requiredCollectiblesTotal = 2;
+    partialGame.requiredCollectiblesCollected = 0;
+    partialGame.discoveryPassCounts = {};
+    partialGame._labStarPreviewCount = 0;
+    assertEquals(1, partialGame.checkLabStarProgress("mission"), "A partial star gain should still fire once");
+    assertEquals("Samples", partialGame.lastLabStarPulse.nextGoal, "CRT cue should name the next missing educational goal");
+    assertEquals("LAB STARS 1/3: Tasks; next Samples", partialGame.missionBalloon.text, "CRT should point from the earned star to the next missing star");
+
+    const protectedGame = new StarHopperGame();
+    protectedGame.currentPlanet = PLANETS[0];
+    protectedGame.currentPlanetIndex = 0;
+    protectedGame.player = { x: 40, y: 50, w: 20, h: 28 };
+    protectedGame.completedMissions = new Set(PLANETS[0].missions.map(mission => mission.id));
+    protectedGame.requiredCollectiblesTotal = 2;
+    protectedGame.requiredCollectiblesCollected = 0;
+    protectedGame.discoveryPassCounts = {};
+    protectedGame._labStarPreviewCount = 0;
+    protectedGame.showMissionBalloon("TASKS DONE: collect 2 samples", { title: "MISSION CRT", timer: 260 });
+    assertEquals(1, protectedGame.checkLabStarProgress("mission"), "Lab-star gain should still record under an active monitor cue");
+    assertEquals("LAB STARS 1/3: Tasks; next Samples", protectedGame.lastLabStarPulse.monitorText, "Lab-star monitor text should still be stored");
+    assertEquals("TASKS DONE: collect 2 samples", protectedGame.missionBalloon.text, "Lab-star cue should not overwrite a more actionable CRT message");
 
     ComicBubbles.pop = oldBubblePop22g;
     Particles.spawnBurst = oldParticleBurst22g;
