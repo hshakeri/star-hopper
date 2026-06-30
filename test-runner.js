@@ -2275,9 +2275,19 @@ function runCombatTests() {
   }
 
   // C2c: Survival mode uses a faster, drum-backed chiptune and restores the planet track.
+  let oldMasterVolumeSettingC2c = null;
   try {
+    oldMasterVolumeSettingC2c = typeof localStorage !== 'undefined' ? localStorage.getItem('sh-master-volume') : null;
+    if (typeof localStorage !== 'undefined') localStorage.setItem('sh-master-volume', '0.35');
     const s = new SoundEngine();
     s.isMuted = true; // state test only; no AudioContext needed.
+    assertEquals(35, s.getMasterVolumePercent(), "Master volume loads from local storage");
+    assertEquals(1, s.setMasterVolume(1.4), "Master volume clamps high values");
+    assertEquals("1.00", localStorage.getItem('sh-master-volume'), "Master volume persists normalized high clamp");
+    assertEquals(0, s.setMasterVolume(-0.2), "Master volume clamps low values");
+    assertEquals("0.00", localStorage.getItem('sh-master-volume'), "Master volume persists normalized low clamp");
+    assertEquals(60, Math.round(s.setMasterVolume(0.6, false) * 100), "Master volume can update without persisting during setup sync");
+    assertEquals("0.00", localStorage.getItem('sh-master-volume'), "Non-persistent volume updates leave storage alone");
     const earth = s.getTrackPattern(0);
     const survival = s.getTrackPattern('survival');
     const budget = s.getTrackPattern(6);
@@ -2295,8 +2305,16 @@ function runCombatTests() {
     assertEquals(2, s.preSurvivalBgm, "Previous planet track is remembered");
     s.stopSurvivalBGM();
     assertEquals(2, s.currentBgm, "Turning survival off restores the planet track");
+    if (typeof localStorage !== 'undefined') {
+      if (oldMasterVolumeSettingC2c === null) localStorage.removeItem('sh-master-volume');
+      else localStorage.setItem('sh-master-volume', oldMasterVolumeSettingC2c);
+    }
     renderTestResult(SUITE, "Music: survival mode raises beat intensity", true);
   } catch (err) {
+    if (typeof localStorage !== 'undefined') {
+      if (oldMasterVolumeSettingC2c === null) localStorage.removeItem('sh-master-volume');
+      else localStorage.setItem('sh-master-volume', oldMasterVolumeSettingC2c);
+    }
     renderTestResult(SUITE, "Music: survival mode raises beat intensity", false, err.message);
   }
 

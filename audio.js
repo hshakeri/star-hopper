@@ -7,6 +7,8 @@ class SoundEngine {
     this.currentBgm = null;
     this.preSurvivalBgm = null;
     this.isMuted = true;
+    this.masterGain = null;
+    this.masterVolume = this.loadMasterVolume();
     this.trackNames = [
       "Earth Base", "Moon Orbit", "Jupiter Core", "Glacies Ice", "Mag Field", "Tears",
       "Budget Master", "Acid Craft"
@@ -23,7 +25,45 @@ class SoundEngine {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (AudioContextClass) {
       this.ctx = new AudioContextClass();
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.connect(this.ctx.destination);
+      this.applyMasterVolume();
     }
+  }
+
+  normalizeMasterVolume(value, fallback = 0.75) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.max(0, Math.min(1, n));
+  }
+
+  loadMasterVolume() {
+    if (typeof localStorage === 'undefined') return 0.75;
+    const stored = localStorage.getItem('sh-master-volume');
+    return this.normalizeMasterVolume(stored, 0.75);
+  }
+
+  applyMasterVolume() {
+    if (!this.masterGain || !this.ctx) return;
+    this.masterGain.gain.setValueAtTime(this.masterVolume, this.ctx.currentTime);
+  }
+
+  setMasterVolume(value, persist = true) {
+    this.masterVolume = this.normalizeMasterVolume(value, this.masterVolume);
+    this.applyMasterVolume();
+    if (persist && typeof localStorage !== 'undefined') {
+      localStorage.setItem('sh-master-volume', this.masterVolume.toFixed(2));
+    }
+    return this.masterVolume;
+  }
+
+  getMasterVolumePercent() {
+    return Math.round(this.masterVolume * 100);
+  }
+
+  connectOutput(node) {
+    if (!node || !this.ctx) return;
+    node.connect(this.masterGain || this.ctx.destination);
   }
 
   getNoteFreq(noteName) {
@@ -62,7 +102,7 @@ class SoundEngine {
     const gain = this.ctx.createGain();
     
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    this.connectOutput(gain);
 
     osc.type = 'triangle';
     const now = this.ctx.currentTime;
@@ -85,7 +125,7 @@ class SoundEngine {
     const gain = this.ctx.createGain();
     
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    this.connectOutput(gain);
 
     osc.type = 'sawtooth';
     const now = this.ctx.currentTime;
@@ -109,7 +149,7 @@ class SoundEngine {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      this.connectOutput(gain);
       osc.type = 'sine';
       osc.frequency.setValueAtTime(freq, start);
       gain.gain.setValueAtTime(0.08, start);
@@ -130,7 +170,7 @@ class SoundEngine {
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    this.connectOutput(gain);
     osc.type = 'triangle';
     const now = this.ctx.currentTime;
     const freq = 550 + Math.random() * 250;
@@ -150,7 +190,7 @@ class SoundEngine {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      this.connectOutput(gain);
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(freq, start);
       gain.gain.setValueAtTime(0.1, start);
@@ -173,7 +213,7 @@ class SoundEngine {
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    this.connectOutput(gain);
     
     osc.type = 'sawtooth';
     const now = this.ctx.currentTime;
@@ -195,7 +235,7 @@ class SoundEngine {
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    this.connectOutput(gain);
     
     osc.type = 'sine';
     const now = this.ctx.currentTime;
@@ -219,7 +259,7 @@ class SoundEngine {
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    this.connectOutput(gain);
 
     osc.type = 'sine';
     const now = this.ctx.currentTime;
@@ -246,7 +286,7 @@ class SoundEngine {
     const filterIsh = this.ctx.createGain(); // simple two-stage gain for a softer attack
     osc.connect(gain);
     gain.connect(filterIsh);
-    filterIsh.connect(this.ctx.destination);
+    this.connectOutput(filterIsh);
 
     osc.type = 'sawtooth';
     const now = this.ctx.currentTime;
@@ -273,7 +313,7 @@ class SoundEngine {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      this.connectOutput(gain);
       osc.type = type || 'triangle';
       osc.frequency.setValueAtTime(freq, start);
       gain.gain.setValueAtTime(0.12, start);
@@ -428,7 +468,7 @@ class SoundEngine {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      this.connectOutput(gain);
       osc.type = type || 'triangle';
       osc.frequency.setValueAtTime(freq, start);
       gain.gain.setValueAtTime(volume || 0.02, start);
@@ -441,7 +481,7 @@ class SoundEngine {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      this.connectOutput(gain);
       osc.type = 'sine';
       osc.frequency.setValueAtTime(128, now);
       osc.frequency.exponentialRampToValueAtTime(45, now + 0.08);

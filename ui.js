@@ -331,8 +331,10 @@ function updateHUD(game) {
   const musicTrack = document.getElementById("hud-music-track");
   if (musicTrack) {
     const trackName = SFX.getTrackName ? SFX.getTrackName(SFX.currentBgm) : "No Music";
-    musicTrack.textContent = SFX.isMuted ? "Muted" : trackName;
+    const volume = SFX.getMasterVolumePercent ? SFX.getMasterVolumePercent() : 100;
+    musicTrack.textContent = SFX.isMuted ? "Muted" : `${trackName} ${volume}%`;
   }
+  syncMasterVolumeControl();
 
   // 5. Active Character Indicators
   const starCard = document.getElementById("char-card-star");
@@ -347,6 +349,15 @@ function updateHUD(game) {
       hopperCard.classList.add("active");
     }
   }
+}
+
+function syncMasterVolumeControl() {
+  if (typeof document === 'undefined' || typeof SFX === 'undefined') return;
+  const slider = document.getElementById("volume-slider");
+  const value = document.getElementById("volume-value");
+  const percent = SFX.getMasterVolumePercent ? SFX.getMasterVolumePercent() : 100;
+  if (slider && String(slider.value) !== String(percent)) slider.value = String(percent);
+  if (value) value.textContent = `${percent}%`;
 }
 
 // Update Mission Checklist UI
@@ -2312,13 +2323,30 @@ function setupUIBindings(game) {
   
   // 4. Mute toggle
   const muteBtn = document.getElementById("mute-btn");
-  if (muteBtn) {
+  const updateMuteButton = () => {
+    if (!muteBtn) return;
+    const volume = SFX.getMasterVolumePercent ? SFX.getMasterVolumePercent() : 100;
     muteBtn.innerHTML = SFX.isMuted ? '🔇' : '🔊';
-    muteBtn.title = SFX.isMuted ? "Sound muted" : "Toggle Sound";
+    muteBtn.title = SFX.isMuted ? `Sound muted · volume ${volume}%` : `Sound on · volume ${volume}%`;
+  };
+  if (muteBtn) {
+    updateMuteButton();
     muteBtn.addEventListener("click", () => {
-      const isMuted = SFX.toggleMute();
-      muteBtn.innerHTML = isMuted ? '🔇' : '🔊';
-      muteBtn.title = isMuted ? "Sound muted" : "Toggle Sound";
+      SFX.toggleMute();
+      updateMuteButton();
+      syncMasterVolumeControl();
+    });
+  }
+
+  const volumeSlider = document.getElementById("volume-slider");
+  if (volumeSlider) {
+    syncMasterVolumeControl();
+    volumeSlider.addEventListener("input", () => {
+      const pct = Math.max(0, Math.min(100, Number(volumeSlider.value) || 0));
+      if (SFX.setMasterVolume) SFX.setMasterVolume(pct / 100);
+      syncMasterVolumeControl();
+      updateMuteButton();
+      if (game && game.player && game.currentPlanet) updateHUD(game);
     });
   }
 

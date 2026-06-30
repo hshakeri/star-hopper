@@ -3197,6 +3197,33 @@ body.navigator-active .coach-bubble { display: none !important; }
   color: var(--text-primary);
 }
 
+.volume-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 116px;
+  padding: 2px 7px;
+  border-radius: 7px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(2, 6, 23, 0.28);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  line-height: 1;
+}
+
+.volume-control input {
+  width: 58px;
+  accent-color: var(--neon-cyan);
+  cursor: pointer;
+}
+
+.volume-value {
+  width: 30px;
+  text-align: right;
+  color: var(--text-primary);
+}
+
 /* Buy Me a Coffee Button style */
 .coffee-button {
   display: inline-flex;
@@ -4867,6 +4894,19 @@ select:focus-visible,
      top-right room for the tutorial text. */
   .music-track-label,
   .coffee-label {
+    display: none;
+  }
+
+  .volume-control {
+    min-width: 72px;
+    padding: 2px 5px;
+  }
+
+  .volume-control input {
+    width: 42px;
+  }
+
+  .volume-value {
     display: none;
   }
 
