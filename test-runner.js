@@ -5740,6 +5740,82 @@ function runExperimentLogTests() {
   } finally {
     if (oldGetElementByIdE4) document.getElementById = oldGetElementByIdE4;
   }
+
+  // Test E6: saving an evidence explanation pays once, then preserves the proof without farming.
+  let oldGetElementByIdE6 = null;
+  const oldWindowGameE6 = window.Game;
+  const oldNotebookEntriesE6 = (typeof notebookEntries !== 'undefined') ? { ...notebookEntries } : {};
+  const oldTriggerCloudSaveE6 = typeof triggerCloudSave === 'function' ? triggerCloudSave : null;
+  try {
+    oldGetElementByIdE6 = document.getElementById;
+    Object.keys(notebookEntries).forEach(key => delete notebookEntries[key]);
+    const response = { value: "The lower mass moved higher, so the same force changed acceleration." };
+    const question = {
+      textContent: "Why did changing mass alter the acceleration evidence?",
+      dataset: {
+        missionId: "earth-gravity-wall",
+        missionTitle: "Gravity Wall",
+        starterCode: "hopper.mass = 1.2",
+        evidenceStarter: "Evidence starter - code: hopper.mass = 1.2 | height: 140px."
+      }
+    };
+    const history = {
+      innerHTML: "",
+      children: [],
+      appendChild(child) { this.children.push(child); }
+    };
+    const els = {
+      "notebook-user-response": response,
+      "notebook-prompt-question": question,
+      "notebook-history": history,
+      "discovery-pulse": null,
+      "research-rank-card": null
+    };
+    document.getElementById = (id) => els[id] || null;
+    let cloudSaves = 0;
+    triggerCloudSave = () => { cloudSaves++; };
+
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[0];
+    game.currentPlanetIndex = 0;
+    game.researchXP = 10;
+    game.masteryMeters = {};
+    game.discoveryLog = [];
+    game.currentMissionSteps = { observe: true, predict: true, code: true, test: true, explain: false };
+    window.Game = game;
+
+    saveNotebookReflection();
+    const entry = notebookEntries["earth-gravity-wall"];
+    assertEquals(14, game.researchXP, "First saved reflection should award +4 Research XP");
+    assertEquals("Reflection Proof", game.discoveryPulse.title, "Reflection save should create a discovery pulse");
+    assertEquals(8, game.discoveryPulse.worldMasteryAddedXP, "Reflection save should add world mastery proof XP");
+    assertEquals(4, entry.reflectionRewardXP, "Notebook entry should remember the reflection reward");
+    assertEquals(true, /Reflection Proof: \+4 Research XP/.test(history.children[0].innerHTML), "Notebook history should show the proof reward");
+    assertEquals(true, game.currentMissionSteps.explain, "Saving a reflection completes the Explain loop step");
+    assertEquals(1, cloudSaves, "Saving a reflection should persist the updated notebook entry");
+
+    response.value = "A revised explanation still uses evidence.";
+    saveNotebookReflection();
+    assertEquals(14, game.researchXP, "Re-saving the same mission reflection should not farm XP");
+    assertEquals("A revised explanation still uses evidence.", notebookEntries["earth-gravity-wall"].answer, "Re-save should still update the answer");
+    assertEquals(4, notebookEntries["earth-gravity-wall"].reflectionRewardXP, "Re-save should preserve the original proof badge");
+    assertEquals(2, cloudSaves, "Re-saving should still persist the revised answer");
+
+    document.getElementById = oldGetElementByIdE6;
+    Object.keys(notebookEntries).forEach(key => delete notebookEntries[key]);
+    Object.assign(notebookEntries, oldNotebookEntriesE6);
+    window.Game = oldWindowGameE6;
+    if (oldTriggerCloudSaveE6) triggerCloudSave = oldTriggerCloudSaveE6;
+    renderTestResult(SUITE, "Notebook: saved reflections earn proof once", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Notebook: saved reflections earn proof once", false, err.message);
+  } finally {
+    if (oldGetElementByIdE6) document.getElementById = oldGetElementByIdE6;
+    Object.keys(notebookEntries).forEach(key => delete notebookEntries[key]);
+    Object.assign(notebookEntries, oldNotebookEntriesE6);
+    window.Game = oldWindowGameE6;
+    if (oldTriggerCloudSaveE6) triggerCloudSave = oldTriggerCloudSaveE6;
+  }
 }
 
 // Suite 8: Render cache — pre-baked layers and sprites (graphics fast path)

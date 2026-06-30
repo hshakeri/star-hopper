@@ -216,6 +216,65 @@ function updateReflectionEvidenceStarter(game, activeMission = null) {
   return evidence;
 }
 
+function awardNotebookReflectionReward(game, missionId, missionTitle, alreadyRewarded = false) {
+  if (!game || !missionId || alreadyRewarded) return null;
+  const sourceKey = `reflection-proof:${missionId}`;
+  let masteryAward = null;
+  if (typeof game.awardWorldMasteryXP === 'function') {
+    masteryAward = game.awardWorldMasteryXP(8, "evidence explanation", {
+      sourceKey,
+      silent: true
+    });
+    if (masteryAward && masteryAward.duplicate) return null;
+  }
+
+  const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(game.researchXP || 0) : null;
+  const xp = 4;
+  game.researchXP = Math.max(0, (game.researchXP || 0) + xp);
+  const afterRank = (typeof getResearchRank === 'function') ? getResearchRank(game.researchXP || 0) : null;
+  const rankUp = !!(beforeRank && afterRank && afterRank.level > beforeRank.level);
+  const pulse = {
+    kind: "reflection",
+    title: "Reflection Proof",
+    formula: "claim = evidence + why",
+    insight: `${missionTitle || "Mission"} explanation saved. The win now has a claim, evidence, and a reason.`,
+    cue: "Use this proof to compare your next code change.",
+    missionId,
+    missionTitle: missionTitle || "Science Notebook",
+    passed: 1,
+    total: 1,
+    progressLabel: "explanation saved",
+    openedGems: 0,
+    rewardXP: xp,
+    combo: game.discoveryCombo || 0,
+    worldMasteryAddedXP: masteryAward ? (masteryAward.addedXP || 0) : 0,
+    rankUp,
+    rankTitle: afterRank ? afterRank.title : null,
+    rankPerk: rankUp && afterRank ? afterRank.perk : null
+  };
+  if (afterRank && typeof getResearchUnlockPreview === 'function') {
+    pulse.nextLabUnlock = getResearchUnlockPreview(afterRank);
+  }
+  game.discoveryPulse = pulse;
+  game.discoveryLog = [pulse].concat(Array.isArray(game.discoveryLog) ? game.discoveryLog : []).slice(0, 8);
+  if (typeof ui_log_output === 'function') {
+    ui_log_output(`Reflection Proof: +${xp} Research XP for explaining evidence.`, "success");
+  }
+  if (typeof logMissionBriefing === 'function') {
+    logMissionBriefing(`${pulse.title}: ${pulse.insight}`);
+  }
+  if (rankUp && typeof showBadgeToast === 'function') {
+    showBadgeToast({
+      icon: "🔬",
+      label: `Research Rank: ${afterRank.title}`,
+      description: `Lab Perk: ${afterRank.perk.label} (${Math.round(game.researchXP || 0)} XP)`
+    });
+  }
+  if (typeof updateDiscoveryPulse === 'function') updateDiscoveryPulse(game);
+  if (typeof updateResearchProgress === 'function') updateResearchProgress(game);
+  return pulse;
+}
+
 // Refresh the reflection prompt based on active mission
 function updateActiveQuestion(game) {
   const qEl = document.getElementById("notebook-prompt-question");
@@ -273,8 +332,10 @@ function saveNotebookReflection() {
   const badge = mission && mission.badge && window.Game && window.Game.earnedBadges && window.Game.earnedBadges.has(mission.badge.id)
     ? mission.badge
     : null;
+  const previousEntry = notebookEntries[missionId] || null;
+  const alreadyRewarded = !!(previousEntry && previousEntry.reflectionRewardXP > 0);
 
-  notebookEntries[missionId] = {
+  const entry = {
     title: missionTitle,
     question: qEl.textContent,
     answer: responseText,
@@ -284,15 +345,25 @@ function saveNotebookReflection() {
     badge: badge ? `${badge.icon} ${badge.label}` : "",
     timestamp: new Date().toLocaleTimeString()
   };
+  const game = (typeof window !== 'undefined' && window.Game) ? window.Game : (typeof Game !== 'undefined' ? Game : null);
+  const reward = awardNotebookReflectionReward(game, missionId, missionTitle, alreadyRewarded);
+  if (reward) {
+    entry.reflectionRewardXP = reward.rewardXP || 0;
+    entry.reflectionRewardLabel = reward.title || "Reflection Proof";
+  } else if (previousEntry && previousEntry.reflectionRewardXP) {
+    entry.reflectionRewardXP = previousEntry.reflectionRewardXP;
+    entry.reflectionRewardLabel = previousEntry.reflectionRewardLabel || "Reflection Proof";
+  }
+  notebookEntries[missionId] = entry;
 
   textEl.value = "";
   renderNotebookHistory();
   if (typeof handleGuidedSaveHook === 'function') handleGuidedSaveHook();
   if (typeof triggerCloudSave === 'function') triggerCloudSave();
-  if (typeof Game !== 'undefined' && Game.currentMissionSteps) {
-    Game.currentMissionSteps.explain = true;
+  if (game && game.currentMissionSteps) {
+    game.currentMissionSteps.explain = true;
     if (typeof updatePedagogicalGuide === 'function') {
-      updatePedagogicalGuide(Game);
+      updatePedagogicalGuide(game);
     }
   }
   if (typeof SFX !== 'undefined' && typeof SFX.playSuccess === 'function') {
@@ -326,6 +397,7 @@ function renderNotebookHistory() {
       <p style="color: var(--neon-cyan); font-size: 0.75rem; font-family: monospace; margin-bottom: 4px;">Code: ${(entry.code || "").replace(/\n/g, '; ')}</p>
       ${entry.prediction ? `<p style="color: var(--neon-orange); font-size: 0.72rem; margin-bottom: 4px;">Prediction: ${entry.prediction}</p>` : ""}
       ${entry.evidence ? `<p class="notebook-entry-evidence">Evidence: ${entry.evidence}</p>` : ""}
+      ${entry.reflectionRewardXP ? `<p class="notebook-entry-reward">${entry.reflectionRewardLabel || "Reflection Proof"}: +${entry.reflectionRewardXP} Research XP</p>` : ""}
       ${entry.badge ? `<p style="color: var(--neon-green); font-size: 0.72rem; margin-bottom: 4px;">Badge: ${entry.badge}</p>` : ""}
       <p style="color: var(--text-muted); font-style: italic; font-size: 0.72rem; margin-bottom: 4px;">Q: ${entry.question || ""}</p>
       <p style="font-size: 0.78rem; color: var(--text-primary);">A: ${entry.answer || ""}</p>
