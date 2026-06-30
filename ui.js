@@ -771,6 +771,9 @@ function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems
     pulse.combo = game.discoveryCombo;
     pulse.cardUnlocked = cardUnlocked;
     pulse.rewardXP = 5 + newPasses * 4 + opened * 3 + (finalPassBonus ? 6 : 0) + (cardUnlocked ? 5 : 0) + Math.min(8, game.discoveryCombo);
+    if (cardUnlocked && typeof game.spawnFormulaCardEffect === 'function') {
+      game.spawnFormulaCardEffect(pulse);
+    }
     game.researchXP = Math.max(0, (game.researchXP || 0) + pulse.rewardXP);
     const afterRank = (typeof getResearchRank === 'function') ? getResearchRank(game.researchXP || 0) : null;
     if (beforeRank && afterRank && afterRank.level > beforeRank.level) {

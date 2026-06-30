@@ -853,6 +853,8 @@ function runEngineTests() {
   // Test 22b: Mission Coach code creates a science discovery pulse and rewards only new progress.
   try {
     const game = new StarHopperGame();
+    game.player = { x: 100, y: 120, w: 24, h: 32 };
+    game.cameraX = 0;
     const activeMission = PLANETS[0].missions.find(mission => mission.id === "earth-gravity-wall");
     const partial = {
       allPassed: false,
@@ -868,6 +870,8 @@ function runEngineTests() {
     assertEquals(true, firstPulse.formula.indexOf("F / m") >= 0, "Pulse should expose the force/mass formula");
     assertEquals(true, !!firstPulse.cardUnlocked, "First real mass progress should unlock the mass formula card");
     assertEquals(true, game.discoveredFormulaKinds.has("mass"), "Mass formula should be collected");
+    assertEquals(1, game.formulaCardEffects.length, "Formula card unlock should spawn an in-world card effect");
+    assertEquals("Mass Lab", game.formulaCardEffects[0].title, "Formula card effect should name the collected card");
     assertEquals(true, firstXP > 0, "New check/gem progress should award Research XP");
     assertEquals(1, game.discoveryCombo, "New discovery starts the combo");
 
@@ -875,6 +879,7 @@ function runEngineTests() {
     assertEquals(firstXP, game.researchXP, "Repeating the same progress should not farm Research XP");
     assertEquals(1, game.discoveryCombo, "Repeating without progress should not raise combo");
     assertEquals(1, game.discoveredFormulaKinds.size, "Repeating without progress should not unlock new cards");
+    assertEquals(1, game.formulaCardEffects.length, "Repeating without a new card should not spawn another effect");
 
     const complete = {
       allPassed: true,
@@ -887,6 +892,7 @@ function runEngineTests() {
     assertEquals(true, !!finalPulse.rankUp, "Crossing a Research XP threshold should flag rank-up");
     assertEquals("Variable Scout", finalPulse.rankTitle, "Rank-up should name the new rank");
     assertEquals(true, game.discoveredFormulaKinds.has("engine"), "Engine formula should be collected");
+    assertEquals(2, game.formulaCardEffects.length, "A second new formula should spawn a second card effect");
     renderTestResult("engine-suite", "Curriculum: code runs create discovery rewards", true);
   } catch (err) {
     renderTestResult("engine-suite", "Curriculum: code runs create discovery rewards", false, err.message);
@@ -2054,6 +2060,18 @@ function runCombatTests() {
       ]
     };
     g.player = new Player(220, 64);
+    const sentry = new NPC({ id: 'lookout', name: 'Lookout', profession: 'Guard', type: 'npc', x: 140, y: 60, color: '#cbd5e1', caveX: 108, caveY: 60 });
+    const prowler = new Mob(150, 60, 'hog', '#9a6b4f', 1);
+    prowler.speed = 0; prowler.behaviorTimer = 999;
+    g.interactiveObjects = [sentry];
+    g.mobs = [prowler];
+    for (let i = 0; i < 40 && !sentry.hiddenInCave; i++) sentry.update(g);
+    assertEquals(true, sentry.hiddenInCave, "Villager hides when a mob is close, before contact");
+    g.mobs = [];
+    sentry.panicTimer = 0;
+    sentry.update(g);
+    assertEquals(false, sentry.hiddenInCave, "Villager comes back out when nearby danger clears");
+
     const npc = new NPC({ id: 'caver', name: 'Caver', profession: 'Miner', type: 'npc', x: 100, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60 });
     const mob = new Mob(102, 60, 'hog', '#9a6b4f', 1);
     mob.speed = 0; mob.behaviorTimer = 999;

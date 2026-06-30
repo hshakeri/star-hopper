@@ -102,6 +102,7 @@ class StarHopperGame {
     this.discoveryLog = [];
     this.discoveryPassCounts = {};
     this.discoveredFormulaKinds = new Set();
+    this.formulaCardEffects = [];
     this.pendingNavigationTargetIndex = null;
     this.navigationReturnTimer = null;
 
@@ -873,6 +874,7 @@ class StarHopperGame {
     this.shownGemGateIds = new Set();   // reset once-per-level gem-gate hints
     this._lastGemLogKey = null;         // reset shell gem-status de-duplication
     this._lastPortalLockMsg = null;     // reset portal-lock message de-duplication
+    this.formulaCardEffects = [];
     // Keep global completed missions across planet switches
     Particles.clear();
     if (typeof ComicBubbles !== 'undefined') {
@@ -1618,6 +1620,7 @@ class StarHopperGame {
     if (this.player && typeof this.player.updateSpeech === 'function') this.player.updateSpeech();
     if (this.mobs) for (const m of this.mobs) { if (m.sayTimer > 0) m.sayTimer--; }
     if (typeof ComicBubbles !== 'undefined' && ComicBubbles.update) ComicBubbles.update();
+    this.updateFormulaCardEffects();
     if (this.hurtFlashTimer > 0) this.hurtFlashTimer--;
   }
 
@@ -1869,6 +1872,7 @@ class StarHopperGame {
     if (typeof ComicBubbles !== 'undefined') {
       ComicBubbles.update();
     }
+    this.updateFormulaCardEffects();
 
     // 12b. Idle banter: a quiet thought bubble after standing still a while (once per pause).
     this.updateIdleBanter();
@@ -2967,6 +2971,87 @@ class StarHopperGame {
     if (typeof updateCertificateState === 'function') updateCertificateState();
   }
 
+  spawnFormulaCardEffect(pulse) {
+    if (!pulse || !pulse.cardUnlocked || !this.player) return false;
+    const px = this.player.x + this.player.w / 2;
+    const py = this.player.y - 26;
+    const effect = {
+      x: px,
+      y: py,
+      vy: -0.55,
+      life: 0,
+      maxLife: 96,
+      title: pulse.title || "Formula Card",
+      formula: pulse.formula || "",
+      color: "#facc15"
+    };
+    this.formulaCardEffects = (this.formulaCardEffects || []).slice(-2);
+    this.formulaCardEffects.push(effect);
+    if (typeof Particles !== 'undefined') {
+      Particles.spawnBurst(px, py + 18, '#facc15', 14, 2.2, 2.3, 'glow');
+      Particles.spawnBurst(px, py + 18, '#67e8f9', 8, 1.8, 1.9, 'glow');
+    }
+    if (typeof ComicBubbles !== 'undefined') {
+      ComicBubbles.pop(px, py - 6, "CARD!", "#facc15", 1.0);
+    }
+    return true;
+  }
+
+  updateFormulaCardEffects() {
+    if (!this.formulaCardEffects || !this.formulaCardEffects.length) return;
+    for (const fx of this.formulaCardEffects) {
+      fx.life++;
+      fx.y += fx.vy || 0;
+    }
+    this.formulaCardEffects = this.formulaCardEffects.filter(fx => fx.life < fx.maxLife);
+  }
+
+  fitCardText(ctx, text, maxWidth) {
+    let out = String(text || "");
+    while (out.length > 4 && ctx.measureText(out).width > maxWidth) {
+      out = out.slice(0, -2);
+    }
+    return out === String(text || "") ? out : out + ".";
+  }
+
+  drawFormulaCardEffects(ctx) {
+    if (!ctx || !this.formulaCardEffects || !this.formulaCardEffects.length) return;
+    for (const fx of this.formulaCardEffects) {
+      const t = fx.life / Math.max(1, fx.maxLife);
+      const alpha = t < 0.12 ? t / 0.12 : (t > 0.72 ? Math.max(0, (1 - t) / 0.28) : 1);
+      const cx = fx.x - this.cameraX;
+      const cy = fx.y - Math.sin(Math.min(1, t) * Math.PI) * 8;
+      if (cx < -90 || cx > this.canvas.width + 90) continue;
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.translate(cx, cy);
+      ctx.rotate(Math.sin(t * Math.PI * 2) * 0.05);
+      ctx.shadowBlur = 18;
+      ctx.shadowColor = "rgba(250, 204, 21, 0.55)";
+      ctx.fillStyle = "rgba(15, 23, 42, 0.92)";
+      ctx.strokeStyle = fx.color || "#facc15";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(-66, -24, 132, 48, 7);
+      ctx.fill();
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "#facc15";
+      ctx.font = "bold 9px 'Share Tech Mono', monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("NEW FORMULA CARD", 0, -13);
+      ctx.fillStyle = "#f8fafc";
+      ctx.font = "bold 10px 'Share Tech Mono', monospace";
+      ctx.fillText(this.fitCardText(ctx, fx.title, 112), 0, 1);
+      ctx.fillStyle = "#67e8f9";
+      ctx.font = "8px 'Share Tech Mono', monospace";
+      ctx.fillText(this.fitCardText(ctx, fx.formula, 116), 0, 14);
+      ctx.restore();
+    }
+  }
+
   draw() {
     if (window.navigatorModeActive) {
       if (typeof drawNavigator === 'function') {
@@ -3066,6 +3151,7 @@ class StarHopperGame {
     if (typeof ComicBubbles !== 'undefined') {
       ComicBubbles.draw(this.ctx, this.cameraX);
     }
+    this.drawFormulaCardEffects(this.ctx);
 
     // End screen shake before the screen-space overlays so they don't jitter.
     if (_shaking) { this.ctx.restore(); _shaking = false; }
