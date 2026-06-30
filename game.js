@@ -4514,6 +4514,30 @@ class StarHopperGame {
     return true;
   }
 
+  spawnScienceDeltaEffect(delta) {
+    if (!this.player || !delta || !Array.isArray(delta.changes) || delta.changes.length === 0) return null;
+    const first = delta.changes[0] || {};
+    const label = String(first.label || "Science").slice(0, 14).toUpperCase();
+    const color = first.direction === "down"
+      ? "#93c5fd"
+      : (first.direction === "swap" ? "#f0abfc" : "#86efac");
+    const baseX = Number.isFinite(this.player.x) ? this.player.x : 0;
+    const baseY = Number.isFinite(this.player.y) ? this.player.y : 0;
+    const width = Number.isFinite(this.player.w) ? this.player.w : 24;
+    const height = Number.isFinite(this.player.h) ? this.player.h : 32;
+    const px = baseX + width / 2;
+    const py = baseY + height / 2;
+
+    if (typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+      ComicBubbles.pop(px, baseY - 12, `${label}!`, color, 0.92);
+    }
+    if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+      Particles.spawnBurst(px, py, color, 12, 2.1, 2.0, 'glow');
+      Particles.spawnBurst(px, py, '#fef08a', 6, 1.5, 1.5, 'glow');
+    }
+    return { label, color, x: px, y: py };
+  }
+
   updateFormulaCardEffects() {
     if (!this.formulaCardEffects || !this.formulaCardEffects.length) return;
     for (const fx of this.formulaCardEffects) {

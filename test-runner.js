@@ -1123,12 +1123,19 @@ function runEngineTests() {
 
   // Test 22ba: successful KidCode runs summarize the live science delta.
   const oldGetElementById22ba = document.getElementById;
+  const oldBubblePop22ba = ComicBubbles.pop;
+  const oldParticleBurst22ba = Particles.spawnBurst;
   try {
+    let scienceDeltaBubble22ba = "";
+    let scienceDeltaBursts22ba = 0;
+    ComicBubbles.pop = (x, y, text) => { scienceDeltaBubble22ba = text; };
+    Particles.spawnBurst = () => { scienceDeltaBursts22ba++; };
+
     Compiler.reset();
     const game = new StarHopperGame();
     game.currentPlanet = PLANETS[0];
     game.currentPlanetIndex = 0;
-    game.player = { charType: 'hopper', jumpPower: 10, rocketPower: 40, mass: 2.5, fuel: 100, w: 24, h: 32 };
+    game.player = { charType: 'hopper', x: 64, y: 96, jumpPower: 10, rocketPower: 40, mass: 2.5, fuel: 100, w: 24, h: 32 };
     game.hopper = game.player;
     game.hopperMass = 2.5;
     game.spawnedBoxes = [];
@@ -1156,6 +1163,8 @@ function runEngineTests() {
     assertEquals(true, /Agility/.test(labels), "Delta should include mission stat movement");
     assertEquals(true, /Less mass/.test(text), "Delta should explain the mass science effect");
     assertEquals(delta, game.lastScienceDelta, "Latest delta should be stored on the game for the CRT");
+    assertEquals(true, /MASS/.test(scienceDeltaBubble22ba), "Science delta should pop the changed value in the level");
+    assertEquals(true, scienceDeltaBursts22ba >= 2, "Science delta should spawn a small particle reward");
     assertEquals("Agility 30+ reached", nextCue.title, "Next experiment cue should name the first failing mission check");
     assertEquals(true, /Lower mass/.test(nextCue.body), "Next experiment cue should reuse the mission waiting message");
     assertEquals(true, /use_hopper\(\)/.test(nextCue.command), "Next experiment cue should include runnable scaffold code");
@@ -1176,9 +1185,13 @@ function runEngineTests() {
     assertEquals(nextCue.command.trim(), inputEl.value, "Staged command should match the next experiment command");
     assertEquals(true, inputEl.focused, "Staging should focus the terminal input");
     document.getElementById = oldGetElementById22ba;
+    ComicBubbles.pop = oldBubblePop22ba;
+    Particles.spawnBurst = oldParticleBurst22ba;
     renderTestResult("engine-suite", "Curriculum: code runs create science delta feedback", true);
   } catch (err) {
     document.getElementById = oldGetElementById22ba;
+    ComicBubbles.pop = oldBubblePop22ba;
+    Particles.spawnBurst = oldParticleBurst22ba;
     renderTestResult("engine-suite", "Curriculum: code runs create science delta feedback", false, err.message);
   }
 

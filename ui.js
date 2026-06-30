@@ -2453,6 +2453,9 @@ function recordScienceDelta(game, before, after, code) {
   const delta = buildScienceDelta(game, before, after, code);
   if (!game || !delta) return null;
   game.lastScienceDelta = delta;
+  if (typeof game.spawnScienceDeltaEffect === 'function') {
+    game.spawnScienceDeltaEffect(delta);
+  }
   if (typeof ui_log_output === 'function') {
     const first = delta.changes[0];
     ui_log_output(`🔬 What changed: ${first.label} ${first.value}${first.cue ? ` — ${first.cue}` : ""}`, "info");
