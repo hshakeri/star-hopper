@@ -4668,6 +4668,20 @@ class StarHopperGame {
     if (!pulse || !pulse.cardUnlocked || !this.player) return false;
     const px = this.player.x + this.player.w / 2;
     const py = this.player.y - 26;
+    const collection = (typeof getFormulaCollection === 'function') ? getFormulaCollection(this) : null;
+    const discovered = this.discoveredFormulaKinds instanceof Set
+      ? this.discoveredFormulaKinds.size
+      : (Array.isArray(this.discoveredFormulaKinds) ? this.discoveredFormulaKinds.length : 0);
+    const deckCount = collection ? collection.unlocked.length : discovered;
+    const deckTotal = collection
+      ? collection.cards.length
+      : (typeof DISCOVERY_RULES !== 'undefined' && Array.isArray(DISCOVERY_RULES) ? DISCOVERY_RULES.length : Math.max(deckCount, 1));
+    const deckLabel = `CARD ${deckCount}/${Math.max(1, deckTotal)}`;
+    pulse.formulaDeckProgress = {
+      count: deckCount,
+      total: deckTotal,
+      label: deckLabel
+    };
     const effect = {
       x: px,
       y: py,
@@ -4676,6 +4690,9 @@ class StarHopperGame {
       maxLife: 96,
       title: pulse.title || "Formula Card",
       formula: pulse.formula || "",
+      deckCount,
+      deckTotal,
+      deckLabel,
       color: "#facc15"
     };
     this.formulaCardEffects = (this.formulaCardEffects || []).slice(-2);
@@ -4823,17 +4840,21 @@ class StarHopperGame {
       ctx.strokeStyle = fx.color || "#facc15";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.roundRect(-66, -24, 132, 48, 7);
+      ctx.roundRect(-70, -28, 140, 56, 7);
       ctx.fill();
       ctx.stroke();
       ctx.shadowBlur = 0;
       ctx.fillStyle = "#facc15";
       ctx.font = "bold 9px 'Share Tech Mono', monospace";
-      ctx.textAlign = "center";
+      ctx.textAlign = "left";
       ctx.textBaseline = "middle";
-      ctx.fillText("NEW FORMULA CARD", 0, -13);
+      ctx.fillText("NEW FORMULA", -58, -17);
+      ctx.fillStyle = "#67e8f9";
+      ctx.textAlign = "right";
+      ctx.fillText(this.fitCardText(ctx, fx.deckLabel || "CARD", 54), 58, -17);
       ctx.fillStyle = "#f8fafc";
       ctx.font = "bold 10px 'Share Tech Mono', monospace";
+      ctx.textAlign = "center";
       ctx.fillText(this.fitCardText(ctx, fx.title, 112), 0, 1);
       ctx.fillStyle = "#67e8f9";
       ctx.font = "8px 'Share Tech Mono', monospace";

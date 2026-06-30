@@ -1299,6 +1299,7 @@ function runEngineTests() {
     };
     const firstPulse = recordDiscoveryPulse(game, activeMission, "use_hopper()\nhopper.mass = 1.2", partial, 1);
     const firstXP = game.researchXP;
+    const formulaDeckTotal22b = DISCOVERY_RULES.length;
 
     assertEquals("mass", firstPulse.kind, "Mass command should map to the mass science rule");
     assertEquals(true, firstPulse.formula.indexOf("F / m") >= 0, "Pulse should expose the force/mass formula");
@@ -1306,6 +1307,8 @@ function runEngineTests() {
     assertEquals(true, game.discoveredFormulaKinds.has("mass"), "Mass formula should be collected");
     assertEquals(1, game.formulaCardEffects.length, "Formula card unlock should spawn an in-world card effect");
     assertEquals("Mass Lab", game.formulaCardEffects[0].title, "Formula card effect should name the collected card");
+    assertEquals(`CARD 1/${formulaDeckTotal22b}`, game.formulaCardEffects[0].deckLabel, "Formula card should show deck collection progress");
+    assertEquals(`CARD 1/${formulaDeckTotal22b}`, firstPulse.formulaDeckProgress.label, "Discovery pulse should expose deck progress");
     assertEquals(true, firstXP > 0, "New check/gem progress should award Research XP");
     const firstWorldXP = game.getWorldMasteryProgress(0).xp;
     assertEquals(true, firstWorldXP > 0, "Science progress should also feed the world mastery meter");
@@ -1340,6 +1343,7 @@ function runEngineTests() {
     assertEquals("Hypothesis Bonus", finalPulse.rankPerk.label, "Rank-up should unlock the rank's lab perk");
     assertEquals(true, game.discoveredFormulaKinds.has("engine"), "Engine formula should be collected");
     assertEquals(2, game.formulaCardEffects.length, "A second new formula should spawn a second card effect");
+    assertEquals(`CARD 2/${formulaDeckTotal22b}`, game.formulaCardEffects[1].deckLabel, "Second formula card should advance deck collection progress");
     assertEquals(true, bubbleLabels22b.some(label => /LAB CHAIN x2/.test(label)), "Second real discovery should pop the lab-chain cue");
     assertEquals(true, particleBursts22b > firstBurstCount, "Second real discovery should add a visual burst");
     ComicBubbles.pop = oldBubblePop22b;
