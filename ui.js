@@ -678,6 +678,16 @@ const SIGNAL_STORY_CHAPTERS = [
     body: "The Forge shard makes the lesson explicit: first make the boulder move, then tune how much energy the collision keeps."
   },
   {
+    id: "star-map-finale",
+    title: "Star-Map Restored",
+    concept: "Six ideas form one model",
+    unlock: (game) => hasClearedFullStarMap(game),
+    body: (game) => {
+      const name = game && typeof game.getCadetStoryName === 'function' ? game.getCadetStoryName() : "the cadet";
+      return `Vector records ${name} as the scientist who connected all six shards: variables, loops, force, friction, events, and collisions.`;
+    }
+  },
+  {
     id: "mastery-remix",
     title: "Remix Key",
     concept: "Evidence survives a new layout",
@@ -698,13 +708,28 @@ function hasClearedStoryPlanet(game, index) {
   return Number(game.planetClears[index] || game.planetClears[String(index)] || 0) > 0;
 }
 
+function hasClearedFullStarMap(game) {
+  if (!game || !game.planetClears) return false;
+  const count = (typeof PLANETS !== 'undefined' && Array.isArray(PLANETS)) ? PLANETS.length : 6;
+  for (let i = 0; i < count; i++) {
+    if (!hasClearedStoryPlanet(game, i)) return false;
+  }
+  return true;
+}
+
+function getSignalChapterBody(chapter, game) {
+  if (!chapter) return "";
+  return typeof chapter.body === 'function' ? chapter.body(game) : chapter.body;
+}
+
 function getSignalStoryProgress(game = window.Game) {
   const chapters = SIGNAL_STORY_CHAPTERS.map((chapter, index) => {
     const unlocked = !!chapter.unlock(game);
     return {
       ...chapter,
       index: index + 1,
-      unlocked
+      unlocked,
+      bodyText: getSignalChapterBody(chapter, game)
     };
   });
   const unlocked = chapters.filter(chapter => chapter.unlocked);
@@ -736,7 +761,7 @@ function updateSignalStoryPanel(game = window.Game) {
         <div>
           <strong>${escapeHTML(chapter.unlocked ? chapter.title : "Locked transmission")}</strong>
           <code>${escapeHTML(chapter.concept)}</code>
-          <p>${escapeHTML(chapter.unlocked ? chapter.body : `Decode ${chapter.title} by pushing the mission path farther.`)}</p>
+          <p>${escapeHTML(chapter.unlocked ? chapter.bodyText : `Decode ${chapter.title} by pushing the mission path farther.`)}</p>
         </div>
       </div>
       `).join("")}
@@ -1739,21 +1764,24 @@ const PORTRAIT_ART = {
   SYSTEM: `<svg viewBox="0 0 16 16" shape-rendering="crispEdges"><rect x="6" y="2" width="4" height="12" fill="#94a3b8"/><rect x="2" y="6" width="12" height="4" fill="#94a3b8"/><rect x="4" y="4" width="8" height="8" fill="#94a3b8"/><rect x="6" y="6" width="4" height="4" fill="#0b1022"/></svg>`
 };
 
-// Vector is gone: narration/tutorial lines now appear in the mission CRT monitor
-// and in the Mission box log. Important directions should not depend on a
-// character speech bubble that can hide behind the scene.
+// Vector speaks through the mission CRT monitor and Mission box log. Important
+// directions do not depend on a character speech bubble that can hide behind the scene.
 function showDialogue(text, trigger = "start") {
   if (!text) return;
-  // Strip the old "Vector here — " framing now that there's no robot speaking.
-  const line = String(text).replace(/^\s*Vector here\s*[—–-]\s*/i, "");
+  const game = (typeof window !== 'undefined') ? window.Game : null;
+  const raw = String(text).replace(/^\s*Vector here\s*[—–-]\s*/i, "");
+  const line = game && typeof game.formatVectorTransmission === 'function'
+    ? game.formatVectorTransmission(raw, trigger)
+    : `VECTOR // ${raw.trim()}`;
+  if (!line) return;
   // The arrival line on each planet starts a fresh briefing and lingers a bit longer.
   if (trigger === "start") {
     const log = document.getElementById("mission-briefing-log");
     if (log) { log.innerHTML = ""; log._last = null; }
   }
-  if (window.Game && typeof window.Game.showMissionBalloon === "function") {
-    window.Game.showMissionBalloon(line, {
-      title: trigger === "start" ? "MISSION MSG" : "REQUIREMENT",
+  if (game && typeof game.showMissionBalloon === "function") {
+    game.showMissionBalloon(line, {
+      title: trigger === "start" ? "VECTOR LINK" : "VECTOR TIP",
       timer: trigger === "start" ? 420 : 300,
       color: "#22c55e"
     });

@@ -1051,7 +1051,7 @@ function runEngineTests() {
       discoveryLog: []
     };
     story = getSignalStoryProgress(complete);
-    assertEquals(8, story.unlocked.length, "Campaign, mastery, and daily progress should unlock every chapter");
+    assertEquals(9, story.unlocked.length, "Campaign, finale, mastery, and daily progress should unlock every chapter");
     assertEquals(null, story.nextChapter, "Complete story should have no next locked chapter");
 
     const els = {
@@ -1061,13 +1061,14 @@ function runEngineTests() {
     };
     document.getElementById = (id) => els[id] || null;
     updateResearchProgress(partial);
-    assertEquals(true, /2\/8 decoded/.test(els["signal-story-panel"].innerHTML), "Story panel should show decoded chapter count");
+    assertEquals(true, /2\/9 decoded/.test(els["signal-story-panel"].innerHTML), "Story panel should show decoded chapter count");
     assertEquals(true, /Emerald Wall Signal/.test(els["signal-story-panel"].innerHTML), "Story panel should show unlocked chapters");
     assertEquals(true, /Next: Amber Gravity Well/.test(els["signal-story-panel"].innerHTML), "Story panel should show the next chapter hook");
     assertEquals(true, /Run Mission Coach code/.test(els["discovery-deck"].innerHTML), "Empty formula deck should still render while story updates");
 
     updateSignalStoryPanel(complete);
-    assertEquals(true, /8\/8 decoded/.test(els["signal-story-panel"].innerHTML), "Complete story should render all chapters decoded");
+    assertEquals(true, /9\/9 decoded/.test(els["signal-story-panel"].innerHTML), "Complete story should render all chapters decoded");
+    assertEquals(true, /Star-Map Restored/.test(els["signal-story-panel"].innerHTML), "Finale chapter should render");
     assertEquals(true, /Remix Key/.test(els["signal-story-panel"].innerHTML), "Mastery chapter should render");
     assertEquals(true, /Daily Beacon/.test(els["signal-story-panel"].innerHTML), "Daily chapter should render");
 
@@ -1076,6 +1077,28 @@ function runEngineTests() {
   } catch (err) {
     document.getElementById = oldGetElementById22cb;
     renderTestResult("engine-suite", "Curriculum: signal story tracks science progression", false, err.message);
+  }
+
+  // Test 22cb2: Narrative spine uses the active cadet callsign, Vector CRT voice, suit quips, and final hero copy.
+  const oldProfiles22cb2 = window.StarHopperProfiles;
+  try {
+    window.StarHopperProfiles = { getActive: () => ({ name: "Nova", emoji: "🚀" }) };
+    const game = new StarHopperGame();
+    assertEquals("🚀 Nova", game.getCadetCallsign(), "Cadet callsign should use the active profile");
+    assertEquals(true, /VECTOR \/\/ 🚀 Nova:/.test(game.formatVectorTransmission("Welcome to Earth.", "start")), "Start transmission should name the cadet");
+    assertEquals(true, /^VECTOR \/\/:/.test(game.formatVectorTransmission("Tune one variable.", "wall")), "Mid-level tips should keep Vector's voice");
+    assertEquals(true, /Star Rover:/.test(game.getSuitArrivalQuip(0, "star")), "Star Rover should have its own arrival quip");
+    assertEquals(true, /Hopper:/.test(game.getSuitArrivalQuip(0, "hopper")), "Hopper should have its own arrival quip");
+    assertEquals(true, game.getSuitArrivalQuip(0, "star") !== game.getSuitArrivalQuip(0, "hopper"), "Suit quips should be distinct");
+    const finale = game.getStarMapFinaleCopy({ frontier: { tier: 2 }, payoff: "Forge shard secured." });
+    assertEquals("STAR-MAP RESTORED! 🛰️", finale.title, "Finale title should be a hero moment");
+    assertEquals(true, /Nova/.test(finale.subtitle), "Finale should name the cadet");
+    assertEquals(true, /Frontier Challenge is online/.test(finale.subtitle), "Finale should point into Frontier endgame");
+    window.StarHopperProfiles = oldProfiles22cb2;
+    renderTestResult("engine-suite", "Narrative: cadet callsign and Vector finale", true);
+  } catch (err) {
+    window.StarHopperProfiles = oldProfiles22cb2;
+    renderTestResult("engine-suite", "Narrative: cadet callsign and Vector finale", false, err.message);
   }
 
   // Test 22cc: Research panel always surfaces the next lab quest.

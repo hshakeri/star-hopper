@@ -186,6 +186,66 @@ class StarHopperGame {
     return gems[index] || gems[0];
   }
 
+  getActiveCadetProfile() {
+    if (typeof window !== 'undefined' && window.StarHopperProfiles && typeof window.StarHopperProfiles.getActive === 'function') {
+      try { return window.StarHopperProfiles.getActive(); } catch (e) { return null; }
+    }
+    return null;
+  }
+
+  getCadetCallsign() {
+    const active = this.getActiveCadetProfile();
+    const name = active && active.name ? String(active.name).trim().slice(0, 24) : "Cadet";
+    const emoji = active && active.emoji ? String(active.emoji).trim() : "";
+    return `${emoji ? emoji + " " : ""}${name || "Cadet"}`;
+  }
+
+  getCadetStoryName() {
+    const active = this.getActiveCadetProfile();
+    const name = active && active.name ? String(active.name).trim().slice(0, 18) : "Cadet";
+    return name || "Cadet";
+  }
+
+  formatVectorTransmission(text, trigger = "start") {
+    const clean = String(text || "").replace(/^\s*Vector here\s*[—–-]\s*/i, "").trim();
+    if (!clean) return "";
+    if (/^VECTOR\s*\/\//i.test(clean)) return clean;
+    const prefix = trigger === "start" ? `VECTOR // ${this.getCadetCallsign()}` : "VECTOR //";
+    return `${prefix}: ${clean}`;
+  }
+
+  getSuitDisplayName(charType = this.player && this.player.charType) {
+    return charType === 'hopper' ? "Hopper" : "Star Rover";
+  }
+
+  getSuitArrivalQuip(index = this.currentPlanetIndex, charType = this.player && this.player.charType) {
+    const planetName = (typeof PLANETS !== 'undefined' && PLANETS[index]) ? PLANETS[index].name.split(" ")[0] : "world";
+    const starLines = [
+      `Star Rover: light feet ready on ${planetName}.`,
+      "Star Rover: glide path checked.",
+      "Star Rover: I can feel the arc."
+    ];
+    const hopperLines = [
+      `Hopper: heavy suit online for ${planetName}.`,
+      "Hopper: rockets warm, boots planted.",
+      "Hopper: mass, force, and nerve."
+    ];
+    const lines = charType === 'hopper' ? hopperLines : starLines;
+    return lines[Math.abs(Number(index) || 0) % lines.length];
+  }
+
+  getStarMapFinaleCopy({ frontier = null, payoff = "" } = {}) {
+    const cadet = this.getCadetStoryName();
+    const lead = payoff ? `${payoff} ` : "";
+    const frontierText = frontier
+      ? `Vector has logged ${cadet} as the cadet who restored the six-shard star-map. Frontier Challenge is online: a date-seeded tier run that keeps remixing the completed map. Print the Scientist Certificate from the Log, then climb today's frontier.`
+      : `Vector has logged ${cadet} as the cadet who restored the six-shard star-map. A new Daily Signal arrives every day to keep the lab habit alive while worlds 7 and 8 are built. Print the Scientist Certificate from the Log.`;
+    return {
+      title: "STAR-MAP RESTORED! 🛰️",
+      subtitle: `${lead}${frontierText}`
+    };
+  }
+
   // Gravity the rover actually FEELS (game-units): the planet's gravity (or a gravity=
   // override) minus the antigravity device. Antigravity counters gravity; negative
   // antigravity adds to it. Floored just above zero so you never fully float away.
@@ -1424,6 +1484,9 @@ class StarHopperGame {
     if (this.state === 'playing') {
       this._firedTutorialTriggers = new Set();   // fresh per level so each cue can show once
       this.triggerTutorialDialogue("start");
+      if (this.player && typeof this.player.say === 'function') {
+        this.player.say(this.getSuitArrivalQuip(index), { timer: 150 });
+      }
       // Retro arcade arrival shout as a comic bubble (one onomatopoeia system).
       if (this.player && typeof ComicBubbles !== 'undefined') {
         ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y - 4, SPEECH.pick("arrive"), "rounded", "#a7f3d0", -0.5, { maxLife: 80, scale: 1.2 });
@@ -3716,12 +3779,9 @@ class StarHopperGame {
       // remix every day — so there's a real reason to come back tomorrow.
       const frontier = this.getFrontierChallenge();
       const daily = this.getDailySignal();
-      if (clearTitle) clearTitle.textContent = "STAR-MAP COMPLETE! 🛰️";
-      if (clearSubtitle) {
-        clearSubtitle.textContent = frontier
-          ? `${payoff ? payoff + " " : ""}Frontier Challenge is online: a date-seeded tier run that keeps remixing the completed star-map. Print your Scientist Certificate from the Log, then climb today's frontier.`
-          : `${payoff ? payoff + " " : ""}A new Daily Signal arrives every day — accept today's to keep your skills sharp while worlds 6–8 are built. Print your Scientist Certificate from the Log.`;
-      }
+      const finale = this.getStarMapFinaleCopy({ frontier, payoff });
+      if (clearTitle) clearTitle.textContent = finale.title;
+      if (clearSubtitle) clearSubtitle.textContent = finale.subtitle;
       if (nextBtn) nextBtn.textContent = "OPEN LOG";
       if (dailyBtn) {
         dailyBtn.style.display = frontier || daily ? "inline-flex" : "none";
