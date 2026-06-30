@@ -1820,7 +1820,19 @@ function runEngineTests() {
 
   // Test 22cb: Signal Story turns campaign clears, mastery, and daily practice into a visible narrative trail.
   const oldGetElementById22cb = document.getElementById;
+  const oldBubblePop22cb = ComicBubbles.pop;
+  const oldParticleBurst22cb = Particles.spawnBurst;
   try {
+    const storyBubbles = [];
+    const storyParticles = [];
+    ComicBubbles.pop = (x, y, text, color, scale) => {
+      storyBubbles.push({ x, y, text, color, scale });
+      return true;
+    };
+    Particles.spawnBurst = (x, y, color, count, speed, size, type) => {
+      storyParticles.push({ x, y, color, count, speed, size, type });
+      return true;
+    };
     const partial = {
       planetClears: { 0: 1, 1: 1 },
       masteryCleared: {},
@@ -1843,6 +1855,16 @@ function runEngineTests() {
     const newChapters = storyGame.getNewSignalStoryChapters(beforeStoryIds);
     assertEquals(1, newChapters.length, "A campaign clear should identify the newly decoded chapter");
     assertEquals("Emerald Wall Signal", newChapters[0].title, "Decoded chapter should match the cleared world");
+    storyGame.player = new Player(80, 120);
+    const storyEffect = storyGame.spawnSignalStoryUnlockEffect(newChapters[0]);
+    assertEquals("SIGNAL DECODED!", storyEffect.label, "Story unlock should create an in-level payoff label");
+    assertEquals("Emerald Wall Signal", storyEffect.chapterTitle, "Story unlock effect should name the chapter");
+    assertEquals("Variables change motion", storyEffect.concept, "Story unlock effect should name the science concept");
+    assertEquals("SIGNAL DECODED: Emerald Wall Signal", storyEffect.monitorText, "Story unlock should create a Mission CRT monitor line");
+    assertEquals("STAR-MAP SIGNAL", storyGame.missionBalloon && storyGame.missionBalloon.title, "Story unlock monitor should use the star-map title");
+    assertEquals(true, storyBubbles.some(bubble => /SIGNAL DECODED!/.test(bubble.text)), "Story unlock should pop near the cadet");
+    assertEquals(true, storyParticles.some(particle => particle.color === "#67e8f9" && particle.type === "glow"), "Story unlock should spawn cyan signal particles");
+    assertEquals(true, storyParticles.some(particle => particle.color === "#fef08a" && particle.type === "glow"), "Story unlock should spawn gold reward particles");
     storyGame.lastSignalStoryUnlocks = newChapters;
     const unlockCue = storyGame.getClearSignalStoryUnlock();
     assertEquals("SIGNAL DECODED", unlockCue.kicker, "Clear report unlock cue should label decoded story");
@@ -1893,9 +1915,13 @@ function runEngineTests() {
     assertEquals(true, /Daily Signals, Frontier runs/.test(els["signal-story-panel"].innerHTML), "Complete story loop should point to replay practice");
 
     document.getElementById = oldGetElementById22cb;
+    ComicBubbles.pop = oldBubblePop22cb;
+    Particles.spawnBurst = oldParticleBurst22cb;
     renderTestResult("engine-suite", "Curriculum: signal story tracks science progression", true);
   } catch (err) {
     document.getElementById = oldGetElementById22cb;
+    ComicBubbles.pop = oldBubblePop22cb;
+    Particles.spawnBurst = oldParticleBurst22cb;
     renderTestResult("engine-suite", "Curriculum: signal story tracks science progression", false, err.message);
   }
 

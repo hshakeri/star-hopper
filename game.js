@@ -142,6 +142,7 @@ class StarHopperGame {
     this.confirmedHypotheses = new Set();
     this._labStarPreviewCount = 0;
     this.lastLabStarPulse = null;
+    this.lastSignalStoryEffect = null;
     this.pendingNavigationTargetIndex = null;
     this.navigationReturnTimer = null;
     this.levelStartMs = 0;
@@ -2699,6 +2700,49 @@ class StarHopperGame {
     };
   }
 
+  spawnSignalStoryUnlockEffect(chapter) {
+    if (!chapter) return null;
+    const story = typeof getSignalStoryProgress === 'function' ? getSignalStoryProgress(this) : null;
+    const progress = story ? `${story.unlocked.length}/${story.total} decoded` : "";
+    const px = this.player
+      ? (Number.isFinite(this.player.x) ? this.player.x : 0) + (Number.isFinite(this.player.w) ? this.player.w : 24) / 2
+      : 0;
+    const py = this.player
+      ? (Number.isFinite(this.player.y) ? this.player.y : 0) + (Number.isFinite(this.player.h) ? this.player.h : 32) / 2
+      : 0;
+    const monitorText = `SIGNAL DECODED: ${chapter.title || "new chapter"}`;
+    const effect = {
+      label: "SIGNAL DECODED!",
+      chapterId: chapter.id || null,
+      chapterTitle: chapter.title || "Signal chapter",
+      concept: chapter.concept || "Science signal",
+      progress,
+      monitorText,
+      x: px,
+      y: py
+    };
+    this.lastSignalStoryEffect = effect;
+
+    if (typeof ui_log_output === 'function') {
+      ui_log_output(`Signal decoded: ${effect.chapterTitle} - ${effect.concept}.`, "success");
+    }
+    if (typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+      ComicBubbles.pop(px, py - 28, effect.label, "#67e8f9", 1.12);
+    }
+    if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+      Particles.spawnBurst(px, py - 8, '#67e8f9', 18, 2.7, 2.6, 'glow');
+      Particles.spawnBurst(px, py - 8, '#fef08a', 8, 2.0, 2.0, 'glow');
+    }
+    if (typeof this.showMissionBalloon === 'function') {
+      this.showMissionBalloon(monitorText, {
+        title: "STAR-MAP SIGNAL",
+        color: "#67e8f9",
+        timer: 300
+      });
+    }
+    return effect;
+  }
+
   getUnlockedSignalStoryIds() {
     if (typeof getSignalStoryProgress !== 'function') return new Set();
     const story = getSignalStoryProgress(this);
@@ -4685,11 +4729,7 @@ class StarHopperGame {
     labStars = this.grantMasteryClearReward(labStars);
     this.lastSignalStoryUnlocks = this.getNewSignalStoryChapters(storyBeforeIds);
     if (this.lastSignalStoryUnlocks.length) {
-      const decoded = this.lastSignalStoryUnlocks[0];
-      if (typeof ui_log_output === 'function') ui_log_output(`Signal decoded: ${decoded.title} — ${decoded.concept}.`, "success");
-      if (this.player && typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
-        ComicBubbles.pop(this.player.x + this.player.w / 2, this.player.y - 28, "SIGNAL DECODED!", "#67e8f9", 1.12);
-      }
+      this.spawnSignalStoryUnlockEffect(this.lastSignalStoryUnlocks[0]);
     }
     const clearTime = this.recordClearTime({ isDailyRun, isFrontierRun });
     const frontierRecord = isFrontierRun ? this.recordFrontierClear({ labStars, clearTime }) : null;
