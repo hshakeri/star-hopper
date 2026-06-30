@@ -433,16 +433,66 @@ class StarHopperGame {
     }
   }
 
+  isPlanetUnlockedOnMap(index) {
+    if (index === 0) return true;
+    const clears = this.planetClears || {};
+    if ((clears[index] || 0) > 0) return true;
+    if ((clears[index - 1] || 0) > 0) return true;
+    if (index === 5 && this.purchasedTrades && this.purchasedTrades.has('map_1')) return true;
+    return false;
+  }
+
+  getPlanetLabStarCount(index) {
+    const raw = this.bestLabStars ? Number(this.bestLabStars[index]) : 0;
+    return Math.max(0, Math.min(3, Number.isFinite(raw) ? Math.floor(raw) : 0));
+  }
+
+  renderMapStarMeter(index) {
+    const stars = this.getPlanetLabStarCount(index);
+    const icons = Array.from({ length: 3 }, (_, i) =>
+      `<span class="${i < stars ? "earned" : ""}" aria-hidden="true">★</span>`
+    ).join("");
+    return `<span class="map-star-meter" aria-label="${stars} of 3 Lab Stars">${icons}</span>`;
+  }
+
+  refreshGalaxyMapProgress() {
+    if (typeof document === 'undefined') return;
+    const planets = (typeof PLANETS !== 'undefined' && Array.isArray(PLANETS)) ? PLANETS : [];
+    const nodes = Array.from(document.querySelectorAll('.planet-node[data-level]') || []);
+    nodes.forEach((node) => {
+      const index = parseInt(node.getAttribute('data-level'), 10);
+      if (!Number.isFinite(index) || !planets[index]) return;
+      const available = this.isPlanetUnlockedOnMap(index);
+      const clears = (this.planetClears && this.planetClears[index]) || 0;
+      const meta = node.querySelector('.mission-meta');
+      node.classList.toggle('locked', !available);
+      node.classList.toggle('current', available && index === this.currentPlanetIndex);
+      node.classList.toggle('active-hover', available);
+      node.disabled = !available;
+      if (meta) {
+        if (!available) {
+          meta.textContent = "Locked";
+        } else {
+          const label = clears > 0 ? `Clear ${clears}` : (index === 0 ? "Start" : "Unlocked");
+          meta.innerHTML = `${label} · ${this.renderMapStarMeter(index)}`;
+        }
+      }
+      const stars = this.getPlanetLabStarCount(index);
+      node.title = available
+        ? `${planets[index].name}: ${stars}/3 Lab Stars${clears > 0 ? " · Mastery Remix ready" : ""}`
+        : `${planets[index].name}: locked until the previous signal shard is recovered.`;
+    });
+  }
+
   // Animate a planet node from locked → available on the start-screen galaxy map.
   unlockNextPlanetNode(targetIndex) {
     if (targetIndex == null) return;
     const nodeBtn = document.querySelector(".planet-node[data-level='" + targetIndex + "']");
-    if (!nodeBtn || !nodeBtn.classList.contains('locked')) return;
-    nodeBtn.classList.remove('locked');
+    if (!nodeBtn) return;
+    const wasLocked = nodeBtn.classList.contains('locked');
+    this.refreshGalaxyMapProgress();
+    if (!wasLocked || nodeBtn.classList.contains('locked')) return;
     nodeBtn.classList.add('unlocking');
-    nodeBtn.disabled = false;
-    const meta = nodeBtn.querySelector('.mission-meta');
-    if (meta && meta.textContent === 'Locked') meta.textContent = 'Unlocked!';
     setTimeout(() => { nodeBtn.classList.remove('unlocking'); }, 900);
   }
 
@@ -645,6 +695,7 @@ class StarHopperGame {
     this.setupControls();
     this.loadPlanet(0);
     this.refreshDailySignalBanner();
+    this.refreshGalaxyMapProgress();
     setupUIBindings(this);
     
     // Begin Loop
@@ -2987,6 +3038,7 @@ class StarHopperGame {
       this.planetClears[this.currentPlanetIndex] = (this.planetClears[this.currentPlanetIndex] || 0) + 1;
     }
     const labStars = this.recordClearLabStars({ isDailyRun });
+    this.refreshGalaxyMapProgress();
     if (typeof saveLocalProgress === 'function') saveLocalProgress();
     this.refreshDailySignalBanner();
     // Distinct portal fanfare (not the generic success chime) so clearing a world lands

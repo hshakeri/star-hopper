@@ -1367,6 +1367,20 @@ body.resizing-panes * {
   color: var(--text-muted);
 }
 
+.map-star-meter {
+  display: inline-flex;
+  gap: 1px;
+  color: rgba(148, 163, 184, 0.42);
+  font-size: 0.56rem;
+  letter-spacing: 0;
+  vertical-align: -1px;
+}
+
+.map-star-meter .earned {
+  color: #facc15;
+  text-shadow: 0 0 5px rgba(250, 204, 21, 0.5);
+}
+
 .start-action-btn {
   margin-top: 10px;
   padding: 9px 26px;

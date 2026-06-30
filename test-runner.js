@@ -1110,6 +1110,60 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: clear lab stars reward mastery actions", false, err.message);
   }
 
+  // Test 22g: The start-screen galaxy map shows saved lab stars and unlocked planets.
+  const oldQuerySelectorAll22g = document.querySelectorAll;
+  try {
+    const makeClassList = (initial = []) => {
+      const set = new Set(initial);
+      return {
+        add: (...classes) => classes.forEach(c => set.add(c)),
+        remove: (...classes) => classes.forEach(c => set.delete(c)),
+        contains: (c) => set.has(c),
+        toggle: (c, force) => {
+          const shouldAdd = force === undefined ? !set.has(c) : !!force;
+          if (shouldAdd) set.add(c); else set.delete(c);
+          return shouldAdd;
+        },
+        _set: set
+      };
+    };
+    const makeNode = (level) => {
+      const meta = { textContent: "", innerHTML: "" };
+      return {
+        level,
+        disabled: true,
+        title: "",
+        classList: makeClassList(["planet-node", "locked"]),
+        getAttribute: (name) => name === "data-level" ? String(level) : null,
+        querySelector: (selector) => selector === ".mission-meta" ? meta : null,
+        _meta: meta
+      };
+    };
+    const nodes = [0, 1, 2].map(makeNode);
+    document.querySelectorAll = (selector) => selector === ".planet-node[data-level]" ? nodes : [];
+
+    const game = new StarHopperGame();
+    game.currentPlanetIndex = 0;
+    game.planetClears = { 0: 2 };
+    game.bestLabStars = { 0: 3, 1: 1 };
+    game.refreshGalaxyMapProgress();
+
+    assertEquals(false, nodes[0].disabled, "Cleared Earth node should be selectable");
+    assertEquals(true, nodes[0].classList.contains("current"), "Current node should be marked current");
+    assertEquals(true, /Clear 2/.test(nodes[0]._meta.innerHTML), "Cleared node should show clear count");
+    assertEquals(true, /3 of 3 Lab Stars/.test(nodes[0]._meta.innerHTML), "Cleared node should show best lab stars");
+    assertEquals(false, nodes[1].disabled, "Moon should unlock after Earth clear");
+    assertEquals(true, /Unlocked/.test(nodes[1]._meta.innerHTML), "Next planet should read as unlocked");
+    assertEquals(true, /1 of 3 Lab Stars/.test(nodes[1]._meta.innerHTML), "Saved next-planet stars should render");
+    assertEquals(true, nodes[2].disabled, "Jupiter should remain locked before Moon clear");
+    assertEquals("Locked", nodes[2]._meta.textContent, "Locked node keeps locked copy");
+    document.querySelectorAll = oldQuerySelectorAll22g;
+    renderTestResult("engine-suite", "Curriculum: galaxy map surfaces lab-star mastery", true);
+  } catch (err) {
+    document.querySelectorAll = oldQuerySelectorAll22g;
+    renderTestResult("engine-suite", "Curriculum: galaxy map surfaces lab-star mastery", false, err.message);
+  }
+
   // Test 23: Mission Coach copy avoids hidden old mode names
   try {
     const texts = [];

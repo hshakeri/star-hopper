@@ -143,6 +143,7 @@ function shApplyProgress(progress) {
     () => typeof updateResearchProgress === 'function' && updateResearchProgress(game),
     () => typeof updateCertificateState === 'function' && updateCertificateState(),
     () => game.refreshDailySignalBanner && game.refreshDailySignalBanner(),
+    () => game.refreshGalaxyMapProgress && game.refreshGalaxyMapProgress(),
     () => game.refreshStreakBanner && game.refreshStreakBanner()
   ].forEach(fn => { try { fn(); } catch (e) { /* panel not ready at this stage */ } });
 }
