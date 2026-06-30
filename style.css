@@ -3254,6 +3254,37 @@ html {
   text-align: right;
 }
 
+.science-delta-tested {
+  border: 1px solid rgba(167, 243, 208, 0.28);
+  border-radius: 5px;
+  background: rgba(15, 23, 42, 0.38);
+  display: grid;
+  gap: 3px;
+  padding: 5px 6px;
+}
+
+.science-delta-tested span {
+  color: #a7f3d0;
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.science-delta-tested strong {
+  color: #ecfeff;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  line-height: 1.2;
+}
+
+.science-delta-tested p {
+  color: #dff6ff;
+  font-size: 0.6rem;
+  line-height: 1.25;
+  margin: 0;
+}
+
 .science-delta-list {
   display: grid;
   gap: 4px;
@@ -5868,6 +5899,8 @@ body.readable-text-mode .staged-experiment-card p,
 body.readable-text-mode .staged-experiment-card code,
 body.readable-text-mode .staged-experiment-stage-btn,
 body.readable-text-mode .science-delta-head,
+body.readable-text-mode .science-delta-tested,
+body.readable-text-mode .science-delta-tested p,
 body.readable-text-mode .science-delta-row,
 body.readable-text-mode .science-delta-row em,
 body.readable-text-mode .science-delta-next span,

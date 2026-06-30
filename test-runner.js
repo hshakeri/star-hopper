@@ -2464,6 +2464,12 @@ function runEngineTests() {
     game.lastScienceDelta = { code: "hopper.mass = 1.0", changes: [{ label: "Mass", value: "2.5 -> 1.0" }] };
     updateMissionList(game);
     assertEquals(false, !!findByClass(list, "staged-experiment-card"), "Staged reminder should hide once that command has produced the latest delta");
+    const testedDelta = findByClass(list, "science-delta-card");
+    const testedDeltaText = flattenText(testedDelta || list);
+    assertEquals(true, /TESTED EXPERIMENT/.test(testedDeltaText), "Science delta should identify completed staged experiments");
+    assertEquals(true, /Mass Lab/.test(testedDeltaText), "Completed staged result should preserve the staged target title");
+    assertEquals(true, /Mission CRT/.test(testedDeltaText), "Completed staged result should preserve the source surface");
+    assertEquals(true, /Compare these changes/.test(testedDeltaText), "Completed staged result should connect the code run to evidence");
 
     list.children = [];
     game.remixContext = 'mastery';

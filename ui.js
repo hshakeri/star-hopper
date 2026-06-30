@@ -706,6 +706,22 @@ function getActiveStagedExperiment(game) {
   };
 }
 
+function getCompletedStagedExperiment(game) {
+  const staged = game && game.lastStagedExperiment;
+  const delta = game && game.lastScienceDelta;
+  if (!staged || !delta || !staged.command || !delta.code) return null;
+  const command = String(staged.command || "").trim();
+  const code = String(delta.code || "").trim();
+  if (!command || command !== code) return null;
+  return {
+    title: staged.title || "Experiment staged",
+    kind: staged.kind || null,
+    source: staged.source || "stage-button",
+    command,
+    time: staged.time || 0
+  };
+}
+
 function getStagedExperimentSourceLabel(source) {
   const labels = {
     "lesson-lens": "Lesson Lens",
@@ -768,6 +784,7 @@ function appendStagedExperimentCard(listContainer, game) {
 function appendScienceDeltaCard(listContainer, game) {
   const delta = game && game.lastScienceDelta;
   if (!listContainer || !delta || !Array.isArray(delta.changes) || delta.changes.length === 0) return;
+  const tested = getCompletedStagedExperiment(game);
 
   const card = document.createElement("div");
   card.className = "science-delta-card";
@@ -784,6 +801,21 @@ function appendScienceDeltaCard(listContainer, game) {
   head.appendChild(title);
   head.appendChild(reward);
   card.appendChild(head);
+
+  if (tested) {
+    const testedCard = document.createElement("div");
+    testedCard.className = "science-delta-tested";
+    const testedLabel = document.createElement("span");
+    testedLabel.textContent = "TESTED EXPERIMENT";
+    const testedTitle = document.createElement("strong");
+    testedTitle.textContent = tested.title;
+    const testedBody = document.createElement("p");
+    testedBody.textContent = `Source: ${getStagedExperimentSourceLabel(tested.source)}. Compare these changes with the command you staged.`;
+    testedCard.appendChild(testedLabel);
+    testedCard.appendChild(testedTitle);
+    testedCard.appendChild(testedBody);
+    card.appendChild(testedCard);
+  }
 
   const list = document.createElement("div");
   list.className = "science-delta-list";
