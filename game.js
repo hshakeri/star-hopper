@@ -2571,7 +2571,9 @@ class StarHopperGame {
         kicker: "NEXT RUN CONTRACT",
         title: copy.title,
         body: copy.body,
-        reward: `Reward: ${Math.min((starSummary.stars || 0) + 1, starSummary.maxStars || 3)}/${starSummary.maxStars || 3} Lab Stars`
+        reward: `Reward: ${Math.min((starSummary.stars || 0) + 1, starSummary.maxStars || 3)}/${starSummary.maxStars || 3} Lab Stars`,
+        action: "replay",
+        cta: "RETRY FOR STAR"
       };
     }
 
@@ -2581,7 +2583,9 @@ class StarHopperGame {
         kicker: "NEXT RUN CONTRACT",
         title: `Collect ${formulaTarget.title}`,
         body: formulaTarget.cue,
-        reward: "Reward: formula card + Research XP"
+        reward: "Reward: formula card + Research XP",
+        action: "replay",
+        cta: "RETRY FOR FORMULA"
       };
     }
 
@@ -2591,7 +2595,9 @@ class StarHopperGame {
         kicker: "NEXT FRONTIER CONTRACT",
         title: frontier ? `Climb Frontier Tier ${frontier.tier}` : "Climb the frontier ladder",
         body: "Use a seeded remix to prove the same science idea still works after the star-map is complete.",
-        reward: "Reward: world mastery XP + share code"
+        reward: "Reward: world mastery XP + share code",
+        action: "frontier",
+        cta: "NEXT FRONTIER"
       };
     }
 
@@ -2603,7 +2609,9 @@ class StarHopperGame {
         kicker: "NEXT RUN CONTRACT",
         title: `Beat ${timeSummary.best.toFixed(1)}s Lab Time`,
         body: "Replay with one cleaner route or one better variable tweak, then compare the telemetry.",
-        reward: `Target: ${target.toFixed(1)}s`
+        reward: `Target: ${target.toFixed(1)}s`,
+        action: "replay",
+        cta: "CHASE TIME"
       };
     }
 
@@ -2612,7 +2620,9 @@ class StarHopperGame {
         kicker: "NEXT RUN CONTRACT",
         title: "Compare today's remix",
         body: "Open the log, compare the remix with the original world, and write one observation.",
-        reward: "Reward: stronger lab record"
+        reward: "Reward: stronger lab record",
+        action: "log",
+        cta: "OPEN LOG"
       };
     }
 
@@ -2621,7 +2631,9 @@ class StarHopperGame {
         kicker: "NEXT RUN CONTRACT",
         title: `Launch toward ${PLANETS[nextIndex].name}`,
         body: "Run the spacecraft bridge plan to continue the signal trail.",
-        reward: "Reward: next science chapter"
+        reward: "Reward: next science chapter",
+        action: "launch",
+        cta: "RUN LAUNCH PLAN"
       };
     }
 
@@ -2629,8 +2641,30 @@ class StarHopperGame {
       kicker: "NEXT RUN CONTRACT",
       title: "Master a daily signal",
       body: "Use a fresh remix to prove the same physics idea still works when the map changes.",
-      reward: "Reward: daily clear + share code"
+      reward: "Reward: daily clear + share code",
+      action: "daily",
+      cta: "ACCEPT SIGNAL"
     };
+  }
+
+  runClearReplayContract(contract = this.lastClearReplayContract) {
+    const action = contract && contract.action ? contract.action : "replay";
+    if (action === "frontier" && typeof this.startFrontierChallenge === 'function') {
+      return this.startFrontierChallenge();
+    }
+    if (action === "daily" && typeof this.startDailySignal === 'function') {
+      return this.startDailySignal();
+    }
+    if (action === "launch" && typeof this.beginNextPlanetNavigation === 'function') {
+      this.beginNextPlanetNavigation();
+      return true;
+    }
+    if (action === "log") {
+      if (typeof switchMainMode === 'function') switchMainMode('notebook');
+      return true;
+    }
+    this.startLevel(this.currentPlanetIndex, true);
+    return true;
   }
 
   getClearSignalStoryPreview({ isDailyRun = false, isFrontierRun = false, nextIndex = null } = {}) {
@@ -4732,12 +4766,14 @@ class StarHopperGame {
       ? `<div class="clear-lab-time new"><span>NEW LAB TIME</span><strong>${safe(elapsedText)} personal best</strong></div>`
       : (timeSummary ? `<div class="clear-lab-time"><span>LAB TIME</span><strong>${safe(elapsedText)} · best ${safe(bestTimeText)}</strong></div>` : "");
     const replayContract = this.getClearReplayContract({ labStars: starSummary, clearTime: timeSummary, isDailyRun, isFrontierRun, nextIndex });
+    this.lastClearReplayContract = replayContract;
     const replayContractBlock = replayContract ? `
       <div class="clear-lab-contract">
         <span>${safe(replayContract.kicker)}</span>
         <strong>${safe(replayContract.title)}</strong>
         <p>${safe(replayContract.body)}</p>
         <em>${safe(replayContract.reward)}</em>
+        ${replayContract.cta ? `<button type="button" class="clear-lab-contract-btn" onclick="if (window.Game) window.Game.runClearReplayContract()">${safe(replayContract.cta)}</button>` : ""}
       </div>
     ` : "";
     const storyUnlock = this.getClearSignalStoryUnlock({ labStars: starSummary, isDailyRun, isFrontierRun });

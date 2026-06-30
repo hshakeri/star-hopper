@@ -2012,6 +2012,7 @@ function runEngineTests() {
     assertEquals(true, /2\/10 decoded/.test(report.innerHTML), "Clear report should show story progress");
     assertEquals(true, /NEXT RUN CONTRACT/.test(report.innerHTML), "Clear report should include a replay contract");
     assertEquals(true, /Collect Mass Lab/.test(report.innerHTML), "Replay contract should target the next formula card");
+    assertEquals(true, /RETRY FOR FORMULA/.test(report.innerHTML), "Replay contract should include an actionable next-run button");
     assertEquals(true, /1\/9/.test(report.innerHTML), "Clear report should include formula deck progress");
     assertEquals(true, /\+2 emerald/.test(report.innerHTML), "Clear report should include newly banked gems");
     assertEquals(true, /Collect Mass Lab/.test(report.innerHTML), "Clear report should include the next lab quest");
@@ -2101,6 +2102,8 @@ function runEngineTests() {
     });
     assertEquals("Leave science proof", contract.title, "Missing science star should be the first replay contract");
     assertEquals(true, /3\/3 Lab Stars/.test(contract.reward), "Missing-star contract should name the next star reward");
+    assertEquals("replay", contract.action, "Missing-star contract should replay the current world");
+    assertEquals("RETRY FOR STAR", contract.cta, "Missing-star contract should have an action label");
 
     game.discoveredFormulaKinds = new Set(["antigravity"]);
     contract = game.getClearReplayContract({
@@ -2117,6 +2120,8 @@ function runEngineTests() {
     });
     assertEquals("Collect Mass Lab", contract.title, "After 3 stars, next missing formula should become the contract");
     assertEquals("Reward: formula card + Research XP", contract.reward, "Formula contract should carry the science reward");
+    assertEquals("replay", contract.action, "Formula contract should replay the current world");
+    assertEquals("RETRY FOR FORMULA", contract.cta, "Formula contract should name the immediate action");
 
     game.discoveredFormulaKinds = new Set(DISCOVERY_RULES.map(rule => rule.kind));
     contract = game.getClearReplayContract({
@@ -2133,6 +2138,42 @@ function runEngineTests() {
     });
     assertEquals("Beat 10.0s Lab Time", contract.title, "Complete science progress should fall through to personal-best timing");
     assertEquals("Target: 9.2s", contract.reward, "Timing contract should set a reachable target");
+    assertEquals("CHASE TIME", contract.cta, "Timing contract should invite a speed chase");
+
+    const frontierContract = game.getClearReplayContract({
+      labStars: {
+        stars: 3,
+        maxStars: 3,
+        checks: [
+          { id: "missions", label: "Mission tasks", earned: true },
+          { id: "gems", label: "Mission gems", earned: true },
+          { id: "science", label: "Science proof", earned: true }
+        ]
+      },
+      isFrontierRun: true
+    });
+    assertEquals("frontier", frontierContract.action, "Frontier contract should start the next frontier run");
+    assertEquals("NEXT FRONTIER", frontierContract.cta, "Frontier contract should label the frontier action");
+
+    const actionGame = new StarHopperGame();
+    actionGame.currentPlanetIndex = 2;
+    let replayArgs = null;
+    let dailyCalls = 0;
+    let frontierCalls = 0;
+    let launchCalls = 0;
+    actionGame.startLevel = (index, preserve) => { replayArgs = { index, preserve }; };
+    actionGame.startDailySignal = () => { dailyCalls++; return true; };
+    actionGame.startFrontierChallenge = () => { frontierCalls++; return true; };
+    actionGame.beginNextPlanetNavigation = () => { launchCalls++; };
+    actionGame.runClearReplayContract({ action: "replay" });
+    assertEquals(2, replayArgs.index, "Replay action should restart the current world");
+    assertEquals(true, replayArgs.preserve, "Replay action should preserve tunings for one-more-test iteration");
+    actionGame.runClearReplayContract({ action: "daily" });
+    actionGame.runClearReplayContract({ action: "frontier" });
+    actionGame.runClearReplayContract({ action: "launch" });
+    assertEquals(1, dailyCalls, "Daily action should accept the daily signal");
+    assertEquals(1, frontierCalls, "Frontier action should start the frontier challenge");
+    assertEquals(1, launchCalls, "Launch action should open the navigation bridge");
     renderTestResult("engine-suite", "Curriculum: clear report suggests next replay contract", true);
   } catch (err) {
     renderTestResult("engine-suite", "Curriculum: clear report suggests next replay contract", false, err.message);
