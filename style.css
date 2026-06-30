@@ -2942,6 +2942,27 @@ html {
   line-height: 1.25;
   overflow-wrap: anywhere;
 }
+.lesson-lens-stage-btn {
+  justify-self: start;
+  border: 1px solid rgba(103, 232, 249, 0.42);
+  border-radius: 4px;
+  background: rgba(8, 47, 73, 0.72);
+  color: #cffafe;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.54rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: 5px 7px;
+}
+.lesson-lens-stage-btn:hover:not(:disabled) {
+  background: rgba(34, 211, 238, 0.82);
+  color: #083344;
+}
+.lesson-lens-stage-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
 
 .science-delta-card {
   border: 1px solid rgba(74, 222, 128, 0.34);
@@ -5513,6 +5534,7 @@ body.readable-text-mode .mission-item,
 body.readable-text-mode .lesson-lens-head,
 body.readable-text-mode .lesson-lens-card p,
 body.readable-text-mode .lesson-lens-card code,
+body.readable-text-mode .lesson-lens-stage-btn,
 body.readable-text-mode .science-delta-head,
 body.readable-text-mode .science-delta-row,
 body.readable-text-mode .science-delta-row em,

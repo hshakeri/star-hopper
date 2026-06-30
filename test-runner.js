@@ -2198,6 +2198,7 @@ function runEngineTests() {
       children: [],
       style: {},
       appendChild(child) { this.children.push(child); return child; },
+      addEventListener(event, handler) { this._events = this._events || {}; this._events[event] = handler; },
       classList: { add: () => {}, remove: () => {}, toggle: () => {}, contains: () => false }
     });
     const flattenText = (el) => [el.textContent || "", el.innerHTML || ""]
@@ -2211,7 +2212,7 @@ function runEngineTests() {
       }
       return null;
     };
-    const list = makeEl();
+    let list = makeEl();
     document.getElementById = (id) => id === "mission-list" ? list : null;
     document.createElement = () => makeEl();
 
@@ -2250,6 +2251,31 @@ function runEngineTests() {
     assertEquals(true, /Variable assignment and parameter tuning/.test(lensText), "Lesson lens should show the coding concept");
     assertEquals(true, /Change one number/.test(lensText), "Lesson lens should show the beginner concept");
     assertEquals(true, /Activate Hopper/.test(lensText), "Lesson lens should show the scaffold code idea");
+    const blockedLensButton = findByClass(lens || list, "lesson-lens-stage-btn");
+    assertEquals(true, !!blockedLensButton, "Lesson lens should render a stage action");
+    assertEquals("PREDICT FIRST", blockedLensButton.textContent, "Lesson lens should preserve the prediction-first flow");
+    assertEquals(true, !!blockedLensButton.disabled, "Lesson lens staging should stay disabled until a prediction is chosen");
+
+    list = makeEl();
+    game.coachPredictions = { "earth-gravity-wall": "lighter-longer" };
+    updateMissionList(game);
+    const activeLens = findByClass(list, "lesson-lens-card");
+    const activeLensButton = findByClass(activeLens || list, "lesson-lens-stage-btn");
+    assertEquals("STAGE LESSON CODE", activeLensButton && activeLensButton.textContent, "Lesson lens should stage code after prediction");
+    assertEquals(false, !!activeLensButton.disabled, "Lesson lens staging should enable after prediction");
+    const inputEl22j = {
+      value: "",
+      focused: false,
+      style: {},
+      scrollHeight: 20,
+      focus() { this.focused = true; },
+      setSelectionRange() {}
+    };
+    document.getElementById = (id) => id === "console-input" ? inputEl22j : (id === "mission-list" ? list : null);
+    activeLensButton._events.click();
+    assertEquals(true, /use_hopper\(\)/.test(inputEl22j.value), "Lesson lens stage action should include mission setup code");
+    assertEquals(true, /hopper\.mass/.test(inputEl22j.value), "Lesson lens stage action should include the scaffold tuning code");
+    assertEquals(true, inputEl22j.focused, "Lesson lens stage action should focus the terminal");
     assertEquals(true, !!scienceDelta, "Mission panel should show the latest science delta");
     assertEquals(true, /WHAT CHANGED/.test(scienceDeltaText), "Science delta card should identify itself");
     assertEquals(true, /Mass/.test(scienceDeltaText), "Science delta should list changed values");

@@ -512,6 +512,21 @@ function appendLessonLensCard(listContainer, game) {
     card.appendChild(cue);
   }
 
+  const selectedPrediction = game.coachPredictions ? game.coachPredictions[activeMission.id] : null;
+  const needsPrediction = !!(fullMission.prediction && !selectedPrediction);
+  const starterCode = buildNextExperimentCommand(fullMission);
+  if (fullMission.prediction || starterCode) {
+    const action = document.createElement("button");
+    action.type = "button";
+    action.className = "lesson-lens-stage-btn";
+    action.textContent = needsPrediction ? "PREDICT FIRST" : "STAGE LESSON CODE";
+    action.disabled = needsPrediction || !starterCode;
+    if (!action.disabled && typeof action.addEventListener === "function") {
+      action.addEventListener("click", () => stageScienceDeltaCommand(starterCode));
+    }
+    card.appendChild(action);
+  }
+
   listContainer.appendChild(card);
 }
 
