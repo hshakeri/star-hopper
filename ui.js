@@ -418,6 +418,7 @@ function updateMissionList(game) {
 
   listContainer.innerHTML = "";
   appendLessonLensCard(listContainer, game);
+  appendMissionMentorSignal(listContainer, game);
   appendScienceDeltaCard(listContainer, game);
   currentPlanet.missions.forEach(mission => {
     const isCompleted = game.completedMissions.has(mission.id);
@@ -526,6 +527,144 @@ function appendLessonLensCard(listContainer, game) {
     }
     card.appendChild(action);
   }
+
+  listContainer.appendChild(card);
+}
+
+const MENTOR_SIGNAL_PROFILES = {
+  mass: {
+    role: "Machinist Geary",
+    mark: "E",
+    line: "Less mass lets the same push accelerate Hopper harder.",
+    reward: "Open lighter-build routes"
+  },
+  engine: {
+    role: "Machinist Geary",
+    mark: "E",
+    line: "More engine force makes speed easier to earn, especially after mass drops.",
+    reward: "Beat Agility gates"
+  },
+  jump: {
+    role: "Springwright Selene",
+    mark: "J",
+    line: "Jump force launches better when the rover has less mass to lift.",
+    reward: "Reach high samples"
+  },
+  antigravity: {
+    role: "Magnetist Tesla",
+    mark: "A",
+    line: "Antigravity lowers felt weight so the same jump hangs longer.",
+    reward: "Stretch jump arcs"
+  },
+  rocket: {
+    role: "Booster Ion",
+    mark: "R",
+    line: "Rocket thrust must beat weight before Hopper can climb.",
+    reward: "Climb gravity wells"
+  },
+  loop: {
+    role: "Logician Bit-Byte",
+    mark: "J",
+    line: "A loop turns one command into a useful pattern.",
+    reward: "Build bridges faster"
+  },
+  friction: {
+    role: "Gripkeeper Cryo",
+    mark: "G",
+    line: "Friction turns sliding into control.",
+    reward: "Stop on ice"
+  },
+  elasticity: {
+    role: "Forgekeeper Anvil",
+    mark: "F",
+    line: "Mass starts the shove; elasticity decides how much rebound survives.",
+    reward: "Keep bounce speed"
+  },
+  magnet: {
+    role: "Magnetist Tesla",
+    mark: "A",
+    line: "Changing pole flips whether a magnetic field pulls or pushes.",
+    reward: "Turn fields into lifts"
+  },
+  default: {
+    role: "Vector",
+    mark: "V",
+    line: "Change one code idea, test the result, then explain the evidence.",
+    reward: "Unlock the next lab signal"
+  }
+};
+
+function getMissionMentorSignal(game) {
+  if (!game) return null;
+  const activeMission = getActivePlatformerMission(game);
+  const target = getActiveFormulaTarget(game, activeMission);
+  let rule = target || null;
+  if (!rule) {
+    const template = activeMission && activeMission.fullMission && activeMission.fullMission.scaffold
+      ? activeMission.fullMission.scaffold.template
+      : "";
+    const missionRule = DISCOVERY_RULES
+      .map(candidate => ({ candidate, index: patternIndexInText(candidate, template) }))
+      .filter(item => item.index >= 0)
+      .sort((a, b) => a.index - b.index)[0];
+    rule = missionRule ? missionRule.candidate : null;
+  }
+  const profile = (rule && MENTOR_SIGNAL_PROFILES[rule.kind]) || MENTOR_SIGNAL_PROFILES.default;
+  const title = rule ? rule.title : (activeMission && activeMission.fullMission ? activeMission.fullMission.title : "Current Lab");
+  const move = rule && rule.move ? rule.move : "Run one focused code change";
+  const payoff = rule && rule.payoff ? rule.payoff : profile.reward;
+  return {
+    kicker: "MENTOR SIGNAL",
+    role: profile.role,
+    mark: profile.mark,
+    title,
+    body: `${profile.line} Code focus: ${move}.`,
+    reward: `Payoff: ${payoff}`,
+    sampleCode: rule && rule.sampleCode ? rule.sampleCode : ""
+  };
+}
+
+function appendMissionMentorSignal(listContainer, game) {
+  const signal = getMissionMentorSignal(game);
+  if (!listContainer || !signal) return;
+
+  const card = document.createElement("div");
+  card.className = "mentor-signal-card";
+
+  const head = document.createElement("div");
+  head.className = "mentor-signal-head";
+  const label = document.createElement("span");
+  label.textContent = signal.kicker;
+  const role = document.createElement("strong");
+  role.textContent = signal.role;
+  head.appendChild(label);
+  head.appendChild(role);
+  card.appendChild(head);
+
+  const body = document.createElement("div");
+  body.className = "mentor-signal-body";
+  const mark = document.createElement("span");
+  mark.className = "mentor-signal-mark";
+  mark.textContent = signal.mark;
+  const copy = document.createElement("div");
+  copy.className = "mentor-signal-copy";
+  const title = document.createElement("strong");
+  title.textContent = signal.title;
+  const text = document.createElement("p");
+  text.textContent = signal.body;
+  const reward = document.createElement("em");
+  reward.textContent = signal.reward;
+  copy.appendChild(title);
+  copy.appendChild(text);
+  copy.appendChild(reward);
+  if (signal.sampleCode) {
+    const code = document.createElement("code");
+    code.textContent = signal.sampleCode;
+    copy.appendChild(code);
+  }
+  body.appendChild(mark);
+  body.appendChild(copy);
+  card.appendChild(body);
 
   listContainer.appendChild(card);
 }

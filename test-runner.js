@@ -2259,7 +2259,7 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: galaxy map surfaces lab-star mastery", false, err.message);
   }
 
-  // Test 22j: The in-run mission panel shows the lab-star contract.
+  // Test 22j: The in-run mission panel shows mentor, lab-star, and replay contracts.
   const oldGetElementById22h = document.getElementById;
   const oldCreateElement22h = document.createElement;
   try {
@@ -2315,6 +2315,8 @@ function runEngineTests() {
     const lensText = flattenText(lens || list);
     const scienceDelta = findByClass(list, "science-delta-card");
     const scienceDeltaText = flattenText(scienceDelta || list);
+    const mentor = findByClass(list, "mentor-signal-card");
+    const mentorText = flattenText(mentor || list);
     const contract = findByClass(list, "lab-star-contract");
     const replayBeforeProgress = findByClass(list, "run-replay-contract");
     const text = flattenText(contract || list);
@@ -2327,6 +2329,12 @@ function runEngineTests() {
     assertEquals(true, !!blockedLensButton, "Lesson lens should render a stage action");
     assertEquals("PREDICT FIRST", blockedLensButton.textContent, "Lesson lens should preserve the prediction-first flow");
     assertEquals(true, !!blockedLensButton.disabled, "Lesson lens staging should stay disabled until a prediction is chosen");
+    assertEquals(true, !!mentor, "Mission panel should pin the active mentor signal");
+    assertEquals(true, /MENTOR SIGNAL/.test(mentorText), "Mentor signal should identify itself");
+    assertEquals(true, /Machinist Geary/.test(mentorText), "Mentor signal should name the science villager");
+    assertEquals(true, /Mass Lab/.test(mentorText), "Mentor signal should follow the next locked formula card");
+    assertEquals(true, /Payoff: Open lighter-build routes/.test(mentorText), "Mentor signal should show the formula payoff");
+    assertEquals(true, /hopper\.mass = 1\.0/.test(mentorText), "Mentor signal should show the runnable focus command");
 
     list = makeEl();
     game.coachPredictions = { "earth-gravity-wall": "lighter-longer" };
@@ -2376,11 +2384,11 @@ function runEngineTests() {
     assertEquals(true, /Reward: formula card \+ Research XP/.test(replayText), "Replay card should show the contract reward");
     document.getElementById = oldGetElementById22h;
     document.createElement = oldCreateElement22h;
-    renderTestResult("engine-suite", "Curriculum: mission panel shows lab-star and replay contracts", true);
+    renderTestResult("engine-suite", "Curriculum: mission panel shows mentor, lab-star, and replay contracts", true);
   } catch (err) {
     document.getElementById = oldGetElementById22h;
     document.createElement = oldCreateElement22h;
-    renderTestResult("engine-suite", "Curriculum: mission panel shows lab-star and replay contracts", false, err.message);
+    renderTestResult("engine-suite", "Curriculum: mission panel shows mentor, lab-star, and replay contracts", false, err.message);
   }
 
   // Test 22i: Mission Coach renders the predict-code-test-explain loop as labeled progress.

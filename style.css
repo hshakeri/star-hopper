@@ -3041,6 +3041,95 @@ html {
   opacity: 0.62;
 }
 
+.mentor-signal-card {
+  border: 1px solid rgba(251, 146, 60, 0.38);
+  border-radius: 6px;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(251, 146, 60, 0.16), transparent 38%),
+    linear-gradient(180deg, rgba(69, 26, 3, 0.48), rgba(2, 20, 12, 0.86)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.03) 0 1px, transparent 1px 4px);
+  box-shadow: inset 0 0 14px rgba(251, 146, 60, 0.1);
+  padding: 7px 8px;
+  display: grid;
+  gap: 6px;
+}
+
+.mentor-signal-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  line-height: 1.2;
+}
+
+.mentor-signal-head span {
+  color: #fdba74;
+  font-weight: 800;
+}
+
+.mentor-signal-head strong {
+  color: #fef08a;
+  text-align: right;
+}
+
+.mentor-signal-body {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 7px;
+  align-items: start;
+}
+
+.mentor-signal-mark {
+  border: 1px solid rgba(253, 186, 116, 0.55);
+  border-radius: 4px;
+  background: rgba(15, 23, 42, 0.64);
+  color: #fed7aa;
+  display: grid;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 900;
+  min-height: 24px;
+  place-items: center;
+  text-shadow: 0 0 7px rgba(251, 146, 60, 0.44);
+}
+
+.mentor-signal-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.mentor-signal-copy strong {
+  color: #ffedd5;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  line-height: 1.2;
+}
+
+.mentor-signal-copy p,
+.mentor-signal-copy em {
+  margin: 0;
+  color: #dff6ff;
+  font-size: 0.62rem;
+  line-height: 1.28;
+}
+
+.mentor-signal-copy em {
+  color: #bbf7d0;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.mentor-signal-copy code {
+  color: #fde68a;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
 .science-delta-card {
   border: 1px solid rgba(74, 222, 128, 0.34);
   border-radius: 6px;
@@ -5656,6 +5745,11 @@ body.readable-text-mode .lesson-lens-head,
 body.readable-text-mode .lesson-lens-card p,
 body.readable-text-mode .lesson-lens-card code,
 body.readable-text-mode .lesson-lens-stage-btn,
+body.readable-text-mode .mentor-signal-head,
+body.readable-text-mode .mentor-signal-copy strong,
+body.readable-text-mode .mentor-signal-copy p,
+body.readable-text-mode .mentor-signal-copy em,
+body.readable-text-mode .mentor-signal-copy code,
 body.readable-text-mode .science-delta-head,
 body.readable-text-mode .science-delta-row,
 body.readable-text-mode .science-delta-row em,
