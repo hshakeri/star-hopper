@@ -3063,6 +3063,13 @@ class StarHopperGame {
     return best;
   }
 
+  getReadyPortalTarget() {
+    if (!this.player || !Array.isArray(this.interactiveObjects)) return null;
+    const status = typeof this.getLevelObjectiveStatus === 'function' ? this.getLevelObjectiveStatus() : null;
+    if (!status || !status.readyForPortal) return null;
+    return this.interactiveObjects.find(obj => obj && obj.type === 'portal' && !obj.collected) || null;
+  }
+
   // The gem gate of the first still-locked required gem (for accurate hints).
   getFirstLockedGemGate() {
     const obj = this.interactiveObjects.find(o =>
@@ -5250,21 +5257,28 @@ class StarHopperGame {
 
   drawMissionSampleBeacon(ctx) {
     if (!ctx || this.state !== 'playing') return null;
-    const target = this.getNextMissionSampleTarget();
+    let target = this.getNextMissionSampleTarget();
+    let label = "SAMPLE";
+    let kind = "sample";
+    if (!target) {
+      target = this.getReadyPortalTarget();
+      label = "EXIT";
+      kind = "portal";
+    }
     if (!target) return null;
     const width = Number.isFinite(target.w) ? target.w : 16;
     const height = Number.isFinite(target.h) ? target.h : 16;
     const cx = (Number.isFinite(target.x) ? target.x : 0) + width / 2 - (this.cameraX || 0);
     const cy = (Number.isFinite(target.y) ? target.y : 0) + height / 2;
     const gem = target.gem || (typeof this.getGemConfig === 'function' ? this.getGemConfig() : null);
-    const color = gem && gem.color ? gem.color : "#facc15";
+    const color = kind === "portal" ? "#bef264" : (gem && gem.color ? gem.color : "#facc15");
     if (this.canvas && (cx < -48 || cx > this.canvas.width + 48 || cy < -48 || cy > this.canvas.height + 48)) {
-      return this.drawMissionSampleEdgeMarker(ctx, target, color, cx, cy);
+      return this.drawMissionSampleEdgeMarker(ctx, target, color, cx, cy, label, kind);
     }
 
     const t = this.reducedMotion ? 0 : Date.now() / 360;
     const pulse = this.reducedMotion ? 0.5 : 0.5 + 0.5 * Math.sin(t);
-    const ring = 18 + pulse * 4;
+    const ring = (kind === "portal" ? 24 : 18) + pulse * 4;
     const bob = this.reducedMotion ? 0 : Math.sin(t * 1.4) * 2;
 
     ctx.save();
@@ -5296,13 +5310,13 @@ class StarHopperGame {
     ctx.lineWidth = 3;
     ctx.strokeStyle = "rgba(3, 7, 18, 0.86)";
     ctx.fillStyle = "#f8fafc";
-    ctx.strokeText("SAMPLE", cx, cy - 52 + bob);
-    ctx.fillText("SAMPLE", cx, cy - 52 + bob);
+    ctx.strokeText(label, cx, cy - 52 + bob);
+    ctx.fillText(label, cx, cy - 52 + bob);
     ctx.restore();
-    return { target, visible: true, color, x: cx, y: cy };
+    return { target, visible: true, color, x: cx, y: cy, label, kind };
   }
 
-  drawMissionSampleEdgeMarker(ctx, target, color, screenX, screenY) {
+  drawMissionSampleEdgeMarker(ctx, target, color, screenX, screenY, label = "SAMPLE", kind = "sample") {
     if (!ctx || !this.canvas) return { target, visible: false, offscreen: true, color };
     const margin = 24;
     const labelGap = 18;
@@ -5338,10 +5352,10 @@ class StarHopperGame {
     ctx.lineWidth = 3;
     ctx.strokeStyle = "rgba(3, 7, 18, 0.88)";
     ctx.fillStyle = "#f8fafc";
-    ctx.strokeText("SAMPLE", markerX, markerY + labelGap + bob);
-    ctx.fillText("SAMPLE", markerX, markerY + labelGap + bob);
+    ctx.strokeText(label, markerX, markerY + labelGap + bob);
+    ctx.fillText(label, markerX, markerY + labelGap + bob);
     ctx.restore();
-    return { target, visible: false, offscreen: true, color, x: markerX, y: markerY, angle };
+    return { target, visible: false, offscreen: true, color, x: markerX, y: markerY, angle, label, kind };
   }
 
   draw() {

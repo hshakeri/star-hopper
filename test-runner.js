@@ -688,6 +688,28 @@ function runEngineTests() {
     offscreenSample.collected = true;
     assertEquals(null, game.getNextMissionSampleTarget(), "No beacon target remains when all mission gems are locked or collected");
     assertEquals(null, game.drawMissionSampleBeacon(ctx), "Draw helper should no-op without a collectible target");
+
+    const portalGame = new StarHopperGame();
+    portalGame.state = 'playing';
+    portalGame.player = { x: 0, y: 0, w: 24, h: 32 };
+    portalGame.canvas = { width: 300, height: 180 };
+    portalGame.cameraX = 0;
+    portalGame.reducedMotion = true;
+    const portal = { type: 'portal', collected: false, x: 520, y: 56, w: 32, h: 32 };
+    portalGame.interactiveObjects = [portal];
+    portalGame.getLevelObjectiveStatus = () => ({ readyForPortal: false });
+    assertEquals(null, portalGame.getReadyPortalTarget(), "Locked portal should not become the active beacon target");
+    assertEquals(null, portalGame.drawMissionSampleBeacon(ctx), "Locked portal should not draw an exit beacon");
+    portalGame.getLevelObjectiveStatus = () => ({ readyForPortal: true });
+    assertEquals(portal, portalGame.getReadyPortalTarget(), "Ready portal should become the finish beacon target");
+    const portalBeacon = portalGame.drawMissionSampleBeacon(ctx);
+    assertEquals(portal, portalBeacon.target, "Ready portal marker should point to the portal");
+    assertEquals("EXIT", portalBeacon.label, "Ready portal marker should use an exit label");
+    assertEquals("portal", portalBeacon.kind, "Ready portal marker should report portal kind");
+    assertEquals(false, portalBeacon.visible, "Offscreen portal marker should report that the portal itself is offscreen");
+    assertEquals(true, !!portalBeacon.offscreen, "Offscreen portal should render an edge marker");
+    assertEquals(276, portalBeacon.x, "Right-edge portal marker should clamp inside the canvas");
+    assertEquals(true, labels.includes("EXIT"), "Ready portal marker should keep the exit label visible");
     renderTestResult("engine-suite", "Objectives: beacon marks unlocked mission samples", true);
   } catch (err) {
     renderTestResult("engine-suite", "Objectives: beacon marks unlocked mission samples", false, err.message);
