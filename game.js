@@ -101,6 +101,7 @@ class StarHopperGame {
     this.discoveryPulse = null;
     this.discoveryLog = [];
     this.discoveryPassCounts = {};
+    this.discoveredFormulaKinds = new Set();
     this.pendingNavigationTargetIndex = null;
     this.navigationReturnTimer = null;
 

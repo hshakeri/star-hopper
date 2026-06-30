@@ -519,21 +519,27 @@ function updateResearchProgress(game = window.Game) {
   }
 
   if (deck) {
-    const discoveries = game && Array.isArray(game.discoveryLog) ? game.discoveryLog.slice(0, 4) : [];
-    if (!discoveries.length) {
+    const collection = getFormulaCollection(game);
+    if (!collection.unlocked.length) {
       deck.innerHTML = `<div class="discovery-deck-empty">Run Mission Coach code to collect formula cards here.</div>`;
       return;
     }
-    deck.innerHTML = discoveries.map(pulse => `
-      <div class="discovery-card ${pulse.rankUp ? "rank-up" : ""}">
-        <div class="discovery-card-head">
-          <strong>${escapeHTML(pulse.title || "Discovery")}</strong>
-          <span>${pulse.rewardXP > 0 ? "+" + Math.round(pulse.rewardXP) + " XP" : "logged"}</span>
-        </div>
-        <code>${escapeHTML(pulse.formula || "predict -> code -> test")}</code>
-        <p>${escapeHTML(pulse.insight || pulse.cue || "Measure what changed and try one better tweak.")}</p>
+    deck.innerHTML = `
+      <div class="formula-collection-head">
+        <strong>Formula Cards ${collection.unlocked.length}/${collection.cards.length}</strong>
+        <span>${collection.nextLocked ? `Next: ${escapeHTML(collection.nextLocked.title)}` : "Deck complete"}</span>
       </div>
-    `).join("");
+      ${collection.cards.map(card => `
+      <div class="discovery-card formula-card ${card.unlocked ? "unlocked" : "locked"}">
+        <div class="discovery-card-head">
+          <strong>${escapeHTML(card.title)}</strong>
+          <span>${card.unlocked ? "collected" : "locked"}</span>
+        </div>
+        <code>${escapeHTML(card.unlocked ? card.formula : "???")}</code>
+        <p>${escapeHTML(card.unlocked ? card.insight : card.cue)}</p>
+      </div>
+      `).join("")}
+    `;
   }
 }
 
@@ -612,6 +618,63 @@ const DISCOVERY_RULES = [
   }
 ];
 
+function getPulseFormulaKind(pulse) {
+  if (!pulse) return null;
+  if (pulse.kind && pulse.kind !== "mission") return pulse.kind;
+  const title = String(pulse.title || "").toLowerCase();
+  const formula = String(pulse.formula || "").toLowerCase();
+  const match = DISCOVERY_RULES.find(rule =>
+    title === rule.title.toLowerCase() ||
+    formula === rule.formula.toLowerCase()
+  );
+  return match ? match.kind : null;
+}
+
+function getDiscoveredFormulaSet(game) {
+  const set = new Set();
+  if (game && game.discoveredFormulaKinds) {
+    const values = game.discoveredFormulaKinds instanceof Set
+      ? Array.from(game.discoveredFormulaKinds)
+      : (Array.isArray(game.discoveredFormulaKinds) ? game.discoveredFormulaKinds : []);
+    values.forEach(kind => {
+      if (DISCOVERY_RULES.some(rule => rule.kind === kind)) set.add(kind);
+    });
+  }
+  if (game && Array.isArray(game.discoveryLog)) {
+    game.discoveryLog.forEach(pulse => {
+      const kind = getPulseFormulaKind(pulse);
+      if (kind) set.add(kind);
+    });
+  }
+  return set;
+}
+
+function getFormulaCollection(game) {
+  const discovered = getDiscoveredFormulaSet(game);
+  const cards = DISCOVERY_RULES.map(rule => ({
+    ...rule,
+    unlocked: discovered.has(rule.kind)
+  }));
+  return {
+    cards,
+    unlocked: cards.filter(card => card.unlocked),
+    locked: cards.filter(card => !card.unlocked),
+    nextLocked: cards.find(card => !card.unlocked) || null
+  };
+}
+
+function unlockFormulaKind(game, kind) {
+  if (!game || !DISCOVERY_RULES.some(rule => rule.kind === kind)) return false;
+  const discovered = getDiscoveredFormulaSet(game);
+  if (discovered.has(kind)) {
+    game.discoveredFormulaKinds = discovered;
+    return false;
+  }
+  discovered.add(kind);
+  game.discoveredFormulaKinds = discovered;
+  return true;
+}
+
 function countPassedResultChecks(resultState) {
   if (!resultState || !Array.isArray(resultState.items)) return 0;
   return resultState.items.filter(item => item && item.passed).length;
@@ -656,9 +719,11 @@ function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems
 
   if (earned) {
     const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(game.researchXP || 0) : null;
+    const cardUnlocked = unlockFormulaKind(game, pulse.kind);
     game.discoveryCombo = Math.min(99, (game.discoveryCombo || 0) + 1);
     pulse.combo = game.discoveryCombo;
-    pulse.rewardXP = 5 + newPasses * 4 + opened * 3 + (finalPassBonus ? 6 : 0) + Math.min(8, game.discoveryCombo);
+    pulse.cardUnlocked = cardUnlocked;
+    pulse.rewardXP = 5 + newPasses * 4 + opened * 3 + (finalPassBonus ? 6 : 0) + (cardUnlocked ? 5 : 0) + Math.min(8, game.discoveryCombo);
     game.researchXP = Math.max(0, (game.researchXP || 0) + pulse.rewardXP);
     const afterRank = (typeof getResearchRank === 'function') ? getResearchRank(game.researchXP || 0) : null;
     if (beforeRank && afterRank && afterRank.level > beforeRank.level) {

@@ -126,7 +126,8 @@ function normalizeProgress(progress) {
     researchXP: Number(p.researchXP) || 0,
     discoveryCombo: Number(p.discoveryCombo) || 0,
     discoveryLog: Array.isArray(p.discoveryLog) ? p.discoveryLog.slice(0, 8) : [],
-    discoveryPassCounts: plainObject(p.discoveryPassCounts)
+    discoveryPassCounts: plainObject(p.discoveryPassCounts),
+    discoveredFormulaKinds: Array.isArray(p.discoveredFormulaKinds) ? p.discoveredFormulaKinds : []
   };
 }
 
@@ -150,7 +151,8 @@ function getActiveProgressSnapshot() {
     researchXP: typeof Game !== 'undefined' ? Game.researchXP : 0,
     discoveryCombo: typeof Game !== 'undefined' ? Game.discoveryCombo : 0,
     discoveryLog: typeof Game !== 'undefined' && Array.isArray(Game.discoveryLog) ? Game.discoveryLog : [],
-    discoveryPassCounts: typeof Game !== 'undefined' && Game.discoveryPassCounts ? { ...Game.discoveryPassCounts } : {}
+    discoveryPassCounts: typeof Game !== 'undefined' && Game.discoveryPassCounts ? { ...Game.discoveryPassCounts } : {},
+    discoveredFormulaKinds: typeof Game !== 'undefined' && Game.discoveredFormulaKinds ? Array.from(Game.discoveredFormulaKinds) : []
   });
 }
 
@@ -205,7 +207,8 @@ function mergeProgress(localProgress, incomingProgress) {
     researchXP: Math.max(local.researchXP || 0, incoming.researchXP || 0),
     discoveryCombo: Math.max(local.discoveryCombo || 0, incoming.discoveryCombo || 0),
     discoveryLog: (incoming.discoveryLog && incoming.discoveryLog.length ? incoming.discoveryLog : local.discoveryLog).slice(0, 8),
-    discoveryPassCounts: mergeNumberMax(local.discoveryPassCounts, incoming.discoveryPassCounts)
+    discoveryPassCounts: mergeNumberMax(local.discoveryPassCounts, incoming.discoveryPassCounts),
+    discoveredFormulaKinds: arrayUnion(local.discoveredFormulaKinds, incoming.discoveredFormulaKinds)
   });
 }
 
@@ -233,6 +236,7 @@ function applyProgressSnapshot(progress) {
     Game.discoveryLog = normalized.discoveryLog.slice(0, 8);
     Game.discoveryPulse = Game.discoveryLog[0] || null;
     Game.discoveryPassCounts = { ...normalized.discoveryPassCounts };
+    Game.discoveredFormulaKinds = new Set(normalized.discoveredFormulaKinds || []);
   }
   if (typeof notebookEntries !== 'undefined') {
     Object.keys(notebookEntries).forEach(key => delete notebookEntries[key]);

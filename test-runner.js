@@ -866,12 +866,15 @@ function runEngineTests() {
 
     assertEquals("mass", firstPulse.kind, "Mass command should map to the mass science rule");
     assertEquals(true, firstPulse.formula.indexOf("F / m") >= 0, "Pulse should expose the force/mass formula");
+    assertEquals(true, !!firstPulse.cardUnlocked, "First real mass progress should unlock the mass formula card");
+    assertEquals(true, game.discoveredFormulaKinds.has("mass"), "Mass formula should be collected");
     assertEquals(true, firstXP > 0, "New check/gem progress should award Research XP");
     assertEquals(1, game.discoveryCombo, "New discovery starts the combo");
 
     recordDiscoveryPulse(game, activeMission, "hopper.mass = 1.2", partial, 0);
     assertEquals(firstXP, game.researchXP, "Repeating the same progress should not farm Research XP");
     assertEquals(1, game.discoveryCombo, "Repeating without progress should not raise combo");
+    assertEquals(1, game.discoveredFormulaKinds.size, "Repeating without progress should not unlock new cards");
 
     const complete = {
       allPassed: true,
@@ -883,6 +886,7 @@ function runEngineTests() {
     assertEquals(2, game.discoveryCombo, "Second new discovery extends combo");
     assertEquals(true, !!finalPulse.rankUp, "Crossing a Research XP threshold should flag rank-up");
     assertEquals("Variable Scout", finalPulse.rankTitle, "Rank-up should name the new rank");
+    assertEquals(true, game.discoveredFormulaKinds.has("engine"), "Engine formula should be collected");
     renderTestResult("engine-suite", "Curriculum: code runs create discovery rewards", true);
   } catch (err) {
     renderTestResult("engine-suite", "Curriculum: code runs create discovery rewards", false, err.message);
@@ -903,13 +907,15 @@ function runEngineTests() {
     updateResearchProgress({
       researchXP: 60,
       discoveryLog: [
-        { title: "Mass Lab", formula: "a = F / m", insight: "Less mass makes acceleration bigger.", rewardXP: 12 },
-        { title: "Loop Lab", formula: "repeat n = command x n", insight: "Loops build patterns quickly.", rewardXP: 9 }
+        { kind: "mass", title: "Mass Lab", formula: "a = F / m", insight: "Less mass makes acceleration bigger.", rewardXP: 12 },
+        { kind: "loop", title: "Loop Lab", formula: "repeat n = command x n", insight: "Loops build patterns quickly.", rewardXP: 9 }
       ]
     });
     assertEquals(true, /Physics Tinkerer/.test(els["research-rank-card"].innerHTML), "Rank card should show the current title");
+    assertEquals(true, /Formula Cards 2\/9/.test(els["discovery-deck"].innerHTML), "Deck should show formula collection progress");
     assertEquals(true, /a = F \/ m/.test(els["discovery-deck"].innerHTML), "Discovery deck should show collected formulas");
     assertEquals(true, /Loop Lab/.test(els["discovery-deck"].innerHTML), "Discovery deck should show multiple discoveries");
+    assertEquals(true, /locked/.test(els["discovery-deck"].innerHTML), "Deck should show locked future cards");
     document.getElementById = oldGetElementById22c;
     renderTestResult("engine-suite", "Curriculum: research ranks render discovery deck", true);
   } catch (err) {
@@ -2508,17 +2514,21 @@ function runRetryRemixTests() {
       completedMissions: new Set(), earnedBadges: new Set(), unlockedUpgrades: new Set(),
       upgradeLevels: {}, planetClears: {},
       bestClearTimes: { 0: 12.4 }, masteryCleared: { 1: true }, masteryMeters: {},
-      dailySignalClears: 3, lastPlayedDate: "2026-06-13", streakCount: 5
+      dailySignalClears: 3, lastPlayedDate: "2026-06-13", streakCount: 5,
+      researchXP: 24, discoveryCombo: 1, discoveryLog: [], discoveryPassCounts: {},
+      discoveredFormulaKinds: new Set(["mass"])
     };
     window.Game = Game;
     const snap = shCaptureProgress();
-    Game.bestClearTimes = {}; Game.dailySignalClears = 0; Game.lastPlayedDate = null; Game.streakCount = 0; Game.masteryCleared = {};
+    Game.bestClearTimes = {}; Game.dailySignalClears = 0; Game.lastPlayedDate = null; Game.streakCount = 0; Game.masteryCleared = {}; Game.researchXP = 0; Game.discoveredFormulaKinds = new Set();
     shApplyProgress(snap);
     assertEquals(12.4, Game.bestClearTimes[0], "best clear time round-trips");
     assertEquals(true, Game.masteryCleared[1], "mastery-cleared flag round-trips");
     assertEquals(3, Game.dailySignalClears, "daily-signal clears round-trip");
     assertEquals("2026-06-13", Game.lastPlayedDate, "lastPlayedDate round-trips");
     assertEquals(5, Game.streakCount, "streakCount round-trips");
+    assertEquals(24, Game.researchXP, "Research XP round-trips");
+    assertEquals(true, Game.discoveredFormulaKinds.has("mass"), "Formula cards round-trip");
     Game = oldGameR16; window.Game = oldGameR16;
     renderTestResult(SUITE, "Persistence: Phase-2 progression fields survive save/load", true);
   } catch (err) {
@@ -2570,7 +2580,8 @@ function runRetryRemixTests() {
       researchXP: 42,
       discoveryCombo: 2,
       discoveryLog: [{ title: "Mass Lab", formula: "a = F / m" }],
-      discoveryPassCounts: { "earth-gravity-wall": 1 }
+      discoveryPassCounts: { "earth-gravity-wall": 1 },
+      discoveredFormulaKinds: new Set(["mass", "loop"])
     };
     window.Game = Game;
     const payload = buildSavePayload();
@@ -2580,8 +2591,9 @@ function runRetryRemixTests() {
     assertEquals(4, payload.profileProgress.dailySignalClears, "Daily Signal clears should export");
     assertEquals(42, payload.profileProgress.researchXP, "Research XP should export");
     assertEquals(1, payload.profileProgress.discoveryPassCounts["earth-gravity-wall"], "Discovery progress should export");
+    assertEquals(true, payload.profileProgress.discoveredFormulaKinds.includes("loop"), "Formula card kinds should export");
     const merged = mergeProgress(
-      { unlockedUpgrades: ["jump"], upgradeLevels: { engine: 0.25 }, planetClears: { 0: 1 }, researchXP: 8, discoveryPassCounts: { "earth-gravity-wall": 0 } },
+      { unlockedUpgrades: ["jump"], upgradeLevels: { engine: 0.25 }, planetClears: { 0: 1 }, researchXP: 8, discoveryPassCounts: { "earth-gravity-wall": 0 }, discoveredFormulaKinds: ["friction"] },
       progressFromSavePayload(payload)
     );
     assertEquals(true, merged.unlockedUpgrades.includes("engine"), "Incoming unlocked upgrade survives merge");
@@ -2590,6 +2602,8 @@ function runRetryRemixTests() {
     assertEquals(2, merged.planetClears[0], "Merge keeps the higher clear count");
     assertEquals(42, merged.researchXP, "Merge keeps the higher Research XP");
     assertEquals(1, merged.discoveryPassCounts["earth-gravity-wall"], "Merge keeps discovery pass progress");
+    assertEquals(true, merged.discoveredFormulaKinds.includes("mass"), "Incoming formula card survives merge");
+    assertEquals(true, merged.discoveredFormulaKinds.includes("friction"), "Local formula card survives merge");
     Game = oldGameR19; window.Game = oldGameR19;
     renderTestResult(SUITE, "Persistence: backup/cloud payload keeps rich profile progress", true);
   } catch (err) {

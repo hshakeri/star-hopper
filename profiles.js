@@ -78,6 +78,7 @@ function shCaptureProgress() {
     discoveryCombo: (game && game.discoveryCombo) || 0,
     discoveryLog: (game && Array.isArray(game.discoveryLog)) ? game.discoveryLog.slice(0, 8) : [],
     discoveryPassCounts: (game && game.discoveryPassCounts) ? { ...game.discoveryPassCounts } : {},
+    discoveredFormulaKinds: (game && game.discoveredFormulaKinds) ? Array.from(game.discoveredFormulaKinds) : [],
     gemsWallet: (game && game.gemsWallet) ? { ...game.gemsWallet } : { emerald: 0, quartz: 0, amber: 0, ice: 0, flux: 0, forge: 0 },
     gemsAwardedForPlanet: (game && game.gemsAwardedForPlanet) ? { ...game.gemsAwardedForPlanet } : {},
     purchasedTrades: (game && game.purchasedTrades) ? Array.from(game.purchasedTrades) : [],
@@ -107,6 +108,7 @@ function shApplyProgress(progress) {
   game.discoveryLog = Array.isArray(progress.discoveryLog) ? progress.discoveryLog.slice(0, 8) : [];
   game.discoveryPulse = game.discoveryLog[0] || null;
   game.discoveryPassCounts = (progress.discoveryPassCounts && typeof progress.discoveryPassCounts === 'object') ? { ...progress.discoveryPassCounts } : {};
+  game.discoveredFormulaKinds = new Set(Array.isArray(progress.discoveredFormulaKinds) ? progress.discoveredFormulaKinds : []);
   game.gemsWallet = { emerald: 0, quartz: 0, amber: 0, ice: 0, flux: 0, forge: 0, ...(progress.gemsWallet || {}) };
   game.gemsAwardedForPlanet = (progress.gemsAwardedForPlanet && typeof progress.gemsAwardedForPlanet === 'object') ? { ...progress.gemsAwardedForPlanet } : {};
   game.purchasedTrades = new Set(progress.purchasedTrades || []);
