@@ -1835,7 +1835,11 @@ function runEngineTests() {
     const fallbackTarget = getActiveFormulaTarget(game, earthMission);
     assertEquals("Rocket Lab", fallbackTarget.title, "After Earth cards, target should fall back to next global card");
 
-    const panel = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };
+    const stageBtn = {
+      handler: null,
+      addEventListener(event, handler) { if (event === "click") this.handler = handler; }
+    };
+    const panel = { classList: { add: () => {}, remove: () => {} }, innerHTML: "", querySelector: () => stageBtn };
     document.getElementById = (id) => id === "formula-target" ? panel : null;
     game.discoveredFormulaKinds = new Set(["antigravity"]);
     updateFormulaTarget(game);
@@ -1849,6 +1853,20 @@ function runEngineTests() {
     assertEquals(true, /WIN/.test(panel.innerHTML), "CRT formula target should label the payoff");
     assertEquals(true, /Open lighter-build routes/.test(panel.innerHTML), "CRT formula target should show the in-game payoff");
     assertEquals(true, /hopper\.mass = 1\.0/.test(panel.innerHTML), "CRT formula target should show the runnable sample command");
+    assertEquals(true, /STAGE CODE/.test(panel.innerHTML), "CRT formula target should expose a stage-code action");
+    assertEquals(true, typeof stageBtn.handler === "function", "CRT formula target should wire the stage-code click handler");
+    const inputEl = {
+      value: "",
+      focused: false,
+      style: {},
+      scrollHeight: 20,
+      focus() { this.focused = true; },
+      setSelectionRange() {}
+    };
+    document.getElementById = (id) => id === "console-input" ? inputEl : null;
+    stageBtn.handler();
+    assertEquals("hopper.mass = 1.0", inputEl.value, "Stage-code action should place the formula command in the terminal");
+    assertEquals(true, inputEl.focused, "Stage-code action should focus the terminal input");
     document.getElementById = oldGetElementById22d;
     renderTestResult("engine-suite", "Curriculum: CRT surfaces next formula card target", true);
   } catch (err) {

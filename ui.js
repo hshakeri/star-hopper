@@ -1448,7 +1448,12 @@ function updateFormulaTarget(game) {
       <span><b>WIN</b>${escapeHTML(payoff)}</span>
     </div>
     <code class="formula-target-code">${escapeHTML(sample)}</code>
+    ${sample ? `<button type="button" class="formula-target-stage-btn" data-formula-stage="1">STAGE CODE</button>` : ""}
   `;
+  const stageBtn = panel.querySelector ? panel.querySelector("[data-formula-stage]") : null;
+  if (stageBtn && typeof stageBtn.addEventListener === "function") {
+    stageBtn.addEventListener("click", () => stageScienceDeltaCommand(sample));
+  }
 }
 
 function unlockFormulaKind(game, kind) {
