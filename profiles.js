@@ -134,6 +134,7 @@ function shApplyProgress(progress) {
     () => typeof renderNotebookHistory === 'function' && renderNotebookHistory(),
     () => typeof updateBadgeShelf === 'function' && updateBadgeShelf(game),
     () => typeof updateLearningConceptProgress === 'function' && updateLearningConceptProgress(game),
+    () => typeof updateResearchProgress === 'function' && updateResearchProgress(game),
     () => typeof updateCertificateState === 'function' && updateCertificateState(),
     () => game.refreshDailySignalBanner && game.refreshDailySignalBanner(),
     () => game.refreshStreakBanner && game.refreshStreakBanner()

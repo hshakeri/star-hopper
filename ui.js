@@ -466,6 +466,77 @@ function getCoachPredictionOption(game, missionId) {
   return fullMission.prediction.options.find(option => option.id === selectedId) || null;
 }
 
+const RESEARCH_RANKS = [
+  { level: 1, title: "Lab Rookie", min: 0 },
+  { level: 2, title: "Variable Scout", min: 20 },
+  { level: 3, title: "Physics Tinkerer", min: 55 },
+  { level: 4, title: "Loop Engineer", min: 100 },
+  { level: 5, title: "Orbit Scientist", min: 170 },
+  { level: 6, title: "Star Mentor", min: 260 }
+];
+
+function getResearchRank(xp = 0) {
+  const score = Math.max(0, Number(xp) || 0);
+  let current = RESEARCH_RANKS[0];
+  for (const rank of RESEARCH_RANKS) {
+    if (score >= rank.min) current = rank;
+  }
+  const next = RESEARCH_RANKS.find(rank => rank.min > score) || null;
+  const span = next ? Math.max(1, next.min - current.min) : 1;
+  const progress = next ? Math.max(0, Math.min(1, (score - current.min) / span)) : 1;
+  return {
+    ...current,
+    xp: score,
+    nextTitle: next ? next.title : "Max Rank",
+    nextMin: next ? next.min : current.min,
+    remaining: next ? Math.max(0, next.min - score) : 0,
+    progress
+  };
+}
+
+function updateResearchProgress(game = window.Game) {
+  const rankCard = document.getElementById("research-rank-card");
+  const deck = document.getElementById("discovery-deck");
+  if (!rankCard && !deck) return;
+  const xp = game && Number.isFinite(game.researchXP) ? game.researchXP : 0;
+  const rank = getResearchRank(xp);
+
+  if (rankCard) {
+    const pct = Math.round(rank.progress * 100);
+    rankCard.innerHTML = `
+      <div class="research-rank-top">
+        <div>
+          <span class="research-rank-kicker">Rank ${rank.level}</span>
+          <strong>${escapeHTML(rank.title)}</strong>
+        </div>
+        <span class="research-rank-xp">${Math.round(rank.xp)} XP</span>
+      </div>
+      <div class="research-rank-bar" aria-label="Research rank progress">
+        <span style="width: ${pct}%"></span>
+      </div>
+      <div class="research-rank-next">${rank.remaining > 0 ? `${Math.round(rank.remaining)} XP to ${escapeHTML(rank.nextTitle)}` : "Max rank reached"}</div>
+    `;
+  }
+
+  if (deck) {
+    const discoveries = game && Array.isArray(game.discoveryLog) ? game.discoveryLog.slice(0, 4) : [];
+    if (!discoveries.length) {
+      deck.innerHTML = `<div class="discovery-deck-empty">Run Mission Coach code to collect formula cards here.</div>`;
+      return;
+    }
+    deck.innerHTML = discoveries.map(pulse => `
+      <div class="discovery-card ${pulse.rankUp ? "rank-up" : ""}">
+        <div class="discovery-card-head">
+          <strong>${escapeHTML(pulse.title || "Discovery")}</strong>
+          <span>${pulse.rewardXP > 0 ? "+" + Math.round(pulse.rewardXP) + " XP" : "logged"}</span>
+        </div>
+        <code>${escapeHTML(pulse.formula || "predict -> code -> test")}</code>
+        <p>${escapeHTML(pulse.insight || pulse.cue || "Measure what changed and try one better tweak.")}</p>
+      </div>
+    `).join("");
+  }
+}
+
 const DISCOVERY_RULES = [
   {
     kind: "mass",
@@ -584,10 +655,23 @@ function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems
   const earned = newPasses > 0 || opened > 0;
 
   if (earned) {
+    const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(game.researchXP || 0) : null;
     game.discoveryCombo = Math.min(99, (game.discoveryCombo || 0) + 1);
     pulse.combo = game.discoveryCombo;
     pulse.rewardXP = 5 + newPasses * 4 + opened * 3 + (finalPassBonus ? 6 : 0) + Math.min(8, game.discoveryCombo);
     game.researchXP = Math.max(0, (game.researchXP || 0) + pulse.rewardXP);
+    const afterRank = (typeof getResearchRank === 'function') ? getResearchRank(game.researchXP || 0) : null;
+    if (beforeRank && afterRank && afterRank.level > beforeRank.level) {
+      pulse.rankUp = true;
+      pulse.rankTitle = afterRank.title;
+      if (typeof showBadgeToast === 'function') {
+        showBadgeToast({
+          icon: "🔬",
+          label: `Research Rank: ${afterRank.title}`,
+          description: `${Math.round(game.researchXP || 0)} Research XP earned`
+        });
+      }
+    }
     if (typeof ui_log_output === 'function') {
       ui_log_output(`Research +${pulse.rewardXP} XP: ${pulse.formula}`, "success");
     }
@@ -602,6 +686,7 @@ function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems
   game.discoveryPulse = pulse;
   game.discoveryLog = [pulse].concat(Array.isArray(game.discoveryLog) ? game.discoveryLog : []).slice(0, 8);
   updateDiscoveryPulse(game);
+  if (typeof updateResearchProgress === 'function') updateResearchProgress(game);
   return pulse;
 }
 
@@ -616,7 +701,7 @@ function updateDiscoveryPulse(game) {
   }
   panel.classList.remove("hidden");
   const progress = pulse.total > 0 ? `${pulse.passed}/${pulse.total} checks` : "free test";
-  const reward = pulse.rewardXP > 0 ? `+${pulse.rewardXP} Research XP` : "insight logged";
+  const reward = pulse.rankUp ? `Rank Up: ${pulse.rankTitle}` : (pulse.rewardXP > 0 ? `+${pulse.rewardXP} Research XP` : "insight logged");
   const combo = pulse.combo > 1 ? ` x${pulse.combo} combo` : "";
   panel.innerHTML = `
     <div class="discovery-pulse-head">

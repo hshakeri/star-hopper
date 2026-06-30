@@ -881,9 +881,40 @@ function runEngineTests() {
     assertEquals("engine", finalPulse.kind, "Engine command should map to the speed formula");
     assertEquals(true, game.researchXP > firstXP, "Newly passed checks should add more Research XP");
     assertEquals(2, game.discoveryCombo, "Second new discovery extends combo");
+    assertEquals(true, !!finalPulse.rankUp, "Crossing a Research XP threshold should flag rank-up");
+    assertEquals("Variable Scout", finalPulse.rankTitle, "Rank-up should name the new rank");
     renderTestResult("engine-suite", "Curriculum: code runs create discovery rewards", true);
   } catch (err) {
     renderTestResult("engine-suite", "Curriculum: code runs create discovery rewards", false, err.message);
+  }
+
+  // Test 22c: Research rank and discovery deck render a readable learning collection.
+  const oldGetElementById22c = document.getElementById;
+  try {
+    const rank = getResearchRank(60);
+    assertEquals("Physics Tinkerer", rank.title, "60 Research XP should reach the third rank");
+    assertEquals(40, rank.remaining, "Remaining XP should point to the next rank");
+
+    const els = {
+      "research-rank-card": { innerHTML: "" },
+      "discovery-deck": { innerHTML: "" }
+    };
+    document.getElementById = (id) => els[id] || null;
+    updateResearchProgress({
+      researchXP: 60,
+      discoveryLog: [
+        { title: "Mass Lab", formula: "a = F / m", insight: "Less mass makes acceleration bigger.", rewardXP: 12 },
+        { title: "Loop Lab", formula: "repeat n = command x n", insight: "Loops build patterns quickly.", rewardXP: 9 }
+      ]
+    });
+    assertEquals(true, /Physics Tinkerer/.test(els["research-rank-card"].innerHTML), "Rank card should show the current title");
+    assertEquals(true, /a = F \/ m/.test(els["discovery-deck"].innerHTML), "Discovery deck should show collected formulas");
+    assertEquals(true, /Loop Lab/.test(els["discovery-deck"].innerHTML), "Discovery deck should show multiple discoveries");
+    document.getElementById = oldGetElementById22c;
+    renderTestResult("engine-suite", "Curriculum: research ranks render discovery deck", true);
+  } catch (err) {
+    document.getElementById = oldGetElementById22c;
+    renderTestResult("engine-suite", "Curriculum: research ranks render discovery deck", false, err.message);
   }
 
   // Test 23: Mission Coach copy avoids hidden old mode names

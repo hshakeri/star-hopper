@@ -77,6 +77,7 @@ function updateNotebook(game) {
   if (researchEl) {
     researchEl.textContent = `${Math.round(game.researchXP || 0)} XP`;
   }
+  updateResearchProgress(game);
 
   // Render Mini Energy Bars
   const maxKE = 100;
@@ -399,6 +400,9 @@ function switchMainMode(mode) {
   }
   if (typeof updateBadgeShelf === 'function' && window.Game) {
     updateBadgeShelf(window.Game);
+  }
+  if (typeof updateResearchProgress === 'function' && window.Game) {
+    updateResearchProgress(window.Game);
   }
 
   // Handle special mode transitions
