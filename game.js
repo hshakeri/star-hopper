@@ -113,6 +113,8 @@ class StarHopperGame {
     this.lastLabStarPulse = null;
     this.pendingNavigationTargetIndex = null;
     this.navigationReturnTimer = null;
+    this.levelStartMs = 0;
+    this.lastClearTimeSummary = null;
 
     // Fixed-step simulation keeps movement stable across 60Hz, 120Hz, and throttled tabs.
     this.lastFrameTime = 0;
@@ -894,6 +896,8 @@ class StarHopperGame {
   loadPlanet(index, preserveTunings = false) {
     this.currentPlanetIndex = index;
     this.currentPlanet = PLANETS[index];
+    this.levelStartMs = Date.now();
+    this.lastClearTimeSummary = null;
 
     // Retry Remix: the FIRST exposure to a world is the canonical, hand-built layout;
     // each same-level retry (preserveTunings) bumps the attempt so the world is
@@ -1438,6 +1442,33 @@ class StarHopperGame {
   getClearLabStarKey({ isDailyRun = false } = {}) {
     if (isDailyRun && this.dailyInfo && this.dailyInfo.dateStr) return `daily:${this.dailyInfo.dateStr}`;
     return String(this.currentPlanetIndex || 0);
+  }
+
+  getRunTimeSeconds(nowMs = Date.now()) {
+    if (!Number.isFinite(this.levelStartMs) || this.levelStartMs <= 0) return 0;
+    const elapsed = (nowMs - this.levelStartMs) / 1000;
+    return Math.max(0, Math.round(elapsed * 10) / 10);
+  }
+
+  recordClearTime({ isDailyRun = false, elapsedSeconds = null } = {}) {
+    const key = this.getClearLabStarKey({ isDailyRun });
+    const elapsed = Number.isFinite(elapsedSeconds)
+      ? Math.max(0, Math.round(elapsedSeconds * 10) / 10)
+      : this.getRunTimeSeconds();
+    this.bestClearTimes = this.bestClearTimes || {};
+    const previousBest = Number(this.bestClearTimes[key]);
+    const hasPrevious = Number.isFinite(previousBest) && previousBest > 0;
+    const isNewBest = !hasPrevious || elapsed < previousBest;
+    if (isNewBest) this.bestClearTimes[key] = elapsed;
+    const summary = {
+      key,
+      elapsed,
+      previousBest: hasPrevious ? previousBest : null,
+      best: isNewBest ? elapsed : previousBest,
+      isNewBest
+    };
+    this.lastClearTimeSummary = summary;
+    return summary;
   }
 
   getClearLabStarSummary({ isDailyRun = false } = {}) {
@@ -3197,6 +3228,7 @@ class StarHopperGame {
     }
     let labStars = this.recordClearLabStars({ isDailyRun });
     labStars = this.grantMasteryClearReward(labStars);
+    const clearTime = this.recordClearTime({ isDailyRun });
     this.refreshGalaxyMapProgress();
     if (typeof saveLocalProgress === 'function') saveLocalProgress();
     this.refreshDailySignalBanner();
@@ -3241,13 +3273,13 @@ class StarHopperGame {
       if (nextBtn) nextBtn.textContent = "RUN LAUNCH PLAN";
       if (dailyBtn) dailyBtn.style.display = "none";
     }
-    this.renderClearLabReport({ isDailyRun, nextIndex, earnedGems, gemKey: clearGemKey, labStars });
+    this.renderClearLabReport({ isDailyRun, nextIndex, earnedGems, gemKey: clearGemKey, labStars, clearTime });
     ui_log_output(`✓ Level cleared! Target coordinates secured.`, "success");
     ui_log_output(`Rover returning to spacecraft docking bay...`, "info");
     if (typeof updateCertificateState === 'function') updateCertificateState();
   }
 
-  renderClearLabReport({ isDailyRun = false, nextIndex = null, earnedGems = 0, gemKey = "gem", labStars = null } = {}) {
+  renderClearLabReport({ isDailyRun = false, nextIndex = null, earnedGems = 0, gemKey = "gem", labStars = null, clearTime = null } = {}) {
     if (typeof document === 'undefined') return;
     const report = document.getElementById("clear-lab-report");
     if (!report) return;
@@ -3266,6 +3298,12 @@ class StarHopperGame {
     const quest = (typeof getActiveLabQuest === 'function') ? getActiveLabQuest(this) : null;
     const rank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
     const starSummary = labStars || this.getClearLabStarSummary({ isDailyRun });
+    const timeSummary = clearTime || this.lastClearTimeSummary || null;
+    const elapsedText = timeSummary && Number.isFinite(timeSummary.elapsed) ? `${timeSummary.elapsed.toFixed(1)}s` : "--";
+    const bestTimeText = timeSummary && Number.isFinite(timeSummary.best) ? `${timeSummary.best.toFixed(1)}s` : "--";
+    const timeBadge = timeSummary && timeSummary.isNewBest
+      ? `<div class="clear-lab-time new"><span>NEW LAB TIME</span><strong>${safe(elapsedText)} personal best</strong></div>`
+      : (timeSummary ? `<div class="clear-lab-time"><span>LAB TIME</span><strong>${safe(elapsedText)} · best ${safe(bestTimeText)}</strong></div>` : "");
     const starIcons = Array.from({ length: starSummary.maxStars }, (_, index) =>
       `<span class="clear-lab-star${index < starSummary.stars ? " earned" : ""}" aria-hidden="true">★</span>`
     ).join("");
@@ -3300,9 +3338,12 @@ class StarHopperGame {
       </div>
       <div class="clear-lab-star-list">${starChecklist}</div>
       ${masteryRibbon}
+      ${timeBadge}
       <div class="clear-lab-grid">
         <div class="clear-lab-stat"><span>Max Height</span><strong>${safe(`${maxH}px`)}</strong></div>
         <div class="clear-lab-stat"><span>Max Speed</span><strong>${safe(`${maxV} px/f`)}</strong></div>
+        <div class="clear-lab-stat"><span>Lab Time</span><strong>${safe(elapsedText)}</strong></div>
+        <div class="clear-lab-stat"><span>Best Time</span><strong>${safe(bestTimeText)}</strong></div>
         <div class="clear-lab-stat"><span>Formula Cards</span><strong>${safe(formulaText)}</strong></div>
         <div class="clear-lab-stat"><span>Wallet Gain</span><strong>${safe(earnedGems > 0 ? `+${earnedGems} ${gemKey}` : "banked")}</strong></div>
       </div>

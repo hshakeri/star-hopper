@@ -1124,7 +1124,8 @@ function runEngineTests() {
       nextIndex: 1,
       earnedGems: 2,
       gemKey: "emerald",
-      labStars: labStars22e
+      labStars: labStars22e,
+      clearTime: { elapsed: 12.4, best: 12.4, isNewBest: true }
     });
 
     assertEquals(true, /CLEAR LAB REPORT/.test(report.innerHTML), "Clear report should render a heading");
@@ -1135,6 +1136,9 @@ function runEngineTests() {
     assertEquals(true, /OK Science proof/.test(report.innerHTML), "Clear report should credit the science-proof action");
     assertEquals(true, /222px/.test(report.innerHTML), "Clear report should include max height");
     assertEquals(true, /6.4 px\/f/.test(report.innerHTML), "Clear report should include max speed");
+    assertEquals(true, /NEW LAB TIME/.test(report.innerHTML), "Clear report should celebrate a new personal-best time");
+    assertEquals(true, /12.4s/.test(report.innerHTML), "Clear report should include the lab clear time");
+    assertEquals(true, /Best Time/.test(report.innerHTML), "Clear report should include best-time progress");
     assertEquals(true, /1\/9/.test(report.innerHTML), "Clear report should include formula deck progress");
     assertEquals(true, /\+2 emerald/.test(report.innerHTML), "Clear report should include newly banked gems");
     assertEquals(true, /Collect Mass Lab/.test(report.innerHTML), "Clear report should include the next lab quest");
@@ -1169,6 +1173,35 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: clear lab stars reward mastery actions", true);
   } catch (err) {
     renderTestResult("engine-suite", "Curriculum: clear lab stars reward mastery actions", false, err.message);
+  }
+
+  // Test 22ff: Clear times persist personal bests for replay motivation without rewarding slower repeats.
+  try {
+    const game = new StarHopperGame();
+    game.currentPlanetIndex = 0;
+    game.bestClearTimes = { 0: 10 };
+
+    let time = game.recordClearTime({ elapsedSeconds: 12.04 });
+    assertEquals(12.0, time.elapsed, "Clear time should be rounded to tenths");
+    assertEquals(false, time.isNewBest, "Slower replay should not replace a personal best");
+    assertEquals(10, game.bestClearTimes[0], "Existing faster best should remain");
+
+    time = game.recordClearTime({ elapsedSeconds: 8.26 });
+    assertEquals(8.3, time.elapsed, "Faster clear should be rounded to tenths");
+    assertEquals(true, time.isNewBest, "Faster replay should mark a new personal best");
+    assertEquals(8.3, game.bestClearTimes[0], "Faster best should persist on the game state");
+    assertEquals(time, game.lastClearTimeSummary, "Latest clear time summary should be available to the report");
+
+    game.dailyInfo = { dateStr: "2026-06-30" };
+    time = game.recordClearTime({ isDailyRun: true, elapsedSeconds: 19.91 });
+    assertEquals("daily:2026-06-30", time.key, "Daily Signal clear time should use the daily key");
+    assertEquals(19.9, game.bestClearTimes["daily:2026-06-30"], "Daily best time should persist separately");
+
+    game.levelStartMs = 1000;
+    assertEquals(2.5, game.getRunTimeSeconds(3500), "Run timer should measure elapsed seconds from level load");
+    renderTestResult("engine-suite", "Curriculum: clear times record personal bests", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Curriculum: clear times record personal bests", false, err.message);
   }
 
   // Test 22g: First 3-star mastery grants Research XP and a discovery pulse.
