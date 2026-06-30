@@ -2534,6 +2534,150 @@ class NPC extends InteractiveObject {
     }
   }
 
+  getRoleVisualKey() {
+    const text = `${this.id || ""} ${this.profession || ""} ${this.name || ""}`.toLowerCase();
+    if (text.includes("machinist") || text.includes("geary")) return "machinist";
+    if (text.includes("logician") || text.includes("bitbyte")) return "logician";
+    if (text.includes("cartographer") || text.includes("horizon")) return "cartographer";
+    if (text.includes("magnetist") || text.includes("tesla")) return "magnetist";
+    if (text.includes("springwright") || text.includes("selene")) return "springwright";
+    if (text.includes("rocketwright") || text.includes("booster") || text.includes("ion")) return "rocketwright";
+    if (text.includes("gripkeeper") || text.includes("cryo")) return "gripkeeper";
+    if (text.includes("forgekeeper") || text.includes("anvil")) return "forgekeeper";
+    return "trader";
+  }
+
+  drawRoleGear(ctx, cx, cy) {
+    const role = this.getRoleVisualKey();
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = '#0f172a';
+    ctx.fillStyle = this.color;
+    ctx.lineWidth = 1.6;
+
+    if (role === "machinist") {
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.moveTo(cx + 24, cy + 23);
+      ctx.lineTo(cx + 34, cy + 13);
+      ctx.stroke();
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(cx + 35, cy + 12, 4, -0.8, 0.9);
+      ctx.stroke();
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(cx + 21, cy + 23, 5, 3);
+    } else if (role === "logician") {
+      ctx.fillStyle = 'rgba(14, 165, 233, 0.72)';
+      ctx.beginPath();
+      ctx.roundRect(cx + 5, cy + 7, this.w - 10, 6, 3);
+      ctx.fill();
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = '#e0f2fe';
+      ctx.font = "bold 6px 'Share Tech Mono', monospace";
+      ctx.textAlign = 'center';
+      ctx.fillText('01', cx + this.w / 2, cy + 11);
+    } else if (role === "cartographer") {
+      ctx.fillStyle = '#fef3c7';
+      ctx.strokeStyle = '#78350f';
+      ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      ctx.roundRect(cx - 5, cy + 18, 12, 12, 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.strokeStyle = '#f97316';
+      ctx.beginPath();
+      ctx.moveTo(cx - 2, cy + 21);
+      ctx.lineTo(cx + 4, cy + 24);
+      ctx.lineTo(cx - 1, cy + 28);
+      ctx.stroke();
+    } else if (role === "magnetist") {
+      ctx.strokeStyle = '#f0abfc';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.ellipse(cx + this.w / 2, cy + 24, 13, 6, -0.55, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = '#f0abfc';
+      ctx.font = "bold 7px 'Share Tech Mono', monospace";
+      ctx.fillText('+', cx + 4, cy + 23);
+      ctx.fillText('-', cx + this.w - 4, cy + 29);
+    } else if (role === "springwright") {
+      ctx.strokeStyle = '#bae6fd';
+      ctx.lineWidth = 1.7;
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const px = cx - 4 + (i % 2) * 7;
+        const py = cy + 14 + i * 3;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.arc(cx - 1, cy + 32, 3, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (role === "rocketwright") {
+      ctx.fillStyle = '#64748b';
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.roundRect(cx + this.w - 4, cy + 17, 8, 15, 3);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#fb923c';
+      ctx.beginPath();
+      ctx.moveTo(cx + this.w, cy + 35);
+      ctx.lineTo(cx + this.w - 4, cy + 29);
+      ctx.lineTo(cx + this.w + 4, cy + 29);
+      ctx.closePath();
+      ctx.fill();
+    } else if (role === "gripkeeper") {
+      ctx.fillStyle = '#c4b5fd';
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        ctx.moveTo(cx + 4 + i * 4, cy + 38);
+        ctx.lineTo(cx + 6 + i * 4, cy + 42);
+        ctx.lineTo(cx + 8 + i * 4, cy + 38);
+        ctx.closePath();
+        ctx.fill();
+      }
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        ctx.moveTo(cx + this.w - 14 + i * 4, cy + 38);
+        ctx.lineTo(cx + this.w - 12 + i * 4, cy + 42);
+        ctx.lineTo(cx + this.w - 10 + i * 4, cy + 38);
+        ctx.closePath();
+        ctx.fill();
+      }
+    } else if (role === "forgekeeper") {
+      ctx.strokeStyle = '#fed7aa';
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.moveTo(cx + 24, cy + 16);
+      ctx.lineTo(cx + 34, cy + 30);
+      ctx.stroke();
+      ctx.fillStyle = '#94a3b8';
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      ctx.roundRect(cx + 19, cy + 10, 12, 7, 2);
+      ctx.fill();
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = 'rgba(226, 232, 240, 0.72)';
+      ctx.beginPath();
+      ctx.roundRect(cx - 3, cy + 20, 8, 10, 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
   draw(ctx, cameraX, game) {
     const cx = this.x - cameraX;
     const cy = this.y;
@@ -2712,6 +2856,8 @@ class NPC extends InteractiveObject {
     ctx.beginPath();
     ctx.arc(cx + this.w / 2, cy + 14, 3, 0.15, Math.PI - 0.15);
     ctx.stroke();
+
+    this.drawRoleGear(ctx, cx, cy);
 
     // Draw floating prompt if proximity is active
     if (this.proximity && game && game.activeNPC === this) {

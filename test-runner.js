@@ -987,9 +987,12 @@ function runEngineTests() {
       }
       for (const npcConf of planet.npcs) {
         const placed = game.placeNpcAwayFromCollectibles(npcConf);
+        const npc = new NPC(placed);
+        const roleKey = npc.getRoleVisualKey();
         assertEquals(false, game.npcOverlapsRequiredGem(placed.x, placed.y), `${planet.name} NPC ${npcConf.id} should not overlap a required gem`);
         assertEquals(false, game.npcHasUnsafePlacement(placed.x, placed.y), `${planet.name} NPC ${npcConf.id} should not stand on hazards or crates`);
         assertEquals(true, Number.isFinite(placed.caveX) && Number.isFinite(placed.caveY), `${planet.name} NPC ${npcConf.id} should have a cave home`);
+        assertEquals(true, roleKey !== "trader", `${planet.name} NPC ${npcConf.id} should have profession-specific visual gear`);
       }
     }
 

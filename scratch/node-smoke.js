@@ -122,6 +122,27 @@ const smoke = `
   });
   global.__mobsok = true;
 
+  // Every village profession gets a distinct gear overlay.
+  const roleNpcs = [
+    { id:'geary', name:'Machinist Geary', profession:'Machinist', color:'#4ade80', roleMark:'E' },
+    { id:'bitbyte', name:'Logician Bit-Byte', profession:'Logician', color:'#38bdf8', roleMark:'J' },
+    { id:'horizon', name:'Cartographer Horizon', profession:'Cartographer', color:'#f97316', roleMark:'M' },
+    { id:'tesla', name:'Magnetist Tesla', profession:'Magnetist', color:'#ec4899', roleMark:'A' },
+    { id:'selene', name:'Springwright Selene', profession:'Springwright', color:'#38bdf8', roleMark:'J' },
+    { id:'ion', name:'Booster Ion', profession:'Rocketwright', color:'#f97316', roleMark:'R' },
+    { id:'cryo', name:'Gripkeeper Cryo', profession:'Gripkeeper', color:'#a78bfa', roleMark:'G' },
+    { id:'anvil', name:'Forgekeeper Anvil', profession:'Forgekeeper', color:'#fb923c', roleMark:'F' }
+  ];
+  roleNpcs.forEach((conf, i) => {
+    const npc = new NPC({ ...conf, type:'npc', x: 70 + i * 34, y: 180, caveX: 40 + i * 34, caveY: 180 });
+    npc.draw(ctx, 0, { player: pStar, activeNPC: null });
+    npc.proximity = true;
+    npc.draw(ctx, 0, { player: pStar, activeNPC: npc });
+    npc.hiddenInCave = true;
+    npc.draw(ctx, 0, { player: pStar, activeNPC: null });
+  });
+  global.__npcsok = true;
+
   global.__ok = true;
 `;
 eval(bundle + '\n' + smoke);
@@ -130,6 +151,7 @@ check('pop-text draws without throwing and caps at 2', () => { if (global.__popC
 check('player + gem + start backdrop drew without throwing', () => { if (!global.__ok) throw new Error('smoke did not complete'); });
 check('Wave 4 hazards (debris/meteors/flash/shake/hearts) draw without throwing', () => { if (!global.__wave4ok) throw new Error('wave4 draw did not complete'); });
 check('all drawn mob species render without throwing', () => { if (!global.__mobsok) throw new Error('mob species draw did not complete'); });
+check('all villager role gear renders without throwing', () => { if (!global.__npcsok) throw new Error('NPC role gear draw did not complete'); });
 
 console.log(`\nSmoke: ${pass} ok, ${fail} threw.`);
 process.exit(fail > 0 ? 1 : 0);
