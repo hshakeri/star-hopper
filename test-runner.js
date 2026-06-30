@@ -2522,6 +2522,7 @@ function runEngineTests() {
     game.remixContext = 'first';
     game.bestClearTimes = { 0: 12.4 };
     game.masteryMeters = { 0: { xp: 80, badges: ["scout"], sources: { "science-proof": 24 } } };
+    game.planetClears = { 0: 1, 1: 1 };
     game.discoveredFormulaKinds = new Set(["antigravity"]);
     window.Game = game;
     game.lastStagedExperiment = {
@@ -2552,6 +2553,8 @@ function runEngineTests() {
     const labQuestionText = flattenText(labQuestion || list);
     const worldMastery = findByClass(list, "world-mastery-crt-card");
     const worldMasteryText = flattenText(worldMastery || list);
+    const signalStory = findByClass(list, "signal-story-crt-card");
+    const signalStoryText = flattenText(signalStory || list);
     const mentor = findByClass(list, "mentor-signal-card");
     const mentorText = flattenText(mentor || list);
     const staged = findByClass(list, "staged-experiment-card");
@@ -2579,6 +2582,13 @@ function runEngineTests() {
     assertEquals(true, /Signal Scout · 80 XP/.test(worldMasteryText), "World mastery card should show current tier and XP");
     assertEquals(true, /30 XP to World Engineer/.test(worldMasteryText), "World mastery card should show the next tier gap");
     assertEquals(true, /tasks, samples, science proof, rescues, and remixes/.test(worldMasteryText), "World mastery card should explain educational sources");
+    assertEquals(true, !!signalStory, "Mission panel should show the active Signal Story contract");
+    assertEquals(true, /STAR-MAP SIGNAL/.test(signalStoryText), "Signal Story card should identify itself");
+    assertEquals(true, /2\/10 decoded/.test(signalStoryText), "Signal Story card should show decoded progress");
+    assertEquals(true, /Amber Gravity Well/.test(signalStoryText), "Signal Story card should name the next chapter");
+    assertEquals(true, /Thrust must beat gravity/.test(signalStoryText), "Signal Story card should show the science concept");
+    assertEquals(true, /Clear Jupiter \(Gas Giant Core\)/.test(signalStoryText), "Signal Story card should show the next story action");
+    assertEquals(true, /Reward: Amber Gravity Well/.test(signalStoryText), "Signal Story card should show the story payoff");
     assertEquals(true, !!mentor, "Mission panel should pin the active mentor signal");
     assertEquals(true, /MENTOR SIGNAL/.test(mentorText), "Mentor signal should identify itself");
     assertEquals(true, /Machinist Geary/.test(mentorText), "Mentor signal should name the science villager");

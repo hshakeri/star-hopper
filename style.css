@@ -3712,6 +3712,84 @@ html {
   line-height: 1.28;
 }
 
+.signal-story-crt-card {
+  border: 1px solid rgba(103, 232, 249, 0.28);
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgba(8, 47, 73, 0.32), rgba(15, 23, 42, 0.64)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.024) 0 1px, transparent 1px 4px);
+  box-shadow: inset 0 0 14px rgba(103, 232, 249, 0.08);
+  display: grid;
+  gap: 5px;
+  padding: 7px 8px;
+}
+
+.signal-story-crt-card.complete {
+  border-color: rgba(167, 243, 208, 0.32);
+}
+
+.signal-story-crt-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+  font-family: var(--font-mono);
+  line-height: 1.2;
+}
+
+.signal-story-crt-head span {
+  color: #67e8f9;
+  font-size: 0.55rem;
+  font-weight: 900;
+}
+
+.signal-story-crt-head strong {
+  color: #e0f2fe;
+  font-size: 0.62rem;
+  text-align: right;
+}
+
+.signal-story-crt-body {
+  display: grid;
+  gap: 3px;
+}
+
+.signal-story-crt-body strong {
+  color: #fef08a;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  line-height: 1.25;
+}
+
+.signal-story-crt-body code {
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid rgba(103, 232, 249, 0.22);
+  border-radius: 4px;
+  background: rgba(2, 6, 23, 0.52);
+  color: #bae6fd;
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  line-height: 1.25;
+  padding: 2px 4px;
+  white-space: normal;
+}
+
+.signal-story-crt-body p {
+  margin: 0;
+  color: #e0f2fe;
+  font-size: 0.6rem;
+  line-height: 1.28;
+}
+
+.signal-story-crt-body em {
+  color: #a7f3d0;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  font-style: normal;
+  line-height: 1.2;
+}
+
 .lab-chain-target-card {
   border: 1px solid rgba(103, 232, 249, 0.34);
   border-radius: 6px;
@@ -6486,6 +6564,11 @@ body.readable-text-mode .mission-lab-question-stage-btn,
 body.readable-text-mode .world-mastery-crt-head,
 body.readable-text-mode .world-mastery-crt-body strong,
 body.readable-text-mode .world-mastery-crt-body p,
+body.readable-text-mode .signal-story-crt-head,
+body.readable-text-mode .signal-story-crt-body strong,
+body.readable-text-mode .signal-story-crt-body code,
+body.readable-text-mode .signal-story-crt-body p,
+body.readable-text-mode .signal-story-crt-body em,
 body.readable-text-mode .science-delta-row,
 body.readable-text-mode .science-delta-row em,
 body.readable-text-mode .science-delta-next span,
@@ -6607,6 +6690,7 @@ body.readable-text-mode .science-delta-next strong,
 body.readable-text-mode .lab-chain-target-body strong,
 body.readable-text-mode .mission-lab-question-head strong,
 body.readable-text-mode .world-mastery-crt-head strong,
+body.readable-text-mode .signal-story-crt-head strong,
 body.readable-text-mode .coach-one-hint,
 body.readable-text-mode .coach-skip-note,
 body.readable-text-mode .coach-done-msg,

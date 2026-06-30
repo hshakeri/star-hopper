@@ -420,6 +420,7 @@ function updateMissionList(game) {
   appendLessonLensCard(listContainer, game);
   appendMissionLabQuestionCard(listContainer, game);
   appendWorldMasteryCrtCard(listContainer, game);
+  appendSignalStoryCrtCard(listContainer, game);
   appendMissionMentorSignal(listContainer, game);
   appendStagedExperimentCard(listContainer, game);
   appendScienceDeltaCard(listContainer, game);
@@ -611,6 +612,34 @@ function appendWorldMasteryCrtCard(listContainer, game) {
     <div class="world-mastery-crt-body">
       <strong>${escapeHTML(nextText)}</strong>
       <p>${escapeHTML(planetName)} mastery grows from new tasks, samples, science proof, rescues, and remixes.</p>
+    </div>
+  `;
+  listContainer.appendChild(card);
+}
+
+function appendSignalStoryCrtCard(listContainer, game) {
+  if (!listContainer || !game || typeof getSignalStoryProgress !== "function" || typeof getSignalStoryContract !== "function") return;
+  const story = getSignalStoryProgress(game);
+  const contract = getSignalStoryContract(game, story);
+  if (!story || !contract) return;
+
+  const next = story.nextChapter || null;
+  const progressText = `${story.unlocked.length}/${story.total} decoded`;
+  const signalTitle = next ? next.title : "Signal loop online";
+  const concept = next ? next.concept : "Daily evidence keeps the lab alive";
+  const body = contract.body ? `${contract.title} - ${contract.body}` : contract.title;
+  const card = document.createElement("div");
+  card.className = `signal-story-crt-card${next ? "" : " complete"}`;
+  card.innerHTML = `
+    <div class="signal-story-crt-head">
+      <span>STAR-MAP SIGNAL</span>
+      <strong>${escapeHTML(progressText)}</strong>
+    </div>
+    <div class="signal-story-crt-body">
+      <strong>${escapeHTML(signalTitle)}</strong>
+      <code>${escapeHTML(concept)}</code>
+      <p>${escapeHTML(body)}</p>
+      <em>${escapeHTML(contract.reward || "Reward: stronger science record")}</em>
     </div>
   `;
   listContainer.appendChild(card);
