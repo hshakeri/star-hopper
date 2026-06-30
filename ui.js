@@ -821,6 +821,24 @@ function getSignalStoryProgress(game = window.Game) {
   };
 }
 
+function getStartSignalStoryPreview(game = window.Game) {
+  const story = getSignalStoryProgress(game);
+  if (story.nextChapter) {
+    return {
+      label: "NEXT TRANSMISSION",
+      title: story.nextChapter.title,
+      body: story.nextChapter.concept,
+      progress: `${story.unlocked.length}/${story.total} decoded`
+    };
+  }
+  return {
+    label: "SIGNAL COMPLETE",
+    title: "Star-map restored",
+    body: "Daily Signals and Frontier runs keep the science trail alive.",
+    progress: `${story.total}/${story.total} decoded`
+  };
+}
+
 function updateSignalStoryPanel(game = window.Game) {
   const panel = document.getElementById("signal-story-panel");
   if (!panel) return;
@@ -1168,6 +1186,7 @@ function updateStartMissionRadar(game = window.Game) {
   const collection = getFormulaCollection(game);
   const rank = getResearchRank(game && Number.isFinite(game.researchXP) ? game.researchXP : 0);
   const unlockPreview = getResearchUnlockPreview(rank);
+  const storyPreview = getStartSignalStoryPreview(game);
   const action = getStartMissionRadarAction(game, quest);
   const kicker = panel.querySelector ? panel.querySelector(".start-mission-radar-head span") : null;
   const progress = document.getElementById("start-mission-radar-progress");
@@ -1179,6 +1198,10 @@ function updateStartMissionRadar(game = window.Game) {
   const unlockTitle = document.getElementById("start-rank-preview-title");
   const unlockBody = document.getElementById("start-rank-preview-body");
   const unlockBar = document.getElementById("start-rank-preview-bar");
+  const storyLabel = document.getElementById("start-story-preview-label");
+  const storyTitle = document.getElementById("start-story-preview-title");
+  const storyBody = document.getElementById("start-story-preview-body");
+  const storyProgress = document.getElementById("start-story-preview-progress");
 
   if (kicker) kicker.textContent = quest ? quest.kicker.replace(/^NEXT\s+/i, "") : "MISSION RADAR";
   if (progress) progress.textContent = `${collection.unlocked.length}/${collection.cards.length} formulas · ${Math.round(rank.xp)} XP`;
@@ -1189,6 +1212,10 @@ function updateStartMissionRadar(game = window.Game) {
   if (unlockTitle) unlockTitle.textContent = unlockPreview.title;
   if (unlockBody) unlockBody.textContent = unlockPreview.body;
   if (unlockBar && unlockBar.style) unlockBar.style.width = `${Math.round(unlockPreview.progress * 100)}%`;
+  if (storyLabel) storyLabel.textContent = storyPreview.label;
+  if (storyTitle) storyTitle.textContent = storyPreview.title;
+  if (storyBody) storyBody.textContent = storyPreview.body;
+  if (storyProgress) storyProgress.textContent = storyPreview.progress;
   if (button) {
     button.textContent = action.label;
     button.title = action.title;

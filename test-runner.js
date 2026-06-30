@@ -1367,10 +1367,15 @@ function runEngineTests() {
       "start-rank-preview-title": { textContent: "" },
       "start-rank-preview-body": { textContent: "" },
       "start-rank-preview-bar": { style: { width: "" } },
+      "start-story-preview-label": { textContent: "" },
+      "start-story-preview-title": { textContent: "" },
+      "start-story-preview-body": { textContent: "" },
+      "start-story-preview-progress": { textContent: "" },
       "start-mission-radar-btn": { textContent: "", title: "", dataset: {} }
     };
     document.getElementById = (id) => els[id] || null;
     game.discoveredFormulaKinds = new Set(["antigravity"]);
+    game.planetClears = { 0: 1 };
     updateResearchProgress(game);
     assertEquals(true, /NEXT LAB QUEST/.test(els["research-rank-card"].innerHTML), "Rank card should render the lab quest");
     assertEquals(true, /Collect Mass Lab/.test(els["research-rank-card"].innerHTML), "Rendered quest should point to the next formula card");
@@ -1382,17 +1387,28 @@ function runEngineTests() {
     assertEquals("Combo Amplifier in 40 XP", els["start-rank-preview-title"].textContent, "Start radar should name the next perk and remaining XP");
     assertEquals(true, /Reach Loop Engineer/.test(els["start-rank-preview-body"].textContent), "Start radar should connect the perk to the next rank");
     assertEquals("11%", els["start-rank-preview-bar"].style.width, "Start radar should show rank progress toward the next unlock");
+    assertEquals("NEXT TRANSMISSION", els["start-story-preview-label"].textContent, "Start radar should label the next story hook");
+    assertEquals("Moon Loop Echo", els["start-story-preview-title"].textContent, "Start radar should preview the next Signal Story chapter");
+    assertEquals("Loops build repeatable patterns", els["start-story-preview-body"].textContent, "Start radar should show the next story concept");
+    assertEquals("1/10 decoded", els["start-story-preview-progress"].textContent, "Start radar should show decoded story progress");
     assertEquals("START QUEST", els["start-mission-radar-btn"].textContent, "Formula quests should be directly launchable");
     assertEquals("quest", els["start-mission-radar-btn"].dataset.action, "Formula quest button should use the quest action");
     assertEquals("0", els["start-mission-radar-btn"].dataset.level, "Quest action should target the current planet");
 
     game.discoveredFormulaKinds = new Set(DISCOVERY_RULES.map(rule => rule.kind));
     game.researchXP = 300;
+    game.planetClears = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 };
+    game.masteryCleared = { 0: true };
+    game.dailySignalClears = 1;
+    game.masteryMeters = { 0: { xp: 80, badges: ["scout"], sources: { "village-rescue:0:geary": 12 } } };
     updateStartMissionRadar(game);
     assertEquals("Clear today's signal", els["start-mission-radar-title"].textContent, "Complete formula/rank progress should surface the daily practice loop");
     assertEquals("LAB FULLY ONLINE", els["start-rank-preview-label"].textContent, "Max research rank should switch the preview label");
     assertEquals("All lab perks online", els["start-rank-preview-title"].textContent, "Max research rank should show completion copy");
     assertEquals("100%", els["start-rank-preview-bar"].style.width, "Max research rank should fill the preview meter");
+    assertEquals("SIGNAL COMPLETE", els["start-story-preview-label"].textContent, "Complete story should switch the start radar label");
+    assertEquals("Star-map restored", els["start-story-preview-title"].textContent, "Complete story should show finale copy on start radar");
+    assertEquals("10/10 decoded", els["start-story-preview-progress"].textContent, "Complete story should show all chapters decoded");
     assertEquals("ACCEPT SIGNAL", els["start-mission-radar-btn"].textContent, "Daily quest should get a direct accept button");
     assertEquals("daily", els["start-mission-radar-btn"].dataset.action, "Daily quest button should use the daily action");
 
