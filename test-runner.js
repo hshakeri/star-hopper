@@ -1279,6 +1279,7 @@ function runEngineTests() {
 
   // Test 22cc: Research panel always surfaces the next lab quest.
   const oldGetElementById22cc = document.getElementById;
+  const oldWindowGame22cc = window.Game;
   try {
     const earthMission = PLANETS[0].missions.find(mission => mission.id === "earth-gravity-wall");
     const game = new StarHopperGame();
@@ -1316,7 +1317,8 @@ function runEngineTests() {
       "start-mission-radar-progress": { textContent: "" },
       "start-mission-radar-title": { textContent: "" },
       "start-mission-radar-body": { textContent: "" },
-      "start-mission-radar-reward": { textContent: "" }
+      "start-mission-radar-reward": { textContent: "" },
+      "start-mission-radar-btn": { textContent: "", title: "", dataset: {} }
     };
     document.getElementById = (id) => els[id] || null;
     game.discoveredFormulaKinds = new Set(["antigravity"]);
@@ -1327,11 +1329,36 @@ function runEngineTests() {
     assertEquals("Collect Mass Lab", els["start-mission-radar-title"].textContent, "Start radar should show the same next quest");
     assertEquals("1/9 formulas · 60 XP", els["start-mission-radar-progress"].textContent, "Start radar should show formula and XP progress");
     assertEquals(true, /formula card/.test(els["start-mission-radar-reward"].textContent), "Start radar should show the quest reward");
+    assertEquals("START QUEST", els["start-mission-radar-btn"].textContent, "Formula quests should be directly launchable");
+    assertEquals("quest", els["start-mission-radar-btn"].dataset.action, "Formula quest button should use the quest action");
+    assertEquals("0", els["start-mission-radar-btn"].dataset.level, "Quest action should target the current planet");
+
+    game.discoveredFormulaKinds = new Set(DISCOVERY_RULES.map(rule => rule.kind));
+    game.researchXP = 300;
+    updateStartMissionRadar(game);
+    assertEquals("Clear today's signal", els["start-mission-radar-title"].textContent, "Complete formula/rank progress should surface the daily practice loop");
+    assertEquals("ACCEPT SIGNAL", els["start-mission-radar-btn"].textContent, "Daily quest should get a direct accept button");
+    assertEquals("daily", els["start-mission-radar-btn"].dataset.action, "Daily quest button should use the daily action");
+
+    let dailyCalls = 0;
+    const startedLevels = [];
+    window.Game = {
+      startDailySignal: () => { dailyCalls++; },
+      startLevel: (level) => { startedLevels.push(level); }
+    };
+    assertEquals(true, runStartMissionRadarAction(), "Daily radar action should execute");
+    assertEquals(1, dailyCalls, "Daily radar action should start the Daily Signal");
+    els["start-mission-radar-btn"].dataset.action = "quest";
+    els["start-mission-radar-btn"].dataset.level = "2";
+    assertEquals(true, runStartMissionRadarAction(), "Quest radar action should execute");
+    assertEquals(2, startedLevels[0], "Quest radar action should start the requested planet");
+    window.Game = oldWindowGame22cc;
 
     document.getElementById = oldGetElementById22cc;
     renderTestResult("engine-suite", "Curriculum: research panel surfaces next lab quest", true);
   } catch (err) {
     document.getElementById = oldGetElementById22cc;
+    window.Game = oldWindowGame22cc;
     renderTestResult("engine-suite", "Curriculum: research panel surfaces next lab quest", false, err.message);
   }
 

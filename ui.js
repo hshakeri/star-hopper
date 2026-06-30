@@ -1114,17 +1114,72 @@ function updateStartMissionRadar(game = window.Game) {
   const quest = getActiveLabQuest(game);
   const collection = getFormulaCollection(game);
   const rank = getResearchRank(game && Number.isFinite(game.researchXP) ? game.researchXP : 0);
+  const action = getStartMissionRadarAction(game, quest);
   const kicker = panel.querySelector ? panel.querySelector(".start-mission-radar-head span") : null;
   const progress = document.getElementById("start-mission-radar-progress");
   const title = document.getElementById("start-mission-radar-title");
   const body = document.getElementById("start-mission-radar-body");
   const reward = document.getElementById("start-mission-radar-reward");
+  const button = document.getElementById("start-mission-radar-btn");
 
   if (kicker) kicker.textContent = quest ? quest.kicker.replace(/^NEXT\s+/i, "") : "MISSION RADAR";
   if (progress) progress.textContent = `${collection.unlocked.length}/${collection.cards.length} formulas · ${Math.round(rank.xp)} XP`;
   if (title) title.textContent = quest ? quest.title : "Keep experimenting";
   if (body) body.textContent = quest ? quest.body : "Run Mission Coach code, collect formula cards, and improve your lab record.";
   if (reward) reward.textContent = quest ? quest.reward : "Reward: stronger science record";
+  if (button) {
+    button.textContent = action.label;
+    button.title = action.title;
+    button.dataset.action = action.action;
+    button.dataset.level = String(action.levelIndex);
+  }
+}
+
+function getStartMissionRadarAction(game = window.Game, quest = null) {
+  const q = quest || getActiveLabQuest(game);
+  const currentLevel = game && Number.isFinite(Number(game.currentPlanetIndex)) ? Number(game.currentPlanetIndex) : 0;
+  if (q && /^Clear today's signal$/i.test(q.title)) {
+    return {
+      action: "daily",
+      label: "ACCEPT SIGNAL",
+      title: "Start today's date-seeded remix.",
+      levelIndex: currentLevel
+    };
+  }
+  if (q && /^Reach\s+/i.test(q.title)) {
+    return {
+      action: "log",
+      label: "OPEN LOG",
+      title: "Open the Log to inspect rank progress and formula cards.",
+      levelIndex: currentLevel
+    };
+  }
+  return {
+    action: "quest",
+    label: q && /^Master a remix$/i.test(q.title) ? "START REMIX" : "START QUEST",
+    title: "Launch the current world for this lab quest.",
+    levelIndex: currentLevel
+  };
+}
+
+function runStartMissionRadarAction() {
+  const game = window.Game || (typeof Game !== 'undefined' ? Game : null);
+  const button = document.getElementById("start-mission-radar-btn");
+  const action = button && button.dataset ? button.dataset.action : "quest";
+  if (action === "daily" && game && typeof game.startDailySignal === 'function') {
+    game.startDailySignal();
+    return true;
+  }
+  if (action === "log") {
+    if (typeof switchMainMode === 'function') switchMainMode('notebook');
+    return true;
+  }
+  if (game && typeof game.startLevel === 'function') {
+    const level = button && button.dataset ? Number(button.dataset.level) : NaN;
+    game.startLevel(Number.isFinite(level) ? level : (Number.isFinite(Number(game.currentPlanetIndex)) ? Number(game.currentPlanetIndex) : 0));
+    return true;
+  }
+  return false;
 }
 
 function updateFormulaTarget(game) {
