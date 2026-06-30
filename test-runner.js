@@ -2521,6 +2521,7 @@ function runEngineTests() {
     game.discoveryPassCounts = { "earth-gravity-wall": 1 };
     game.remixContext = 'first';
     game.bestClearTimes = { 0: 12.4 };
+    game.masteryMeters = { 0: { xp: 80, badges: ["scout"], sources: { "science-proof": 24 } } };
     game.discoveredFormulaKinds = new Set(["antigravity"]);
     window.Game = game;
     game.lastStagedExperiment = {
@@ -2549,6 +2550,8 @@ function runEngineTests() {
     const scienceDeltaText = flattenText(scienceDelta || list);
     const labQuestion = findByClass(list, "mission-lab-question-card");
     const labQuestionText = flattenText(labQuestion || list);
+    const worldMastery = findByClass(list, "world-mastery-crt-card");
+    const worldMasteryText = flattenText(worldMastery || list);
     const mentor = findByClass(list, "mentor-signal-card");
     const mentorText = flattenText(mentor || list);
     const staged = findByClass(list, "staged-experiment-card");
@@ -2571,6 +2574,11 @@ function runEngineTests() {
     const blockedQuestionButton = findByClass(labQuestion || list, "mission-lab-question-stage-btn");
     assertEquals("STAGE AFTER PREDICT", blockedQuestionButton && blockedQuestionButton.textContent, "Prediction card should explain why staging waits");
     assertEquals(true, !!blockedQuestionButton.disabled, "Prediction card staging stays disabled until the kid predicts");
+    assertEquals(true, !!worldMastery, "Mission panel should show the world mastery meter");
+    assertEquals(true, /WORLD MASTERY/.test(worldMasteryText), "World mastery card should identify itself");
+    assertEquals(true, /Signal Scout · 80 XP/.test(worldMasteryText), "World mastery card should show current tier and XP");
+    assertEquals(true, /30 XP to World Engineer/.test(worldMasteryText), "World mastery card should show the next tier gap");
+    assertEquals(true, /tasks, samples, science proof, rescues, and remixes/.test(worldMasteryText), "World mastery card should explain educational sources");
     assertEquals(true, !!mentor, "Mission panel should pin the active mentor signal");
     assertEquals(true, /MENTOR SIGNAL/.test(mentorText), "Mentor signal should identify itself");
     assertEquals(true, /Machinist Geary/.test(mentorText), "Mentor signal should name the science villager");

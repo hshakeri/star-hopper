@@ -3649,6 +3649,69 @@ html {
   cursor: not-allowed;
 }
 
+.world-mastery-crt-card {
+  border: 1px solid rgba(250, 204, 21, 0.3);
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgba(113, 63, 18, 0.24), rgba(15, 23, 42, 0.58)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.026) 0 1px, transparent 1px 4px);
+  box-shadow: inset 0 0 14px rgba(250, 204, 21, 0.08);
+  display: grid;
+  gap: 5px;
+  padding: 7px 8px;
+}
+
+.world-mastery-crt-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+  font-family: var(--font-mono);
+  line-height: 1.2;
+}
+
+.world-mastery-crt-head span {
+  color: #fef08a;
+  font-size: 0.55rem;
+  font-weight: 900;
+}
+
+.world-mastery-crt-head strong {
+  color: #ecfeff;
+  font-size: 0.62rem;
+  text-align: right;
+}
+
+.world-mastery-crt-bar {
+  height: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(250, 204, 21, 0.18);
+  border-radius: 999px;
+  background: rgba(2, 6, 23, 0.54);
+}
+
+.world-mastery-crt-bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e, #facc15);
+  border-radius: inherit;
+}
+
+.world-mastery-crt-body strong {
+  display: block;
+  color: #bef264;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  line-height: 1.25;
+}
+
+.world-mastery-crt-body p {
+  margin: 3px 0 0;
+  color: #dff6ff;
+  font-size: 0.6rem;
+  line-height: 1.28;
+}
+
 .lab-chain-target-card {
   border: 1px solid rgba(103, 232, 249, 0.34);
   border-radius: 6px;
@@ -6420,6 +6483,9 @@ body.readable-text-mode .mission-lab-question-head,
 body.readable-text-mode .mission-lab-question-card p,
 body.readable-text-mode .mission-lab-question-card code,
 body.readable-text-mode .mission-lab-question-stage-btn,
+body.readable-text-mode .world-mastery-crt-head,
+body.readable-text-mode .world-mastery-crt-body strong,
+body.readable-text-mode .world-mastery-crt-body p,
 body.readable-text-mode .science-delta-row,
 body.readable-text-mode .science-delta-row em,
 body.readable-text-mode .science-delta-next span,
@@ -6540,6 +6606,7 @@ body.readable-text-mode .mission-coach-focus strong,
 body.readable-text-mode .science-delta-next strong,
 body.readable-text-mode .lab-chain-target-body strong,
 body.readable-text-mode .mission-lab-question-head strong,
+body.readable-text-mode .world-mastery-crt-head strong,
 body.readable-text-mode .coach-one-hint,
 body.readable-text-mode .coach-skip-note,
 body.readable-text-mode .coach-done-msg,

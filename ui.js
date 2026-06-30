@@ -419,6 +419,7 @@ function updateMissionList(game) {
   listContainer.innerHTML = "";
   appendLessonLensCard(listContainer, game);
   appendMissionLabQuestionCard(listContainer, game);
+  appendWorldMasteryCrtCard(listContainer, game);
   appendMissionMentorSignal(listContainer, game);
   appendStagedExperimentCard(listContainer, game);
   appendScienceDeltaCard(listContainer, game);
@@ -581,6 +582,37 @@ function appendMissionLabQuestionCard(listContainer, game) {
     card.appendChild(stage);
   }
 
+  listContainer.appendChild(card);
+}
+
+function appendWorldMasteryCrtCard(listContainer, game) {
+  if (!listContainer || !game || typeof game.getWorldMasteryProgress !== "function") return;
+  const progress = game.getWorldMasteryProgress(game.currentPlanetIndex);
+  if (!progress) return;
+
+  const currentXP = Math.max(0, Math.floor(Number(progress.xp) || 0));
+  const currentTierXP = progress.currentTier ? Math.max(0, Number(progress.currentTier.xp) || 0) : 0;
+  const nextTierXP = progress.nextTier ? Math.max(1, Number(progress.nextTier.xp) || 1) : Math.max(1, currentXP || 1);
+  const span = Math.max(1, nextTierXP - currentTierXP);
+  const tierPct = progress.nextTier ? Math.max(0, Math.min(100, Math.round(((currentXP - currentTierXP) / span) * 100))) : 100;
+  const nextText = progress.nextTier
+    ? `${Math.max(0, nextTierXP - currentXP)} XP to ${progress.nextTier.label}`
+    : "Max world tier reached";
+
+  const card = document.createElement("div");
+  card.className = "world-mastery-crt-card";
+  const planetName = game.currentPlanet && game.currentPlanet.name ? game.currentPlanet.name : "This world";
+  card.innerHTML = `
+    <div class="world-mastery-crt-head">
+      <span>WORLD MASTERY</span>
+      <strong>${escapeHTML(progress.title || "Unranked")} · ${currentXP} XP</strong>
+    </div>
+    <div class="world-mastery-crt-bar" aria-label="${escapeHTML(String(tierPct))}% toward next world mastery tier"><i style="width: ${tierPct}%"></i></div>
+    <div class="world-mastery-crt-body">
+      <strong>${escapeHTML(nextText)}</strong>
+      <p>${escapeHTML(planetName)} mastery grows from new tasks, samples, science proof, rescues, and remixes.</p>
+    </div>
+  `;
   listContainer.appendChild(card);
 }
 
