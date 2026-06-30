@@ -700,6 +700,13 @@ const SIGNAL_STORY_CHAPTERS = [
     concept: "One fresh experiment per day",
     unlock: (game) => !!(game && (game.dailySignalClears || 0) > 0),
     body: "The signal keeps broadcasting new remixes. Returning to test one variable each day builds a real lab habit."
+  },
+  {
+    id: "village-pact",
+    title: "Village Pact",
+    concept: "Game AI uses states",
+    unlock: (game) => hasVillageRescueStoryCredit(game),
+    body: "The villagers now trust the cadet because danger became a readable state: patrol, shelter, then return to trade when the threat clears."
   }
 ];
 
@@ -715,6 +722,13 @@ function hasClearedFullStarMap(game) {
     if (!hasClearedStoryPlanet(game, i)) return false;
   }
   return true;
+}
+
+function hasVillageRescueStoryCredit(game) {
+  if (!game || !game.masteryMeters) return false;
+  return Object.values(game.masteryMeters).some(meter =>
+    !!(meter && meter.sources && Object.keys(meter.sources).some(source => String(source).indexOf("village-rescue:") === 0))
+  );
 }
 
 function getSignalChapterBody(chapter, game) {
@@ -991,6 +1005,17 @@ function getActiveLabQuest(game) {
       title: "Make a prediction",
       body: fullMission.prediction.question,
       reward: "Reward: Mission Coach unlock + hypothesis XP"
+    };
+  }
+
+  if (game && game.currentPlanet && Array.isArray(game.currentPlanet.npcs) &&
+      (game.survivalMode || (Array.isArray(game.mobs) && game.mobs.length > 0)) &&
+      !(typeof game.hasVillageRescueCredit === 'function' && game.hasVillageRescueCredit(game.currentPlanetIndex))) {
+    return {
+      kicker: "NEXT LAB QUEST",
+      title: "Keep a village safe",
+      body: "When mobs make villagers shelter, clear the threat so they return to trade. Watch the AI state change.",
+      reward: "Reward: Village Rescue XP + world mastery"
     };
   }
 

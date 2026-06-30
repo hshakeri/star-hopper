@@ -1179,12 +1179,13 @@ function runEngineTests() {
     const complete = {
       planetClears: { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 },
       masteryCleared: { 0: true },
+      masteryMeters: { 0: { xp: 80, badges: ["scout"], sources: { "village-rescue:0:geary": 12 } } },
       dailySignalClears: 1,
       researchXP: 0,
       discoveryLog: []
     };
     story = getSignalStoryProgress(complete);
-    assertEquals(9, story.unlocked.length, "Campaign, finale, mastery, and daily progress should unlock every chapter");
+    assertEquals(10, story.unlocked.length, "Campaign, finale, mastery, daily, and village progress should unlock every chapter");
     assertEquals(null, story.nextChapter, "Complete story should have no next locked chapter");
 
     const els = {
@@ -1194,16 +1195,17 @@ function runEngineTests() {
     };
     document.getElementById = (id) => els[id] || null;
     updateResearchProgress(partial);
-    assertEquals(true, /2\/9 decoded/.test(els["signal-story-panel"].innerHTML), "Story panel should show decoded chapter count");
+    assertEquals(true, /2\/10 decoded/.test(els["signal-story-panel"].innerHTML), "Story panel should show decoded chapter count");
     assertEquals(true, /Emerald Wall Signal/.test(els["signal-story-panel"].innerHTML), "Story panel should show unlocked chapters");
     assertEquals(true, /Next: Amber Gravity Well/.test(els["signal-story-panel"].innerHTML), "Story panel should show the next chapter hook");
     assertEquals(true, /Run Mission Coach code/.test(els["discovery-deck"].innerHTML), "Empty formula deck should still render while story updates");
 
     updateSignalStoryPanel(complete);
-    assertEquals(true, /9\/9 decoded/.test(els["signal-story-panel"].innerHTML), "Complete story should render all chapters decoded");
+    assertEquals(true, /10\/10 decoded/.test(els["signal-story-panel"].innerHTML), "Complete story should render all chapters decoded");
     assertEquals(true, /Star-Map Restored/.test(els["signal-story-panel"].innerHTML), "Finale chapter should render");
     assertEquals(true, /Remix Key/.test(els["signal-story-panel"].innerHTML), "Mastery chapter should render");
     assertEquals(true, /Daily Beacon/.test(els["signal-story-panel"].innerHTML), "Daily chapter should render");
+    assertEquals(true, /Village Pact/.test(els["signal-story-panel"].innerHTML), "Village rescue chapter should render");
 
     document.getElementById = oldGetElementById22cb;
     renderTestResult("engine-suite", "Curriculum: signal story tracks science progression", true);
@@ -1250,6 +1252,14 @@ function runEngineTests() {
     game.coachPredictions[earthMission.id] = "lighter-longer";
     quest = getActiveLabQuest(game);
     assertEquals("Collect Gravity Lab", quest.title, "After prediction, the quest should target the first mission formula card");
+
+    game.survivalMode = true;
+    game.mobs = [new Mob(140, 60, 'hog', '#9a6b4f', 1)];
+    quest = getActiveLabQuest(game);
+    assertEquals("Keep a village safe", quest.title, "Active mob danger should surface the village rescue lab quest");
+    assertEquals(true, /state change/.test(quest.body), "Village quest should frame the behavior as an AI state lesson");
+    game.survivalMode = false;
+    game.mobs = [];
 
     game.discoveredFormulaKinds = new Set(DISCOVERY_RULES.map(rule => rule.kind));
     game.researchXP = 60;
@@ -2816,8 +2826,12 @@ function runCombatTests() {
     const g = new StarHopperGame();
     g.state = 'playing'; g.currentPlanetIndex = 1; g.currentPlanet = PLANETS[1];
     g.player = new Player(0, 0);
+    g.researchXP = 0;
+    g.masteryMeters = {};
     const npc = new NPC({ id: 'release', name: 'Release', profession: 'Miner', type: 'npc', x: 130, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60, hiddenInCave: true });
     npc.panicTimer = 80;
+    npc.rescuePending = true;
+    npc.shelterReason = "nearby mob";
     g.interactiveObjects = [npc];
     g.survivalMode = true;
     g.mobs = [new Mob(90, 60, 'hog', '#9a6b4f', 1)];
@@ -2828,13 +2842,21 @@ function runCombatTests() {
     assertEquals(130, npc.x, "Daylight release returns the villager to the village home");
     assertEquals(60, npc.y, "Daylight release keeps the villager on the village surface");
     assertEquals(0, npc.panicTimer, "Villager panic clears after survival mode ends");
+    assertEquals(7, g.researchXP, "A danger-caused cave release grants Village Rescue Research XP");
+    assertEquals(true, g.hasVillageRescueCredit(1), "Village rescue records world mastery source credit");
+    assertEquals(null, g.grantVillageRescueReward(npc, "nearby mob"), "The same villager rescue cannot be farmed twice");
+    assertEquals(7, g.researchXP, "Duplicate rescue credit does not add more Research XP");
 
     const nightGame = new StarHopperGame();
     nightGame.state = 'playing'; nightGame.currentPlanetIndex = 0; nightGame.currentPlanet = PLANETS[0];
     nightGame.player = new Player(0, 0);
+    nightGame.researchXP = 0;
+    nightGame.masteryMeters = {};
     nightGame.getEarthDayNightPhase = () => ({ t: 0, daylight: 0.1, isDay: false, sunX: 0.1, sunY: 0.2 });
     const nightNpc = new NPC({ id: 'night-release', name: 'Night Release', profession: 'Miner', type: 'npc', x: 120, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60, hiddenInCave: false });
     nightNpc.panicTimer = 80;
+    nightNpc.rescuePending = true;
+    nightNpc.shelterReason = "nearby mob";
     nightGame.interactiveObjects = [nightNpc];
     nightGame.survivalMode = true;
     nightGame.mobs = [new Mob(90, 60, 'hog', '#9a6b4f', 1)];
@@ -2842,6 +2864,7 @@ function runCombatTests() {
     assertEquals(true, nightNpc.hiddenInCave, "Earth night keeps villagers sheltered after survival danger ends");
     assertEquals(82, nightNpc.x, "Earth night parks the villager at the cave mouth");
     assertEquals(0, nightNpc.panicTimer, "Night shelter clears mob panic without forcing villagers outside");
+    assertEquals(0, nightGame.researchXP, "Night shelter waits to reward until the villager can actually return");
     renderTestResult(SUITE, "Villagers: survival off releases cave hiding", true);
   } catch (err) {
     renderTestResult(SUITE, "Villagers: survival off releases cave hiding", false, err.message);

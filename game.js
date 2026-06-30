@@ -173,6 +173,69 @@ class StarHopperGame {
     return this.currentPlanetIndex === 0 && !this.getEarthDayNightPhase(nowMs).isDay;
   }
 
+  getVillageRescueSourceKey(npc, index = this.currentPlanetIndex) {
+    const planetKey = Number.isFinite(index) ? index : 0;
+    const npcKey = npc && npc.id ? String(npc.id).replace(/[^a-z0-9_-]/gi, "-").toLowerCase() : "villager";
+    return `village-rescue:${planetKey}:${npcKey}`;
+  }
+
+  hasVillageRescueCredit(index = this.currentPlanetIndex) {
+    const key = String(Number.isFinite(index) ? index : 0);
+    const meter = this.normalizeWorldMasteryMeter(index);
+    return Object.keys(meter.sources || {}).some(source => source.indexOf(`village-rescue:${key}:`) === 0);
+  }
+
+  grantVillageRescueReward(npc, reason = "danger") {
+    if (!npc) return null;
+    const sourceKey = this.getVillageRescueSourceKey(npc);
+    const award = this.awardWorldMasteryXP(12, "village rescue", { sourceKey, silent: true });
+    if (!award || award.duplicate || award.addedXP <= 0) return null;
+
+    const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+    const xp = 7;
+    this.researchXP = Math.max(0, (this.researchXP || 0) + xp);
+    const afterRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+    const rankUp = !!(beforeRank && afterRank && afterRank.level > beforeRank.level);
+    const villagerName = npc.name || "A villager";
+    const pulse = {
+      kind: "village",
+      title: "Village Rescue",
+      formula: "state = patrol -> shelter -> trade",
+      insight: `${villagerName} returned after ${reason}. That is a game-AI state machine: detect danger, shelter, then resume trading.`,
+      cue: "Clear space, use pets, or end Survival so villagers can safely leave caves.",
+      missionId: sourceKey,
+      missionTitle: this.currentPlanet ? this.currentPlanet.name : "Village",
+      passed: 1,
+      total: 1,
+      progressLabel: "villager safe",
+      openedGems: 0,
+      rewardXP: xp,
+      combo: this.discoveryCombo || 0,
+      rankUp,
+      rankTitle: afterRank ? afterRank.title : null,
+      rankPerk: rankUp && afterRank ? afterRank.perk : null,
+      worldMasteryAddedXP: award.addedXP
+    };
+    this.discoveryPulse = pulse;
+    this.discoveryLog = [pulse].concat(Array.isArray(this.discoveryLog) ? this.discoveryLog : []).slice(0, 8);
+    if (typeof ui_log_output === 'function') {
+      ui_log_output(`Village Rescue: +${xp} Research XP, +${award.addedXP} world mastery XP.`, "success");
+    }
+    if (typeof logMissionBriefing === 'function') {
+      logMissionBriefing(`${pulse.title}: ${pulse.insight}`);
+    }
+    if (typeof ComicBubbles !== 'undefined') {
+      ComicBubbles.pop((Number.isFinite(npc.x) ? npc.x : 0) + (npc.w || 28) / 2, (Number.isFinite(npc.y) ? npc.y : 0) - 5, "SAFE!", npc.color || "#4ade80", 1.0);
+    }
+    if (typeof Particles !== 'undefined') {
+      Particles.spawnBurst((Number.isFinite(npc.x) ? npc.x : 0) + (npc.w || 28) / 2, (Number.isFinite(npc.y) ? npc.y : 0) + (npc.h || 36) / 2, npc.color || "#4ade80", 10, 2.0, 2.2, "glow");
+    }
+    if (typeof updateDiscoveryPulse === 'function') updateDiscoveryPulse(this);
+    if (typeof updateResearchProgress === 'function') updateResearchProgress(this);
+    if (typeof saveLocalProgress === 'function' && typeof window !== 'undefined' && window.Game === this) saveLocalProgress();
+    return pulse;
+  }
+
   releaseVillagersFromCaves() {
     const keepSheltered = this.shouldVillagersShelterForNight();
     for (const obj of this.interactiveObjects || []) {
@@ -186,10 +249,14 @@ class StarHopperGame {
         obj.proximity = false;
         continue;
       }
+      const rescuePending = !!obj.rescuePending;
       obj.hiddenInCave = false;
       if (Number.isFinite(obj.homeX)) obj.x = obj.homeX;
       else if (Number.isFinite(obj.caveX)) obj.x = obj.caveX + 10;
       if (Number.isFinite(obj.homeY)) obj.y = obj.homeY;
+      if (rescuePending) this.grantVillageRescueReward(obj, obj.shelterReason || "danger");
+      obj.rescuePending = false;
+      obj.shelterReason = null;
       obj.proximity = false;
     }
     if (this.activeNPC && this.activeNPC.hiddenInCave) this.activeNPC = null;
@@ -3244,6 +3311,8 @@ class StarHopperGame {
     npc.hazardCooldown = 54;
     npc.hitFlash = 14;
     npc.panicTimer = 150;
+    npc.rescuePending = true;
+    npc.shelterReason = "mob attack";
     npc.health = Math.max(0, (npc.health || npc.maxHealth || 3) - 1);
     mob.attackCooldown = 42;
     mob.say(SPEECH.pick('mobChatter'));

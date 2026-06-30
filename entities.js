@@ -2357,6 +2357,8 @@ class NPC extends InteractiveObject {
     this.hiddenInCave = !!config.hiddenInCave;
     this.panicTimer = 0;
     this.caveCooldown = 0;
+    this.rescuePending = !!config.rescuePending;
+    this.shelterReason = config.shelterReason || null;
     
     // Set dialogue lists
     if (Array.isArray(config.dialogue)) this.dialogue = config.dialogue.slice();
@@ -2426,6 +2428,8 @@ class NPC extends InteractiveObject {
     const nightShelter = (typeof game.shouldVillagersShelterForNight === 'function') ? game.shouldVillagersShelterForNight() : false;
     if (threat) {
       this.panicTimer = 120;
+      this.rescuePending = true;
+      this.shelterReason = "nearby mob";
       if (!this.hiddenInCave && typeof ComicBubbles !== 'undefined' && this.caveCooldown <= 0) {
         ComicBubbles.spawn(this.x + this.w / 2, this.y - 8, "CAVE!", "jagged", "#facc15", -0.35, { maxLife: 60, scale: 0.8 });
       }
@@ -2445,6 +2449,11 @@ class NPC extends InteractiveObject {
       this.hiddenInCave = false;
       if (Number.isFinite(this.caveX)) this.x = this.caveX + 10;
       if (Number.isFinite(this.homeY)) this.y = this.homeY;
+      if (this.rescuePending && typeof game.grantVillageRescueReward === 'function') {
+        game.grantVillageRescueReward(this, this.shelterReason || "danger");
+      }
+      this.rescuePending = false;
+      this.shelterReason = null;
       if (typeof ComicBubbles !== 'undefined') {
         ComicBubbles.spawn(this.caveX + 16, this.caveY - 4, "Trading?", "rounded", this.color, -0.35, { maxLife: 80 });
       }
