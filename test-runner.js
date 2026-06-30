@@ -1315,6 +1315,7 @@ function runEngineTests() {
     assertEquals(true, firstXP > 0, "New check/gem progress should award Research XP");
     const firstWorldXP = game.getWorldMasteryProgress(0).xp;
     assertEquals(true, firstWorldXP > 0, "Science progress should also feed the world mastery meter");
+    assertEquals("use_hopper()\nhopper.mass = 1.2", firstPulse.code, "Discovery pulse should remember the code that created it");
     assertEquals(1, game.discoveryCombo, "New discovery starts the combo");
     assertEquals("CHAIN READY!", firstPulse.comboPrimer.label, "First discovery should prime the next-experiment chain");
     assertEquals(true, bubbleLabels22b.includes("CHAIN READY!"), "First discovery should pop a chain-ready cue");
@@ -2470,6 +2471,14 @@ function runEngineTests() {
         command: "hopper.engine = 7"
       }
     };
+    game.discoveryPulse = {
+      code: "hopper.mass = 1.0",
+      combo: 2,
+      rewardXP: 13,
+      comboBonusXP: 2,
+      comboAmplifierBonusXP: 0,
+      openedGems: 0
+    };
     updateMissionList(game);
     assertEquals(false, !!findByClass(list, "staged-experiment-card"), "Staged reminder should hide once that command has produced the latest delta");
     const testedDelta = findByClass(list, "science-delta-card");
@@ -2478,6 +2487,8 @@ function runEngineTests() {
     assertEquals(true, /Mass Lab/.test(testedDeltaText), "Completed staged result should preserve the staged target title");
     assertEquals(true, /Mission CRT/.test(testedDeltaText), "Completed staged result should preserve the source surface");
     assertEquals(true, /Compare these changes/.test(testedDeltaText), "Completed staged result should connect the code run to evidence");
+    assertEquals(true, /LAB CHAIN x2/.test(testedDeltaText), "Completed staged result should show the matching research chain state");
+    assertEquals(true, /Combo evidence \+2 XP/.test(testedDeltaText), "Completed staged result should name the chain payoff");
     assertEquals(true, /STAGE NEXT/.test(testedDeltaText), "Completed staged result should offer the follow-up experiment");
     const testedNextButton = findByClass(testedDelta || list, "science-delta-tested-stage-btn");
     inputEl22j.value = "";
@@ -2486,6 +2497,12 @@ function runEngineTests() {
     assertEquals("hopper.engine = 7", inputEl22j.value, "Completed staged result should stage the next experiment command");
     assertEquals(true, inputEl22j.focused, "Completed staged result should focus the terminal for the next test");
     assertEquals("tested-result", game.lastStagedExperiment && game.lastStagedExperiment.source, "Follow-up staging should remember that it came from the tested result");
+    list = makeEl();
+    game.lastScienceDelta = null;
+    updateMissionList(game);
+    const testedResultStaged = findByClass(list, "staged-experiment-card");
+    const testedResultStagedText = flattenText(testedResultStaged || list);
+    assertEquals(true, /Tested result/.test(testedResultStagedText), "Follow-up staging should show the tested-result source label");
 
     list.children = [];
     game.remixContext = 'mastery';

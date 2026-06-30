@@ -727,11 +727,46 @@ function getStagedExperimentSourceLabel(source) {
     "lesson-lens": "Lesson Lens",
     "mentor-signal": "Village mentor",
     "science-delta": "What Changed",
+    "tested-result": "Tested result",
     "formula-focus": "Formula Deck",
     "formula-target": "Formula target",
     "staged-reminder": "Mission CRT"
   };
   return labels[source] || "Mission CRT";
+}
+
+function getScienceDeltaChainBadge(game, delta) {
+  const pulse = game && game.discoveryPulse;
+  if (!pulse || !delta || !delta.code) return null;
+  const pulseCode = String(pulse.code || "").trim();
+  const deltaCode = String(delta.code || "").trim();
+  if (!pulseCode || pulseCode !== deltaCode) return null;
+
+  const combo = Math.max(0, Math.floor(Number(pulse.combo) || 0));
+  const earned = (pulse.rewardXP || 0) > 0 || !!pulse.cardUnlocked || !!pulse.hypothesisConfirmed || (pulse.openedGems || 0) > 0;
+  if (!earned) {
+    return {
+      state: "paused",
+      label: "CHAIN PAUSED",
+      title: "Repeat run logged",
+      body: "New evidence needs one fresh checklist, sample gate, or formula change."
+    };
+  }
+  if (combo > 1) {
+    const bonus = (pulse.comboBonusXP || 0) + (pulse.comboAmplifierBonusXP || 0);
+    return {
+      state: "active",
+      label: `LAB CHAIN x${combo}`,
+      title: bonus > 0 ? `Combo evidence +${bonus} XP` : "New evidence added",
+      body: "Keep the habit: stage one next variable, run it, compare the result."
+    };
+  }
+  return {
+    state: "ready",
+    label: "CHAIN READY",
+    title: "First evidence logged",
+    body: "Change one variable next to turn this result into a lab chain."
+  };
 }
 
 function appendStagedExperimentCard(listContainer, game) {
@@ -814,6 +849,21 @@ function appendScienceDeltaCard(listContainer, game) {
     testedCard.appendChild(testedLabel);
     testedCard.appendChild(testedTitle);
     testedCard.appendChild(testedBody);
+    const chainBadge = getScienceDeltaChainBadge(game, delta);
+    if (chainBadge) {
+      const badge = document.createElement("div");
+      badge.className = `science-delta-chain-badge ${chainBadge.state}`;
+      const badgeLabel = document.createElement("span");
+      badgeLabel.textContent = chainBadge.label;
+      const badgeTitle = document.createElement("strong");
+      badgeTitle.textContent = chainBadge.title;
+      const badgeBody = document.createElement("p");
+      badgeBody.textContent = chainBadge.body;
+      badge.appendChild(badgeLabel);
+      badge.appendChild(badgeTitle);
+      badge.appendChild(badgeBody);
+      testedCard.appendChild(badge);
+    }
     if (delta.nextExperiment && delta.nextExperiment.command) {
       const nextStage = document.createElement("button");
       nextStage.type = "button";
@@ -1926,6 +1976,7 @@ function inferDiscoveryPulse(game, activeMission, code, resultState, openedGems 
     cue: rule ? rule.cue : "Use the checklist to decide what to test next.",
     missionId: activeMission ? activeMission.id : null,
     missionTitle,
+    code: String(code || "").trim().slice(0, 160),
     passed,
     total,
     openedGems: Math.max(0, openedGems || 0),
