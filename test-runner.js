@@ -1137,6 +1137,14 @@ function runEngineTests() {
     const code = "antigravity = 4.9\nhopper.mass = 1.2\nhopper.engine = 6";
     const res = Compiler.runCommand(code, game);
     const delta = recordScienceDelta(game, before, captureScienceDeltaSnapshot(game), code);
+    const activeMission = PLANETS[0].missions.find(mission => mission.id === "earth-gravity-wall");
+    const nextCue = attachScienceDeltaNextExperiment(game, {
+      allPassed: false,
+      items: [
+        { id: "earth-hopper-active", label: "Hopper activated", passed: true, message: "Hopper active" },
+        { id: "earth-emerald-gates", label: "Agility 30+ reached", passed: false, message: "Agility is still under 30. Lower mass or raise engine." }
+      ]
+    }, activeMission);
     const labels = delta.changes.map(change => change.label).join(" ");
     const text = delta.changes.map(change => `${change.label} ${change.value} ${change.cue || ""}`).join(" ");
 
@@ -1147,6 +1155,9 @@ function runEngineTests() {
     assertEquals(true, /Agility/.test(labels), "Delta should include mission stat movement");
     assertEquals(true, /Less mass/.test(text), "Delta should explain the mass science effect");
     assertEquals(delta, game.lastScienceDelta, "Latest delta should be stored on the game for the CRT");
+    assertEquals("Agility 30+ reached", nextCue.title, "Next experiment cue should name the first failing mission check");
+    assertEquals(true, /Lower mass/.test(nextCue.body), "Next experiment cue should reuse the mission waiting message");
+    assertEquals(nextCue, game.lastScienceDelta.nextExperiment, "Next experiment cue should be pinned to the latest delta");
     renderTestResult("engine-suite", "Curriculum: code runs create science delta feedback", true);
   } catch (err) {
     renderTestResult("engine-suite", "Curriculum: code runs create science delta feedback", false, err.message);
@@ -1846,7 +1857,11 @@ function runEngineTests() {
       summary: "Agility changed",
       changes: [
         { label: "Mass", value: "2.5 -> 1.2 (-1.3)", direction: "down", cue: "Less mass makes the same force accelerate more." }
-      ]
+      ],
+      nextExperiment: {
+        title: "Agility 30+ reached",
+        body: "Lower mass or raise engine, then test the wall."
+      }
     };
 
     updateMissionList(game);
@@ -1866,6 +1881,8 @@ function runEngineTests() {
     assertEquals(true, /WHAT CHANGED/.test(scienceDeltaText), "Science delta card should identify itself");
     assertEquals(true, /Mass/.test(scienceDeltaText), "Science delta should list changed values");
     assertEquals(true, /Less mass/.test(scienceDeltaText), "Science delta should include the science cue");
+    assertEquals(true, /NEXT EXPERIMENT/.test(scienceDeltaText), "Science delta should show the next experiment cue");
+    assertEquals(true, /Lower mass or raise engine/.test(scienceDeltaText), "Science delta should render the cue body");
     assertEquals(true, !!contract, "Mission panel should append a lab-star contract");
     assertEquals(false, !!replayBeforeProgress, "First run should not show a replay contract even when profile progress exists");
     assertEquals(true, /LAB STARS/.test(text), "Contract should identify the star target");

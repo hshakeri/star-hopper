@@ -554,6 +554,20 @@ function appendScienceDeltaCard(listContainer, game) {
     list.appendChild(row);
   });
   card.appendChild(list);
+  if (delta.nextExperiment) {
+    const next = document.createElement("div");
+    next.className = "science-delta-next";
+    const kicker = document.createElement("span");
+    kicker.textContent = "NEXT EXPERIMENT";
+    const title = document.createElement("strong");
+    title.textContent = delta.nextExperiment.title || "Try one more test";
+    const body = document.createElement("p");
+    body.textContent = delta.nextExperiment.body || "Change one value, run it, then watch the result.";
+    next.appendChild(kicker);
+    next.appendChild(title);
+    next.appendChild(body);
+    card.appendChild(next);
+  }
   listContainer.appendChild(card);
 }
 
@@ -2066,6 +2080,7 @@ function runCoachCode(game, code) {
     game.coachLastResults = game.coachLastResults || {};
     const resultState = evaluateMissionResultChecks(game, activeMission.fullMission);
     game.coachLastResults[activeMission.id] = resultState;
+    attachScienceDeltaNextExperiment(game, resultState, activeMission);
     const lockedAfter = typeof game.getLockedRequiredCollectibleCount === 'function' ? game.getLockedRequiredCollectibleCount() : lockedBefore;
     let opened = 0;
     if (lockedBefore > lockedAfter) {
@@ -2331,6 +2346,61 @@ function buildScienceDelta(game, before, after, code) {
     code: String(code || "").slice(0, 160),
     time: Date.now()
   };
+}
+
+function buildNextExperimentCue(game, resultState = null, activeMission = null) {
+  if (!game) return null;
+  const mission = activeMission || getActivePlatformerMission(game);
+  const fullMission = mission && mission.fullMission ? mission.fullMission : null;
+  let state = resultState;
+  if (!state && fullMission) state = evaluateMissionResultChecks(game, fullMission);
+
+  const failed = state && Array.isArray(state.items) ? state.items.find(item => !item.passed) : null;
+  if (failed) {
+    return {
+      kind: "check",
+      title: failed.label || "Fix the next check",
+      body: failed.message || "Tune one value, run it, and watch what changes."
+    };
+  }
+
+  const locked = typeof game.getLockedRequiredCollectibleCount === 'function'
+    ? game.getLockedRequiredCollectibleCount()
+    : 0;
+  if (locked > 0) {
+    const gate = typeof game.getFirstLockedGemGate === 'function' ? game.getFirstLockedGemGate() : null;
+    return {
+      kind: "gems",
+      title: `Unlock ${locked} mission gem${locked === 1 ? "" : "s"}`,
+      body: gate && gate.label ? gate.label : "Run one focused code tweak, then collect the samples."
+    };
+  }
+
+  const status = typeof game.getLevelObjectiveStatus === 'function' ? game.getLevelObjectiveStatus() : null;
+  if (status && !status.readyForPortal) {
+    const body = typeof game.formatObjectiveLockMessage === 'function'
+      ? game.formatObjectiveLockMessage(status)
+      : "Finish the checklist and collect the mission gems.";
+    return {
+      kind: "requirements",
+      title: "Finish the active requirement",
+      body
+    };
+  }
+
+  return {
+    kind: "portal",
+    title: "Test the portal",
+    body: "The experiment is ready. Drive to the portal and prove it in the level."
+  };
+}
+
+function attachScienceDeltaNextExperiment(game, resultState = null, activeMission = null) {
+  if (!game || !game.lastScienceDelta) return null;
+  const cue = buildNextExperimentCue(game, resultState, activeMission);
+  if (!cue) return null;
+  game.lastScienceDelta.nextExperiment = cue;
+  return cue;
 }
 
 function recordScienceDelta(game, before, after, code) {
@@ -2696,7 +2766,13 @@ function setupUIBindings(game) {
 
           // Re-validate missions immediately on run, then echo the composite stat
           game.checkMissions();
-          if (res.success) logMissionStat(game);
+          if (res.success) {
+            const activeMission = getActivePlatformerMission(game);
+            const resultState = activeMission && activeMission.fullMission ? evaluateMissionResultChecks(game, activeMission.fullMission) : null;
+            attachScienceDeltaNextExperiment(game, resultState, activeMission);
+            logMissionStat(game);
+            updateMissionList(game);
+          }
         }
       }
     });
