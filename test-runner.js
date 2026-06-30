@@ -3038,6 +3038,21 @@ function runRetryRemixTests() {
     renderTestResult(SUITE, "Variant: Jupiter and Mag-Net add event-rule remixes", false, err.message);
   }
 
+  // Test R9c: Asteroid Forge has real remix flavors for endgame frontier runs.
+  try {
+    const forge1 = buildPlanetVariant(PLANETS[5], 5, 1);
+    const forge2 = buildPlanetVariant(PLANETS[5], 5, 2);
+    const baseGems = rvCountTiles(PLANETS[5].map, 3);
+    assertEquals(true, forge1.isRemix, "Forge retry 1 should be a remix");
+    assertEquals(true, forge2.isRemix, "Forge retry 2 should be a remix");
+    assertEquals(baseGems, rvCountTiles(forge1.map, 3), "Forge remix 1 preserves required gem count");
+    assertEquals(baseGems, rvCountTiles(forge2.map, 3), "Forge remix 2 preserves required gem count");
+    assertEquals(true, forge1.variantLabel !== "standard" && forge2.variantLabel !== "standard", "Forge remixes should describe what changed");
+    renderTestResult(SUITE, "Variant: Asteroid Forge remixes momentum lesson", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Variant: Asteroid Forge remixes momentum lesson", false, err.message);
+  }
+
   // Test R10: Daily Signal is deterministic per date and always a playable remix
   try {
     const a = getDailySignal(PLANETS, "2026-06-11", 4);
@@ -3063,6 +3078,44 @@ function runRetryRemixTests() {
     renderTestResult(SUITE, "Daily Signal: pool clamps to unlocked worlds", true);
   } catch (err) {
     renderTestResult(SUITE, "Daily Signal: pool clamps to unlocked worlds", false, err.message);
+  }
+
+  // Test R11b: Frontier Challenge unlocks only after the full playable star-map is clear.
+  try {
+    const g = new StarHopperGame();
+    g.getTodayDateStr = () => "2026-06-30";
+    g.planetClears = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1 };
+    assertEquals(null, g.getFrontierChallenge(), "Frontier should stay locked until Asteroid Forge is cleared too");
+    g.planetClears[5] = 1;
+    g.masteryMeters = {
+      0: { xp: 60 }, 1: { xp: 120 }, 2: { xp: 180 },
+      3: { xp: 60 }, 4: { xp: 120 }, 5: { xp: 180 }
+    };
+    const frontier = g.getFrontierChallenge();
+    assertEquals(true, !!frontier, "Frontier should unlock after all playable worlds are cleared");
+    assertEquals(3, frontier.tier, "Average world mastery should set the frontier tier");
+    assertEquals(true, /^FRONTIER-[A-Z]+-\d{4}$/.test(frontier.shareCode), "Frontier share code should be explicit and padded");
+    assertEquals(true, frontier.attempt >= 98, "Frontier should use attempts beyond the normal daily range");
+    let startedIndex = null;
+    g.startLevel = (index) => { startedIndex = index; };
+    assertEquals(true, g.startFrontierChallenge(), "Unlocked frontier starts");
+    assertEquals(frontier.attempt, g._pendingAttemptOverride, "Frontier attempt is queued for loadPlanet");
+    assertEquals(true, g.dailyInfo.isFrontier, "Frontier run is tagged separately from a daily");
+    assertEquals(frontier.planetIndex, startedIndex, "Frontier starts its selected planet");
+
+    g.discoveredFormulaKinds = new Set((typeof DISCOVERY_RULES !== 'undefined' ? DISCOVERY_RULES : []).map(rule => rule.kind));
+    const contract = g.getClearReplayContract({
+      labStars: { stars: 3, maxStars: 3, checks: [{ id: "missions", earned: true }, { id: "gems", earned: true }, { id: "science", earned: true }] },
+      clearTime: null,
+      isDailyRun: true,
+      isFrontierRun: true,
+      nextIndex: null
+    });
+    assertEquals("NEXT FRONTIER CONTRACT", contract.kicker, "Frontier clear should suggest another frontier climb");
+    assertEquals(true, /world mastery XP/.test(contract.reward), "Frontier reward should name world mastery XP");
+    renderTestResult(SUITE, "Frontier Challenge: unlocks after star-map completion", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Frontier Challenge: unlocks after star-map completion", false, err.message);
   }
 
   // Test R12: Game-local date formatting uses the browser calendar, not UTC ISO rollover.
@@ -3251,13 +3304,26 @@ function runRetryRemixTests() {
     assertEquals(3, g.dailySignalClears, "Daily clear count increments");
     assertEquals(undefined, g.planetClears[1], "Daily clear should not mark Moon as campaign-cleared");
     assertEquals("log", g.clearAction, "Daily clear button routes to log instead of next campaign planet");
+
+    const frontier = new StarHopperGame();
+    frontier.currentPlanet = PLANETS[2];
+    frontier.currentPlanetIndex = 2;
+    frontier.player = { x: 64, y: 200, w: 24, h: 32 };
+    frontier.planetClears = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 };
+    frontier.dailySignalClears = 3;
+    frontier.remixContext = 'daily';
+    frontier.dailyInfo = { planetIndex: 2, dateStr: "2026-06-30", shareCode: "FRONTIER-JUPITER-2222", isFrontier: true, tier: 4 };
+    frontier.clearLevel();
+    assertEquals(3, frontier.dailySignalClears, "Frontier clear should not inflate Daily Signal clears");
+    assertEquals(1, frontier.planetClears[2], "Frontier clear should not advance campaign clears");
+    assertEquals("log", frontier.clearAction, "Frontier clear routes to log instead of next campaign planet");
     if (oldSaveR18) saveLocalProgress = oldSaveR18;
     if (oldAttemptFinishR18) attemptLogFinish = oldAttemptFinishR18;
-    renderTestResult(SUITE, "Daily Signal: clear does not advance campaign unlocks", true);
+    renderTestResult(SUITE, "Daily Signal/Frontier: side clears do not advance campaign", true);
   } catch (err) {
     if (oldSaveR18) saveLocalProgress = oldSaveR18;
     if (oldAttemptFinishR18) attemptLogFinish = oldAttemptFinishR18;
-    renderTestResult(SUITE, "Daily Signal: clear does not advance campaign unlocks", false, err.message);
+    renderTestResult(SUITE, "Daily Signal/Frontier: side clears do not advance campaign", false, err.message);
   }
 
   // Test R19: backup/cloud payloads include the full profile progress schema.

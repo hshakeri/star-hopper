@@ -19,6 +19,16 @@ const WORLD_MASTERY_TIERS = [
   { id: "mentor", xp: 180, label: "Planet Mentor" }
 ];
 
+function dateSeedFallback(value) {
+  const s = String(value || "");
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
 class StarHopperGame {
   constructor() {
     this.unlockedUpgrades = new Set(); // legacy fully-unlocked limits (persists in profile)
@@ -394,13 +404,80 @@ class StarHopperGame {
     }
   }
 
+  getFrontierPlayableCount() {
+    return (typeof PLANETS !== 'undefined' && Array.isArray(PLANETS)) ? PLANETS.length : 0;
+  }
+
+  hasCompletedMainStarMap() {
+    const playableCount = this.getFrontierPlayableCount();
+    if (!playableCount) return false;
+    for (let i = 0; i < playableCount; i++) {
+      if (!((this.planetClears && this.planetClears[i]) || 0)) return false;
+    }
+    return true;
+  }
+
+  getFrontierChallenge(dateStr = null) {
+    if (typeof PLANETS === 'undefined' || typeof buildPlanetVariant !== 'function') return null;
+    if (!this.hasCompletedMainStarMap()) return null;
+    const playableCount = this.getFrontierPlayableCount();
+    if (!playableCount) return null;
+    const today = dateStr || this.getTodayDateStr();
+    const seed = (typeof dateSeed === 'function') ? dateSeed(`frontier:${today}`) : dateSeedFallback(`frontier:${today}`);
+    const masteryTotal = Array.from({ length: playableCount }, (_, index) =>
+      (this.getWorldMasteryProgress(index).xp || 0)
+    ).reduce((sum, xp) => sum + xp, 0);
+    const averageMastery = Math.floor(masteryTotal / playableCount);
+    const tier = Math.max(1, 1 + Math.floor(averageMastery / 60));
+    const planetIndex = seed % playableCount;
+    const attempt = 98 + tier * 13 + (seed % 37);
+    const planet = PLANETS[planetIndex];
+    const variant = buildPlanetVariant(planet, planetIndex, attempt);
+    const codeName = (planet.name || "WORLD").split(" ")[0].toUpperCase().replace(/[^A-Z]/g, "");
+    return {
+      dateStr: today,
+      seed,
+      planetIndex,
+      attempt,
+      tier,
+      variant,
+      isFrontier: true,
+      shareCode: `FRONTIER-${codeName}-${String(seed % 10000).padStart(4, '0')}`,
+      label: `Tier ${tier} ${planet.name}: ${variant.variantLabel}`
+    };
+  }
+
+  startFrontierChallenge() {
+    const frontier = this.getFrontierChallenge();
+    if (!frontier) {
+      if (typeof ui_log_output === 'function') {
+        ui_log_output("Complete the star-map to unlock Frontier Challenge mode.", "info");
+      }
+      return false;
+    }
+    this.dailyInfo = frontier;
+    this._pendingAttemptOverride = frontier.attempt; // consumed by loadPlanet
+    this.startLevel(frontier.planetIndex);
+    if (typeof ui_log_output === 'function') {
+      ui_log_output(`◆ Frontier Challenge tier ${frontier.tier} accepted — share code ${frontier.shareCode}`, "success");
+    }
+    return true;
+  }
+
   // Keep the start screen's signal strip current (called at init and after clears).
   refreshDailySignalBanner() {
     const label = document.getElementById('daily-signal-label');
+    const frontierBtn = document.getElementById('frontier-signal-btn');
     if (!label) return;
     const daily = this.getDailySignal();
     if (!daily) return;
     label.textContent = `📡 Daily Signal ${daily.dateStr} — ${daily.label}`;
+    if (frontierBtn) {
+      const frontier = this.getFrontierChallenge();
+      frontierBtn.style.display = frontier ? 'inline-flex' : 'none';
+      frontierBtn.textContent = frontier ? `◆ FRONTIER T${frontier.tier}` : '◆ FRONTIER';
+      frontierBtn.title = frontier ? `${frontier.label} · ${frontier.shareCode}` : 'Complete the star-map to unlock Frontier Challenge';
+    }
   }
 
   // Single source of "today" in the browser's LOCAL calendar, not UTC. That matters in
@@ -1228,7 +1305,10 @@ class StarHopperGame {
     if (this.state === 'playing' && this.currentVariant && this.currentVariant.isRemix) {
       const rlabel = this.currentVariant.variantLabel;
       let headline, pop;
-      if (this.remixContext === 'daily' && this.dailyInfo) {
+      if (this.remixContext === 'daily' && this.dailyInfo && this.dailyInfo.isFrontier) {
+        headline = `◆ Frontier Tier ${this.dailyInfo.tier || 1}: ${rlabel} · share code ${this.dailyInfo.shareCode}`;
+        pop = "◆ FRONTIER!";
+      } else if (this.remixContext === 'daily' && this.dailyInfo) {
         headline = `📡 Daily Signal ${this.dailyInfo.dateStr}: ${rlabel} · share code ${this.dailyInfo.shareCode}`;
         pop = "📡 SIGNAL!";
       } else if (this.remixContext === 'mastery') {
@@ -1560,7 +1640,10 @@ class StarHopperGame {
     };
   }
 
-  getClearLabStarKey({ isDailyRun = false } = {}) {
+  getClearLabStarKey({ isDailyRun = false, isFrontierRun = false } = {}) {
+    if (isFrontierRun && this.dailyInfo && this.dailyInfo.dateStr) {
+      return `frontier:${this.dailyInfo.dateStr}:t${this.dailyInfo.tier || 1}`;
+    }
     if (isDailyRun && this.dailyInfo && this.dailyInfo.dateStr) return `daily:${this.dailyInfo.dateStr}`;
     return String(this.currentPlanetIndex || 0);
   }
@@ -1571,8 +1654,8 @@ class StarHopperGame {
     return Math.max(0, Math.round(elapsed * 10) / 10);
   }
 
-  recordClearTime({ isDailyRun = false, elapsedSeconds = null } = {}) {
-    const key = this.getClearLabStarKey({ isDailyRun });
+  recordClearTime({ isDailyRun = false, isFrontierRun = false, elapsedSeconds = null } = {}) {
+    const key = this.getClearLabStarKey({ isDailyRun, isFrontierRun });
     const elapsed = Number.isFinite(elapsedSeconds)
       ? Math.max(0, Math.round(elapsedSeconds * 10) / 10)
       : this.getRunTimeSeconds();
@@ -1592,8 +1675,8 @@ class StarHopperGame {
     return summary;
   }
 
-  getClearReplayContract({ labStars = null, clearTime = null, isDailyRun = false, nextIndex = null } = {}) {
-    const starSummary = labStars || this.getClearLabStarSummary({ isDailyRun });
+  getClearReplayContract({ labStars = null, clearTime = null, isDailyRun = false, isFrontierRun = false, nextIndex = null } = {}) {
+    const starSummary = labStars || this.getClearLabStarSummary({ isDailyRun, isFrontierRun });
     const missingStar = starSummary && Array.isArray(starSummary.checks)
       ? starSummary.checks.find(check => !check.earned)
       : null;
@@ -1631,6 +1714,16 @@ class StarHopperGame {
         title: `Collect ${formulaTarget.title}`,
         body: formulaTarget.cue,
         reward: "Reward: formula card + Research XP"
+      };
+    }
+
+    if (isFrontierRun) {
+      const frontier = this.getFrontierChallenge();
+      return {
+        kicker: "NEXT FRONTIER CONTRACT",
+        title: frontier ? `Climb Frontier Tier ${frontier.tier}` : "Climb the frontier ladder",
+        body: "Use a seeded remix to prove the same science idea still works after the star-map is complete.",
+        reward: "Reward: world mastery XP + share code"
       };
     }
 
@@ -1672,7 +1765,7 @@ class StarHopperGame {
     };
   }
 
-  getClearLabStarSummary({ isDailyRun = false } = {}) {
+  getClearLabStarSummary({ isDailyRun = false, isFrontierRun = false } = {}) {
     const status = (typeof this.getLevelObjectiveStatus === 'function')
       ? this.getLevelObjectiveStatus()
       : { missionsTotal: 0, allMissionsComplete: false, collectiblesTotal: 0, allCollectiblesCollected: false };
@@ -1705,7 +1798,7 @@ class StarHopperGame {
       { id: "science", label: "Science proof", earned: scienceProof }
     ];
     const stars = checks.filter(check => check.earned).length;
-    const key = this.getClearLabStarKey({ isDailyRun });
+    const key = this.getClearLabStarKey({ isDailyRun, isFrontierRun });
     const previousBest = Number(this.bestLabStars && this.bestLabStars[key]) || 0;
     return {
       key,
@@ -1718,8 +1811,8 @@ class StarHopperGame {
     };
   }
 
-  recordClearLabStars({ isDailyRun = false } = {}) {
-    const summary = this.getClearLabStarSummary({ isDailyRun });
+  recordClearLabStars({ isDailyRun = false, isFrontierRun = false } = {}) {
+    const summary = this.getClearLabStarSummary({ isDailyRun, isFrontierRun });
     this.bestLabStars = this.bestLabStars || {};
     const starGain = Math.max(0, summary.stars - summary.previousBest);
     let masteryMeter = null;
@@ -3425,29 +3518,35 @@ class StarHopperGame {
     const isDailyRun = this.remixContext === 'daily'
       && this.dailyInfo
       && this.dailyInfo.planetIndex === this.currentPlanetIndex;
+    const isFrontierRun = isDailyRun && !!this.dailyInfo.isFrontier;
 
     if (isDailyRun) {
       // Daily Signal is a side challenge. It should persist its own clear count, but must
       // not mark campaign planets as cleared or unlock later worlds out of order.
-      this.dailySignalClears = (this.dailySignalClears || 0) + 1;
+      if (!isFrontierRun) this.dailySignalClears = (this.dailySignalClears || 0) + 1;
     } else {
       // Count the campaign clear (persisted): future fresh visits to this world start
       // REMIXED (mastery), and the Daily Signal pool can grow to the next world.
       this.planetClears = this.planetClears || {};
       this.planetClears[this.currentPlanetIndex] = (this.planetClears[this.currentPlanetIndex] || 0) + 1;
     }
-    let labStars = this.recordClearLabStars({ isDailyRun });
-    const clearMastery = this.awardWorldMasteryXP(isDailyRun ? 8 : 12, isDailyRun ? "daily signal clear" : "campaign clear", {
-      sourceKey: isDailyRun
-        ? `daily-clear:${this.dailyInfo && this.dailyInfo.dateStr ? this.dailyInfo.dateStr : this.getTodayDateStr()}:${this.currentPlanetIndex}`
-        : `campaign-clear:${this.currentPlanetIndex}:${this.planetClears && this.planetClears[this.currentPlanetIndex] ? this.planetClears[this.currentPlanetIndex] : 1}`,
+    let labStars = this.recordClearLabStars({ isDailyRun, isFrontierRun });
+    const frontierTier = isFrontierRun && this.dailyInfo ? Math.max(1, Number(this.dailyInfo.tier) || 1) : 0;
+    const clearMasteryXP = isFrontierRun ? Math.max(12, 10 + frontierTier * 2) : (isDailyRun ? 8 : 12);
+    const clearMasteryReason = isFrontierRun ? "frontier challenge clear" : (isDailyRun ? "daily signal clear" : "campaign clear");
+    const clearMastery = this.awardWorldMasteryXP(clearMasteryXP, clearMasteryReason, {
+      sourceKey: isFrontierRun
+        ? `frontier-clear:${this.dailyInfo && this.dailyInfo.dateStr ? this.dailyInfo.dateStr : this.getTodayDateStr()}:t${frontierTier}:${this.currentPlanetIndex}`
+        : (isDailyRun
+          ? `daily-clear:${this.dailyInfo && this.dailyInfo.dateStr ? this.dailyInfo.dateStr : this.getTodayDateStr()}:${this.currentPlanetIndex}`
+          : `campaign-clear:${this.currentPlanetIndex}:${this.planetClears && this.planetClears[this.currentPlanetIndex] ? this.planetClears[this.currentPlanetIndex] : 1}`),
       silent: true
     });
     labStars.worldMastery = clearMastery.progress;
     labStars.worldMasteryAddedXP = (labStars.worldMasteryAddedXP || 0) + clearMastery.addedXP;
     labStars.worldMasteryTierAwards = (labStars.worldMasteryTierAwards || []).concat(clearMastery.tierAwards || []);
     labStars = this.grantMasteryClearReward(labStars);
-    const clearTime = this.recordClearTime({ isDailyRun });
+    const clearTime = this.recordClearTime({ isDailyRun, isFrontierRun });
     this.refreshGalaxyMapProgress();
     if (typeof saveLocalProgress === 'function') saveLocalProgress();
     this.refreshDailySignalBanner();
@@ -3468,8 +3567,12 @@ class StarHopperGame {
     const dailyBtn = document.getElementById("btn-clear-daily");
     if (isDailyRun) {
       const share = this.dailyInfo ? this.dailyInfo.shareCode : "today's code";
-      if (clearTitle) clearTitle.textContent = "DAILY SIGNAL CLEAR! 📡";
-      if (clearSubtitle) clearSubtitle.textContent = `Signal solved: ${share}. This counts toward Daily Signal practice, while campaign planet unlocks stay on the main mission path.`;
+      if (clearTitle) clearTitle.textContent = isFrontierRun ? "FRONTIER CLEAR! ◆" : "DAILY SIGNAL CLEAR! 📡";
+      if (clearSubtitle) {
+        clearSubtitle.textContent = isFrontierRun
+          ? `Tier ${this.dailyInfo && this.dailyInfo.tier ? this.dailyInfo.tier : 1} frontier solved: ${share}. Frontier runs keep campaign unlocks stable while pushing world mastery higher.`
+          : `Signal solved: ${share}. This counts toward Daily Signal practice, while campaign planet unlocks stay on the main mission path.`;
+      }
       if (nextBtn) nextBtn.textContent = "OPEN LOG";
       if (dailyBtn) dailyBtn.style.display = "none";
       this.clearAction = 'log';
@@ -3477,13 +3580,28 @@ class StarHopperGame {
       // Final playable world cleared: the star-map is complete. Rather than dead-end on
       // "three worlds inbound", point the cadet at the Daily Signal — a fresh seeded
       // remix every day — so there's a real reason to come back tomorrow.
+      const frontier = this.getFrontierChallenge();
       const daily = this.getDailySignal();
       if (clearTitle) clearTitle.textContent = "STAR-MAP COMPLETE! 🛰️";
-      if (clearSubtitle) clearSubtitle.textContent = `${payoff ? payoff + " " : ""}A new Daily Signal arrives every day — accept today's to keep your skills sharp while worlds 6–8 are built. Print your Scientist Certificate from the Log.`;
+      if (clearSubtitle) {
+        clearSubtitle.textContent = frontier
+          ? `${payoff ? payoff + " " : ""}Frontier Challenge is online: a date-seeded tier run that keeps remixing the completed star-map. Print your Scientist Certificate from the Log, then climb today's frontier.`
+          : `${payoff ? payoff + " " : ""}A new Daily Signal arrives every day — accept today's to keep your skills sharp while worlds 6–8 are built. Print your Scientist Certificate from the Log.`;
+      }
       if (nextBtn) nextBtn.textContent = "OPEN LOG";
       if (dailyBtn) {
-        dailyBtn.style.display = daily ? "inline-flex" : "none";
-        if (daily) dailyBtn.textContent = `📡 TODAY'S SIGNAL`;
+        dailyBtn.style.display = frontier || daily ? "inline-flex" : "none";
+        if (frontier) {
+          dailyBtn.textContent = `◆ FRONTIER T${frontier.tier}`;
+          dailyBtn.style.background = "#facc15";
+          dailyBtn.style.color = "#030712";
+          dailyBtn.onclick = () => this.startFrontierChallenge();
+        } else if (daily) {
+          dailyBtn.textContent = `📡 TODAY'S SIGNAL`;
+          dailyBtn.style.background = "var(--neon-cyan)";
+          dailyBtn.style.color = "#030712";
+          dailyBtn.onclick = () => this.startDailySignal();
+        }
       }
     } else {
       const targetName = PLANETS[nextIndex] ? PLANETS[nextIndex].name : "next planet";
@@ -3492,13 +3610,13 @@ class StarHopperGame {
       if (nextBtn) nextBtn.textContent = "RUN LAUNCH PLAN";
       if (dailyBtn) dailyBtn.style.display = "none";
     }
-    this.renderClearLabReport({ isDailyRun, nextIndex, earnedGems, gemKey: clearGemKey, labStars, clearTime });
+    this.renderClearLabReport({ isDailyRun, isFrontierRun, nextIndex, earnedGems, gemKey: clearGemKey, labStars, clearTime });
     ui_log_output(`✓ Level cleared! Target coordinates secured.`, "success");
     ui_log_output(`Rover returning to spacecraft docking bay...`, "info");
     if (typeof updateCertificateState === 'function') updateCertificateState();
   }
 
-  renderClearLabReport({ isDailyRun = false, nextIndex = null, earnedGems = 0, gemKey = "gem", labStars = null, clearTime = null } = {}) {
+  renderClearLabReport({ isDailyRun = false, isFrontierRun = false, nextIndex = null, earnedGems = 0, gemKey = "gem", labStars = null, clearTime = null } = {}) {
     if (typeof document === 'undefined') return;
     const report = document.getElementById("clear-lab-report");
     if (!report) return;
@@ -3523,7 +3641,7 @@ class StarHopperGame {
     const timeBadge = timeSummary && timeSummary.isNewBest
       ? `<div class="clear-lab-time new"><span>NEW LAB TIME</span><strong>${safe(elapsedText)} personal best</strong></div>`
       : (timeSummary ? `<div class="clear-lab-time"><span>LAB TIME</span><strong>${safe(elapsedText)} · best ${safe(bestTimeText)}</strong></div>` : "");
-    const replayContract = this.getClearReplayContract({ labStars: starSummary, clearTime: timeSummary, isDailyRun, nextIndex });
+    const replayContract = this.getClearReplayContract({ labStars: starSummary, clearTime: timeSummary, isDailyRun, isFrontierRun, nextIndex });
     const replayContractBlock = replayContract ? `
       <div class="clear-lab-contract">
         <span>${safe(replayContract.kicker)}</span>
@@ -3569,14 +3687,17 @@ class StarHopperGame {
         <p>${safe(`${worldMastery.xp} XP${starSummary.worldMasteryAddedXP ? ` · +${starSummary.worldMasteryAddedXP} this run` : ""} · ${worldMasteryNext}`)}</p>
       </div>
     ` : "";
-    const nextLabel = isDailyRun
-      ? "Open the log and compare today's remix."
-      : (nextIndex === null ? "Open the log or accept today's signal." : `Launch toward ${typeof PLANETS !== 'undefined' && PLANETS[nextIndex] ? PLANETS[nextIndex].name : "the next planet"}.`);
+    const nextLabel = isFrontierRun
+      ? "Open the log and compare this frontier tier."
+      : (isDailyRun
+        ? "Open the log and compare today's remix."
+        : (nextIndex === null ? "Open the log or accept today's signal." : `Launch toward ${typeof PLANETS !== 'undefined' && PLANETS[nextIndex] ? PLANETS[nextIndex].name : "the next planet"}.`));
+    const reportMode = isFrontierRun ? "Frontier Challenge solved" : (isDailyRun ? "Daily Signal solved" : "Shard experiment complete");
 
     report.innerHTML = `
       <div class="clear-lab-head">
         <span>CLEAR LAB REPORT</span>
-        <strong>${safe(isDailyRun ? "Daily Signal solved" : "Shard experiment complete")}</strong>
+        <strong>${safe(reportMode)}</strong>
       </div>
       <div class="clear-lab-stars" aria-label="${safe(`${starSummary.stars} of ${starSummary.maxStars} Lab Stars`)}">
         <div class="clear-lab-star-icons">${starIcons}</div>

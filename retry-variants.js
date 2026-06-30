@@ -278,6 +278,23 @@ function magnetPolarityEvent(planet, rng) {
   };
 }
 
+// ASTEROID FORGE — momentum first, elasticity second. These stay geometry-only:
+// moving Forge cores and asteroids keeps the same two-variable lesson without adding
+// a third rule that would muddy the onboarding sequence.
+function forgeCoreDrift(planet, rng) {
+  const map = cloneMap(planet.map);
+  const dx = rvPick(rng, [-2, -1, 1, 2]);
+  rvShiftTilesH(map, 3, dx);
+  rvShiftTilesH(map, 8, rvPick(rng, [-1, 1]));
+  return { map, variantLabel: `Forge cores drifted ${rvSign(dx)}${dx} · redo the mass shove`, targetOverrides: {}, constraint: null };
+}
+function forgeBounceMixer(planet, rng) {
+  const map = cloneMap(planet.map);
+  rvShiftTilesV(map, 3, rvPick(rng, [-1, 1]));
+  rvShiftTilesH(map, 8, rvPick(rng, [-2, -1, 1, 2]));
+  return { map, variantLabel: "asteroids re-stacked · test mass first, then elasticity", targetOverrides: {}, constraint: null };
+}
+
 // Flavor rotation per planet. Retry N (1-based) uses flavor (N-1) % flavors.length, so
 // consecutive retries deal out DIFFERENT challenge types, then cycle. Ordering: hand-tuned
 // constraint flavors stay early (they match existing tutorial prose); pure procedural
@@ -287,7 +304,8 @@ const PLANET_FLAVORS = {
   1: [moonGeometry, moonSpringBudget, moonVerticalGems, moonTrampolineMixer],
   2: [jupiterGeometry, jupiterVerticalCrates, jupiterThrustPush, jupiterRocketRule],
   3: [glaciesGeometry, glaciesEventOnly, glaciesVerticalSlide],
-  4: [magnetPoleFlip, magnetDoubleFlip, magnetGemDrift, magnetPolarityEvent]
+  4: [magnetPoleFlip, magnetDoubleFlip, magnetGemDrift, magnetPolarityEvent],
+  5: [forgeCoreDrift, forgeBounceMixer]
 };
 
 // Build the variant for a given planet + attempt.

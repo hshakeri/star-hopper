@@ -432,10 +432,13 @@ function appendRunReplayContract(listContainer, game) {
   if (!listContainer || !game || typeof game.getClearReplayContract !== 'function') return;
   const isReplayContext = game.remixContext === 'mastery' || game.remixContext === 'retry' || game.remixContext === 'daily';
   if (!isReplayContext) return;
+  const isDailyRun = game.remixContext === 'daily';
+  const isFrontierRun = isDailyRun && !!(game.dailyInfo && game.dailyInfo.isFrontier);
   const contractData = game.getClearReplayContract({
-    labStars: typeof game.getClearLabStarSummary === 'function' ? game.getClearLabStarSummary({ isDailyRun: game.remixContext === 'daily' }) : null,
+    labStars: typeof game.getClearLabStarSummary === 'function' ? game.getClearLabStarSummary({ isDailyRun, isFrontierRun }) : null,
     clearTime: null,
-    isDailyRun: game.remixContext === 'daily',
+    isDailyRun,
+    isFrontierRun,
     nextIndex: typeof game.getNextPlanetIndex === 'function' ? game.getNextPlanetIndex() : null
   });
   if (!contractData) return;

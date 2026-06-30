@@ -1975,6 +1975,12 @@ body.resizing-panes * {
   cursor: pointer;
   transition: all 0.15s ease;
 }
+.frontier-signal-btn {
+  background: linear-gradient(135deg, #facc15, #c4b5fd);
+  border: 1px solid rgba(250, 204, 21, 0.7);
+  color: #120817;
+  box-shadow: 0 0 14px rgba(250, 204, 21, 0.28);
+}
 .daily-signal-btn:hover { transform: translateY(-1px); box-shadow: 0 0 12px rgba(56, 189, 248, 0.6); }
 
 /* Return-streak chip — celebratory, never punitive. Only shown when streakCount > 0. */
