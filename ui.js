@@ -419,6 +419,7 @@ function updateMissionList(game) {
   listContainer.innerHTML = "";
   appendLessonLensCard(listContainer, game);
   appendMissionMentorSignal(listContainer, game);
+  appendStagedExperimentCard(listContainer, game);
   appendScienceDeltaCard(listContainer, game);
   currentPlanet.missions.forEach(mission => {
     const isCompleted = game.completedMissions.has(mission.id);
@@ -683,6 +684,83 @@ function appendMissionMentorSignal(listContainer, game) {
   body.appendChild(mark);
   body.appendChild(copy);
   card.appendChild(body);
+
+  listContainer.appendChild(card);
+}
+
+function getActiveStagedExperiment(game) {
+  const staged = game && game.lastStagedExperiment;
+  if (!staged || !staged.command) return null;
+  const command = String(staged.command || "").trim();
+  if (!command) return null;
+  const lastRun = game && game.lastScienceDelta && game.lastScienceDelta.code
+    ? String(game.lastScienceDelta.code || "").trim()
+    : "";
+  if (lastRun && lastRun === command) return null;
+  return {
+    title: staged.title || "Experiment staged",
+    kind: staged.kind || null,
+    source: staged.source || "stage-button",
+    command,
+    time: staged.time || 0
+  };
+}
+
+function getStagedExperimentSourceLabel(source) {
+  const labels = {
+    "lesson-lens": "Lesson Lens",
+    "mentor-signal": "Village mentor",
+    "science-delta": "What Changed",
+    "formula-focus": "Formula Deck",
+    "formula-target": "Formula target",
+    "staged-reminder": "Mission CRT"
+  };
+  return labels[source] || "Mission CRT";
+}
+
+function appendStagedExperimentCard(listContainer, game) {
+  const staged = getActiveStagedExperiment(game);
+  if (!listContainer || !staged) return;
+
+  const card = document.createElement("div");
+  card.className = "staged-experiment-card";
+
+  const head = document.createElement("div");
+  head.className = "staged-experiment-head";
+  const label = document.createElement("span");
+  label.textContent = "READY TO TEST";
+  const source = document.createElement("strong");
+  source.textContent = getStagedExperimentSourceLabel(staged.source);
+  head.appendChild(label);
+  head.appendChild(source);
+  card.appendChild(head);
+
+  const title = document.createElement("strong");
+  title.className = "staged-experiment-title";
+  title.textContent = staged.title;
+  card.appendChild(title);
+
+  const body = document.createElement("p");
+  body.textContent = "Press Enter in Mission Coach to run this experiment, then compare what changed.";
+  card.appendChild(body);
+
+  const code = document.createElement("code");
+  code.textContent = staged.command;
+  card.appendChild(code);
+
+  const restage = document.createElement("button");
+  restage.type = "button";
+  restage.className = "staged-experiment-stage-btn";
+  restage.textContent = "RESTAGE";
+  if (typeof restage.addEventListener === "function") {
+    restage.addEventListener("click", () => stageScienceDeltaCommand(staged.command, {
+      title: staged.title,
+      kind: staged.kind,
+      source: "staged-reminder",
+      color: "#a7f3d0"
+    }));
+  }
+  card.appendChild(restage);
 
   listContainer.appendChild(card);
 }
@@ -2817,6 +2895,7 @@ function stageScienceDeltaCommand(command, options = {}) {
       Particles.spawnBurst(px, liveGame.player.y + (liveGame.player.h || 32) / 2, color, 9, 1.8, 1.7, 'glow');
     }
   }
+  if (liveGame && liveGame.currentPlanet && typeof updateMissionList === 'function') updateMissionList(liveGame);
   if (typeof ui_log_output === 'function') ui_log_output("Next experiment staged in the terminal.", "info");
   return true;
 }

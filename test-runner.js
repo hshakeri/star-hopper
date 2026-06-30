@@ -2309,17 +2309,22 @@ function runEngineTests() {
   // Test 22j: The in-run mission panel shows mentor, lab-star, and replay contracts.
   const oldGetElementById22h = document.getElementById;
   const oldCreateElement22h = document.createElement;
+  const oldWindowGame22h = window.Game;
   try {
-    const makeEl = () => ({
-      className: "",
-      textContent: "",
-      innerHTML: "",
-      children: [],
-      style: {},
-      appendChild(child) { this.children.push(child); return child; },
-      addEventListener(event, handler) { this._events = this._events || {}; this._events[event] = handler; },
-      classList: { add: () => {}, remove: () => {}, toggle: () => {}, contains: () => false }
-    });
+    const makeEl = () => {
+      let html = "";
+      return {
+        className: "",
+        textContent: "",
+        get innerHTML() { return html; },
+        set innerHTML(value) { html = value; this.children = []; },
+        children: [],
+        style: {},
+        appendChild(child) { this.children.push(child); return child; },
+        addEventListener(event, handler) { this._events = this._events || {}; this._events[event] = handler; },
+        classList: { add: () => {}, remove: () => {}, toggle: () => {}, contains: () => false }
+      };
+    };
     const flattenText = (el) => [el.textContent || "", el.innerHTML || ""]
       .concat((el.children || []).map(flattenText))
       .join(" ");
@@ -2345,6 +2350,14 @@ function runEngineTests() {
     game.remixContext = 'first';
     game.bestClearTimes = { 0: 12.4 };
     game.discoveredFormulaKinds = new Set(["antigravity"]);
+    window.Game = game;
+    game.lastStagedExperiment = {
+      title: "Mass Lab",
+      kind: "mass",
+      source: "mentor-signal",
+      command: "hopper.mass = 1.0",
+      time: Date.now()
+    };
     game.lastScienceDelta = {
       summary: "Agility changed",
       changes: [
@@ -2364,6 +2377,8 @@ function runEngineTests() {
     const scienceDeltaText = flattenText(scienceDelta || list);
     const mentor = findByClass(list, "mentor-signal-card");
     const mentorText = flattenText(mentor || list);
+    const staged = findByClass(list, "staged-experiment-card");
+    const stagedText = flattenText(staged || list);
     const contract = findByClass(list, "lab-star-contract");
     const replayBeforeProgress = findByClass(list, "run-replay-contract");
     const text = flattenText(contract || list);
@@ -2385,8 +2400,17 @@ function runEngineTests() {
     const mentorStageButton = findByClass(mentor || list, "mentor-signal-stage-btn");
     assertEquals(true, !!mentorStageButton, "Mentor signal should expose a stage-focus action");
     assertEquals("STAGE FOCUS", mentorStageButton.textContent, "Mentor signal stage action should be terse");
+    assertEquals(true, !!staged, "Mission panel should show a staged experiment reminder");
+    assertEquals(true, /READY TO TEST/.test(stagedText), "Staged experiment card should identify the ready state");
+    assertEquals(true, /Village mentor/.test(stagedText), "Staged experiment card should name the source surface");
+    assertEquals(true, /Mass Lab/.test(stagedText), "Staged experiment card should name the target experiment");
+    assertEquals(true, /Press Enter/.test(stagedText), "Staged experiment card should tell the kid how to run it");
+    assertEquals(true, /hopper\.mass = 1\.0/.test(stagedText), "Staged experiment card should preserve the staged command");
+    const stagedRestageButton = findByClass(staged || list, "staged-experiment-stage-btn");
+    assertEquals("RESTAGE", stagedRestageButton && stagedRestageButton.textContent, "Staged experiment card should expose a restage action");
 
     list = makeEl();
+    game.lastStagedExperiment = null;
     game.coachPredictions = { "earth-gravity-wall": "lighter-longer" };
     updateMissionList(game);
     const activeLens = findByClass(list, "lesson-lens-card");
@@ -2413,6 +2437,13 @@ function runEngineTests() {
     activeMentorButton._events.click();
     assertEquals("hopper.mass = 1.0", inputEl22j.value, "Mentor stage action should stage the one-variable formula command");
     assertEquals(true, inputEl22j.focused, "Mentor stage action should focus the terminal");
+    const activeStaged = findByClass(list, "staged-experiment-card");
+    const activeRestage = findByClass(activeStaged || list, "staged-experiment-stage-btn");
+    inputEl22j.value = "";
+    inputEl22j.focused = false;
+    activeRestage._events.click();
+    assertEquals("hopper.mass = 1.0", inputEl22j.value, "Staged reminder restage should restore the staged command");
+    assertEquals(true, inputEl22j.focused, "Staged reminder restage should focus the terminal");
     assertEquals(true, !!scienceDelta, "Mission panel should show the latest science delta");
     assertEquals(true, /WHAT CHANGED/.test(scienceDeltaText), "Science delta card should identify itself");
     assertEquals(true, /Mass/.test(scienceDeltaText), "Science delta should list changed values");
@@ -2429,6 +2460,11 @@ function runEngineTests() {
     assertEquals(true, /NEXT Mission gems/.test(text), "Contract should show missing gem star");
     assertEquals(true, /OK Science proof/.test(text), "Contract should credit science proof");
 
+    list = makeEl();
+    game.lastScienceDelta = { code: "hopper.mass = 1.0", changes: [{ label: "Mass", value: "2.5 -> 1.0" }] };
+    updateMissionList(game);
+    assertEquals(false, !!findByClass(list, "staged-experiment-card"), "Staged reminder should hide once that command has produced the latest delta");
+
     list.children = [];
     game.remixContext = 'mastery';
     game.requiredCollectiblesCollected = 2;
@@ -2441,10 +2477,12 @@ function runEngineTests() {
     assertEquals(true, /Reward: formula card \+ Research XP/.test(replayText), "Replay card should show the contract reward");
     document.getElementById = oldGetElementById22h;
     document.createElement = oldCreateElement22h;
+    window.Game = oldWindowGame22h;
     renderTestResult("engine-suite", "Curriculum: mission panel shows mentor, lab-star, and replay contracts", true);
   } catch (err) {
     document.getElementById = oldGetElementById22h;
     document.createElement = oldCreateElement22h;
+    window.Game = oldWindowGame22h;
     renderTestResult("engine-suite", "Curriculum: mission panel shows mentor, lab-star, and replay contracts", false, err.message);
   }
 
