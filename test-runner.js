@@ -1164,6 +1164,60 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: galaxy map surfaces lab-star mastery", false, err.message);
   }
 
+  // Test 22h: The in-run mission panel shows the lab-star contract.
+  const oldGetElementById22h = document.getElementById;
+  const oldCreateElement22h = document.createElement;
+  try {
+    const makeEl = () => ({
+      className: "",
+      textContent: "",
+      innerHTML: "",
+      children: [],
+      style: {},
+      appendChild(child) { this.children.push(child); return child; },
+      classList: { add: () => {}, remove: () => {}, toggle: () => {}, contains: () => false }
+    });
+    const flattenText = (el) => [el.textContent || "", el.innerHTML || ""]
+      .concat((el.children || []).map(flattenText))
+      .join(" ");
+    const findByClass = (el, className) => {
+      if ((el.className || "").split(/\s+/).includes(className)) return el;
+      for (const child of el.children || []) {
+        const found = findByClass(child, className);
+        if (found) return found;
+      }
+      return null;
+    };
+    const list = makeEl();
+    document.getElementById = (id) => id === "mission-list" ? list : null;
+    document.createElement = () => makeEl();
+
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[0];
+    game.currentPlanetIndex = 0;
+    game.completedMissions = new Set(PLANETS[0].missions.map(mission => mission.id));
+    game.requiredCollectiblesTotal = 2;
+    game.requiredCollectiblesCollected = 1;
+    game.discoveryPassCounts = { "earth-gravity-wall": 1 };
+
+    updateMissionList(game);
+    const contract = findByClass(list, "lab-star-contract");
+    const text = flattenText(contract || list);
+    assertEquals(true, !!contract, "Mission panel should append a lab-star contract");
+    assertEquals(true, /LAB STARS/.test(text), "Contract should identify the star target");
+    assertEquals(true, /2\/3/.test(text), "Contract should show current star count");
+    assertEquals(true, /OK Mission tasks/.test(text), "Contract should credit completed mission tasks");
+    assertEquals(true, /NEXT Mission gems/.test(text), "Contract should show missing gem star");
+    assertEquals(true, /OK Science proof/.test(text), "Contract should credit science proof");
+    document.getElementById = oldGetElementById22h;
+    document.createElement = oldCreateElement22h;
+    renderTestResult("engine-suite", "Curriculum: mission panel shows lab-star contract", true);
+  } catch (err) {
+    document.getElementById = oldGetElementById22h;
+    document.createElement = oldCreateElement22h;
+    renderTestResult("engine-suite", "Curriculum: mission panel shows lab-star contract", false, err.message);
+  }
+
   // Test 23: Mission Coach copy avoids hidden old mode names
   try {
     const texts = [];

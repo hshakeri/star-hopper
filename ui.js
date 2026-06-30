@@ -423,6 +423,51 @@ function updateMissionList(game) {
     portalItem.appendChild(portalLabel);
     listContainer.appendChild(portalItem);
   }
+
+  appendLabStarContract(listContainer, game);
+}
+
+function appendLabStarContract(listContainer, game) {
+  if (!listContainer || !game || typeof game.getClearLabStarSummary !== 'function') return;
+  const summary = game.getClearLabStarSummary();
+  if (!summary || !Array.isArray(summary.checks) || summary.checks.length === 0) return;
+
+  const contract = document.createElement("div");
+  contract.className = "lab-star-contract";
+
+  const head = document.createElement("div");
+  head.className = "lab-star-contract-head";
+
+  const title = document.createElement("span");
+  title.textContent = "LAB STARS";
+
+  const score = document.createElement("strong");
+  score.textContent = `${summary.stars}/${summary.maxStars}`;
+
+  const meter = document.createElement("span");
+  meter.className = "lab-star-contract-meter";
+  for (let i = 0; i < summary.maxStars; i++) {
+    const star = document.createElement("span");
+    star.className = i < summary.stars ? "earned" : "";
+    star.textContent = "★";
+    meter.appendChild(star);
+  }
+
+  head.appendChild(title);
+  head.appendChild(meter);
+  head.appendChild(score);
+  contract.appendChild(head);
+
+  const goals = document.createElement("div");
+  goals.className = "lab-star-goals";
+  summary.checks.forEach(check => {
+    const goal = document.createElement("span");
+    goal.className = `lab-star-goal ${check.earned ? "earned" : ""}`;
+    goal.textContent = `${check.earned ? "OK" : "NEXT"} ${check.label}`;
+    goals.appendChild(goal);
+  });
+  contract.appendChild(goals);
+  listContainer.appendChild(contract);
 }
 
 function getActivePlatformerMission(game) {
