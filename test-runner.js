@@ -5308,6 +5308,106 @@ function runDiagnosticsTests() {
   } catch (err) {
     renderTestResult(SUITE, "Diagnosis: healthy build falls back to timing advice", false, err.message);
   }
+
+  // Test D6: clicking a crash-lab fix carries its suggested hypothesis into the next attempt.
+  const oldGetElementByIdD6 = document.getElementById;
+  const oldCreateElementD6 = document.createElement;
+  const oldWindowGameD6 = window.Game;
+  try {
+    const makeClassList = () => {
+      const classes = new Set();
+      return {
+        toggle(name, force) {
+          const shouldHave = force === undefined ? !classes.has(name) : !!force;
+          if (shouldHave) classes.add(name);
+          else classes.delete(name);
+          return shouldHave;
+        },
+        contains(name) { return classes.has(name); },
+        add(name) { classes.add(name); },
+        remove(name) { classes.delete(name); }
+      };
+    };
+    const makeEl = () => {
+      let html = "";
+      return {
+        className: "",
+        textContent: "",
+        title: "",
+        type: "",
+        style: {},
+        dataset: {},
+        children: [],
+        _events: {},
+        classList: makeClassList(),
+        get innerHTML() { return html; },
+        set innerHTML(value) { html = value; this.children = []; },
+        appendChild(child) { this.children.push(child); return child; },
+        addEventListener(event, fn) { this._events[event] = fn; },
+        querySelector() { return null; },
+        querySelectorAll() { return []; },
+        focus() { this.focused = true; },
+        setSelectionRange(start, end) { this.selection = [start, end]; }
+      };
+    };
+    const title = makeEl();
+    const cause = makeEl();
+    const msg = makeEl();
+    const formula = makeEl();
+    const choices = makeEl();
+    const input = makeEl();
+    const hypLabel = makeEl();
+    const hypButtons = ["higher", "lower", "same"].map(choice => ({ dataset: { choice }, title: "", classList: makeClassList() }));
+    const hypothesis = makeEl();
+    hypothesis.querySelector = (selector) => selector === ".hypothesis-label" ? hypLabel : null;
+    hypothesis.querySelectorAll = (selector) => selector === ".hypothesis-btn" ? hypButtons : [];
+
+    document.getElementById = (id) => ({
+      "failure-title": title,
+      "failure-cause": cause,
+      "failure-msg": msg,
+      "failure-formula": formula,
+      "failure-choices": choices,
+      "failure-hypothesis": hypothesis,
+      "console-input": input
+    }[id] || null);
+    document.createElement = () => makeEl();
+    AttemptLog.byPlanet = {};
+    AttemptLog.pendingPrediction = null;
+    window.Game = {
+      resetLevel() {
+        attemptLogStart({ currentPlanetIndex: 0, retryAttempt: 1, currentVariant: { isRemix: false } });
+      }
+    };
+
+    renderFailureLab(makeDiagGame({
+      getActiveMass: () => 2.5,
+      getJumpForce: () => 10,
+      lastFailure: { tag: "fall", cause: "fell out of bounds!" }
+    }));
+
+    assertEquals(true, choices.children.length >= 1, "Crash lab should render at least one staged fix");
+    const firstFix = choices.children[0];
+    assertEquals("higher", firstFix.dataset.prediction, "Jump-arc fix should recommend a higher-height hypothesis");
+    assertEquals(true, hypButtons[0].classList.contains("recommended"), "Higher hypothesis button is marked as recommended");
+    assertEquals(true, /max height/.test(hypLabel.textContent), "Crash lab hypothesis label names the measured telemetry");
+    const stagedCommand = firstFix.children.find(child => child.className === "failure-choice-code").textContent;
+    firstFix._events.click();
+    assertEquals("higher", AttemptLog.byPlanet[0][0].prediction, "Suggested hypothesis attaches to the next attempt before reset");
+    assertEquals(null, AttemptLog.pendingPrediction, "Pending hypothesis is consumed by the new attempt row");
+    assertEquals(stagedCommand, input.value, "Clicking the fix still stages the command in the console");
+    assertEquals(true, input.focused, "Clicking the fix focuses the console for the next experiment");
+
+    document.getElementById = oldGetElementByIdD6;
+    document.createElement = oldCreateElementD6;
+    window.Game = oldWindowGameD6;
+    renderTestResult(SUITE, "Diagnosis: staged fixes carry next-attempt hypotheses", true);
+  } catch (err) {
+    document.getElementById = oldGetElementByIdD6;
+    document.createElement = oldCreateElementD6;
+    window.Game = oldWindowGameD6;
+    renderTestResult(SUITE, "Diagnosis: staged fixes carry next-attempt hypotheses", false, err.message);
+  }
 }
 
 // Suite 7: Experiment Log — the notebook's per-attempt table

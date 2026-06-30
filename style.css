@@ -1991,6 +1991,13 @@ body.resizing-panes * {
   font-size: 0.72rem;
   color: var(--text-muted);
 }
+.failure-choice-prediction {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--neon-cyan);
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
 .failure-hint {
   font-size: 0.7rem;
   color: var(--text-muted);
@@ -2026,6 +2033,14 @@ body.resizing-panes * {
   transition: all 0.15s ease;
 }
 .hypothesis-btn:hover { background: rgba(56, 189, 248, 0.2); }
+.hypothesis-btn.recommended {
+  border-color: rgba(250, 204, 21, 0.72);
+  box-shadow: 0 0 8px rgba(250, 204, 21, 0.16);
+}
+.hypothesis-btn.recommended::after {
+  content: " try";
+  color: var(--neon-yellow);
+}
 .hypothesis-btn.selected {
   background: var(--neon-cyan);
   color: #030712;
