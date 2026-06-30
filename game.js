@@ -2745,14 +2745,25 @@ class StarHopperGame {
 
     const gained = current - previous;
     this._labStarPreviewCount = current;
-    this.lastLabStarPulse = { stars: current, gained, reason };
+    const earnedGoals = summary.checks
+      .filter(check => check && check.earned)
+      .slice(previous, current)
+      .map(check => {
+        if (check.id === "missions") return "Tasks";
+        if (check.id === "gems") return "Samples";
+        if (check.id === "science") return "Proof";
+        return check.label || "Goal";
+      });
+    const goalLabel = earnedGoals.length ? earnedGoals.join(" + ") : "Mastery goal";
+    this.lastLabStarPulse = { stars: current, gained, reason, goals: earnedGoals, goalLabel };
     const label = gained > 1 ? `LAB STARS +${gained}` : "LAB STAR +1";
     if (typeof ui_log_output === 'function') {
-      ui_log_output(`${label}: ${current}/${summary.maxStars} mastery goals complete.`, "success");
+      ui_log_output(`${label}: ${goalLabel} (${current}/${summary.maxStars} mastery goals complete).`, "success");
     }
     if (typeof SFX !== 'undefined' && SFX.playSuccess) SFX.playSuccess();
     if (this.player && typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
       ComicBubbles.pop(this.player.x + this.player.w / 2, this.player.y - 18, label, "#facc15", 1.12);
+      ComicBubbles.pop(this.player.x + this.player.w / 2, this.player.y + 2, goalLabel.toUpperCase(), "#a7f3d0", 0.78);
     }
     if (this.player && typeof Particles !== 'undefined' && Particles.spawnBurst) {
       Particles.spawnBurst(this.player.x + this.player.w / 2, this.player.y + this.player.h / 2, '#facc15', 16, 2.8, 2.8, 'glow');

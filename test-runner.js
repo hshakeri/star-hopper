@@ -2046,10 +2046,10 @@ function runEngineTests() {
   const oldParticleBurst22g = Particles.spawnBurst;
   const oldSfxSuccess22g = SFX.playSuccess;
   try {
-    let bubbleCount = 0;
+    const bubbleLabels22g = [];
     let particleCount = 0;
     let sfxCount = 0;
-    ComicBubbles.pop = () => { bubbleCount++; };
+    ComicBubbles.pop = (x, y, text) => { bubbleLabels22g.push(text); };
     Particles.spawnBurst = () => { particleCount++; };
     SFX.playSuccess = () => { sfxCount++; };
 
@@ -2066,7 +2066,10 @@ function runEngineTests() {
     assertEquals(2, game.checkLabStarProgress("test"), "Two newly earned stars should be reported");
     assertEquals(3, game._labStarPreviewCount, "Preview count should advance to the current star count");
     assertEquals("test", game.lastLabStarPulse.reason, "Pulse should remember why it fired");
-    assertEquals(1, bubbleCount, "Visual reward bubble should pop once");
+    assertEquals("Samples + Proof", game.lastLabStarPulse.goalLabel, "Pulse should name the earned mastery goals");
+    assertEquals(2, bubbleLabels22g.length, "Visual reward should pop the star and goal bubbles");
+    assertEquals(true, bubbleLabels22g.includes("LAB STARS +2"), "Visual reward should show the lab-star gain");
+    assertEquals(true, bubbleLabels22g.includes("SAMPLES + PROOF"), "Visual reward should name the earned goal categories");
     assertEquals(1, particleCount, "Particle reward should burst once");
     assertEquals(1, sfxCount, "Success chime should play once");
     assertEquals(0, game.checkLabStarProgress("test"), "Calling again without progress should not repeat the reward");
