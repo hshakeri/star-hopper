@@ -1431,6 +1431,10 @@ function updateFormulaTarget(game) {
     return;
   }
   panel.classList.remove("hidden");
+  const sample = target.sampleCode || target.cue || "";
+  const axis = target.axis || target.formula || "One science idea";
+  const move = target.move || "Change one code value";
+  const payoff = target.payoff || `Collect ${target.title} + Research XP`;
   panel.innerHTML = `
     <div class="formula-target-head">
       <span>NEXT FORMULA CARD</span>
@@ -1438,6 +1442,12 @@ function updateFormulaTarget(game) {
     </div>
     <div class="formula-target-title">${escapeHTML(target.title)}</div>
     <div class="formula-target-body">${escapeHTML(target.cue)}</div>
+    <div class="formula-target-steps">
+      <span><b>LEARN</b>${escapeHTML(axis)}</span>
+      <span><b>CODE</b>${escapeHTML(move)}</span>
+      <span><b>WIN</b>${escapeHTML(payoff)}</span>
+    </div>
+    <code class="formula-target-code">${escapeHTML(sample)}</code>
   `;
 }
 

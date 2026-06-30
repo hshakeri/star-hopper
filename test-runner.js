@@ -1842,6 +1842,13 @@ function runEngineTests() {
     assertEquals(true, /NEXT FORMULA CARD/.test(panel.innerHTML), "CRT should label the next card target");
     assertEquals(true, /Mass Lab/.test(panel.innerHTML), "CRT should advance to the next Earth formula card");
     assertEquals(true, /1\/9/.test(panel.innerHTML), "CRT should show collection progress");
+    assertEquals(true, /LEARN/.test(panel.innerHTML), "CRT formula target should label the science idea");
+    assertEquals(true, /Mass controls acceleration/.test(panel.innerHTML), "CRT formula target should name the concept axis");
+    assertEquals(true, /CODE/.test(panel.innerHTML), "CRT formula target should label the coding move");
+    assertEquals(true, /Tune hopper\.mass once/.test(panel.innerHTML), "CRT formula target should name the exact code move");
+    assertEquals(true, /WIN/.test(panel.innerHTML), "CRT formula target should label the payoff");
+    assertEquals(true, /Open lighter-build routes/.test(panel.innerHTML), "CRT formula target should show the in-game payoff");
+    assertEquals(true, /hopper\.mass = 1\.0/.test(panel.innerHTML), "CRT formula target should show the runnable sample command");
     document.getElementById = oldGetElementById22d;
     renderTestResult("engine-suite", "Curriculum: CRT surfaces next formula card target", true);
   } catch (err) {
