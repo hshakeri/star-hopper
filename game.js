@@ -29,6 +29,19 @@ function dateSeedFallback(value) {
   return h >>> 0;
 }
 
+function createEmptyCodeRunStats() {
+  return {
+    repeatLoops: 0,
+    forLoops: 0,
+    repeatIterations: 0,
+    forIterations: 0,
+    functionCalls: {},
+    spawnTypes: {},
+    repeatSpawnTypes: {},
+    loopSpawnTypes: {}
+  };
+}
+
 class StarHopperGame {
   constructor() {
     this.unlockedUpgrades = new Set(); // legacy fully-unlocked limits (persists in profile)
@@ -56,6 +69,7 @@ class StarHopperGame {
     // Spawned entities from user terminal commands
     this.spawnedBoxes = [];
     this.spawnedSprings = [];
+    this.codeRunStats = createEmptyCodeRunStats();
 
     // Infinite-tank toggle (accessibility/sandbox): when on, the fuel tank never runs out so
     // kids can fly and experiment freely. Persisted so it survives a reload.
@@ -963,6 +977,31 @@ class StarHopperGame {
     return Compiler.activeRules.some(check);
   }
 
+  recordCodeRunStats(stats) {
+    if (!stats) return;
+    if (!this.codeRunStats) this.codeRunStats = createEmptyCodeRunStats();
+    const mergeCountMap = (key) => {
+      const src = stats[key] || {};
+      const dst = this.codeRunStats[key] || {};
+      for (const name in src) dst[name] = (dst[name] || 0) + src[name];
+      this.codeRunStats[key] = dst;
+    };
+    this.codeRunStats.repeatLoops += stats.repeatLoops || 0;
+    this.codeRunStats.forLoops += stats.forLoops || 0;
+    this.codeRunStats.repeatIterations += stats.repeatIterations || 0;
+    this.codeRunStats.forIterations += stats.forIterations || 0;
+    mergeCountMap('functionCalls');
+    mergeCountMap('spawnTypes');
+    mergeCountMap('repeatSpawnTypes');
+    mergeCountMap('loopSpawnTypes');
+  }
+
+  hasRepeatSpawned(type, minCount = 1) {
+    const stats = this.codeRunStats || {};
+    const repeatSpawns = (stats.repeatSpawnTypes && stats.repeatSpawnTypes[type]) || 0;
+    return repeatSpawns >= minCount;
+  }
+
   isEarthHopperEngineered() {
     return !!(this.player && this.player.charType === 'hopper' && this.getAgility() >= this.getAgilityTarget());
   }
@@ -1018,6 +1057,20 @@ class StarHopperGame {
         label: `boost jump_power to 18+ and use a repeat loop to spawn ${n} springs`,
         short: `JUMP 18+ & ${n} SPRINGS!`,
         validate: (game) => game.player && game.player.jumpPower >= 18 && game.spawnedSprings.length >= n
+      };
+    }
+    // Moon, "strict spring": spawned springs must come from a repeat loop, so this
+    // replay validates the coding construct, not only the final object count.
+    if (c && c.id === "moon-strict-spring" && planetIndex === 1) {
+      const n = c.springCount;
+      return {
+        id: "moon-strict-spring-gems",
+        label: `set hopper.jump_power to 18+ and run repeat ${n}: spawn_spring() so the springs come from one loop`,
+        short: `REPEAT ${n} SPRINGS + JUMP 18!`,
+        validate: (game) => game.player
+          && game.player.jumpPower >= 18
+          && game.spawnedSprings.length >= n
+          && game.hasRepeatSpawned('spring', n)
       };
     }
     // Glacies, "event-only": every gem requires the when player.touching('ice') rule.
@@ -1396,6 +1449,7 @@ class StarHopperGame {
     this.interactiveObjects = [];
     this.spawnedBoxes = [];
     this.spawnedSprings = [];
+    this.codeRunStats = createEmptyCodeRunStats();
     
     this.cameraX = 0;
     this.coinsCollected = 0;

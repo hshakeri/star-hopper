@@ -10,7 +10,7 @@
 // RETRY (attempt >= 1). Each retry cycles a deterministic FLAVOR for that planet:
 //   • geometry/target flavors — move collectibles, retune the numeric goal
 //   • constraint flavors      — same gate, but a new rule on HOW you may clear it
-//     (Earth: no antigravity · Moon: loop a spring budget · Glacies: event rule / friction target)
+//     (Earth: no antigravity · Moon: loop a spring budget / strict springs · Glacies: event rule / friction target)
 // Seeded by (planetIndex, attemptNumber) so a given retry is reproducible/shareable.
 //
 // A flavor returns { map, variantLabel, targetOverrides, constraint }. The game reads
@@ -219,6 +219,18 @@ function moonTrampolineMixer(planet, rng) {
   rvShiftTilesV(map, 3, rvPick(rng, [-1, 1]));
   return { map, variantLabel: "gems and launchpads scattered · plan a new route", targetOverrides: {}, constraint: null };
 }
+function moonStrictSpringLoop(planet, rng) {
+  const map = cloneMap(planet.map);
+  rvShiftTilesH(map, 3, rvPick(rng, [-1, 1]));
+  rvShiftTilesH(map, 4, rvPick(rng, [-1, 1]));
+  const n = 5;
+  return {
+    map,
+    variantLabel: `🔁 Strict spring loop — repeat-spawn ${n} springs, then tune jump`,
+    targetOverrides: {},
+    constraint: { id: "moon-strict-spring", springCount: n, requireRepeatSpring: true }
+  };
+}
 
 // JUPITER — was a single flavor. Add vertical drift + a tougher thrust push.
 function jupiterVerticalCrates(planet, rng) {
@@ -313,7 +325,7 @@ function forgeBounceMixer(planet, rng) {
 // geometry/target flavors fill out the rotation for depth.
 const PLANET_FLAVORS = {
   0: [earthGeometry, earthNoAntigrav, earthVerticalShift, earthMixedShift],
-  1: [moonGeometry, moonSpringBudget, moonVerticalGems, moonTrampolineMixer],
+  1: [moonGeometry, moonSpringBudget, moonVerticalGems, moonTrampolineMixer, moonStrictSpringLoop],
   2: [jupiterGeometry, jupiterVerticalCrates, jupiterThrustPush, jupiterRocketRule],
   3: [glaciesGeometry, glaciesEventOnly, glaciesVerticalSlide, glaciesFrictionTarget],
   4: [magnetPoleFlip, magnetDoubleFlip, magnetGemDrift, magnetPolarityEvent],

@@ -392,16 +392,33 @@ class Parser {
 // ----------------------------------------------------
 // 3. SAFE AST INTERPRETER
 // ----------------------------------------------------
+function createKidCodeRunStats() {
+  return {
+    repeatLoops: 0,
+    forLoops: 0,
+    repeatIterations: 0,
+    forIterations: 0,
+    functionCalls: {},
+    spawnTypes: {},
+    repeatSpawnTypes: {},
+    loopSpawnTypes: {}
+  };
+}
+
 class KidCodeInterpreter {
   constructor(game) {
     this.game = game;
     this.spawnsThisRun = 0;
     this.steps = 0;
+    this.loopStack = [];
+    this.stats = createKidCodeRunStats();
   }
 
   evaluate(ast, customLocals = {}) {
     this.spawnsThisRun = 0;
     this.steps = 0;
+    this.loopStack = [];
+    this.stats = createKidCodeRunStats();
     // Wall-clock guard: a defense-in-depth backstop for a merely *slow* run (the
     // 200-step / 30-iteration caps already make infinite loops impossible). Stamped
     // here, checked in execute(). performance.now() with a Date.now() fallback for node.
@@ -464,11 +481,18 @@ class KidCodeInterpreter {
         }
 
         let last = null;
-        for (let i = 0; i < limitVal; i++) {
-          const newLocals = { ...locals, [node.iterator]: i };
-          for (const s of node.body) {
-            last = this.execute(s, newLocals);
+        this.stats.forLoops++;
+        this.loopStack.push('for');
+        try {
+          for (let i = 0; i < limitVal; i++) {
+            this.stats.forIterations++;
+            const newLocals = { ...locals, [node.iterator]: i };
+            for (const s of node.body) {
+              last = this.execute(s, newLocals);
+            }
           }
+        } finally {
+          this.loopStack.pop();
         }
         return last;
       }
@@ -483,10 +507,17 @@ class KidCodeInterpreter {
         }
 
         let last = null;
-        for (let i = 0; i < limitVal; i++) {
-          for (const s of node.body) {
-            last = this.execute(s, locals);
+        this.stats.repeatLoops++;
+        this.loopStack.push('repeat');
+        try {
+          for (let i = 0; i < limitVal; i++) {
+            this.stats.repeatIterations++;
+            for (const s of node.body) {
+              last = this.execute(s, locals);
+            }
           }
+        } finally {
+          this.loopStack.pop();
         }
         return last;
       }
@@ -549,6 +580,7 @@ class KidCodeInterpreter {
 
         // Call the sandboxed runtime functions
         if (fnName in runtimeContext.functions) {
+          this.recordFunctionCall(fnName, resolvedArgs);
           // Safeguard item spawning limits
           if (fnName === 'spawn' || fnName.startsWith('spawn_')) {
             this.spawnsThisRun++;
@@ -577,6 +609,31 @@ class KidCodeInterpreter {
       default:
         throw new KidCodeError("Unknown expression parsed.");
     }
+  }
+
+  recordFunctionCall(fnName, args) {
+    this.stats.functionCalls[fnName] = (this.stats.functionCalls[fnName] || 0) + 1;
+    const spawnType = this.getSpawnTypeFromCall(fnName, args);
+    if (!spawnType) return;
+    this.stats.spawnTypes[spawnType] = (this.stats.spawnTypes[spawnType] || 0) + 1;
+    if (this.loopStack.length > 0) {
+      this.stats.loopSpawnTypes[spawnType] = (this.stats.loopSpawnTypes[spawnType] || 0) + 1;
+    }
+    if (this.loopStack.includes('repeat')) {
+      this.stats.repeatSpawnTypes[spawnType] = (this.stats.repeatSpawnTypes[spawnType] || 0) + 1;
+    }
+  }
+
+  getSpawnTypeFromCall(fnName, args) {
+    if (fnName === 'spawn') {
+      const type = String(args && args[0] !== undefined ? args[0] : '').toLowerCase();
+      if (!type) return null;
+      return type === 'gem' ? 'coin' : type;
+    }
+    if (fnName === 'spawn_spring') return 'spring';
+    if (fnName === 'spawn_box') return 'box';
+    if (fnName === 'spawn_gem' || fnName === 'spawn_coin') return 'coin';
+    return null;
   }
 
   getVariable(name) {
@@ -1040,6 +1097,7 @@ class CompilerSingleton {
     // List of active 'when' triggers: { target, eventArgs, bodyAST }
     this.activeRules = [];
     this.previousOnGround = false;
+    this.lastRunStats = createKidCodeRunStats();
     this.autocomplete = new AutocompleteEngine();
   }
 
@@ -1071,6 +1129,7 @@ class CompilerSingleton {
     };
     this.activeRules = [];
     this.previousOnGround = false;
+    this.lastRunStats = createKidCodeRunStats();
   }
 
   // Parses and runs a block of KidCode
@@ -1084,6 +1143,10 @@ class CompilerSingleton {
       
       const interpreter = new KidCodeInterpreter(game);
       const result = interpreter.evaluate(ast);
+      this.lastRunStats = interpreter.stats;
+      if (game && typeof game.recordCodeRunStats === 'function') {
+        game.recordCodeRunStats(interpreter.stats);
+      }
 
       return {
         success: true,

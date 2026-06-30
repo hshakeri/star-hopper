@@ -182,6 +182,8 @@ function runSafetyTests() {
     const res = Compiler.runCommand("repeat 5: spawn_box()", mockGame);
     assertEquals(true, res.success);
     assertEquals(5, spawnCount, "Should spawn exactly 5 boxes");
+    assertEquals(1, Compiler.lastRunStats.repeatLoops, "Run stats should record one repeat loop");
+    assertEquals(5, Compiler.lastRunStats.repeatSpawnTypes.box, "Run stats should record boxes spawned from the repeat loop");
     renderTestResult("safety-suite", "Repeat Loop executes under limit (repeat 5)", true);
   } catch (err) {
     renderTestResult("safety-suite", "Repeat Loop executes under limit (repeat 5)", false, err.message);
@@ -632,6 +634,31 @@ function runEngineTests() {
 
   // Test 17d: late mastery remixes add coding constraints without replacing the physics gate.
   try {
+    Compiler.reset();
+    const moon = new StarHopperGame();
+    moon.currentPlanet = PLANETS[1];
+    moon.currentPlanetIndex = 1;
+    moon.currentVariant = {
+      map: PLANETS[1].map,
+      constraint: { id: "moon-strict-spring", springCount: 5, requireRepeatSpring: true }
+    };
+    moon.player = { charType: 'hopper', jumpPower: 18, rocketPower: 40, mass: 1.2, spikes: false };
+    moon.spawnedSprings = [{}, {}, {}, {}, {}];
+    moon.codeRunStats = createEmptyCodeRunStats();
+    const moonGem = { type: 'coin', requiredCollectible: true, collected: false, gemGate: moon.getGemGateForCollectible(1, 4, 12) };
+    assertEquals(false, moon.canCollectGem(moonGem), "Moon strict replay should not accept manually accumulated springs");
+    moon.recordCodeRunStats({
+      repeatLoops: 1,
+      forLoops: 0,
+      repeatIterations: 5,
+      forIterations: 0,
+      functionCalls: { spawn_spring: 5 },
+      spawnTypes: { spring: 5 },
+      repeatSpawnTypes: { spring: 5 },
+      loopSpawnTypes: { spring: 5 }
+    });
+    assertEquals(true, moon.canCollectGem(moonGem), "Moon strict replay should unlock after repeat-spawned springs and jump tuning");
+
     Compiler.reset();
     const jupiter = new StarHopperGame();
     jupiter.currentPlanet = PLANETS[2];
@@ -3050,6 +3077,17 @@ function runRetryRemixTests() {
     renderTestResult(SUITE, "Variant: Moon flavor rotation surfaces a loop spring-budget", false, err.message);
   }
 
+  // Test R8a: later Moon retries surface the stricter repeat-loop spring replay.
+  try {
+    const v = buildPlanetVariant(PLANETS[1], 1, 5);
+    assertEquals("moon-strict-spring", v.constraint && v.constraint.id, "Moon retry 5 should require strict repeat-spawned springs");
+    assertEquals(true, v.constraint.requireRepeatSpring, "Strict spring replay should require repeat-loop spawn evidence");
+    assertEquals(5, v.constraint.springCount, "Strict spring replay should request the five-spring loop");
+    renderTestResult(SUITE, "Variant: Moon rotation surfaces strict spring loop", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Variant: Moon rotation surfaces strict spring loop", false, err.message);
+  }
+
   // Test R9: Glacies retry 2 is the "event-only" constraint (forces the ice rule)
   try {
     const v = buildPlanetVariant(PLANETS[3], 3, 2);
@@ -3537,7 +3575,23 @@ function runDiagnosticsTests() {
     renderTestResult(SUITE, "Diagnosis: remix constraint removes banned levers", false, err.message);
   }
 
-  // Test D2b: Glacies friction-target remix stages the exact numeric variable.
+  // Test D2b: Moon strict-spring remix stages the repeat-loop pattern.
+  try {
+    const d = diagnoseFailure(makeDiagGame({
+      currentPlanetIndex: 1,
+      currentVariant: { constraint: { id: "moon-strict-spring", springCount: 5, requireRepeatSpring: true } },
+      player: { charType: "hopper", jumpPower: 18, spikes: false },
+      spawnedSprings: [{}, {}, {}],
+      hasRepeatSpawned: () => false
+    }));
+    assertEquals(true, /Spring loop 3 \/ 5/.test(d.title), "Title should show the spring-loop gap: " + d.title);
+    assertEquals(true, d.choices.some((c) => c.command === "repeat 5: spawn_spring()"), "Should stage the strict repeat-spring command");
+    renderTestResult(SUITE, "Diagnosis: Moon strict spring stages loop fix", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Diagnosis: Moon strict spring stages loop fix", false, err.message);
+  }
+
+  // Test D2c: Glacies friction-target remix stages the exact numeric variable.
   try {
     const d = diagnoseFailure(makeDiagGame({
       currentPlanetIndex: 3,
