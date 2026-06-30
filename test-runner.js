@@ -1166,6 +1166,46 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: correct predictions earn hypothesis bonuses", false, err.message);
   }
 
+  // Test 22bc: Loop Engineer's Combo Amplifier pays only for chained NEW progress.
+  const oldGetElementById22bc = document.getElementById;
+  try {
+    const activeMission = PLANETS[0].missions.find(mission => mission.id === "earth-gravity-wall");
+    const complete = {
+      allPassed: true,
+      items: [
+        { id: "earth-hopper-active", label: "Hopper activated", passed: true, message: "Hopper active" },
+        { id: "earth-emerald-gates", label: "Agility 30+ reached", passed: true, message: "Gate open" }
+      ]
+    };
+    const panel = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };
+    document.getElementById = (id) => id === "discovery-pulse" ? panel : null;
+
+    const game = new StarHopperGame();
+    game.player = { x: 100, y: 120, w: 24, h: 32 };
+    game.researchXP = 120;
+    game.discoveryCombo = 2;
+    game.discoveryPassCounts = { [activeMission.id]: 1 };
+    game.discoveredFormulaKinds = new Set(["engine"]);
+    const beforeXP = game.researchXP;
+    const pulse = recordDiscoveryPulse(game, activeMission, "hopper.engine = 6", complete, 0);
+    assertEquals(3, pulse.combo, "New progress extends the existing combo");
+    assertEquals(3, pulse.comboBonusXP, "Base combo bonus still tracks the chain length");
+    assertEquals(4, pulse.comboAmplifierBonusXP, "Loop Engineer adds the amplifier bonus");
+    assertEquals(true, game.researchXP > beforeXP, "Amplified combo still awards Research XP");
+    assertEquals(true, /COMBO AMPLIFIER \+4 XP/.test(panel.innerHTML), "Discovery pulse renders the amplifier chip");
+
+    const afterXP = game.researchXP;
+    recordDiscoveryPulse(game, activeMission, "hopper.engine = 6", complete, 0);
+    assertEquals(afterXP, game.researchXP, "Repeating completed progress does not farm amplifier XP");
+    assertEquals(3, game.discoveryCombo, "Repeating completed progress does not extend the combo");
+
+    document.getElementById = oldGetElementById22bc;
+    renderTestResult("engine-suite", "Curriculum: combo amplifier rewards chained progress", true);
+  } catch (err) {
+    document.getElementById = oldGetElementById22bc;
+    renderTestResult("engine-suite", "Curriculum: combo amplifier rewards chained progress", false, err.message);
+  }
+
   // Test 22c: Research rank and discovery deck render a readable learning collection.
   const oldGetElementById22c = document.getElementById;
   try {

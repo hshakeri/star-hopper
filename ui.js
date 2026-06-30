@@ -1280,6 +1280,22 @@ function inferDiscoveryPulse(game, activeMission, code, resultState, openedGems 
   };
 }
 
+function getDiscoveryComboBonus(game, comboCount, rank = null) {
+  const combo = Math.max(0, Math.floor(Number(comboCount) || 0));
+  const researchRank = rank || (typeof getResearchRank === 'function'
+    ? getResearchRank(game && Number.isFinite(game.researchXP) ? game.researchXP : 0)
+    : null);
+  const base = Math.min(8, combo);
+  const amplifierUnlocked = !!(researchRank && researchRank.level >= 4);
+  const amplifier = amplifierUnlocked && combo > 1 ? Math.min(12, (combo - 1) * 2) : 0;
+  return {
+    base,
+    amplifier,
+    total: base + amplifier,
+    amplifierUnlocked
+  };
+}
+
 function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems = 0) {
   if (!game) return null;
   const pulse = inferDiscoveryPulse(game, activeMission, code, resultState, openedGems);
@@ -1302,7 +1318,11 @@ function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems
     pulse.cardUnlocked = cardUnlocked;
     pulse.hypothesisConfirmed = !!hypothesis;
     pulse.hypothesisBonusXP = hypothesis ? hypothesis.xp : 0;
-    pulse.rewardXP = 5 + newPasses * 4 + opened * 3 + (finalPassBonus ? 6 : 0) + (cardUnlocked ? 5 : 0) + Math.min(8, game.discoveryCombo) + pulse.hypothesisBonusXP;
+    const comboBonus = getDiscoveryComboBonus(game, game.discoveryCombo, beforeRank);
+    pulse.comboBonusXP = comboBonus.base;
+    pulse.comboAmplifierBonusXP = comboBonus.amplifier;
+    pulse.comboAmplifierUnlocked = comboBonus.amplifierUnlocked;
+    pulse.rewardXP = 5 + newPasses * 4 + opened * 3 + (finalPassBonus ? 6 : 0) + (cardUnlocked ? 5 : 0) + comboBonus.total + pulse.hypothesisBonusXP;
     if (cardUnlocked && typeof game.spawnFormulaCardEffect === 'function') {
       game.spawnFormulaCardEffect(pulse);
     }
@@ -1330,6 +1350,9 @@ function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems
       ui_log_output(`Research +${pulse.rewardXP} XP: ${pulse.formula}`, "success");
       if (pulse.hypothesisConfirmed) {
         ui_log_output(`Hypothesis confirmed +${pulse.hypothesisBonusXP} XP.`, "success");
+      }
+      if (pulse.comboAmplifierBonusXP > 0) {
+        ui_log_output(`Combo Amplifier +${pulse.comboAmplifierBonusXP} XP for chaining new lab progress.`, "success");
       }
       if (pulse.rankPerk) {
         ui_log_output(`Lab Perk unlocked: ${pulse.rankPerk.label}.`, "success");
@@ -1367,6 +1390,13 @@ function updateDiscoveryPulse(game) {
   const progress = pulse.progressLabel || (pulse.total > 0 ? `${pulse.passed}/${pulse.total} checks` : "free test");
   const reward = pulse.rankUp ? `Rank Up: ${pulse.rankTitle}` : (pulse.rewardXP > 0 ? `+${pulse.rewardXP} Research XP` : "insight logged");
   const combo = pulse.combo > 1 ? ` x${pulse.combo} combo` : "";
+  const hasComboReward = (pulse.comboBonusXP || 0) > 0 || (pulse.comboAmplifierBonusXP || 0) > 0;
+  const comboChip = hasComboReward && pulse.combo > 1
+    ? `<div class="discovery-hypothesis discovery-combo">COMBO CHAIN x${escapeHTML(String(pulse.combo))}${pulse.comboBonusXP ? ` +${escapeHTML(String(pulse.comboBonusXP))} XP` : ""}</div>`
+    : "";
+  const comboAmplifier = pulse.comboAmplifierBonusXP > 0
+    ? `<div class="discovery-hypothesis discovery-combo-boost">COMBO AMPLIFIER +${escapeHTML(String(pulse.comboAmplifierBonusXP))} XP</div>`
+    : "";
   const hypothesis = pulse.hypothesisConfirmed
     ? `<div class="discovery-hypothesis">HYPOTHESIS CONFIRMED +${escapeHTML(String(pulse.hypothesisBonusXP || 0))} XP</div>`
     : "";
@@ -1379,6 +1409,8 @@ function updateDiscoveryPulse(game) {
       <strong>${escapeHTML(reward)}${escapeHTML(combo)}</strong>
     </div>
     <div class="discovery-pulse-formula">${escapeHTML(pulse.formula)}</div>
+    ${comboChip}
+    ${comboAmplifier}
     ${hypothesis}
     ${rankPerk}
     <div class="discovery-pulse-body">${escapeHTML(pulse.insight)}</div>
