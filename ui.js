@@ -589,10 +589,121 @@ function getResearchRank(xp = 0) {
   };
 }
 
+const SIGNAL_STORY_CHAPTERS = [
+  {
+    id: "earth-signal",
+    title: "Emerald Wall Signal",
+    concept: "Variables change motion",
+    unlock: (game) => hasClearedStoryPlanet(game, 0),
+    body: "The first shard proves that changing mass, thrust, and gravity can turn a blocked path into a solvable experiment."
+  },
+  {
+    id: "moon-loop",
+    title: "Moon Loop Echo",
+    concept: "Loops build repeatable patterns",
+    unlock: (game) => hasClearedStoryPlanet(game, 1),
+    body: "The signal repeats across the canyon. A loop lets one idea become a bridge without rewriting the same command."
+  },
+  {
+    id: "jupiter-thrust",
+    title: "Amber Gravity Well",
+    concept: "Thrust must beat gravity",
+    unlock: (game) => hasClearedStoryPlanet(game, 2),
+    body: "Jupiter's shard teaches that rockets, mass, and fuel form one system: every climb has a cost."
+  },
+  {
+    id: "glacies-grip",
+    title: "Violet Grip Code",
+    concept: "Friction changes control",
+    unlock: (game) => hasClearedStoryPlanet(game, 3),
+    body: "The frozen signal shows how one surface variable can change the whole feel of movement."
+  },
+  {
+    id: "magnet-field",
+    title: "Mag-Net Pulse",
+    concept: "Events react to contact",
+    unlock: (game) => hasClearedStoryPlanet(game, 4),
+    body: "The magnetic shard turns code into a field rule: touch, compare, flip, and watch the force change."
+  },
+  {
+    id: "forge-collision",
+    title: "Forge Collision Map",
+    concept: "Mass comes before bounce",
+    unlock: (game) => hasClearedStoryPlanet(game, 5),
+    body: "The Forge shard makes the lesson explicit: first make the boulder move, then tune how much energy the collision keeps."
+  },
+  {
+    id: "mastery-remix",
+    title: "Remix Key",
+    concept: "Evidence survives a new layout",
+    unlock: (game) => !!(game && game.masteryCleared && Object.values(game.masteryCleared).some(Boolean)),
+    body: "A 3-star mastery means the idea was not luck. The same concept works again when the world changes shape."
+  },
+  {
+    id: "daily-beacon",
+    title: "Daily Beacon",
+    concept: "One fresh experiment per day",
+    unlock: (game) => !!(game && (game.dailySignalClears || 0) > 0),
+    body: "The signal keeps broadcasting new remixes. Returning to test one variable each day builds a real lab habit."
+  }
+];
+
+function hasClearedStoryPlanet(game, index) {
+  if (!game || !game.planetClears) return false;
+  return Number(game.planetClears[index] || game.planetClears[String(index)] || 0) > 0;
+}
+
+function getSignalStoryProgress(game = window.Game) {
+  const chapters = SIGNAL_STORY_CHAPTERS.map((chapter, index) => {
+    const unlocked = !!chapter.unlock(game);
+    return {
+      ...chapter,
+      index: index + 1,
+      unlocked
+    };
+  });
+  const unlocked = chapters.filter(chapter => chapter.unlocked);
+  return {
+    chapters,
+    unlocked,
+    total: chapters.length,
+    nextChapter: chapters.find(chapter => !chapter.unlocked) || null
+  };
+}
+
+function updateSignalStoryPanel(game = window.Game) {
+  const panel = document.getElementById("signal-story-panel");
+  if (!panel) return;
+  const story = getSignalStoryProgress(game);
+  const next = story.nextChapter;
+  panel.innerHTML = `
+    <div class="signal-story-head">
+      <div>
+        <span>STAR-MAP CHAPTERS</span>
+        <strong>${story.unlocked.length}/${story.total} decoded</strong>
+      </div>
+      <em>${next ? `Next: ${escapeHTML(next.title)}` : "Signal complete"}</em>
+    </div>
+    <div class="signal-story-track">
+      ${story.chapters.map(chapter => `
+      <div class="signal-chapter ${chapter.unlocked ? "unlocked" : "locked"}">
+        <span class="signal-chapter-index">${chapter.unlocked ? String(chapter.index).padStart(2, "0") : "--"}</span>
+        <div>
+          <strong>${escapeHTML(chapter.unlocked ? chapter.title : "Locked transmission")}</strong>
+          <code>${escapeHTML(chapter.concept)}</code>
+          <p>${escapeHTML(chapter.unlocked ? chapter.body : `Decode ${chapter.title} by pushing the mission path farther.`)}</p>
+        </div>
+      </div>
+      `).join("")}
+    </div>
+  `;
+}
+
 function updateResearchProgress(game = window.Game) {
   const rankCard = document.getElementById("research-rank-card");
   const deck = document.getElementById("discovery-deck");
-  if (!rankCard && !deck) return;
+  const storyPanel = document.getElementById("signal-story-panel");
+  if (!rankCard && !deck && !storyPanel) return;
   const xp = game && Number.isFinite(game.researchXP) ? game.researchXP : 0;
   const rank = getResearchRank(xp);
 
@@ -638,25 +749,27 @@ function updateResearchProgress(game = window.Game) {
     const collection = getFormulaCollection(game);
     if (!collection.unlocked.length) {
       deck.innerHTML = `<div class="discovery-deck-empty">Run Mission Coach code to collect formula cards here.</div>`;
-      return;
-    }
-    deck.innerHTML = `
-      <div class="formula-collection-head">
-        <strong>Formula Cards ${collection.unlocked.length}/${collection.cards.length}</strong>
-        <span>${collection.nextLocked ? `Next: ${escapeHTML(collection.nextLocked.title)}` : "Deck complete"}</span>
-      </div>
-      ${collection.cards.map(card => `
-      <div class="discovery-card formula-card ${card.unlocked ? "unlocked" : "locked"}">
-        <div class="discovery-card-head">
-          <strong>${escapeHTML(card.title)}</strong>
-          <span>${card.unlocked ? "collected" : "locked"}</span>
+    } else {
+      deck.innerHTML = `
+        <div class="formula-collection-head">
+          <strong>Formula Cards ${collection.unlocked.length}/${collection.cards.length}</strong>
+          <span>${collection.nextLocked ? `Next: ${escapeHTML(collection.nextLocked.title)}` : "Deck complete"}</span>
         </div>
-        <code>${escapeHTML(card.unlocked ? card.formula : "???")}</code>
-        <p>${escapeHTML(card.unlocked ? card.insight : card.cue)}</p>
-      </div>
-      `).join("")}
-    `;
+        ${collection.cards.map(card => `
+        <div class="discovery-card formula-card ${card.unlocked ? "unlocked" : "locked"}">
+          <div class="discovery-card-head">
+            <strong>${escapeHTML(card.title)}</strong>
+            <span>${card.unlocked ? "collected" : "locked"}</span>
+          </div>
+          <code>${escapeHTML(card.unlocked ? card.formula : "???")}</code>
+          <p>${escapeHTML(card.unlocked ? card.insight : card.cue)}</p>
+        </div>
+        `).join("")}
+      `;
+    }
   }
+
+  if (storyPanel) updateSignalStoryPanel(game);
 }
 
 const DISCOVERY_RULES = [

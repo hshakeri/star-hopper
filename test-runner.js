@@ -981,6 +981,55 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: research ranks render discovery deck", false, err.message);
   }
 
+  // Test 22cb: Signal Story turns campaign clears, mastery, and daily practice into a visible narrative trail.
+  const oldGetElementById22cb = document.getElementById;
+  try {
+    const partial = {
+      planetClears: { 0: 1, 1: 1 },
+      masteryCleared: {},
+      dailySignalClears: 0,
+      researchXP: 0,
+      discoveryLog: []
+    };
+    let story = getSignalStoryProgress(partial);
+    assertEquals(2, story.unlocked.length, "Two cleared planets should unlock two story chapters");
+    assertEquals("Amber Gravity Well", story.nextChapter.title, "Next story chapter should point at Jupiter");
+
+    const complete = {
+      planetClears: { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 },
+      masteryCleared: { 0: true },
+      dailySignalClears: 1,
+      researchXP: 0,
+      discoveryLog: []
+    };
+    story = getSignalStoryProgress(complete);
+    assertEquals(8, story.unlocked.length, "Campaign, mastery, and daily progress should unlock every chapter");
+    assertEquals(null, story.nextChapter, "Complete story should have no next locked chapter");
+
+    const els = {
+      "research-rank-card": { innerHTML: "" },
+      "discovery-deck": { innerHTML: "" },
+      "signal-story-panel": { innerHTML: "" }
+    };
+    document.getElementById = (id) => els[id] || null;
+    updateResearchProgress(partial);
+    assertEquals(true, /2\/8 decoded/.test(els["signal-story-panel"].innerHTML), "Story panel should show decoded chapter count");
+    assertEquals(true, /Emerald Wall Signal/.test(els["signal-story-panel"].innerHTML), "Story panel should show unlocked chapters");
+    assertEquals(true, /Next: Amber Gravity Well/.test(els["signal-story-panel"].innerHTML), "Story panel should show the next chapter hook");
+    assertEquals(true, /Run Mission Coach code/.test(els["discovery-deck"].innerHTML), "Empty formula deck should still render while story updates");
+
+    updateSignalStoryPanel(complete);
+    assertEquals(true, /8\/8 decoded/.test(els["signal-story-panel"].innerHTML), "Complete story should render all chapters decoded");
+    assertEquals(true, /Remix Key/.test(els["signal-story-panel"].innerHTML), "Mastery chapter should render");
+    assertEquals(true, /Daily Beacon/.test(els["signal-story-panel"].innerHTML), "Daily chapter should render");
+
+    document.getElementById = oldGetElementById22cb;
+    renderTestResult("engine-suite", "Curriculum: signal story tracks science progression", true);
+  } catch (err) {
+    document.getElementById = oldGetElementById22cb;
+    renderTestResult("engine-suite", "Curriculum: signal story tracks science progression", false, err.message);
+  }
+
   // Test 22cc: Research panel always surfaces the next lab quest.
   const oldGetElementById22cc = document.getElementById;
   try {
