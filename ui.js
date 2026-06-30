@@ -682,6 +682,24 @@ function getResearchRank(xp = 0) {
   };
 }
 
+function getResearchUnlockPreview(rank) {
+  const current = rank || getResearchRank(0);
+  if (current.nextPerk) {
+    return {
+      label: "NEXT LAB UNLOCK",
+      title: `${current.nextPerk.label} in ${Math.round(current.remaining)} XP`,
+      body: `Reach ${current.nextTitle}: ${current.nextPerk.description}`,
+      progress: current.progress
+    };
+  }
+  return {
+    label: "LAB FULLY ONLINE",
+    title: "All lab perks online",
+    body: "Keep clearing Daily Signals and mastery remixes to strengthen the science record.",
+    progress: 1
+  };
+}
+
 const SIGNAL_STORY_CHAPTERS = [
   {
     id: "earth-signal",
@@ -1149,6 +1167,7 @@ function updateStartMissionRadar(game = window.Game) {
   const quest = getActiveLabQuest(game);
   const collection = getFormulaCollection(game);
   const rank = getResearchRank(game && Number.isFinite(game.researchXP) ? game.researchXP : 0);
+  const unlockPreview = getResearchUnlockPreview(rank);
   const action = getStartMissionRadarAction(game, quest);
   const kicker = panel.querySelector ? panel.querySelector(".start-mission-radar-head span") : null;
   const progress = document.getElementById("start-mission-radar-progress");
@@ -1156,12 +1175,20 @@ function updateStartMissionRadar(game = window.Game) {
   const body = document.getElementById("start-mission-radar-body");
   const reward = document.getElementById("start-mission-radar-reward");
   const button = document.getElementById("start-mission-radar-btn");
+  const unlockLabel = document.getElementById("start-rank-preview-label");
+  const unlockTitle = document.getElementById("start-rank-preview-title");
+  const unlockBody = document.getElementById("start-rank-preview-body");
+  const unlockBar = document.getElementById("start-rank-preview-bar");
 
   if (kicker) kicker.textContent = quest ? quest.kicker.replace(/^NEXT\s+/i, "") : "MISSION RADAR";
   if (progress) progress.textContent = `${collection.unlocked.length}/${collection.cards.length} formulas · ${Math.round(rank.xp)} XP`;
   if (title) title.textContent = quest ? quest.title : "Keep experimenting";
   if (body) body.textContent = quest ? quest.body : "Run Mission Coach code, collect formula cards, and improve your lab record.";
   if (reward) reward.textContent = quest ? quest.reward : "Reward: stronger science record";
+  if (unlockLabel) unlockLabel.textContent = unlockPreview.label;
+  if (unlockTitle) unlockTitle.textContent = unlockPreview.title;
+  if (unlockBody) unlockBody.textContent = unlockPreview.body;
+  if (unlockBar && unlockBar.style) unlockBar.style.width = `${Math.round(unlockPreview.progress * 100)}%`;
   if (button) {
     button.textContent = action.label;
     button.title = action.title;

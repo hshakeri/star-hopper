@@ -2046,6 +2046,64 @@ body.resizing-panes * {
   line-height: 1.35;
 }
 
+.start-rank-preview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 84px;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 7px;
+  border: 1px solid rgba(190, 242, 100, 0.24);
+  border-radius: 6px;
+  background:
+    linear-gradient(90deg, rgba(20, 83, 45, 0.32), rgba(8, 47, 73, 0.28)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.022) 0 1px, transparent 1px 4px);
+  min-width: 0;
+}
+
+.start-rank-preview span,
+.start-rank-preview em {
+  display: block;
+  font-size: 0.56rem;
+  line-height: 1.25;
+}
+
+.start-rank-preview span {
+  color: #bbf7d0;
+  font-weight: 900;
+}
+
+.start-rank-preview strong {
+  display: block;
+  color: #fef08a;
+  font-size: 0.68rem;
+  line-height: 1.18;
+  margin-top: 2px;
+}
+
+.start-rank-preview em {
+  color: #dff6ff;
+  font-style: normal;
+  margin-top: 2px;
+}
+
+.start-rank-preview-meter {
+  height: 9px;
+  border: 1px solid rgba(190, 242, 100, 0.28);
+  border-radius: 999px;
+  background: rgba(2, 6, 23, 0.52);
+  overflow: hidden;
+}
+
+.start-rank-preview-meter span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #22c55e, #67e8f9);
+  box-shadow: 0 0 10px rgba(103, 232, 249, 0.3);
+  transition: width 0.35s ease;
+}
+
 .start-mission-radar-btn {
   flex-shrink: 0;
   min-height: 24px;
@@ -5136,6 +5194,10 @@ body.readable-text-mode .attempt-cell-code,
 body.readable-text-mode .attempt-cell-stats,
 body.readable-text-mode .start-mission-radar-head,
 body.readable-text-mode .start-mission-radar p,
+body.readable-text-mode .start-rank-preview,
+body.readable-text-mode .start-rank-preview span,
+body.readable-text-mode .start-rank-preview strong,
+body.readable-text-mode .start-rank-preview em,
 body.readable-text-mode .start-mission-radar-foot,
 body.readable-text-mode .start-mission-radar-btn,
 body.readable-text-mode .daily-signal-label,

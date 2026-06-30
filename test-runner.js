@@ -1363,6 +1363,10 @@ function runEngineTests() {
       "start-mission-radar-title": { textContent: "" },
       "start-mission-radar-body": { textContent: "" },
       "start-mission-radar-reward": { textContent: "" },
+      "start-rank-preview-label": { textContent: "" },
+      "start-rank-preview-title": { textContent: "" },
+      "start-rank-preview-body": { textContent: "" },
+      "start-rank-preview-bar": { style: { width: "" } },
       "start-mission-radar-btn": { textContent: "", title: "", dataset: {} }
     };
     document.getElementById = (id) => els[id] || null;
@@ -1374,6 +1378,10 @@ function runEngineTests() {
     assertEquals("Collect Mass Lab", els["start-mission-radar-title"].textContent, "Start radar should show the same next quest");
     assertEquals("1/9 formulas · 60 XP", els["start-mission-radar-progress"].textContent, "Start radar should show formula and XP progress");
     assertEquals(true, /formula card/.test(els["start-mission-radar-reward"].textContent), "Start radar should show the quest reward");
+    assertEquals("NEXT LAB UNLOCK", els["start-rank-preview-label"].textContent, "Start radar should label the next rank unlock");
+    assertEquals("Combo Amplifier in 40 XP", els["start-rank-preview-title"].textContent, "Start radar should name the next perk and remaining XP");
+    assertEquals(true, /Reach Loop Engineer/.test(els["start-rank-preview-body"].textContent), "Start radar should connect the perk to the next rank");
+    assertEquals("11%", els["start-rank-preview-bar"].style.width, "Start radar should show rank progress toward the next unlock");
     assertEquals("START QUEST", els["start-mission-radar-btn"].textContent, "Formula quests should be directly launchable");
     assertEquals("quest", els["start-mission-radar-btn"].dataset.action, "Formula quest button should use the quest action");
     assertEquals("0", els["start-mission-radar-btn"].dataset.level, "Quest action should target the current planet");
@@ -1382,6 +1390,9 @@ function runEngineTests() {
     game.researchXP = 300;
     updateStartMissionRadar(game);
     assertEquals("Clear today's signal", els["start-mission-radar-title"].textContent, "Complete formula/rank progress should surface the daily practice loop");
+    assertEquals("LAB FULLY ONLINE", els["start-rank-preview-label"].textContent, "Max research rank should switch the preview label");
+    assertEquals("All lab perks online", els["start-rank-preview-title"].textContent, "Max research rank should show completion copy");
+    assertEquals("100%", els["start-rank-preview-bar"].style.width, "Max research rank should fill the preview meter");
     assertEquals("ACCEPT SIGNAL", els["start-mission-radar-btn"].textContent, "Daily quest should get a direct accept button");
     assertEquals("daily", els["start-mission-radar-btn"].dataset.action, "Daily quest button should use the daily action");
 
