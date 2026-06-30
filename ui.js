@@ -1550,6 +1550,9 @@ function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems
           description: `Lab Perk: ${afterRank.perk.label} (${Math.round(game.researchXP || 0)} XP)`
         });
       }
+      if (typeof game.spawnResearchRankEffect === 'function') {
+        pulse.rankEffect = game.spawnResearchRankEffect(pulse);
+      }
     }
     if (typeof ui_log_output === 'function') {
       ui_log_output(`Research +${pulse.rewardXP} XP: ${pulse.formula}`, "success");

@@ -4752,6 +4752,36 @@ class StarHopperGame {
     return { label, color, x: px, y: py };
   }
 
+  spawnResearchRankEffect(pulse) {
+    if (!this.player || !pulse || !pulse.rankUp) return null;
+    const baseX = Number.isFinite(this.player.x) ? this.player.x : 0;
+    const baseY = Number.isFinite(this.player.y) ? this.player.y : 0;
+    const width = Number.isFinite(this.player.w) ? this.player.w : 24;
+    const height = Number.isFinite(this.player.h) ? this.player.h : 32;
+    const px = baseX + width / 2;
+    const py = baseY + height / 2;
+    const label = "LAB RANK UP!";
+    const color = "#facc15";
+    const perkLabel = pulse.rankPerk && pulse.rankPerk.label ? pulse.rankPerk.label : null;
+
+    if (typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+      ComicBubbles.pop(px, baseY - 62, label, color, 1.12);
+      if (perkLabel) ComicBubbles.pop(px, baseY - 42, perkLabel.toUpperCase(), "#a7f3d0", 0.82);
+    }
+    if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+      Particles.spawnBurst(px, py - 12, color, 18, 2.4, 2.2, 'glow');
+      Particles.spawnBurst(px, py - 12, '#a7f3d0', 10, 1.8, 1.8, 'glow');
+    }
+    return {
+      label,
+      color,
+      rankTitle: pulse.rankTitle || "",
+      perkLabel,
+      x: px,
+      y: py
+    };
+  }
+
   spawnDiscoveryComboPrimerEffect(pulse) {
     const combo = pulse && Number.isFinite(pulse.combo) ? Math.floor(pulse.combo) : 0;
     if (!this.player || combo !== 1) return null;

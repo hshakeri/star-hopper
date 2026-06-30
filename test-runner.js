@@ -1341,10 +1341,13 @@ function runEngineTests() {
     assertEquals(true, !!finalPulse.rankUp, "Crossing a Research XP threshold should flag rank-up");
     assertEquals("Variable Scout", finalPulse.rankTitle, "Rank-up should name the new rank");
     assertEquals("Hypothesis Bonus", finalPulse.rankPerk.label, "Rank-up should unlock the rank's lab perk");
+    assertEquals("LAB RANK UP!", finalPulse.rankEffect.label, "Rank-up should create an in-level reward cue");
+    assertEquals("Hypothesis Bonus", finalPulse.rankEffect.perkLabel, "Rank-up cue should name the unlocked lab perk");
     assertEquals(true, game.discoveredFormulaKinds.has("engine"), "Engine formula should be collected");
     assertEquals(2, game.formulaCardEffects.length, "A second new formula should spawn a second card effect");
     assertEquals(`CARD 2/${formulaDeckTotal22b}`, game.formulaCardEffects[1].deckLabel, "Second formula card should advance deck collection progress");
     assertEquals(true, bubbleLabels22b.some(label => /LAB CHAIN x2/.test(label)), "Second real discovery should pop the lab-chain cue");
+    assertEquals(true, bubbleLabels22b.some(label => /LAB RANK UP!/.test(label)), "Rank-up should pop a visible lab-rank cue");
     assertEquals(true, particleBursts22b > firstBurstCount, "Second real discovery should add a visual burst");
     ComicBubbles.pop = oldBubblePop22b;
     Particles.spawnBurst = oldParticleBurst22b;
