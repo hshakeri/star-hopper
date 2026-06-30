@@ -10,6 +10,7 @@ const HOPPER_UPGRADES = {
   mass:        { base: 1.0, extreme: 0.4, planet: 3, gem: "Violet Ice",   part: "lightweight alloy", cmd: "hopper.mass", isFloor: true, short: "LIGHTNESS" },
   antigravity: { base: 6,   extreme: 14,  planet: 4, gem: "Magenta Flux", part: "antigravity coil",  cmd: "antigravity",         short: "ANTIGRAV" }
 };
+const MASTERY_CLEAR_RESEARCH_XP = 25;
 
 class StarHopperGame {
   constructor() {
@@ -1433,6 +1434,45 @@ class StarHopperGame {
       best: Math.max(summary.previousBest, summary.stars),
       mastered,
       isNewMastery: mastered && !wasMastered
+    };
+  }
+
+  grantMasteryClearReward(labStars) {
+    if (!labStars || !labStars.isNewMastery) return labStars;
+    const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+    const xp = MASTERY_CLEAR_RESEARCH_XP;
+    this.researchXP = Math.max(0, (this.researchXP || 0) + xp);
+    const afterRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+    const rankUp = !!(beforeRank && afterRank && afterRank.level > beforeRank.level);
+    const pulse = {
+      kind: "mastery",
+      title: "Mastery Clear",
+      formula: "3 stars = tasks + gems + science proof",
+      insight: "A 3-star clear means the code worked, the samples were collected, and the experiment left evidence.",
+      cue: "Replay a mastered world as a remix and compare what changed.",
+      missionId: `mastery-${this.currentPlanetIndex}`,
+      missionTitle: this.currentPlanet ? this.currentPlanet.name : "World",
+      passed: labStars.maxStars || 3,
+      total: labStars.maxStars || 3,
+      openedGems: 0,
+      rewardXP: xp,
+      combo: this.discoveryCombo || 0,
+      rankUp,
+      rankTitle: afterRank ? afterRank.title : null,
+      rankPerk: rankUp && afterRank ? afterRank.perk : null
+    };
+    this.discoveryPulse = pulse;
+    this.discoveryLog = [pulse].concat(Array.isArray(this.discoveryLog) ? this.discoveryLog : []).slice(0, 8);
+    if (typeof ui_log_output === 'function') {
+      ui_log_output(`🏅 Mastery clear: +${xp} Research XP${rankUp && afterRank ? ` — ${afterRank.title}` : ""}.`, "success");
+    }
+    if (typeof updateDiscoveryPulse === 'function') updateDiscoveryPulse(this);
+    if (typeof updateResearchProgress === 'function') updateResearchProgress(this);
+    return {
+      ...labStars,
+      masteryRewardXP: xp,
+      masteryRankUp: rankUp,
+      masteryRankTitle: afterRank ? afterRank.title : null
     };
   }
 
@@ -3087,7 +3127,8 @@ class StarHopperGame {
       this.planetClears = this.planetClears || {};
       this.planetClears[this.currentPlanetIndex] = (this.planetClears[this.currentPlanetIndex] || 0) + 1;
     }
-    const labStars = this.recordClearLabStars({ isDailyRun });
+    let labStars = this.recordClearLabStars({ isDailyRun });
+    labStars = this.grantMasteryClearReward(labStars);
     this.refreshGalaxyMapProgress();
     if (typeof saveLocalProgress === 'function') saveLocalProgress();
     this.refreshDailySignalBanner();
@@ -3167,10 +3208,13 @@ class StarHopperGame {
       ? "NEW BEST"
       : (starSummary.best > starSummary.stars ? `BEST ${starSummary.best}/${starSummary.maxStars}` : "BEST MATCHED");
     const mastered = !!(starSummary.mastered || (starSummary.maxStars > 0 && starSummary.stars >= starSummary.maxStars && !isDailyRun));
+    const masteryReward = starSummary.masteryRewardXP
+      ? ` +${starSummary.masteryRewardXP} Research XP${starSummary.masteryRankUp && starSummary.masteryRankTitle ? ` · ${starSummary.masteryRankTitle}` : ""}`
+      : "";
     const masteryRibbon = mastered ? `
       <div class="clear-lab-mastery${starSummary.isNewMastery ? " new" : ""}">
         <span>${safe(starSummary.isNewMastery ? "NEW MASTERY BADGE" : "MASTERY BADGE")}</span>
-        <strong>${safe(starSummary.isNewMastery ? "3-star scientist clear unlocked" : "World mastered")}</strong>
+        <strong>${safe(starSummary.isNewMastery ? `3-star scientist clear unlocked${masteryReward}` : "World mastered")}</strong>
       </div>
     ` : "";
     const nextLabel = isDailyRun

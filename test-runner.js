@@ -1068,17 +1068,20 @@ function runEngineTests() {
     game.discoveryPassCounts = { "earth-gravity-wall": 1 };
     game.discoveredFormulaKinds = new Set(["antigravity"]);
     game.researchXP = 60;
+    let labStars22e = game.recordClearLabStars({ isDailyRun: false });
+    labStars22e = game.grantMasteryClearReward(labStars22e);
     game.renderClearLabReport({
       isDailyRun: false,
       nextIndex: 1,
       earnedGems: 2,
       gemKey: "emerald",
-      labStars: game.recordClearLabStars({ isDailyRun: false })
+      labStars: labStars22e
     });
 
     assertEquals(true, /CLEAR LAB REPORT/.test(report.innerHTML), "Clear report should render a heading");
     assertEquals(true, /3\/3 Lab Stars/.test(report.innerHTML), "Clear report should include the mastery star rating");
     assertEquals(true, /NEW MASTERY BADGE/.test(report.innerHTML), "Clear report should celebrate a first 3-star mastery");
+    assertEquals(true, /\+25 Research XP/.test(report.innerHTML), "Clear report should show the mastery XP reward");
     assertEquals(true, /OK Mission tasks/.test(report.innerHTML), "Clear report should credit completed mission tasks");
     assertEquals(true, /OK Science proof/.test(report.innerHTML), "Clear report should credit the science-proof action");
     assertEquals(true, /222px/.test(report.innerHTML), "Clear report should include max height");
@@ -1119,7 +1122,36 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: clear lab stars reward mastery actions", false, err.message);
   }
 
-  // Test 22g: Lab-star progress pops a one-shot reward during play.
+  // Test 22g: First 3-star mastery grants Research XP and a discovery pulse.
+  try {
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[0];
+    game.currentPlanetIndex = 0;
+    game.researchXP = 18;
+    game.discoveryLog = [];
+
+    const rewarded = game.grantMasteryClearReward({
+      stars: 3,
+      maxStars: 3,
+      mastered: true,
+      isNewMastery: true
+    });
+    assertEquals(43, game.researchXP, "Mastery clear should grant +25 Research XP");
+    assertEquals(25, rewarded.masteryRewardXP, "Reward metadata should include XP amount");
+    assertEquals(true, rewarded.masteryRankUp, "18 + 25 XP should cross into Variable Scout");
+    assertEquals("Variable Scout", rewarded.masteryRankTitle, "Reward metadata should name the new rank");
+    assertEquals("Mastery Clear", game.discoveryPulse.title, "Mastery reward should create a discovery pulse");
+    assertEquals(1, game.discoveryLog.length, "Mastery reward should enter the discovery log");
+
+    const beforeRepeat = game.researchXP;
+    game.grantMasteryClearReward({ stars: 3, maxStars: 3, mastered: true, isNewMastery: false });
+    assertEquals(beforeRepeat, game.researchXP, "Existing mastery should not grant duplicate XP");
+    renderTestResult("engine-suite", "Curriculum: mastery clear grants Research XP", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Curriculum: mastery clear grants Research XP", false, err.message);
+  }
+
+  // Test 22h: Lab-star progress pops a one-shot reward during play.
   const oldBubblePop22g = ComicBubbles.pop;
   const oldParticleBurst22g = Particles.spawnBurst;
   const oldSfxSuccess22g = SFX.playSuccess;
@@ -1160,7 +1192,7 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: lab-star progress pops reward feedback", false, err.message);
   }
 
-  // Test 22h: The start-screen galaxy map shows saved lab stars and unlocked planets.
+  // Test 22i: The start-screen galaxy map shows saved lab stars and unlocked planets.
   const oldQuerySelectorAll22g = document.querySelectorAll;
   try {
     const makeClassList = (initial = []) => {
@@ -1216,7 +1248,7 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: galaxy map surfaces lab-star mastery", false, err.message);
   }
 
-  // Test 22i: The in-run mission panel shows the lab-star contract.
+  // Test 22j: The in-run mission panel shows the lab-star contract.
   const oldGetElementById22h = document.getElementById;
   const oldCreateElement22h = document.createElement;
   try {
