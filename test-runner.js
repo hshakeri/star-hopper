@@ -1233,6 +1233,9 @@ function runEngineTests() {
     assertEquals(true, /Next Perk/.test(els["research-rank-card"].innerHTML), "Rank card should preview the next lab perk");
     assertEquals(true, /Combo Amplifier/.test(els["research-rank-card"].innerHTML), "Rank card should name the next lab perk");
     assertEquals(true, /Formula Cards 2\/9/.test(els["discovery-deck"].innerHTML), "Deck should show formula collection progress");
+    assertEquals(true, /NEXT EXPERIMENT/.test(els["discovery-deck"].innerHTML), "Deck should turn the next card into a focused experiment");
+    assertEquals(true, /Engine Lab/.test(els["discovery-deck"].innerHTML), "Formula focus should point at the next locked card");
+    assertEquals(true, /hopper\.engine = 7/.test(els["discovery-deck"].innerHTML), "Formula focus should show a runnable sample command");
     assertEquals(true, /a = F \/ m/.test(els["discovery-deck"].innerHTML), "Discovery deck should show collected formulas");
     assertEquals(true, /Loop Lab/.test(els["discovery-deck"].innerHTML), "Discovery deck should show multiple discoveries");
     assertEquals(true, /locked/.test(els["discovery-deck"].innerHTML), "Deck should show locked future cards");
@@ -1279,7 +1282,9 @@ function runEngineTests() {
     assertEquals(true, /2\/10 decoded/.test(els["signal-story-panel"].innerHTML), "Story panel should show decoded chapter count");
     assertEquals(true, /Emerald Wall Signal/.test(els["signal-story-panel"].innerHTML), "Story panel should show unlocked chapters");
     assertEquals(true, /Next: Amber Gravity Well/.test(els["signal-story-panel"].innerHTML), "Story panel should show the next chapter hook");
-    assertEquals(true, /Run Mission Coach code/.test(els["discovery-deck"].innerHTML), "Empty formula deck should still render while story updates");
+    assertEquals(true, /NEXT EXPERIMENT/.test(els["discovery-deck"].innerHTML), "Empty formula deck should still surface one next experiment");
+    assertEquals(true, /hopper\.mass = 1\.0/.test(els["discovery-deck"].innerHTML), "Empty formula deck should include a first runnable command");
+    assertEquals(true, /Run the focus command/.test(els["discovery-deck"].innerHTML), "Empty formula deck should still render while story updates");
 
     updateSignalStoryPanel(complete);
     assertEquals(true, /10\/10 decoded/.test(els["signal-story-panel"].innerHTML), "Complete story should render all chapters decoded");

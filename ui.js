@@ -882,14 +882,20 @@ function updateResearchProgress(game = window.Game) {
 
   if (deck) {
     const collection = getFormulaCollection(game);
+    const target = getActiveFormulaTarget(game);
+    const focusCard = renderFormulaFocusCard(collection, target);
     if (!collection.unlocked.length) {
-      deck.innerHTML = `<div class="discovery-deck-empty">Run Mission Coach code to collect formula cards here.</div>`;
+      deck.innerHTML = `
+        ${focusCard}
+        <div class="discovery-deck-empty">Run the focus command in Mission Coach, watch what changes, then explain it in the Log.</div>
+      `;
     } else {
       deck.innerHTML = `
         <div class="formula-collection-head">
           <strong>Formula Cards ${collection.unlocked.length}/${collection.cards.length}</strong>
-          <span>${collection.nextLocked ? `Next: ${escapeHTML(collection.nextLocked.title)}` : "Deck complete"}</span>
+          <span>${target ? `Next: ${escapeHTML(target.title)}` : "Deck complete"}</span>
         </div>
+        ${focusCard}
         ${collection.cards.map(card => `
         <div class="discovery-card formula-card ${card.unlocked ? "unlocked" : "locked"}">
           <div class="discovery-card-head">
@@ -914,7 +920,8 @@ const DISCOVERY_RULES = [
     title: "Mass Lab",
     formula: "a = F / m",
     insight: "Lower mass makes the same engine and jump force create more acceleration.",
-    cue: "Watch speed and jump height change when mass changes."
+    cue: "Watch speed and jump height change when mass changes.",
+    sampleCode: "hopper.mass = 1.0"
   },
   {
     kind: "engine",
@@ -922,7 +929,8 @@ const DISCOVERY_RULES = [
     title: "Engine Lab",
     formula: "speed = engine / mass",
     insight: "More engine force raises top speed, especially when Hopper is light.",
-    cue: "Use the Agility gauge to see the new speed."
+    cue: "Use the Agility gauge to see the new speed.",
+    sampleCode: "hopper.engine = 7"
   },
   {
     kind: "jump",
@@ -930,7 +938,8 @@ const DISCOVERY_RULES = [
     title: "Jump Lab",
     formula: "jump = force / mass",
     insight: "Jump force lifts better when the rover has less mass to accelerate.",
-    cue: "Try the same jump with two different masses."
+    cue: "Try the same jump with two different masses.",
+    sampleCode: "hopper.jump_power = 20"
   },
   {
     kind: "antigravity",
@@ -938,7 +947,8 @@ const DISCOVERY_RULES = [
     title: "Gravity Lab",
     formula: "felt g = planet g - antigravity",
     insight: "Antigravity lowers the pull you feel, stretching hang time and jump arcs.",
-    cue: "A smaller felt g makes the same jump stay airborne longer."
+    cue: "A smaller felt g makes the same jump stay airborne longer.",
+    sampleCode: "antigravity = 4.9"
   },
   {
     kind: "rocket",
@@ -946,7 +956,8 @@ const DISCOVERY_RULES = [
     title: "Rocket Lab",
     formula: "thrust = rocket x 2.5 / mass",
     insight: "Rocket power fights gravity, but heavy builds spend more fuel to climb.",
-    cue: "Watch Thrust and the fuel tank together."
+    cue: "Watch Thrust and the fuel tank together.",
+    sampleCode: "hopper.rocket_power = 75"
   },
   {
     kind: "loop",
@@ -954,7 +965,8 @@ const DISCOVERY_RULES = [
     title: "Loop Lab",
     formula: "repeat n = command x n",
     insight: "A loop turns one instruction into a pattern, saving lines and building faster.",
-    cue: "Count the spawned tools after the loop runs."
+    cue: "Count the spawned tools after the loop runs.",
+    sampleCode: "repeat 3 { spawn_spring() }"
   },
   {
     kind: "friction",
@@ -962,7 +974,8 @@ const DISCOVERY_RULES = [
     title: "Friction Lab",
     formula: "friction opposes sliding",
     insight: "Higher friction turns sliding motion into grip, helping the rover stop.",
-    cue: "Compare how far the rover skids before and after the change."
+    cue: "Compare how far the rover skids before and after the change.",
+    sampleCode: "friction = 8"
   },
   {
     kind: "elasticity",
@@ -970,7 +983,8 @@ const DISCOVERY_RULES = [
     title: "Collision Lab",
     formula: "bounce kept = elasticity x speed",
     insight: "Elasticity decides how much speed survives a collision or springy bounce.",
-    cue: "Mass gives the shove; elasticity preserves the rebound."
+    cue: "Mass gives the shove; elasticity preserves the rebound.",
+    sampleCode: "elasticity = 1.0"
   },
   {
     kind: "magnet",
@@ -978,7 +992,8 @@ const DISCOVERY_RULES = [
     title: "Magnet Lab",
     formula: "opposite poles attract",
     insight: "Changing pole flips whether the field pulls or pushes Hopper.",
-    cue: "The same magnet becomes a lift or a barrier after the pole changes."
+    cue: "The same magnet becomes a lift or a barrier after the pole changes.",
+    sampleCode: "when player.touching('magnet'): hopper.pole = 'south'"
   }
 ];
 
@@ -1044,6 +1059,26 @@ function getActiveFormulaTarget(game, activeMission = null) {
     .filter(item => item.index >= 0)
     .sort((a, b) => a.index - b.index);
   return missionCards.length ? missionCards[0].card : collection.nextLocked;
+}
+
+function renderFormulaFocusCard(collection, target) {
+  if (!target || !collection || !collection.cards || !collection.cards.length) return "";
+  const current = collection.unlocked ? collection.unlocked.length : 0;
+  const total = collection.cards.length;
+  const sample = target.sampleCode || target.cue || "";
+  return `
+    <div class="formula-focus-card">
+      <div class="formula-focus-copy">
+        <span>NEXT EXPERIMENT</span>
+        <strong>${escapeHTML(target.title)}</strong>
+        <p>${escapeHTML(target.cue)}</p>
+      </div>
+      <div class="formula-focus-command">
+        <span>${current}/${total} cards</span>
+        <code>${escapeHTML(sample)}</code>
+      </div>
+    </div>
+  `;
 }
 
 function getActiveLabQuest(game) {
