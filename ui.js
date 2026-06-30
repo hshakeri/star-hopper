@@ -661,6 +661,14 @@ function appendMissionMentorSignal(listContainer, game) {
     const code = document.createElement("code");
     code.textContent = signal.sampleCode;
     copy.appendChild(code);
+    const stage = document.createElement("button");
+    stage.type = "button";
+    stage.className = "mentor-signal-stage-btn";
+    stage.textContent = "STAGE FOCUS";
+    if (typeof stage.addEventListener === "function") {
+      stage.addEventListener("click", () => stageScienceDeltaCommand(signal.sampleCode));
+    }
+    copy.appendChild(stage);
   }
   body.appendChild(mark);
   body.appendChild(copy);

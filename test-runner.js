@@ -2335,6 +2335,9 @@ function runEngineTests() {
     assertEquals(true, /Mass Lab/.test(mentorText), "Mentor signal should follow the next locked formula card");
     assertEquals(true, /Payoff: Open lighter-build routes/.test(mentorText), "Mentor signal should show the formula payoff");
     assertEquals(true, /hopper\.mass = 1\.0/.test(mentorText), "Mentor signal should show the runnable focus command");
+    const mentorStageButton = findByClass(mentor || list, "mentor-signal-stage-btn");
+    assertEquals(true, !!mentorStageButton, "Mentor signal should expose a stage-focus action");
+    assertEquals("STAGE FOCUS", mentorStageButton.textContent, "Mentor signal stage action should be terse");
 
     list = makeEl();
     game.coachPredictions = { "earth-gravity-wall": "lighter-longer" };
@@ -2356,6 +2359,13 @@ function runEngineTests() {
     assertEquals(true, /use_hopper\(\)/.test(inputEl22j.value), "Lesson lens stage action should include mission setup code");
     assertEquals(true, /hopper\.mass/.test(inputEl22j.value), "Lesson lens stage action should include the scaffold tuning code");
     assertEquals(true, inputEl22j.focused, "Lesson lens stage action should focus the terminal");
+    const activeMentor = findByClass(list, "mentor-signal-card");
+    const activeMentorButton = findByClass(activeMentor || list, "mentor-signal-stage-btn");
+    inputEl22j.value = "";
+    inputEl22j.focused = false;
+    activeMentorButton._events.click();
+    assertEquals("hopper.mass = 1.0", inputEl22j.value, "Mentor stage action should stage the one-variable formula command");
+    assertEquals(true, inputEl22j.focused, "Mentor stage action should focus the terminal");
     assertEquals(true, !!scienceDelta, "Mission panel should show the latest science delta");
     assertEquals(true, /WHAT CHANGED/.test(scienceDeltaText), "Science delta card should identify itself");
     assertEquals(true, /Mass/.test(scienceDeltaText), "Science delta should list changed values");

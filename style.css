@@ -3130,6 +3130,25 @@ html {
   overflow-wrap: anywhere;
 }
 
+.mentor-signal-stage-btn {
+  justify-self: start;
+  border: 1px solid rgba(253, 186, 116, 0.46);
+  border-radius: 4px;
+  background: rgba(124, 45, 18, 0.62);
+  color: #ffedd5;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.54rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: 5px 7px;
+}
+
+.mentor-signal-stage-btn:hover {
+  background: rgba(251, 146, 60, 0.86);
+  color: #431407;
+}
+
 .science-delta-card {
   border: 1px solid rgba(74, 222, 128, 0.34);
   border-radius: 6px;
@@ -5750,6 +5769,7 @@ body.readable-text-mode .mentor-signal-copy strong,
 body.readable-text-mode .mentor-signal-copy p,
 body.readable-text-mode .mentor-signal-copy em,
 body.readable-text-mode .mentor-signal-copy code,
+body.readable-text-mode .mentor-signal-stage-btn,
 body.readable-text-mode .science-delta-head,
 body.readable-text-mode .science-delta-row,
 body.readable-text-mode .science-delta-row em,
