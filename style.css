@@ -4850,6 +4850,25 @@ body.navigator-active .coach-bubble { display: none !important; }
   overflow-wrap: anywhere;
 }
 
+.formula-focus-stage-btn {
+  border: 1px solid rgba(190, 242, 100, 0.5);
+  border-radius: 4px;
+  background: rgba(20, 83, 45, 0.68);
+  color: #ecfccb;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.54rem;
+  font-weight: 800;
+  line-height: 1;
+  margin-top: 7px;
+  padding: 5px 7px;
+}
+
+.formula-focus-stage-btn:hover {
+  background: rgba(34, 197, 94, 0.8);
+  color: #052e16;
+}
+
 .discovery-card,
 .discovery-deck-empty {
   border: 1px solid rgba(148, 163, 184, 0.18);
@@ -5782,6 +5801,7 @@ body.readable-text-mode .formula-target-body,
 body.readable-text-mode .formula-target-steps span,
 body.readable-text-mode .formula-target-code,
 body.readable-text-mode .formula-target-stage-btn,
+body.readable-text-mode .formula-focus-stage-btn,
 body.readable-text-mode .discovery-pulse-head,
 body.readable-text-mode .discovery-pulse-body,
 body.readable-text-mode .discovery-pulse-foot,

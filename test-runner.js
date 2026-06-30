@@ -1600,6 +1600,7 @@ function runEngineTests() {
 
   // Test 22c: Research rank and discovery deck render a readable learning collection.
   const oldGetElementById22c = document.getElementById;
+  const oldWindowGame22c = window.Game;
   try {
     const rank = getResearchRank(60);
     assertEquals("Physics Tinkerer", rank.title, "60 Research XP should reach the third rank");
@@ -1607,11 +1608,29 @@ function runEngineTests() {
     assertEquals("Combo Amplifier", rank.nextPerk.label, "Rank should preview the next lab perk");
     assertEquals(40, rank.remaining, "Remaining XP should point to the next rank");
 
+    const focusStageButton = {
+      _events: {},
+      addEventListener(event, handler) { this._events[event] = handler; }
+    };
+    const focusInput = {
+      value: "",
+      focused: false,
+      style: {},
+      scrollHeight: 20,
+      focus() { this.focused = true; },
+      setSelectionRange() {}
+    };
     const els = {
       "research-rank-card": { innerHTML: "" },
-      "discovery-deck": { innerHTML: "" }
+      "discovery-deck": {
+        innerHTML: "",
+        querySelector(selector) {
+          return selector === "[data-formula-focus-stage]" ? focusStageButton : null;
+        }
+      }
     };
-    document.getElementById = (id) => els[id] || null;
+    window.Game = null;
+    document.getElementById = (id) => id === "console-input" ? focusInput : (els[id] || null);
     updateResearchProgress({
       researchXP: 60,
       discoveryLog: [
@@ -1633,13 +1652,20 @@ function runEngineTests() {
     assertEquals(true, /Force changes speed/.test(els["discovery-deck"].innerHTML), "Formula focus should name the target concept axis");
     assertEquals(true, /Beat Agility gates/.test(els["discovery-deck"].innerHTML), "Formula focus should name a concrete payoff");
     assertEquals(true, /hopper\.engine = 7/.test(els["discovery-deck"].innerHTML), "Formula focus should show a runnable sample command");
+    assertEquals(true, /STAGE FOCUS/.test(els["discovery-deck"].innerHTML), "Formula focus should expose a stage-focus action");
+    assertEquals(true, !!focusStageButton._events.click, "Formula focus stage action should bind a click handler");
+    focusStageButton._events.click();
+    assertEquals("hopper.engine = 7", focusInput.value, "Formula focus stage action should stage the next formula command");
+    assertEquals(true, focusInput.focused, "Formula focus staging should focus the terminal");
     assertEquals(true, /a = F \/ m/.test(els["discovery-deck"].innerHTML), "Discovery deck should show collected formulas");
     assertEquals(true, /Loop Lab/.test(els["discovery-deck"].innerHTML), "Discovery deck should show multiple discoveries");
     assertEquals(true, /locked/.test(els["discovery-deck"].innerHTML), "Deck should show locked future cards");
     document.getElementById = oldGetElementById22c;
+    window.Game = oldWindowGame22c;
     renderTestResult("engine-suite", "Curriculum: research ranks render discovery deck", true);
   } catch (err) {
     document.getElementById = oldGetElementById22c;
+    window.Game = oldWindowGame22c;
     renderTestResult("engine-suite", "Curriculum: research ranks render discovery deck", false, err.message);
   }
 

@@ -1299,6 +1299,7 @@ function updateResearchProgress(game = window.Game) {
         `).join("")}
       `;
     }
+    bindFormulaFocusStage(deck, target);
   }
 
   if (storyPanel) updateSignalStoryPanel(game);
@@ -1502,9 +1503,20 @@ function renderFormulaFocusCard(collection, target) {
       <div class="formula-focus-command">
         <span>${current}/${total} cards</span>
         <code>${escapeHTML(sample)}</code>
+        ${sample ? `<button type="button" class="formula-focus-stage-btn" data-formula-focus-stage="1">STAGE FOCUS</button>` : ""}
       </div>
     </div>
   `;
+}
+
+function bindFormulaFocusStage(deck, target) {
+  if (!deck || !target || typeof deck.querySelector !== 'function') return;
+  const sample = target.sampleCode || target.cue || "";
+  if (!sample) return;
+  const stageBtn = deck.querySelector("[data-formula-focus-stage]");
+  if (stageBtn && typeof stageBtn.addEventListener === "function") {
+    stageBtn.addEventListener("click", () => stageScienceDeltaCommand(sample));
+  }
 }
 
 function getActiveLabQuest(game) {
