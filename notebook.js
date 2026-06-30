@@ -337,7 +337,7 @@ function renderNotebookHistory() {
 // Print notebook certificate
 function printNotebook() {
   if (!isScientistCertificateUnlocked()) {
-    alert("Complete a Play mission or a spacecraft route to unlock the Scientist Certificate.");
+    alert("Complete either one Play mission or one spacecraft route to unlock the Scientist Certificate.");
     return;
   }
 
@@ -361,20 +361,75 @@ function printNotebook() {
   }, 1000);
 }
 
+function getScientistCertificateProgress(game = window.Game, nav = window.Nav) {
+  const completedMissions = game && game.completedMissions instanceof Set ? game.completedMissions : new Set();
+  const playMissionComplete = !!(game && game.state === 'clear') || completedMissions.size > 0;
+  const navComplete = !!(nav && nav.orbitalMissionsCompleted && nav.orbitalMissionsCompleted.size > 0);
+  const tasks = [
+    {
+      id: "play",
+      label: "Clear one Play mission",
+      detail: playMissionComplete ? "Physics proof logged" : "Use code to finish any planet objective",
+      complete: playMissionComplete
+    },
+    {
+      id: "nav",
+      label: "Complete one Navigator route",
+      detail: navComplete ? "Space route logged" : "Fly any spacecraft route",
+      complete: navComplete
+    }
+  ];
+  return {
+    unlocked: playMissionComplete || navComplete,
+    completed: tasks.filter(task => task.complete).length,
+    required: 1,
+    tasks,
+    next: tasks.find(task => !task.complete) || null
+  };
+}
+
+function renderCertificateProgress(game = window.Game, nav = window.Nav) {
+  const card = document.getElementById("certificate-progress-card");
+  if (!card) return;
+
+  const progress = getScientistCertificateProgress(game, nav);
+  const safe = (typeof escapeHTML === 'function')
+    ? escapeHTML
+    : (value) => String(value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
+  card.className = `certificate-progress-card ${progress.unlocked ? "unlocked" : "locked"}`;
+  const itemHTML = progress.tasks.map(task => `
+    <span class="${task.complete ? "complete" : ""}">
+      <b>${task.complete ? "OK" : "NEXT"}</b>
+      ${safe(task.label)}
+      <em>${safe(task.detail)}</em>
+    </span>
+  `).join("");
+  card.innerHTML = `
+    <div class="certificate-progress-head">
+      <span>${progress.unlocked ? "CERTIFICATE READY" : "CERTIFICATE PATH"}</span>
+      <strong>${progress.unlocked ? "Scientist proof unlocked" : `${progress.required} proof needed`}</strong>
+    </div>
+    <p>${progress.unlocked ? "Print a certificate from the Log to celebrate the completed science proof." : "Complete either path to prove coding or navigation skill."}</p>
+    <div class="certificate-progress-list">${itemHTML}</div>
+  `;
+}
+
 function isScientistCertificateUnlocked() {
-  const codeComplete = !!(window.Game && window.Game.state === 'clear');
-  const navComplete = !!(window.Nav && window.Nav.orbitalMissionsCompleted && window.Nav.orbitalMissionsCompleted.size > 0);
-  return codeComplete || navComplete;
+  return getScientistCertificateProgress().unlocked;
 }
 
 function updateCertificateState() {
+  const progress = getScientistCertificateProgress();
+  renderCertificateProgress(window.Game, window.Nav);
+
   const btn = document.getElementById("certificate-btn");
   if (!btn) return;
 
-  const unlocked = isScientistCertificateUnlocked();
+  const unlocked = progress.unlocked;
   btn.disabled = !unlocked;
   btn.classList.toggle("certificate-locked", !unlocked);
-  btn.textContent = unlocked ? "🖨️ Print Scientist Certificate" : "🔒 Scientist Certificate Locked";
+  btn.textContent = unlocked ? "🖨️ Print Scientist Certificate" : "🔒 Complete 1 Proof to Print";
+  btn.title = unlocked ? "Print the Scientist Certificate" : (progress.next ? progress.next.detail : "Complete one proof path");
 }
 
 function updateLearningConceptProgress(game = window.Game) {

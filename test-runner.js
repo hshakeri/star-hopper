@@ -1287,6 +1287,71 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: badge shelf previews locked goals", false, err.message);
   }
 
+  // Test 22a2: Scientist Certificate unlock path is visible before it is earned.
+  const oldGetElementById22cert = document.getElementById;
+  const oldWindowGame22cert = window.Game;
+  const oldWindowNav22cert = window.Nav;
+  try {
+    const makeClassList = (initial = []) => {
+      const classes = new Set(initial);
+      return {
+        add: (name) => classes.add(name),
+        remove: (name) => classes.delete(name),
+        toggle: (name, force) => {
+          const shouldHave = force === undefined ? !classes.has(name) : !!force;
+          if (shouldHave) classes.add(name);
+          else classes.delete(name);
+          return shouldHave;
+        },
+        contains: (name) => classes.has(name)
+      };
+    };
+    const card = { className: "", innerHTML: "" };
+    const btnClasses = makeClassList(["certificate-locked"]);
+    const btn = { disabled: true, textContent: "", title: "", classList: btnClasses };
+    document.getElementById = (id) => id === "certificate-progress-card" ? card : (id === "certificate-btn" ? btn : null);
+
+    const game = { state: "playing", completedMissions: new Set() };
+    const nav = { orbitalMissionsCompleted: new Set() };
+    window.Game = game;
+    window.Nav = nav;
+
+    let progress = getScientistCertificateProgress(game, nav);
+    assertEquals(false, progress.unlocked, "Certificate starts locked without Play or Navigator proof");
+    assertEquals("play", progress.next.id, "Certificate progress starts with the Play proof cue");
+    updateCertificateState();
+    assertEquals(true, btn.disabled, "Certificate button stays disabled before proof");
+    assertEquals(true, btn.classList.contains("certificate-locked"), "Locked certificate button keeps locked class");
+    assertEquals(true, /CERTIFICATE PATH/.test(card.innerHTML), "Certificate card names the unlock path");
+    assertEquals(true, /1 proof needed/.test(card.innerHTML), "Certificate card shows the single proof requirement");
+    assertEquals(true, /Complete either path/.test(card.innerHTML), "Certificate card explains that either route works");
+    assertEquals(true, /NEXT/.test(card.innerHTML), "Certificate card marks the next proof path");
+    assertEquals(true, /Complete 1 Proof/.test(btn.textContent), "Button text names the remaining proof");
+
+    game.completedMissions.add("earth-gravity-wall");
+    updateCertificateState();
+    assertEquals(false, btn.disabled, "Completing a Play mission unlocks the certificate button");
+    assertEquals(false, btn.classList.contains("certificate-locked"), "Unlocked certificate button clears locked class");
+    assertEquals(true, /CERTIFICATE READY/.test(card.innerHTML), "Certificate card switches to ready state");
+    assertEquals(true, /Physics proof logged/.test(card.innerHTML), "Certificate card uses completed mission evidence");
+    assertEquals(true, /Print Scientist Certificate/.test(btn.textContent), "Unlocked button offers printing");
+
+    game.completedMissions.clear();
+    nav.orbitalMissionsCompleted.add("route-earth-moon");
+    progress = getScientistCertificateProgress(game, nav);
+    assertEquals(true, progress.unlocked, "A Navigator route also unlocks the certificate");
+
+    document.getElementById = oldGetElementById22cert;
+    window.Game = oldWindowGame22cert;
+    window.Nav = oldWindowNav22cert;
+    renderTestResult("engine-suite", "Curriculum: certificate path previews proof goal", true);
+  } catch (err) {
+    document.getElementById = oldGetElementById22cert;
+    window.Game = oldWindowGame22cert;
+    window.Nav = oldWindowNav22cert;
+    renderTestResult("engine-suite", "Curriculum: certificate path previews proof goal", false, err.message);
+  }
+
   // Test 22a: Mission completion gets an in-level task progress cue and CRT next step.
   const oldBubblePop22a = ComicBubbles.pop;
   const oldParticleBurst22a = Particles.spawnBurst;
