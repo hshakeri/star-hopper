@@ -566,6 +566,19 @@ function appendScienceDeltaCard(listContainer, game) {
     next.appendChild(kicker);
     next.appendChild(title);
     next.appendChild(body);
+    if (delta.nextExperiment.command) {
+      const code = document.createElement("code");
+      code.textContent = delta.nextExperiment.command;
+      next.appendChild(code);
+      const stage = document.createElement("button");
+      stage.type = "button";
+      stage.className = "science-delta-stage-btn";
+      stage.textContent = "STAGE CODE";
+      if (typeof stage.addEventListener === "function") {
+        stage.addEventListener("click", () => stageScienceDeltaCommand(delta.nextExperiment.command));
+      }
+      next.appendChild(stage);
+    }
     card.appendChild(next);
   }
   listContainer.appendChild(card);
@@ -2348,6 +2361,36 @@ function buildScienceDelta(game, before, after, code) {
   };
 }
 
+function buildNextExperimentCommand(fullMission, failed = null) {
+  if (!fullMission) return "";
+  const scaffold = fullMission.scaffold || null;
+  if (scaffold && scaffold.template) {
+    const setupLines = coachSetupLines(scaffold);
+    const failedText = `${failed && failed.id ? failed.id : ""} ${failed && failed.label ? failed.label : ""} ${failed && failed.message ? failed.message : ""}`;
+    if (/activate|active|use_hopper|use_rover/i.test(failedText) && setupLines.length) {
+      return setupLines.join("\n");
+    }
+    const values = typeof getCorrectedScaffoldValues === 'function' ? getCorrectedScaffoldValues(scaffold) : {};
+    return buildScaffoldCode(scaffold, values);
+  }
+  return fullMission.starterCode || "";
+}
+
+function stageScienceDeltaCommand(command) {
+  const code = String(command || "").trim();
+  if (!code || typeof document === 'undefined') return false;
+  const input = document.getElementById("console-input");
+  if (!input) return false;
+  input.value = code;
+  if (typeof autoGrowConsoleInput === 'function') autoGrowConsoleInput(input);
+  if (typeof input.focus === 'function') input.focus();
+  if (typeof input.setSelectionRange === 'function') {
+    try { input.setSelectionRange(code.length, code.length); } catch (e) { /* noop */ }
+  }
+  if (typeof ui_log_output === 'function') ui_log_output("Next experiment staged in the terminal.", "info");
+  return true;
+}
+
 function buildNextExperimentCue(game, resultState = null, activeMission = null) {
   if (!game) return null;
   const mission = activeMission || getActivePlatformerMission(game);
@@ -2360,7 +2403,8 @@ function buildNextExperimentCue(game, resultState = null, activeMission = null) 
     return {
       kind: "check",
       title: failed.label || "Fix the next check",
-      body: failed.message || "Tune one value, run it, and watch what changes."
+      body: failed.message || "Tune one value, run it, and watch what changes.",
+      command: buildNextExperimentCommand(fullMission, failed)
     };
   }
 
@@ -2372,7 +2416,8 @@ function buildNextExperimentCue(game, resultState = null, activeMission = null) 
     return {
       kind: "gems",
       title: `Unlock ${locked} mission gem${locked === 1 ? "" : "s"}`,
-      body: gate && gate.label ? gate.label : "Run one focused code tweak, then collect the samples."
+      body: gate && gate.label ? gate.label : "Run one focused code tweak, then collect the samples.",
+      command: buildNextExperimentCommand(fullMission)
     };
   }
 
@@ -2384,7 +2429,8 @@ function buildNextExperimentCue(game, resultState = null, activeMission = null) 
     return {
       kind: "requirements",
       title: "Finish the active requirement",
-      body
+      body,
+      command: buildNextExperimentCommand(fullMission)
     };
   }
 

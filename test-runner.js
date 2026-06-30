@@ -1122,6 +1122,7 @@ function runEngineTests() {
   }
 
   // Test 22ba: successful KidCode runs summarize the live science delta.
+  const oldGetElementById22ba = document.getElementById;
   try {
     Compiler.reset();
     const game = new StarHopperGame();
@@ -1157,9 +1158,27 @@ function runEngineTests() {
     assertEquals(delta, game.lastScienceDelta, "Latest delta should be stored on the game for the CRT");
     assertEquals("Agility 30+ reached", nextCue.title, "Next experiment cue should name the first failing mission check");
     assertEquals(true, /Lower mass/.test(nextCue.body), "Next experiment cue should reuse the mission waiting message");
+    assertEquals(true, /use_hopper\(\)/.test(nextCue.command), "Next experiment cue should include runnable scaffold code");
+    assertEquals(true, /hopper\.engine = 6/.test(nextCue.command), "Next experiment cue should keep the mission's target syntax");
     assertEquals(nextCue, game.lastScienceDelta.nextExperiment, "Next experiment cue should be pinned to the latest delta");
+
+    const inputEl = {
+      value: "",
+      focused: false,
+      selection: null,
+      style: {},
+      scrollHeight: 20,
+      focus() { this.focused = true; },
+      setSelectionRange(start, end) { this.selection = [start, end]; }
+    };
+    document.getElementById = (id) => id === "console-input" ? inputEl : null;
+    assertEquals(true, stageScienceDeltaCommand(nextCue.command), "Stage button helper should write the command to the console");
+    assertEquals(nextCue.command.trim(), inputEl.value, "Staged command should match the next experiment command");
+    assertEquals(true, inputEl.focused, "Staging should focus the terminal input");
+    document.getElementById = oldGetElementById22ba;
     renderTestResult("engine-suite", "Curriculum: code runs create science delta feedback", true);
   } catch (err) {
+    document.getElementById = oldGetElementById22ba;
     renderTestResult("engine-suite", "Curriculum: code runs create science delta feedback", false, err.message);
   }
 
@@ -1860,7 +1879,8 @@ function runEngineTests() {
       ],
       nextExperiment: {
         title: "Agility 30+ reached",
-        body: "Lower mass or raise engine, then test the wall."
+        body: "Lower mass or raise engine, then test the wall.",
+        command: "use_hopper()\nhopper.mass = 1.2\nhopper.engine = 6"
       }
     };
 
@@ -1883,6 +1903,8 @@ function runEngineTests() {
     assertEquals(true, /Less mass/.test(scienceDeltaText), "Science delta should include the science cue");
     assertEquals(true, /NEXT EXPERIMENT/.test(scienceDeltaText), "Science delta should show the next experiment cue");
     assertEquals(true, /Lower mass or raise engine/.test(scienceDeltaText), "Science delta should render the cue body");
+    assertEquals(true, /hopper\.engine = 6/.test(scienceDeltaText), "Science delta should render the runnable next command");
+    assertEquals(true, /STAGE CODE/.test(scienceDeltaText), "Science delta should expose a stage-code action");
     assertEquals(true, !!contract, "Mission panel should append a lab-star contract");
     assertEquals(false, !!replayBeforeProgress, "First run should not show a replay contract even when profile progress exists");
     assertEquals(true, /LAB STARS/.test(text), "Contract should identify the star target");
