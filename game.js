@@ -1988,7 +1988,9 @@ class StarHopperGame {
       for (const npcConf of this.currentPlanet.npcs) {
         if (typeof NPC !== 'undefined') {
           const placed = this.placeNpcAwayFromCollectibles(npcConf);
-          this.interactiveObjects.push(new NPC(placed));
+          const npc = new NPC(placed);
+          if (this.shouldVillagersShelterForNight()) this.parkNPCInCave(npc);
+          this.interactiveObjects.push(npc);
         }
       }
     }

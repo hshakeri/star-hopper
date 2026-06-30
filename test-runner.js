@@ -3503,6 +3503,22 @@ function runCombatTests() {
     g.getEarthDayNightPhase = () => ({ t: 0.5, daylight: 1, isDay: true, sunX: 0.5, sunY: 0.34 });
     npc.update(g);
     assertEquals(false, npc.hiddenInCave, "Villager comes out in daylight");
+
+    const loadGame = new StarHopperGame();
+    loadGame.state = 'playing';
+    loadGame.researchXP = 0;
+    loadGame.masteryMeters = {};
+    loadGame.getEarthDayNightPhase = () => ({ t: 0, daylight: 0.1, isDay: false, sunX: 0.1, sunY: 0.2 });
+    loadGame.loadPlanet(0);
+    const loadedNpc = loadGame.interactiveObjects.find(obj => obj instanceof NPC);
+    assertEquals(true, !!loadedNpc, "Earth loads a village NPC");
+    assertEquals(true, loadedNpc.hiddenInCave, "Night-loaded Earth villagers start in caves");
+    assertEquals(loadedNpc.caveX + 10, loadedNpc.x, "Night-loaded villager is parked at the cave mouth");
+    assertEquals(false, !!loadedNpc.rescuePending, "Night shelter does not count as a mob rescue");
+    loadGame.getEarthDayNightPhase = () => ({ t: 0.5, daylight: 1, isDay: true, sunX: 0.5, sunY: 0.34 });
+    loadedNpc.update(loadGame);
+    assertEquals(false, loadedNpc.hiddenInCave, "Night-loaded villager comes out at daylight");
+    assertEquals(0, loadGame.researchXP, "Daylight release from night shelter does not award rescue XP");
     renderTestResult(SUITE, "Villagers: Earth night and day controls caves", true);
   } catch (err) {
     renderTestResult(SUITE, "Villagers: Earth night and day controls caves", false, err.message);
