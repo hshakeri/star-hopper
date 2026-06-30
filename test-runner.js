@@ -3125,6 +3125,15 @@ function runCombatTests() {
     sentry.panicTimer = 0;
     sentry.update(g);
     assertEquals(false, sentry.hiddenInCave, "Villager comes back out when nearby danger clears");
+    const loopSentry = new NPC({ id: 'loop-lookout', name: 'Loop Lookout', profession: 'Guard', type: 'npc', x: 144, y: 60, color: '#cbd5e1', caveX: 108, caveY: 60 });
+    loopSentry.proximity = true;
+    g.activeNPC = loopSentry;
+    g.interactiveObjects = [loopSentry];
+    g.mobs = [new Mob(154, 60, 'hog', '#9a6b4f', 1)];
+    g.updateVillagerShelterStates();
+    assertEquals(true, loopSentry.panicTimer > 0, "Game loop shelter pass marks a close mob as danger");
+    assertEquals(true, loopSentry.rescuePending, "Close mob danger marks the villager rescue as pending");
+    assertEquals(null, g.activeNPC, "Villager cannot stay trade-active while sheltering from a mob");
 
     const npc = new NPC({ id: 'caver', name: 'Caver', profession: 'Miner', type: 'npc', x: 100, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60 });
     const mob = new Mob(102, 60, 'hog', '#9a6b4f', 1);
@@ -3174,6 +3183,21 @@ function runCombatTests() {
     assertEquals(true, g.hasVillageRescueCredit(1), "Village rescue records world mastery source credit");
     assertEquals(null, g.grantVillageRescueReward(npc, "nearby mob"), "The same villager rescue cannot be farmed twice");
     assertEquals(7, g.researchXP, "Duplicate rescue credit does not add more Research XP");
+    const loopRelease = new StarHopperGame();
+    loopRelease.state = 'playing'; loopRelease.currentPlanetIndex = 1; loopRelease.currentPlanet = PLANETS[1];
+    loopRelease.player = new Player(0, 0);
+    loopRelease.researchXP = 0;
+    loopRelease.masteryMeters = {};
+    const loopNpc = new NPC({ id: 'loop-release', name: 'Loop Release', profession: 'Miner', type: 'npc', x: 130, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60, hiddenInCave: true });
+    loopNpc.panicTimer = 0;
+    loopNpc.rescuePending = true;
+    loopNpc.shelterReason = "nearby mob";
+    loopRelease.interactiveObjects = [loopNpc];
+    loopRelease.mobs = [];
+    loopRelease.updateVillagerShelterStates();
+    assertEquals(false, loopNpc.hiddenInCave, "Game loop shelter pass releases a hidden villager when danger is gone");
+    assertEquals(82, loopNpc.x, "Normal cave release starts the villager at the cave mouth");
+    assertEquals(7, loopRelease.researchXP, "Loop release grants the rescue XP once the villager returns");
 
     const nightGame = new StarHopperGame();
     nightGame.state = 'playing'; nightGame.currentPlanetIndex = 0; nightGame.currentPlanet = PLANETS[0];
@@ -3209,6 +3233,13 @@ function runCombatTests() {
     g.interactiveObjects = [npc];
     for (let i = 0; i < 40 && !npc.hiddenInCave; i++) npc.update(g);
     assertEquals(true, npc.hiddenInCave, "Villager shelters in a cave at night");
+    npc.x = 300;
+    npc.proximity = true;
+    g.activeNPC = npc;
+    g.updateVillagerShelterStates();
+    assertEquals(82, npc.x, "Night shelter keeps hidden villagers parked at the cave mouth");
+    assertEquals(false, npc.proximity, "Night-sheltered villagers cannot open trades");
+    assertEquals(null, g.activeNPC, "Night shelter clears active trade target");
     g.getEarthDayNightPhase = () => ({ t: 0.5, daylight: 1, isDay: true, sunX: 0.5, sunY: 0.34 });
     npc.update(g);
     assertEquals(false, npc.hiddenInCave, "Villager comes out in daylight");

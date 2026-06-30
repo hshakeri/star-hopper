@@ -271,23 +271,84 @@ class StarHopperGame {
       obj.panicTimer = 0;
       obj.caveCooldown = 0;
       if (keepSheltered) {
-        obj.hiddenInCave = true;
-        if (Number.isFinite(obj.caveX)) obj.x = obj.caveX + 10;
-        if (Number.isFinite(obj.caveY)) obj.y = obj.caveY;
-        obj.proximity = false;
+        this.parkNPCInCave(obj);
         continue;
       }
-      const rescuePending = !!obj.rescuePending;
-      obj.hiddenInCave = false;
-      if (Number.isFinite(obj.homeX)) obj.x = obj.homeX;
-      else if (Number.isFinite(obj.caveX)) obj.x = obj.caveX + 10;
-      if (Number.isFinite(obj.homeY)) obj.y = obj.homeY;
-      if (rescuePending) this.grantVillageRescueReward(obj, obj.shelterReason || "danger");
-      obj.rescuePending = false;
-      obj.shelterReason = null;
-      obj.proximity = false;
+      this.releaseNPCFromCave(obj, { returnHome: true });
     }
     if (this.activeNPC && this.activeNPC.hiddenInCave) this.activeNPC = null;
+    this.syncTradeTouchControls();
+  }
+
+  syncTradeTouchControls() {
+    if (typeof document === 'undefined') return;
+    const touch = document.getElementById('touch-controls');
+    if (touch) touch.classList.toggle('npc-near', !!this.activeNPC);
+  }
+
+  parkNPCInCave(npc) {
+    if (!npc) return;
+    npc.hiddenInCave = true;
+    if (Number.isFinite(npc.caveX)) npc.x = npc.caveX + 10;
+    if (Number.isFinite(npc.caveY)) npc.y = npc.caveY;
+    npc.proximity = false;
+    if (this.activeNPC === npc) this.activeNPC = null;
+  }
+
+  releaseNPCFromCave(npc, options = {}) {
+    if (!npc) return;
+    const rescuePending = !!npc.rescuePending;
+    npc.hiddenInCave = false;
+    if (options.returnHome && Number.isFinite(npc.homeX)) npc.x = npc.homeX;
+    else if (Number.isFinite(npc.caveX)) npc.x = npc.caveX + 10;
+    if (Number.isFinite(npc.homeY)) npc.y = npc.homeY;
+    if (rescuePending) this.grantVillageRescueReward(npc, npc.shelterReason || "danger");
+    npc.rescuePending = false;
+    npc.shelterReason = null;
+    npc.panicTimer = 0;
+    npc.caveCooldown = 0;
+    npc.proximity = false;
+    if (this.activeNPC === npc) this.activeNPC = null;
+  }
+
+  markNPCShelterThreat(npc, reason = "nearby mob", options = {}) {
+    if (!npc) return false;
+    npc.panicTimer = Math.max(npc.panicTimer || 0, options.panicTimer || 120);
+    npc.rescuePending = true;
+    if (!npc.shelterReason || npc.shelterReason === "nearby mob") npc.shelterReason = reason;
+    if (!npc.hiddenInCave && options.bubble && typeof ComicBubbles !== 'undefined' && (npc.caveCooldown || 0) <= 0) {
+      ComicBubbles.spawn(npc.x + npc.w / 2, npc.y - 8, "CAVE!", "jagged", "#facc15", -0.35, { maxLife: 60, scale: 0.8 });
+    }
+    npc.caveCooldown = Math.max(npc.caveCooldown || 0, options.caveCooldown || 90);
+    npc.proximity = false;
+    if (this.activeNPC === npc) this.activeNPC = null;
+    return true;
+  }
+
+  updateVillagerShelterStates() {
+    if (!(this.interactiveObjects && typeof NPC !== 'undefined')) return;
+    const nightShelter = this.shouldVillagersShelterForNight();
+    let touchNeedsSync = false;
+    for (const obj of this.interactiveObjects) {
+      if (!(obj instanceof NPC)) continue;
+      const threat = this.findThreateningMobForNPC(obj, 128);
+      if (threat) {
+        if (this.markNPCShelterThreat(obj, "nearby mob")) touchNeedsSync = true;
+        continue;
+      }
+      if (nightShelter) {
+        if (this.activeNPC === obj) touchNeedsSync = true;
+        if (obj.hiddenInCave) this.parkNPCInCave(obj);
+        else obj.proximity = false;
+        if (this.activeNPC === obj) this.activeNPC = null;
+        continue;
+      }
+      if (obj.hiddenInCave && (obj.panicTimer || 0) <= 0) {
+        this.releaseNPCFromCave(obj);
+        touchNeedsSync = true;
+      }
+    }
+    if (touchNeedsSync) this.syncTradeTouchControls();
   }
 
   getGemConfig(index = this.currentPlanetIndex) {
@@ -3151,10 +3212,7 @@ class StarHopperGame {
       }
     }
     // Reveal the on-screen TRADE button (touch devices) only while a villager is in range.
-    if (typeof document !== 'undefined') {
-      const _tc = document.getElementById('touch-controls');
-      if (_tc) _tc.classList.toggle('npc-near', !!this.activeNPC);
-    }
+    this.syncTradeTouchControls();
 
     // 11. Update spawned box boxes (AABB block pushes)
     for (const box of this.spawnedBoxes) {
@@ -3181,6 +3239,7 @@ class StarHopperGame {
     // 12e. Mobs (survival spawns + block-woken) move and fight here.
     this.updateMobs();
     if (this.state === 'gameover') return;
+    this.updateVillagerShelterStates();
 
     // 13. Redraw HUD sidebar charts & variables
     updateHUD(this);

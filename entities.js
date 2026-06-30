@@ -2428,13 +2428,17 @@ class NPC extends InteractiveObject {
     const threat = (typeof game.findThreateningMobForNPC === 'function') ? game.findThreateningMobForNPC(this, 128) : null;
     const nightShelter = (typeof game.shouldVillagersShelterForNight === 'function') ? game.shouldVillagersShelterForNight() : false;
     if (threat) {
-      this.panicTimer = 120;
-      this.rescuePending = true;
-      this.shelterReason = "nearby mob";
-      if (!this.hiddenInCave && typeof ComicBubbles !== 'undefined' && this.caveCooldown <= 0) {
-        ComicBubbles.spawn(this.x + this.w / 2, this.y - 8, "CAVE!", "jagged", "#facc15", -0.35, { maxLife: 60, scale: 0.8 });
+      if (typeof game.markNPCShelterThreat === 'function') {
+        game.markNPCShelterThreat(this, "nearby mob", { bubble: true });
+      } else {
+        this.panicTimer = 120;
+        this.rescuePending = true;
+        this.shelterReason = "nearby mob";
+        if (!this.hiddenInCave && typeof ComicBubbles !== 'undefined' && this.caveCooldown <= 0) {
+          ComicBubbles.spawn(this.x + this.w / 2, this.y - 8, "CAVE!", "jagged", "#facc15", -0.35, { maxLife: 60, scale: 0.8 });
+        }
+        this.caveCooldown = 90;
       }
-      this.caveCooldown = 90;
     }
     if (this.panicTimer > 0) this.panicTimer--;
     if (this.caveCooldown > 0) this.caveCooldown--;
