@@ -143,6 +143,7 @@ class StarHopperGame {
     this._labStarPreviewCount = 0;
     this.lastLabStarPulse = null;
     this.lastSignalStoryEffect = null;
+    this.lastWorldMasteryXPEffect = null;
     this.pendingNavigationTargetIndex = null;
     this.navigationReturnTimer = null;
     this.levelStartMs = 0;
@@ -1334,6 +1335,9 @@ class StarHopperGame {
       duplicate: false,
       tierEffect: tierAwards.length && typeof this.spawnWorldMasteryTierEffect === 'function'
         ? this.spawnWorldMasteryTierEffect(tierAwards[tierAwards.length - 1], meter.xp)
+        : null,
+      xpEffect: !tierAwards.length && typeof this.spawnWorldMasteryXPEffect === 'function'
+        ? this.spawnWorldMasteryXPEffect(add, reason, this.getWorldMasteryProgress(index))
         : null,
       progress: this.getWorldMasteryProgress(index)
     };
@@ -5084,6 +5088,40 @@ class StarHopperGame {
       y: py
     };
     return this.lastWorldMasteryTierEffect;
+  }
+
+  spawnWorldMasteryXPEffect(amount = 0, reason = "practice", progress = null) {
+    if (!this.player) return null;
+    const add = Math.max(0, Math.floor(Number(amount) || 0));
+    if (add <= 0) return null;
+    const baseX = Number.isFinite(this.player.x) ? this.player.x : 0;
+    const baseY = Number.isFinite(this.player.y) ? this.player.y : 0;
+    const width = Number.isFinite(this.player.w) ? this.player.w : 24;
+    const height = Number.isFinite(this.player.h) ? this.player.h : 32;
+    const px = baseX + width / 2;
+    const py = baseY + height / 2;
+    const label = `WORLD +${add} XP`;
+    const color = "#67e8f9";
+    const tierLabel = progress && progress.title ? progress.title : "World mastery";
+
+    if (typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+      ComicBubbles.pop(px, baseY - 66, label, color, 0.88);
+    }
+    if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+      Particles.spawnBurst(px, py - 10, color, 8, 1.9, 1.8, 'glow');
+    }
+
+    this.lastWorldMasteryXPEffect = {
+      label,
+      color,
+      addedXP: add,
+      reason,
+      tierLabel,
+      xp: progress && Number.isFinite(Number(progress.xp)) ? Math.floor(Number(progress.xp)) : add,
+      x: px,
+      y: py
+    };
+    return this.lastWorldMasteryXPEffect;
   }
 
   spawnDiscoveryComboPrimerEffect(pulse) {

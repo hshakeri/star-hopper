@@ -3636,6 +3636,10 @@ function runCombatTests() {
     const tierCueCountC3 = bubbleLabelsC3.filter(label => /WORLD TIER!/.test(label)).length;
     game.addXP(1);
     assertEquals(tierCueCountC3, bubbleLabelsC3.filter(label => /WORLD TIER!/.test(label)).length, "More XP without a new tier should not repeat the tier cue");
+    assertEquals("WORLD +1 XP", game.lastWorldMasteryXPEffect.label, "Non-tier mastery progress should still create an in-level XP cue");
+    assertEquals("combat practice", game.lastWorldMasteryXPEffect.reason, "World XP cue should remember why mastery increased");
+    assertEquals(true, bubbleLabelsC3.some(label => /WORLD \+1 XP/.test(label)), "Non-tier mastery XP should pop near the player");
+    assertEquals(true, particleColorsC3.some(color => color === "#67e8f9"), "Non-tier mastery XP should spawn a cyan reward burst");
     ComicBubbles.pop = oldBubblePopC3;
     Particles.spawnBurst = oldParticleBurstC3;
     renderTestResult(SUITE, "XP: fills mastery meter + levels the weapon", true);
