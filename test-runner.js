@@ -3995,10 +3995,15 @@ function runCombatTests() {
     g.upgradeCapBonuses = { engine: 0, jump: 0, rocket: 0, mass: 0, antigravity: 0 };
     const npc = { id: 'geary', name: 'Geary', profession: 'Machinist', color: '#fff', dialogue: ['hi'],
       trades: [
-        { id: 'engine_1', cost: { type: 'emerald', amount: 1 }, desc: 'x', reward: { type: 'cap', key: 'engine', amount: 3 } },
-        { id: 'pricey', cost: { type: 'emerald', amount: 99 }, desc: 'y', reward: { type: 'cap', key: 'engine', amount: 5 } },
+        { id: 'engine_1', cost: { type: 'emerald', amount: 1 }, desc: 'Reinforce Engine', reward: { type: 'cap', key: 'engine', amount: 3 } },
+        { id: 'pricey', cost: { type: 'emerald', amount: 99 }, desc: 'Overclock Engine', reward: { type: 'cap', key: 'engine', amount: 5 } },
       ] };
     g.interactiveObjects = [npc];
+    let request = getVillageTradeRequest(g, npc);
+    assertEquals("READY TRADE", request.kicker, "Trade request should prioritize an affordable unpurchased offer");
+    assertEquals("Reinforce Engine", request.title, "Trade request should name the selected offer");
+    assertEquals("Payoff: ENGINE +3 upgrade", request.reward, "Trade request should name the upgrade payoff");
+    assertEquals(true, /READY TRADE/.test(renderVillageTradeRequestHTML(request)), "Trade request card should render the request status");
     executeNPCTrade('geary', 'engine_1');
     assertEquals(4, g.gemsWallet.emerald, "Trade deducts the cost from the wallet");
     assertEquals(3, g.upgradeCapBonuses.engine, "Cap reward applies the bonus");
@@ -4006,6 +4011,10 @@ function runCombatTests() {
     assertEquals("CAP UP!", g.lastTradeRewardEffect.label, "Cap trade should create an in-level reward cue");
     assertEquals("ENGINE +3", g.lastTradeRewardEffect.detail, "Cap trade cue should name the upgraded stat");
     assertEquals(true, bubbleLabelsC24.some(label => /CAP UP!/.test(label)), "Cap trade should pop a named reward cue");
+    request = getVillageTradeRequest(g, npc);
+    assertEquals("VILLAGE REQUEST", request.kicker, "After a purchase, request should move to the next unpurchased offer");
+    assertEquals(95, request.missing, "Trade request should state the remaining gem gap");
+    assertEquals(true, /Collect 95 more Emerald/.test(request.body), "Trade request should explain what to collect next");
     executeNPCTrade('geary', 'pricey');     // can't afford (have 4, costs 99)
     assertEquals(4, g.gemsWallet.emerald, "Unaffordable trade does not deduct");
     assertEquals(3, g.upgradeCapBonuses.engine, "Unaffordable trade grants no bonus");

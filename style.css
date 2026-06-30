@@ -6118,6 +6118,65 @@ body.readable-text-mode .signal-chapter strong {
   gap: 4px;
 }
 
+.trade-request-card {
+  border: 1px solid rgba(250, 204, 21, 0.3);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(250, 204, 21, 0.12), rgba(56, 189, 248, 0.06)),
+    rgba(3, 7, 18, 0.5);
+  padding: 9px 11px;
+  margin-bottom: 12px;
+}
+
+.trade-request-card.ready {
+  border-color: rgba(74, 222, 128, 0.38);
+  background:
+    linear-gradient(135deg, rgba(74, 222, 128, 0.12), rgba(56, 189, 248, 0.06)),
+    rgba(3, 7, 18, 0.5);
+}
+
+.trade-request-card.complete {
+  border-color: rgba(168, 85, 247, 0.34);
+}
+
+.trade-request-card span,
+.trade-request-card em {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.trade-request-card span {
+  color: #fde68a;
+}
+
+.trade-request-card.ready span {
+  color: #86efac;
+}
+
+.trade-request-card strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+
+.trade-request-card p {
+  margin: 5px 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.trade-request-card em {
+  color: var(--neon-cyan);
+}
+
 .trade-list-container {
   display: flex;
   flex-direction: column;
@@ -6166,6 +6225,11 @@ body.readable-text-mode .signal-chapter strong {
 
 .trade-row:hover {
   border-color: rgba(56, 189, 248, 0.2);
+}
+
+.trade-row.requested {
+  border-color: rgba(250, 204, 21, 0.36);
+  box-shadow: inset 3px 0 0 rgba(250, 204, 21, 0.72);
 }
 
 .trade-info {

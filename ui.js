@@ -3367,6 +3367,102 @@ function updatePedagogicalGuide(game) {
   renderScaffoldEditor(game, activeMission);
 }
 
+function getTradeGemSymbol(type) {
+  if (type === 'quartz') return "🤍";
+  if (type === 'amber') return "🧡";
+  if (type === 'ice') return "💜";
+  if (type === 'flux') return "💖";
+  if (type === 'forge') return "🟧";
+  return "💚";
+}
+
+function getTradeGemLabel(type) {
+  const labels = {
+    emerald: "Emerald",
+    quartz: "Quartz",
+    amber: "Amber",
+    ice: "Violet Ice",
+    flux: "Flux",
+    forge: "Forge"
+  };
+  return labels[type] || String(type || "gem");
+}
+
+function getTradeRewardSummary(trade) {
+  const reward = trade && trade.reward ? trade.reward : {};
+  if (reward.type === 'cap') {
+    const key = String(reward.key || "stat").replace(/_/g, " ");
+    const amount = Number(reward.amount) || 0;
+    return `${key.toUpperCase()} +${amount} upgrade`;
+  }
+  if (reward.type === 'tool') {
+    return `${reward.label || reward.key || "tool"} unlocked`;
+  }
+  if (reward.type === 'planet') {
+    return "new world route unlocked";
+  }
+  return "village upgrade";
+}
+
+function getVillageTradeRequest(game, npc) {
+  if (!npc || !Array.isArray(npc.trades) || !npc.trades.length) return null;
+  const wallet = game && game.gemsWallet ? game.gemsWallet : {};
+  const purchased = game && game.purchasedTrades ? game.purchasedTrades : new Set();
+  const openTrades = npc.trades.filter(trade => trade && !(purchased.has && purchased.has(trade.id)));
+  if (!openTrades.length) {
+    return {
+      kicker: "VILLAGE COMPLETE",
+      title: "All local trades unlocked",
+      body: `${npc.name || "This villager"} has no more requests. Use the tools in mastery remixes or Daily Signals.`,
+      reward: "Payoff: stronger replay kit",
+      complete: true
+    };
+  }
+  const ranked = openTrades.slice().sort((a, b) => {
+    const aCost = a.cost || {};
+    const bCost = b.cost || {};
+    const aMissing = Math.max(0, (Number(aCost.amount) || 0) - (Number(wallet[aCost.type]) || 0));
+    const bMissing = Math.max(0, (Number(bCost.amount) || 0) - (Number(wallet[bCost.type]) || 0));
+    if (aMissing === 0 && bMissing > 0) return -1;
+    if (bMissing === 0 && aMissing > 0) return 1;
+    return aMissing - bMissing;
+  });
+  const trade = ranked[0];
+  const cost = trade.cost || {};
+  const costType = cost.type || "emerald";
+  const costAmount = Number(cost.amount) || 0;
+  const have = Number(wallet[costType]) || 0;
+  const missing = Math.max(0, costAmount - have);
+  const gemLabel = getTradeGemLabel(costType);
+  const gemSymbol = getTradeGemSymbol(costType);
+  const villagerName = npc.name || "this villager";
+  return {
+    kicker: missing === 0 ? "READY TRADE" : "VILLAGE REQUEST",
+    title: trade.desc || "Village upgrade",
+    body: missing === 0
+      ? `${villagerName} can craft this now. Spend ${costAmount} ${gemLabel} ${gemSymbol} to turn samples into an upgrade.`
+      : `Collect ${missing} more ${gemLabel} ${gemSymbol} for ${villagerName}. The next sample has a tool payoff.`,
+    reward: `Payoff: ${getTradeRewardSummary(trade)}`,
+    ready: missing === 0,
+    tradeId: trade.id,
+    costType,
+    costAmount,
+    have,
+    missing,
+    gemSymbol
+  };
+}
+
+function renderVillageTradeRequestHTML(request) {
+  if (!request) return "";
+  return `
+    <span>${escapeHTML(request.kicker)}</span>
+    <strong>${escapeHTML(request.title)}</strong>
+    <p>${escapeHTML(request.body)}</p>
+    <em>${escapeHTML(request.reward)}</em>
+  `;
+}
+
 function openTradeScreen(npc) {
   if (!npc || !window.Game) return;
   
@@ -3407,6 +3503,18 @@ function openTradeScreen(npc) {
   const fgEl = document.getElementById("wallet-forge");
   if (fgEl) fgEl.textContent = wallet.forge || 0;
 
+  const tradeRequest = getVillageTradeRequest(window.Game, npc);
+  const requestEl = document.getElementById("trade-request-card");
+  if (requestEl) {
+    if (tradeRequest) {
+      requestEl.className = `trade-request-card${tradeRequest.ready ? " ready" : ""}${tradeRequest.complete ? " complete" : ""}`;
+      requestEl.innerHTML = renderVillageTradeRequestHTML(tradeRequest);
+    } else {
+      requestEl.className = "trade-request-card hidden";
+      requestEl.innerHTML = "";
+    }
+  }
+
   // Render trade offers
   const tradeList = document.getElementById("trade-list");
   if (tradeList) {
@@ -3424,14 +3532,9 @@ function openTradeScreen(npc) {
         const purchased = window.Game.purchasedTrades && window.Game.purchasedTrades.has(trade.id);
         
         const tradeRow = document.createElement("div");
-        tradeRow.className = "trade-row";
+        tradeRow.className = `trade-row${tradeRequest && tradeRequest.tradeId === trade.id ? " requested" : ""}`;
         
-        let gemSymbol = "💚";
-        if (costType === 'quartz') gemSymbol = "🤍";
-        else if (costType === 'amber') gemSymbol = "🧡";
-        else if (costType === 'ice') gemSymbol = "💜";
-        else if (costType === 'flux') gemSymbol = "💖";
-        else if (costType === 'forge') gemSymbol = "🟧";
+        const gemSymbol = getTradeGemSymbol(costType);
 
         let btnHtml = "";
         if (purchased) {
@@ -3442,8 +3545,8 @@ function openTradeScreen(npc) {
 
         tradeRow.innerHTML = `
           <div class="trade-info">
-            <span class="trade-desc">${trade.desc}</span>
-            <span class="trade-cost">Cost: ${costAmount} ${costType} ${gemSymbol} (Have: ${playerBalance})</span>
+            <span class="trade-desc">${escapeHTML(trade.desc)}</span>
+            <span class="trade-cost">Cost: ${escapeHTML(costAmount)} ${escapeHTML(costType)} ${gemSymbol} (Have: ${escapeHTML(playerBalance)})</span>
           </div>
           ${btnHtml}
         `;
