@@ -118,6 +118,7 @@ function normalizeProgress(progress) {
     upgradeLevels: plainObject(p.upgradeLevels),
     planetClears: plainObject(p.planetClears),
     bestClearTimes: plainObject(p.bestClearTimes),
+    bestLabStars: plainObject(p.bestLabStars),
     masteryCleared: plainObject(p.masteryCleared),
     masteryMeters: plainObject(p.masteryMeters),
     dailySignalClears: Number(p.dailySignalClears) || 0,
@@ -144,6 +145,7 @@ function getActiveProgressSnapshot() {
     upgradeLevels: typeof Game !== 'undefined' && Game.upgradeLevels ? { ...Game.upgradeLevels } : {},
     planetClears: typeof Game !== 'undefined' && Game.planetClears ? { ...Game.planetClears } : {},
     bestClearTimes: typeof Game !== 'undefined' && Game.bestClearTimes ? { ...Game.bestClearTimes } : {},
+    bestLabStars: typeof Game !== 'undefined' && Game.bestLabStars ? { ...Game.bestLabStars } : {},
     masteryCleared: typeof Game !== 'undefined' && Game.masteryCleared ? { ...Game.masteryCleared } : {},
     masteryMeters: typeof Game !== 'undefined' && Game.masteryMeters ? { ...Game.masteryMeters } : {},
     dailySignalClears: typeof Game !== 'undefined' ? Game.dailySignalClears : 0,
@@ -201,6 +203,7 @@ function mergeProgress(localProgress, incomingProgress) {
     upgradeLevels: mergeNumberMax(local.upgradeLevels, incoming.upgradeLevels),
     planetClears: mergeNumberMax(local.planetClears, incoming.planetClears),
     bestClearTimes: mergeBestTimes(local.bestClearTimes, incoming.bestClearTimes),
+    bestLabStars: mergeNumberMax(local.bestLabStars, incoming.bestLabStars),
     masteryCleared: mergeBooleanObject(local.masteryCleared, incoming.masteryCleared),
     masteryMeters: { ...local.masteryMeters, ...incoming.masteryMeters },
     dailySignalClears: Math.max(local.dailySignalClears || 0, incoming.dailySignalClears || 0),
@@ -229,6 +232,7 @@ function applyProgressSnapshot(progress) {
     Game.upgradeLevels = { ...normalized.upgradeLevels };
     Game.planetClears = { ...normalized.planetClears };
     Game.bestClearTimes = { ...normalized.bestClearTimes };
+    Game.bestLabStars = { ...normalized.bestLabStars };
     Game.masteryCleared = { ...normalized.masteryCleared };
     Game.masteryMeters = { ...normalized.masteryMeters };
     Game.dailySignalClears = normalized.dailySignalClears;

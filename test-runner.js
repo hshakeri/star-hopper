@@ -1061,13 +1061,19 @@ function runEngineTests() {
     const game = new StarHopperGame();
     game.currentPlanet = PLANETS[0];
     game.currentPlanetIndex = 0;
-    game.completedMissions = new Set();
+    game.completedMissions = new Set(PLANETS[0].missions.map(mission => mission.id));
+    game.requiredCollectiblesTotal = 2;
+    game.requiredCollectiblesCollected = 2;
     game.coachPredictions = { "earth-gravity-wall": "lighter-longer" };
+    game.discoveryPassCounts = { "earth-gravity-wall": 1 };
     game.discoveredFormulaKinds = new Set(["antigravity"]);
     game.researchXP = 60;
     game.renderClearLabReport({ isDailyRun: false, nextIndex: 1, earnedGems: 2, gemKey: "emerald" });
 
     assertEquals(true, /CLEAR LAB REPORT/.test(report.innerHTML), "Clear report should render a heading");
+    assertEquals(true, /3\/3 Lab Stars/.test(report.innerHTML), "Clear report should include the mastery star rating");
+    assertEquals(true, /OK Mission tasks/.test(report.innerHTML), "Clear report should credit completed mission tasks");
+    assertEquals(true, /OK Science proof/.test(report.innerHTML), "Clear report should credit the science-proof action");
     assertEquals(true, /222px/.test(report.innerHTML), "Clear report should include max height");
     assertEquals(true, /6.4 px\/f/.test(report.innerHTML), "Clear report should include max speed");
     assertEquals(true, /1\/9/.test(report.innerHTML), "Clear report should include formula deck progress");
@@ -1081,6 +1087,27 @@ function runEngineTests() {
     if (typeof AttemptLog !== 'undefined') AttemptLog.byPlanet = oldAttemptRows22e || {};
     document.getElementById = oldGetElementById22e;
     renderTestResult("engine-suite", "Curriculum: clear screen renders lab report", false, err.message);
+  }
+
+  // Test 22f: Clear lab stars reward mission tasks, mission gems, and science proof.
+  try {
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[0];
+    game.currentPlanetIndex = 0;
+    game.completedMissions = new Set(PLANETS[0].missions.map(mission => mission.id));
+    game.requiredCollectiblesTotal = 3;
+    game.requiredCollectiblesCollected = 3;
+    game.confirmedHypotheses = new Set(["earth-gravity-wall"]);
+    game.bestLabStars = { 0: 2 };
+
+    const summary = game.recordClearLabStars({ isDailyRun: false });
+    assertEquals(3, summary.stars, "All three lab-star checks should be earned");
+    assertEquals(true, summary.isNewBest, "A 3-star clear should beat the previous 2-star best");
+    assertEquals(3, game.bestLabStars[0], "Best lab-star score should persist on the game state");
+    assertEquals(true, summary.checks.some(check => check.id === "science" && check.earned), "Science proof should count for a lab star");
+    renderTestResult("engine-suite", "Curriculum: clear lab stars reward mastery actions", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Curriculum: clear lab stars reward mastery actions", false, err.message);
   }
 
   // Test 23: Mission Coach copy avoids hidden old mode names
@@ -2685,7 +2712,7 @@ function runRetryRemixTests() {
     Game = {
       completedMissions: new Set(), earnedBadges: new Set(), unlockedUpgrades: new Set(),
       upgradeLevels: {}, planetClears: {},
-      bestClearTimes: { 0: 12.4 }, masteryCleared: { 1: true }, masteryMeters: {},
+      bestClearTimes: { 0: 12.4 }, bestLabStars: { 0: 3 }, masteryCleared: { 1: true }, masteryMeters: {},
       dailySignalClears: 3, lastPlayedDate: "2026-06-13", streakCount: 5,
       researchXP: 24, discoveryCombo: 1, discoveryLog: [], discoveryPassCounts: {},
       discoveredFormulaKinds: new Set(["mass"]),
@@ -2693,9 +2720,10 @@ function runRetryRemixTests() {
     };
     window.Game = Game;
     const snap = shCaptureProgress();
-    Game.bestClearTimes = {}; Game.dailySignalClears = 0; Game.lastPlayedDate = null; Game.streakCount = 0; Game.masteryCleared = {}; Game.researchXP = 0; Game.discoveredFormulaKinds = new Set(); Game.confirmedHypotheses = new Set();
+    Game.bestClearTimes = {}; Game.bestLabStars = {}; Game.dailySignalClears = 0; Game.lastPlayedDate = null; Game.streakCount = 0; Game.masteryCleared = {}; Game.researchXP = 0; Game.discoveredFormulaKinds = new Set(); Game.confirmedHypotheses = new Set();
     shApplyProgress(snap);
     assertEquals(12.4, Game.bestClearTimes[0], "best clear time round-trips");
+    assertEquals(3, Game.bestLabStars[0], "best lab stars round-trip");
     assertEquals(true, Game.masteryCleared[1], "mastery-cleared flag round-trips");
     assertEquals(3, Game.dailySignalClears, "daily-signal clears round-trip");
     assertEquals("2026-06-13", Game.lastPlayedDate, "lastPlayedDate round-trips");
@@ -2746,6 +2774,7 @@ function runRetryRemixTests() {
       upgradeLevels: { engine: 0.75 },
       planetClears: { 0: 2 },
       bestClearTimes: { 0: 38.2 },
+      bestLabStars: { 0: 3 },
       masteryCleared: { 0: true },
       masteryMeters: { 0: { xp: 5 } },
       dailySignalClears: 4,
@@ -2763,19 +2792,22 @@ function runRetryRemixTests() {
     assertEquals(2, payload.schemaVersion, "Payload should be versioned");
     assertEquals(0.75, payload.profileProgress.upgradeLevels.engine, "Upgrade levels should export");
     assertEquals(2, payload.profileProgress.planetClears[0], "Campaign clear counts should export");
+    assertEquals(3, payload.profileProgress.bestLabStars[0], "Best lab-star scores should export");
     assertEquals(4, payload.profileProgress.dailySignalClears, "Daily Signal clears should export");
     assertEquals(42, payload.profileProgress.researchXP, "Research XP should export");
     assertEquals(1, payload.profileProgress.discoveryPassCounts["earth-gravity-wall"], "Discovery progress should export");
     assertEquals(true, payload.profileProgress.discoveredFormulaKinds.includes("loop"), "Formula card kinds should export");
     assertEquals(true, payload.profileProgress.confirmedHypotheses.includes("earth-gravity-wall"), "Confirmed hypotheses should export");
     const merged = mergeProgress(
-      { unlockedUpgrades: ["jump"], upgradeLevels: { engine: 0.25 }, planetClears: { 0: 1 }, researchXP: 8, discoveryPassCounts: { "earth-gravity-wall": 0 }, discoveredFormulaKinds: ["friction"], confirmedHypotheses: ["moon-canyon-jump"] },
+      { unlockedUpgrades: ["jump"], upgradeLevels: { engine: 0.25 }, planetClears: { 0: 1 }, bestLabStars: { 0: 1, 1: 2 }, researchXP: 8, discoveryPassCounts: { "earth-gravity-wall": 0 }, discoveredFormulaKinds: ["friction"], confirmedHypotheses: ["moon-canyon-jump"] },
       progressFromSavePayload(payload)
     );
     assertEquals(true, merged.unlockedUpgrades.includes("engine"), "Incoming unlocked upgrade survives merge");
     assertEquals(true, merged.unlockedUpgrades.includes("jump"), "Local unlocked upgrade survives merge");
     assertEquals(0.75, merged.upgradeLevels.engine, "Merge keeps the higher upgrade level");
     assertEquals(2, merged.planetClears[0], "Merge keeps the higher clear count");
+    assertEquals(3, merged.bestLabStars[0], "Merge keeps the higher lab-star count");
+    assertEquals(2, merged.bestLabStars[1], "Merge keeps local lab-star counts for other planets");
     assertEquals(42, merged.researchXP, "Merge keeps the higher Research XP");
     assertEquals(1, merged.discoveryPassCounts["earth-gravity-wall"], "Merge keeps discovery pass progress");
     assertEquals(true, merged.discoveredFormulaKinds.includes("mass"), "Incoming formula card survives merge");

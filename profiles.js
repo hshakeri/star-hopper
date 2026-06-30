@@ -69,6 +69,7 @@ function shCaptureProgress() {
     // them and shApplyProgress defaults them). NOT sent to the github-sync flat payload —
     // the local profile store is authoritative (matches existing planetClears behavior).
     bestClearTimes: (game && game.bestClearTimes) ? { ...game.bestClearTimes } : {},
+    bestLabStars: (game && game.bestLabStars) ? { ...game.bestLabStars } : {},
     masteryCleared: (game && game.masteryCleared) ? { ...game.masteryCleared } : {},
     masteryMeters: (game && game.masteryMeters) ? { ...game.masteryMeters } : {},
     dailySignalClears: (game && game.dailySignalClears) || 0,
@@ -99,6 +100,7 @@ function shApplyProgress(progress) {
   game.planetClears = progress.planetClears ? { ...progress.planetClears } : {};
   // Phase-2 fields — default for old saves that predate them.
   game.bestClearTimes = (progress.bestClearTimes && typeof progress.bestClearTimes === 'object') ? { ...progress.bestClearTimes } : {};
+  game.bestLabStars = (progress.bestLabStars && typeof progress.bestLabStars === 'object') ? { ...progress.bestLabStars } : {};
   game.masteryCleared = (progress.masteryCleared && typeof progress.masteryCleared === 'object') ? { ...progress.masteryCleared } : {};
   game.masteryMeters = (progress.masteryMeters && typeof progress.masteryMeters === 'object') ? { ...progress.masteryMeters } : {};
   game.dailySignalClears = progress.dailySignalClears || 0;

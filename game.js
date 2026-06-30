@@ -87,6 +87,7 @@ class StarHopperGame {
     this.planetClears = {}; // per-planet clear count (persisted) — drives mastery remixes
     // Phase-2 progression state (persisted via profiles.js; default-safe for old saves).
     this.bestClearTimes = {};   // { planetIndex: fastest clear seconds }
+    this.bestLabStars = {};     // { planetIndex|daily:date: highest clear-screen lab stars }
     this.masteryCleared = {};   // { planetIndex: true } — mastery challenge beaten
     this.masteryMeters = {};    // { planetIndex: {...} } — reserved for per-world XP
     this.dailySignalClears = 0; // count of Daily Signal challenges beaten
@@ -1305,6 +1306,64 @@ class StarHopperGame {
       allCollectiblesCollected,
       readyForPortal: allMissionsComplete && allCollectiblesCollected
     };
+  }
+
+  getClearLabStarKey({ isDailyRun = false } = {}) {
+    if (isDailyRun && this.dailyInfo && this.dailyInfo.dateStr) return `daily:${this.dailyInfo.dateStr}`;
+    return String(this.currentPlanetIndex || 0);
+  }
+
+  getClearLabStarSummary({ isDailyRun = false } = {}) {
+    const status = (typeof this.getLevelObjectiveStatus === 'function')
+      ? this.getLevelObjectiveStatus()
+      : { missionsTotal: 0, allMissionsComplete: false, collectiblesTotal: 0, allCollectiblesCollected: false };
+    const missions = this.currentPlanet && Array.isArray(this.currentPlanet.missions) ? this.currentPlanet.missions : [];
+    const missionIds = new Set();
+    missions.forEach(mission => {
+      if (!mission) return;
+      if (mission.id) missionIds.add(mission.id);
+      if (mission.fullMission && mission.fullMission.id) missionIds.add(mission.fullMission.id);
+    });
+    if (typeof PlatformerMissions !== 'undefined' && Array.isArray(PlatformerMissions)) {
+      PlatformerMissions
+        .filter(mission => mission && mission.planetId === this.currentPlanetIndex)
+        .forEach(mission => missionIds.add(mission.id));
+    }
+
+    const confirmed = this.confirmedHypotheses instanceof Set
+      ? this.confirmedHypotheses
+      : new Set(Array.isArray(this.confirmedHypotheses) ? this.confirmedHypotheses : []);
+    const passCounts = this.discoveryPassCounts && typeof this.discoveryPassCounts === 'object'
+      ? this.discoveryPassCounts
+      : {};
+    const scienceProof = Array.from(missionIds).some(id =>
+      confirmed.has(id) || Number(passCounts[id]) > 0
+    );
+
+    const checks = [
+      { id: "missions", label: "Mission tasks", earned: status.missionsTotal > 0 && !!status.allMissionsComplete },
+      { id: "gems", label: "Mission gems", earned: status.collectiblesTotal > 0 && !!status.allCollectiblesCollected },
+      { id: "science", label: "Science proof", earned: scienceProof }
+    ];
+    const stars = checks.filter(check => check.earned).length;
+    const key = this.getClearLabStarKey({ isDailyRun });
+    const previousBest = Number(this.bestLabStars && this.bestLabStars[key]) || 0;
+    return {
+      key,
+      stars,
+      maxStars: checks.length,
+      checks,
+      previousBest,
+      best: Math.max(previousBest, stars),
+      isNewBest: stars > previousBest
+    };
+  }
+
+  recordClearLabStars({ isDailyRun = false } = {}) {
+    const summary = this.getClearLabStarSummary({ isDailyRun });
+    this.bestLabStars = this.bestLabStars || {};
+    if (summary.stars > summary.previousBest) this.bestLabStars[summary.key] = summary.stars;
+    return { ...summary, best: Math.max(summary.previousBest, summary.stars) };
   }
 
   canCollectGem(obj) {
@@ -2927,6 +2986,7 @@ class StarHopperGame {
       this.planetClears = this.planetClears || {};
       this.planetClears[this.currentPlanetIndex] = (this.planetClears[this.currentPlanetIndex] || 0) + 1;
     }
+    const labStars = this.recordClearLabStars({ isDailyRun });
     if (typeof saveLocalProgress === 'function') saveLocalProgress();
     this.refreshDailySignalBanner();
     // Distinct portal fanfare (not the generic success chime) so clearing a world lands
@@ -2970,13 +3030,13 @@ class StarHopperGame {
       if (nextBtn) nextBtn.textContent = "RUN LAUNCH PLAN";
       if (dailyBtn) dailyBtn.style.display = "none";
     }
-    this.renderClearLabReport({ isDailyRun, nextIndex, earnedGems, gemKey: clearGemKey });
+    this.renderClearLabReport({ isDailyRun, nextIndex, earnedGems, gemKey: clearGemKey, labStars });
     ui_log_output(`✓ Level cleared! Target coordinates secured.`, "success");
     ui_log_output(`Rover returning to spacecraft docking bay...`, "info");
     if (typeof updateCertificateState === 'function') updateCertificateState();
   }
 
-  renderClearLabReport({ isDailyRun = false, nextIndex = null, earnedGems = 0, gemKey = "gem" } = {}) {
+  renderClearLabReport({ isDailyRun = false, nextIndex = null, earnedGems = 0, gemKey = "gem", labStars = null } = {}) {
     if (typeof document === 'undefined') return;
     const report = document.getElementById("clear-lab-report");
     if (!report) return;
@@ -2994,6 +3054,16 @@ class StarHopperGame {
     const formulaText = formulas ? `${formulas.unlocked.length}/${formulas.cards.length}` : `${this.discoveredFormulaKinds ? this.discoveredFormulaKinds.size : 0}`;
     const quest = (typeof getActiveLabQuest === 'function') ? getActiveLabQuest(this) : null;
     const rank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+    const starSummary = labStars || this.getClearLabStarSummary({ isDailyRun });
+    const starIcons = Array.from({ length: starSummary.maxStars }, (_, index) =>
+      `<span class="clear-lab-star${index < starSummary.stars ? " earned" : ""}" aria-hidden="true">★</span>`
+    ).join("");
+    const starChecklist = starSummary.checks.map(check =>
+      `<span class="${check.earned ? "earned" : ""}">${safe(`${check.earned ? "OK" : "NEXT"} ${check.label}`)}</span>`
+    ).join("");
+    const bestText = starSummary.isNewBest
+      ? "NEW BEST"
+      : (starSummary.best > starSummary.stars ? `BEST ${starSummary.best}/${starSummary.maxStars}` : "BEST MATCHED");
     const nextLabel = isDailyRun
       ? "Open the log and compare today's remix."
       : (nextIndex === null ? "Open the log or accept today's signal." : `Launch toward ${typeof PLANETS !== 'undefined' && PLANETS[nextIndex] ? PLANETS[nextIndex].name : "the next planet"}.`);
@@ -3003,6 +3073,11 @@ class StarHopperGame {
         <span>CLEAR LAB REPORT</span>
         <strong>${safe(isDailyRun ? "Daily Signal solved" : "Shard experiment complete")}</strong>
       </div>
+      <div class="clear-lab-stars" aria-label="${safe(`${starSummary.stars} of ${starSummary.maxStars} Lab Stars`)}">
+        <div class="clear-lab-star-icons">${starIcons}</div>
+        <strong>${safe(`${starSummary.stars}/${starSummary.maxStars} Lab Stars · ${bestText}`)}</strong>
+      </div>
+      <div class="clear-lab-star-list">${starChecklist}</div>
       <div class="clear-lab-grid">
         <div class="clear-lab-stat"><span>Max Height</span><strong>${safe(`${maxH}px`)}</strong></div>
         <div class="clear-lab-stat"><span>Max Speed</span><strong>${safe(`${maxV} px/f`)}</strong></div>
