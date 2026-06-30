@@ -3216,6 +3216,48 @@ body.navigator-active .coach-bubble { display: none !important; }
   transition: width 0.35s ease;
 }
 
+.lab-quest-card {
+  border: 1px solid rgba(250, 204, 21, 0.32);
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgba(24, 18, 4, 0.74), rgba(15, 23, 42, 0.42)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 4px);
+  box-shadow: inset 0 0 12px rgba(250, 204, 21, 0.08);
+  padding: 8px;
+}
+
+.lab-quest-card span,
+.lab-quest-card em {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.lab-quest-card span {
+  color: #facc15;
+  margin-bottom: 3px;
+}
+
+.lab-quest-card strong {
+  display: block;
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+.lab-quest-card p {
+  margin: 4px 0;
+  color: #dff6ff;
+  font-size: 0.66rem;
+  line-height: 1.3;
+}
+
+.lab-quest-card em {
+  color: #bbf7d0;
+}
+
 .research-rank-perks {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));

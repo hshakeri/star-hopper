@@ -553,6 +553,7 @@ function updateResearchProgress(game = window.Game) {
 
   if (rankCard) {
     const pct = Math.round(rank.progress * 100);
+    const labQuest = getActiveLabQuest(game);
     rankCard.innerHTML = `
       <div class="research-rank-top">
         <div>
@@ -564,6 +565,13 @@ function updateResearchProgress(game = window.Game) {
       <div class="research-rank-bar" aria-label="Research rank progress">
         <span style="width: ${pct}%"></span>
       </div>
+      ${labQuest ? `
+      <div class="lab-quest-card">
+        <span>${escapeHTML(labQuest.kicker)}</span>
+        <strong>${escapeHTML(labQuest.title)}</strong>
+        <p>${escapeHTML(labQuest.body)}</p>
+        <em>${escapeHTML(labQuest.reward)}</em>
+      </div>` : ""}
       <div class="research-rank-perks">
         <div class="research-perk current">
           <span>Lab Perk</span>
@@ -743,6 +751,57 @@ function getActiveFormulaTarget(game, activeMission = null) {
     .filter(item => item.index >= 0)
     .sort((a, b) => a.index - b.index);
   return missionCards.length ? missionCards[0].card : collection.nextLocked;
+}
+
+function getActiveLabQuest(game) {
+  const mission = typeof getActivePlatformerMission === 'function' ? getActivePlatformerMission(game) : null;
+  const fullMission = mission && mission.fullMission ? mission.fullMission : null;
+  const selectedPrediction = mission && game && game.coachPredictions ? game.coachPredictions[mission.id] : null;
+  if (fullMission && fullMission.prediction && !selectedPrediction) {
+    return {
+      kicker: "NEXT LAB QUEST",
+      title: "Make a prediction",
+      body: fullMission.prediction.question,
+      reward: "Reward: Mission Coach unlock + hypothesis XP"
+    };
+  }
+
+  const target = getActiveFormulaTarget(game, mission);
+  if (target) {
+    return {
+      kicker: "NEXT LAB QUEST",
+      title: `Collect ${target.title}`,
+      body: target.cue,
+      reward: "Reward: formula card + Research XP"
+    };
+  }
+
+  const rank = getResearchRank(game && Number.isFinite(game.researchXP) ? game.researchXP : 0);
+  if (rank.nextPerk) {
+    return {
+      kicker: "NEXT LAB QUEST",
+      title: `Reach ${rank.nextTitle}`,
+      body: `${Math.round(rank.remaining)} Research XP until ${rank.nextPerk.label}.`,
+      reward: `Reward: Lab Perk - ${rank.nextPerk.label}`
+    };
+  }
+
+  const daily = game && typeof game.getDailySignal === 'function' ? game.getDailySignal() : null;
+  if (daily) {
+    return {
+      kicker: "NEXT LAB QUEST",
+      title: "Clear today's signal",
+      body: `${daily.label || "A fresh remix"} is ready for another experiment run.`,
+      reward: "Reward: daily clear + share code"
+    };
+  }
+
+  return {
+    kicker: "NEXT LAB QUEST",
+    title: "Master a remix",
+    body: "Replay a cleared world, compare the new layout, and beat it with cleaner code.",
+    reward: "Reward: mastery clear + stronger lab record"
+  };
 }
 
 function updateFormulaTarget(game) {

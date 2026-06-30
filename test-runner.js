@@ -981,6 +981,46 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: research ranks render discovery deck", false, err.message);
   }
 
+  // Test 22cc: Research panel always surfaces the next lab quest.
+  const oldGetElementById22cc = document.getElementById;
+  try {
+    const earthMission = PLANETS[0].missions.find(mission => mission.id === "earth-gravity-wall");
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[0];
+    game.currentPlanetIndex = 0;
+    game.completedMissions = new Set();
+    game.coachPredictions = {};
+    game.discoveredFormulaKinds = new Set();
+    let quest = getActiveLabQuest(game);
+    assertEquals("Make a prediction", quest.title, "Prediction should be the first lab quest when the mission has no guess");
+
+    game.coachPredictions[earthMission.id] = "lighter-longer";
+    quest = getActiveLabQuest(game);
+    assertEquals("Collect Gravity Lab", quest.title, "After prediction, the quest should target the first mission formula card");
+
+    game.discoveredFormulaKinds = new Set(DISCOVERY_RULES.map(rule => rule.kind));
+    game.researchXP = 60;
+    quest = getActiveLabQuest(game);
+    assertEquals("Reach Loop Engineer", quest.title, "After the formula deck, the quest should target the next rank perk");
+    assertEquals(true, /Combo Amplifier/.test(quest.reward), "Rank quest should name the next lab perk reward");
+
+    const els = {
+      "research-rank-card": { innerHTML: "" },
+      "discovery-deck": { innerHTML: "" }
+    };
+    document.getElementById = (id) => els[id] || null;
+    game.discoveredFormulaKinds = new Set(["antigravity"]);
+    updateResearchProgress(game);
+    assertEquals(true, /NEXT LAB QUEST/.test(els["research-rank-card"].innerHTML), "Rank card should render the lab quest");
+    assertEquals(true, /Collect Mass Lab/.test(els["research-rank-card"].innerHTML), "Rendered quest should point to the next formula card");
+
+    document.getElementById = oldGetElementById22cc;
+    renderTestResult("engine-suite", "Curriculum: research panel surfaces next lab quest", true);
+  } catch (err) {
+    document.getElementById = oldGetElementById22cc;
+    renderTestResult("engine-suite", "Curriculum: research panel surfaces next lab quest", false, err.message);
+  }
+
   // Test 22d: Mission CRT names the next formula card from the active mission scaffold.
   const oldGetElementById22d = document.getElementById;
   try {
