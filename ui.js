@@ -356,6 +356,7 @@ function updateMissionList(game) {
   if (typeof updateLearningConceptProgress === 'function') {
     updateLearningConceptProgress(game);
   }
+  updateDiscoveryPulse(game);
 
   const listContainer = document.getElementById("mission-list");
   if (!listContainer) return;
@@ -463,6 +464,169 @@ function getCoachPredictionOption(game, missionId) {
   const fullMission = PlatformerMissions.find(mission => mission.id === missionId);
   if (!fullMission || !fullMission.prediction || !selectedId) return null;
   return fullMission.prediction.options.find(option => option.id === selectedId) || null;
+}
+
+const DISCOVERY_RULES = [
+  {
+    kind: "mass",
+    pattern: /\bhopper\.mass\s*=/i,
+    title: "Mass Lab",
+    formula: "a = F / m",
+    insight: "Lower mass makes the same engine and jump force create more acceleration.",
+    cue: "Watch speed and jump height change when mass changes."
+  },
+  {
+    kind: "engine",
+    pattern: /\bhopper\.engine\s*=/i,
+    title: "Engine Lab",
+    formula: "speed = engine / mass",
+    insight: "More engine force raises top speed, especially when Hopper is light.",
+    cue: "Use the Agility gauge to see the new speed."
+  },
+  {
+    kind: "jump",
+    pattern: /\b(?:hopper\.)?jump_power\s*=/i,
+    title: "Jump Lab",
+    formula: "jump = force / mass",
+    insight: "Jump force lifts better when the rover has less mass to accelerate.",
+    cue: "Try the same jump with two different masses."
+  },
+  {
+    kind: "antigravity",
+    pattern: /\bantigravity\s*=/i,
+    title: "Gravity Lab",
+    formula: "felt g = planet g - antigravity",
+    insight: "Antigravity lowers the pull you feel, stretching hang time and jump arcs.",
+    cue: "A smaller felt g makes the same jump stay airborne longer."
+  },
+  {
+    kind: "rocket",
+    pattern: /\bhopper\.rocket_power\s*=/i,
+    title: "Rocket Lab",
+    formula: "thrust = rocket x 2.5 / mass",
+    insight: "Rocket power fights gravity, but heavy builds spend more fuel to climb.",
+    cue: "Watch Thrust and the fuel tank together."
+  },
+  {
+    kind: "loop",
+    pattern: /\brepeat\s+\d+/i,
+    title: "Loop Lab",
+    formula: "repeat n = command x n",
+    insight: "A loop turns one instruction into a pattern, saving lines and building faster.",
+    cue: "Count the spawned tools after the loop runs."
+  },
+  {
+    kind: "friction",
+    pattern: /\bfriction\s*=/i,
+    title: "Friction Lab",
+    formula: "friction opposes sliding",
+    insight: "Higher friction turns sliding motion into grip, helping the rover stop.",
+    cue: "Compare how far the rover skids before and after the change."
+  },
+  {
+    kind: "elasticity",
+    pattern: /\belasticity\s*=/i,
+    title: "Collision Lab",
+    formula: "bounce kept = elasticity x speed",
+    insight: "Elasticity decides how much speed survives a collision or springy bounce.",
+    cue: "Mass gives the shove; elasticity preserves the rebound."
+  },
+  {
+    kind: "magnet",
+    pattern: /\bhopper\.pole\s*=/i,
+    title: "Magnet Lab",
+    formula: "opposite poles attract",
+    insight: "Changing pole flips whether the field pulls or pushes Hopper.",
+    cue: "The same magnet becomes a lift or a barrier after the pole changes."
+  }
+];
+
+function countPassedResultChecks(resultState) {
+  if (!resultState || !Array.isArray(resultState.items)) return 0;
+  return resultState.items.filter(item => item && item.passed).length;
+}
+
+function inferDiscoveryPulse(game, activeMission, code, resultState, openedGems = 0) {
+  const fullMission = activeMission && activeMission.fullMission ? activeMission.fullMission : null;
+  const rule = DISCOVERY_RULES.find(item => item.pattern.test(String(code || ""))) || null;
+  const passed = countPassedResultChecks(resultState);
+  const total = resultState && Array.isArray(resultState.items) ? resultState.items.length : 0;
+  const fallbackConcept = fullMission && (fullMission.beginnerConcept || fullMission.concept || fullMission.codingConcept);
+  const missionTitle = fullMission ? fullMission.title : "Mission";
+
+  return {
+    kind: rule ? rule.kind : "mission",
+    title: rule ? rule.title : "Mission Lab",
+    formula: rule ? rule.formula : (fullMission && fullMission.codingConcept ? fullMission.codingConcept : "predict -> code -> test"),
+    insight: rule ? rule.insight : (fallbackConcept || "Run code, measure the result, then improve one idea at a time."),
+    cue: rule ? rule.cue : "Use the checklist to decide what to test next.",
+    missionId: activeMission ? activeMission.id : null,
+    missionTitle,
+    passed,
+    total,
+    openedGems: Math.max(0, openedGems || 0),
+    rewardXP: 0,
+    combo: game && game.discoveryCombo ? game.discoveryCombo : 0
+  };
+}
+
+function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems = 0) {
+  if (!game) return null;
+  const pulse = inferDiscoveryPulse(game, activeMission, code, resultState, openedGems);
+  const missionId = pulse.missionId || "_freeplay";
+  const total = pulse.total || 0;
+  const passed = pulse.passed || 0;
+  game.discoveryPassCounts = game.discoveryPassCounts || {};
+  const previousPassed = game.discoveryPassCounts[missionId] || 0;
+  const newPasses = Math.max(0, passed - previousPassed);
+  const finalPassBonus = total > 0 && passed >= total && previousPassed < total;
+  const opened = Math.max(0, openedGems || 0);
+  const earned = newPasses > 0 || opened > 0;
+
+  if (earned) {
+    game.discoveryCombo = Math.min(99, (game.discoveryCombo || 0) + 1);
+    pulse.combo = game.discoveryCombo;
+    pulse.rewardXP = 5 + newPasses * 4 + opened * 3 + (finalPassBonus ? 6 : 0) + Math.min(8, game.discoveryCombo);
+    game.researchXP = Math.max(0, (game.researchXP || 0) + pulse.rewardXP);
+    if (typeof ui_log_output === 'function') {
+      ui_log_output(`Research +${pulse.rewardXP} XP: ${pulse.formula}`, "success");
+    }
+    if (typeof logMissionBriefing === 'function') {
+      logMissionBriefing(`${pulse.title}: ${pulse.insight}`);
+    }
+  } else {
+    pulse.combo = game.discoveryCombo || 0;
+  }
+
+  game.discoveryPassCounts[missionId] = Math.max(previousPassed, passed);
+  game.discoveryPulse = pulse;
+  game.discoveryLog = [pulse].concat(Array.isArray(game.discoveryLog) ? game.discoveryLog : []).slice(0, 8);
+  updateDiscoveryPulse(game);
+  return pulse;
+}
+
+function updateDiscoveryPulse(game) {
+  const panel = document.getElementById("discovery-pulse");
+  if (!panel) return;
+  const pulse = game && game.discoveryPulse ? game.discoveryPulse : null;
+  if (!pulse) {
+    panel.classList.add("hidden");
+    panel.innerHTML = "";
+    return;
+  }
+  panel.classList.remove("hidden");
+  const progress = pulse.total > 0 ? `${pulse.passed}/${pulse.total} checks` : "free test";
+  const reward = pulse.rewardXP > 0 ? `+${pulse.rewardXP} Research XP` : "insight logged";
+  const combo = pulse.combo > 1 ? ` x${pulse.combo} combo` : "";
+  panel.innerHTML = `
+    <div class="discovery-pulse-head">
+      <span>DISCOVERY PULSE</span>
+      <strong>${escapeHTML(reward)}${escapeHTML(combo)}</strong>
+    </div>
+    <div class="discovery-pulse-formula">${escapeHTML(pulse.formula)}</div>
+    <div class="discovery-pulse-body">${escapeHTML(pulse.insight)}</div>
+    <div class="discovery-pulse-foot">${escapeHTML(pulse.missionTitle)} · ${escapeHTML(progress)}${pulse.openedGems ? ` · ${escapeHTML(String(pulse.openedGems))} gem gate${pulse.openedGems === 1 ? "" : "s"}` : ""}</div>
+  `;
 }
 
 function evaluateMissionResultChecks(game, fullMission) {
@@ -933,13 +1097,15 @@ function runCoachCode(game, code) {
     const resultState = evaluateMissionResultChecks(game, activeMission.fullMission);
     game.coachLastResults[activeMission.id] = resultState;
     const lockedAfter = typeof game.getLockedRequiredCollectibleCount === 'function' ? game.getLockedRequiredCollectibleCount() : lockedBefore;
+    let opened = 0;
     if (lockedBefore > lockedAfter) {
-      const opened = lockedBefore - lockedAfter;
+      opened = lockedBefore - lockedAfter;
       ui_log_output(`◆ Code unlocked ${opened} mission gem${opened === 1 ? "" : "s"}!`, "success");
       if (typeof showDialogue === 'function') {
         showDialogue(`Nice engineering. ${opened} gem gate${opened === 1 ? "" : "s"} opened!`, "badge");
       }
     }
+    recordDiscoveryPulse(game, activeMission, trimmed, resultState, opened);
     if (resultState.allPassed || game.completedMissions.has(activeMission.id)) {
       unlockCoachBadge(game, activeMission.fullMission);
     }

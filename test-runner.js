@@ -850,6 +850,42 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: mission completion unlocks concept badges", false, err.message);
   }
 
+  // Test 22b: Mission Coach code creates a science discovery pulse and rewards only new progress.
+  try {
+    const game = new StarHopperGame();
+    const activeMission = PLANETS[0].missions.find(mission => mission.id === "earth-gravity-wall");
+    const partial = {
+      allPassed: false,
+      items: [
+        { id: "earth-hopper-active", label: "Hopper activated", passed: true, message: "Hopper active" },
+        { id: "earth-emerald-gates", label: "Agility 30+ reached", passed: false, message: "Still locked" }
+      ]
+    };
+    const firstPulse = recordDiscoveryPulse(game, activeMission, "use_hopper()\nhopper.mass = 1.2", partial, 1);
+    const firstXP = game.researchXP;
+
+    assertEquals("mass", firstPulse.kind, "Mass command should map to the mass science rule");
+    assertEquals(true, firstPulse.formula.indexOf("F / m") >= 0, "Pulse should expose the force/mass formula");
+    assertEquals(true, firstXP > 0, "New check/gem progress should award Research XP");
+    assertEquals(1, game.discoveryCombo, "New discovery starts the combo");
+
+    recordDiscoveryPulse(game, activeMission, "hopper.mass = 1.2", partial, 0);
+    assertEquals(firstXP, game.researchXP, "Repeating the same progress should not farm Research XP");
+    assertEquals(1, game.discoveryCombo, "Repeating without progress should not raise combo");
+
+    const complete = {
+      allPassed: true,
+      items: partial.items.map(item => ({ ...item, passed: true }))
+    };
+    const finalPulse = recordDiscoveryPulse(game, activeMission, "hopper.engine = 6", complete, 0);
+    assertEquals("engine", finalPulse.kind, "Engine command should map to the speed formula");
+    assertEquals(true, game.researchXP > firstXP, "Newly passed checks should add more Research XP");
+    assertEquals(2, game.discoveryCombo, "Second new discovery extends combo");
+    renderTestResult("engine-suite", "Curriculum: code runs create discovery rewards", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Curriculum: code runs create discovery rewards", false, err.message);
+  }
+
   // Test 23: Mission Coach copy avoids hidden old mode names
   try {
     const texts = [];
@@ -2499,7 +2535,11 @@ function runRetryRemixTests() {
       masteryMeters: { 0: { xp: 5 } },
       dailySignalClears: 4,
       lastPlayedDate: "2026-06-18",
-      streakCount: 3
+      streakCount: 3,
+      researchXP: 42,
+      discoveryCombo: 2,
+      discoveryLog: [{ title: "Mass Lab", formula: "a = F / m" }],
+      discoveryPassCounts: { "earth-gravity-wall": 1 }
     };
     window.Game = Game;
     const payload = buildSavePayload();
@@ -2507,14 +2547,18 @@ function runRetryRemixTests() {
     assertEquals(0.75, payload.profileProgress.upgradeLevels.engine, "Upgrade levels should export");
     assertEquals(2, payload.profileProgress.planetClears[0], "Campaign clear counts should export");
     assertEquals(4, payload.profileProgress.dailySignalClears, "Daily Signal clears should export");
+    assertEquals(42, payload.profileProgress.researchXP, "Research XP should export");
+    assertEquals(1, payload.profileProgress.discoveryPassCounts["earth-gravity-wall"], "Discovery progress should export");
     const merged = mergeProgress(
-      { unlockedUpgrades: ["jump"], upgradeLevels: { engine: 0.25 }, planetClears: { 0: 1 } },
+      { unlockedUpgrades: ["jump"], upgradeLevels: { engine: 0.25 }, planetClears: { 0: 1 }, researchXP: 8, discoveryPassCounts: { "earth-gravity-wall": 0 } },
       progressFromSavePayload(payload)
     );
     assertEquals(true, merged.unlockedUpgrades.includes("engine"), "Incoming unlocked upgrade survives merge");
     assertEquals(true, merged.unlockedUpgrades.includes("jump"), "Local unlocked upgrade survives merge");
     assertEquals(0.75, merged.upgradeLevels.engine, "Merge keeps the higher upgrade level");
     assertEquals(2, merged.planetClears[0], "Merge keeps the higher clear count");
+    assertEquals(42, merged.researchXP, "Merge keeps the higher Research XP");
+    assertEquals(1, merged.discoveryPassCounts["earth-gravity-wall"], "Merge keeps discovery pass progress");
     Game = oldGameR19; window.Game = oldGameR19;
     renderTestResult(SUITE, "Persistence: backup/cloud payload keeps rich profile progress", true);
   } catch (err) {

@@ -74,6 +74,10 @@ function shCaptureProgress() {
     dailySignalClears: (game && game.dailySignalClears) || 0,
     lastPlayedDate: (game && game.lastPlayedDate) ? game.lastPlayedDate : null,
     streakCount: (game && game.streakCount) || 0,
+    researchXP: (game && game.researchXP) || 0,
+    discoveryCombo: (game && game.discoveryCombo) || 0,
+    discoveryLog: (game && Array.isArray(game.discoveryLog)) ? game.discoveryLog.slice(0, 8) : [],
+    discoveryPassCounts: (game && game.discoveryPassCounts) ? { ...game.discoveryPassCounts } : {},
     gemsWallet: (game && game.gemsWallet) ? { ...game.gemsWallet } : { emerald: 0, quartz: 0, amber: 0, ice: 0, flux: 0, forge: 0 },
     gemsAwardedForPlanet: (game && game.gemsAwardedForPlanet) ? { ...game.gemsAwardedForPlanet } : {},
     purchasedTrades: (game && game.purchasedTrades) ? Array.from(game.purchasedTrades) : [],
@@ -98,6 +102,11 @@ function shApplyProgress(progress) {
   game.dailySignalClears = progress.dailySignalClears || 0;
   game.lastPlayedDate = progress.lastPlayedDate || null;
   game.streakCount = progress.streakCount || 0;
+  game.researchXP = progress.researchXP || 0;
+  game.discoveryCombo = progress.discoveryCombo || 0;
+  game.discoveryLog = Array.isArray(progress.discoveryLog) ? progress.discoveryLog.slice(0, 8) : [];
+  game.discoveryPulse = game.discoveryLog[0] || null;
+  game.discoveryPassCounts = (progress.discoveryPassCounts && typeof progress.discoveryPassCounts === 'object') ? { ...progress.discoveryPassCounts } : {};
   game.gemsWallet = { emerald: 0, quartz: 0, amber: 0, ice: 0, flux: 0, forge: 0, ...(progress.gemsWallet || {}) };
   game.gemsAwardedForPlanet = (progress.gemsAwardedForPlanet && typeof progress.gemsAwardedForPlanet === 'object') ? { ...progress.gemsAwardedForPlanet } : {};
   game.purchasedTrades = new Set(progress.purchasedTrades || []);

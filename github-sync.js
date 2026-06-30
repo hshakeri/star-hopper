@@ -122,7 +122,11 @@ function normalizeProgress(progress) {
     masteryMeters: plainObject(p.masteryMeters),
     dailySignalClears: Number(p.dailySignalClears) || 0,
     lastPlayedDate: p.lastPlayedDate || null,
-    streakCount: Number(p.streakCount) || 0
+    streakCount: Number(p.streakCount) || 0,
+    researchXP: Number(p.researchXP) || 0,
+    discoveryCombo: Number(p.discoveryCombo) || 0,
+    discoveryLog: Array.isArray(p.discoveryLog) ? p.discoveryLog.slice(0, 8) : [],
+    discoveryPassCounts: plainObject(p.discoveryPassCounts)
   };
 }
 
@@ -142,7 +146,11 @@ function getActiveProgressSnapshot() {
     masteryMeters: typeof Game !== 'undefined' && Game.masteryMeters ? { ...Game.masteryMeters } : {},
     dailySignalClears: typeof Game !== 'undefined' ? Game.dailySignalClears : 0,
     lastPlayedDate: typeof Game !== 'undefined' ? Game.lastPlayedDate : null,
-    streakCount: typeof Game !== 'undefined' ? Game.streakCount : 0
+    streakCount: typeof Game !== 'undefined' ? Game.streakCount : 0,
+    researchXP: typeof Game !== 'undefined' ? Game.researchXP : 0,
+    discoveryCombo: typeof Game !== 'undefined' ? Game.discoveryCombo : 0,
+    discoveryLog: typeof Game !== 'undefined' && Array.isArray(Game.discoveryLog) ? Game.discoveryLog : [],
+    discoveryPassCounts: typeof Game !== 'undefined' && Game.discoveryPassCounts ? { ...Game.discoveryPassCounts } : {}
   });
 }
 
@@ -193,7 +201,11 @@ function mergeProgress(localProgress, incomingProgress) {
     masteryMeters: { ...local.masteryMeters, ...incoming.masteryMeters },
     dailySignalClears: Math.max(local.dailySignalClears || 0, incoming.dailySignalClears || 0),
     lastPlayedDate: latestPlayed,
-    streakCount
+    streakCount,
+    researchXP: Math.max(local.researchXP || 0, incoming.researchXP || 0),
+    discoveryCombo: Math.max(local.discoveryCombo || 0, incoming.discoveryCombo || 0),
+    discoveryLog: (incoming.discoveryLog && incoming.discoveryLog.length ? incoming.discoveryLog : local.discoveryLog).slice(0, 8),
+    discoveryPassCounts: mergeNumberMax(local.discoveryPassCounts, incoming.discoveryPassCounts)
   });
 }
 
@@ -216,6 +228,11 @@ function applyProgressSnapshot(progress) {
     Game.dailySignalClears = normalized.dailySignalClears;
     Game.lastPlayedDate = normalized.lastPlayedDate;
     Game.streakCount = normalized.streakCount;
+    Game.researchXP = normalized.researchXP;
+    Game.discoveryCombo = normalized.discoveryCombo;
+    Game.discoveryLog = normalized.discoveryLog.slice(0, 8);
+    Game.discoveryPulse = Game.discoveryLog[0] || null;
+    Game.discoveryPassCounts = { ...normalized.discoveryPassCounts };
   }
   if (typeof notebookEntries !== 'undefined') {
     Object.keys(notebookEntries).forEach(key => delete notebookEntries[key]);

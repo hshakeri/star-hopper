@@ -65,6 +65,7 @@ function updateNotebook(game) {
   const heightEl = document.getElementById("notebook-stat-height");
   const speedEl = document.getElementById("notebook-stat-speed");
   const gravityEl = document.getElementById("notebook-stat-gravity");
+  const researchEl = document.getElementById("notebook-stat-research");
 
   if (timeEl) timeEl.textContent = `${currentFlightTime.toFixed(1)}s`;
   if (heightEl) heightEl.textContent = `${Math.round(maxAltitudeObserved)}px`;
@@ -72,6 +73,9 @@ function updateNotebook(game) {
   if (gravityEl) {
     const realWorldG = (currentG / 0.6) * 9.8;
     gravityEl.textContent = `${realWorldG.toFixed(1)} m/s²`;
+  }
+  if (researchEl) {
+    researchEl.textContent = `${Math.round(game.researchXP || 0)} XP`;
   }
 
   // Render Mini Energy Bars

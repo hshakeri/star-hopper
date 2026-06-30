@@ -96,6 +96,11 @@ class StarHopperGame {
     this.coachLastResults = {};
     this.lastCoachCodeByMission = {};
     this.earnedBadges = new Set();
+    this.researchXP = 0;
+    this.discoveryCombo = 0;
+    this.discoveryPulse = null;
+    this.discoveryLog = [];
+    this.discoveryPassCounts = {};
     this.pendingNavigationTargetIndex = null;
     this.navigationReturnTimer = null;
 
