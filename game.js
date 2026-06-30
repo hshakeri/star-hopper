@@ -3368,6 +3368,9 @@ class StarHopperGame {
       }
       if (_preFallVy > 7 && !this.reducedMotion) { this.shakeFrames = 6; this.shakeMag = 4; this.shakeMax = 6; }
     }
+    if (this.player && typeof this.player.consumeJumpBuffer === 'function') {
+      this.player.consumeJumpBuffer(this.currentPlanet, this);
+    }
 
     // Run dust: little puffs kicked up when sprinting on the ground.
     if (this.player.onGround && Math.abs(this.player.vx) > 2.2 && Math.random() < 0.3) {

@@ -969,6 +969,11 @@ class Player {
     // fires. Invisible to skilled play, but removes the "I pressed jump and nothing
     // happened" unfairness that frustrates younger players on narrow platforms.
     this.coyoteFrames = 0;
+    // Jump buffer: frames to remember a just-pressed jump before landing. This makes
+    // near-miss landings feel fair without changing the actual jump physics.
+    this.jumpBufferFrames = 0;
+    this.jumpBufferWindow = 6;
+    this.jumpWasPressed = false;
 
     // Character dimensions
     this.w = 20;
@@ -1117,6 +1122,46 @@ class Player {
     SFX.playSuccess();
   }
 
+  launchJump(jumpMultiplier) {
+    this.vy = -jumpMultiplier;
+    this.onGround = false;
+    this.isJumping = true;
+    this.coyoteFrames = 0;
+    this.jumpBufferFrames = 0;
+    // Powered jumps burn fuel: a stronger jump and a heavier suit cost more; a lighter
+    // suit is cheaper (mass reduction = less fuel). A jump near the planet baseline is
+    // effectively free, so ordinary play is never taxed — only cranked-up settings are.
+    const _jumpCost = Math.max(0, this.jumpPower - 14) * this.mass * 0.45;
+    if (_jumpCost > 0) this.fuel = Math.max(0, this.fuel - _jumpCost);
+    SFX.playJump();
+    Particles.spawnBurst(this.x + this.w / 2, this.y + this.h, 'rgba(255,255,255,0.6)', 8, 1.5, 2);
+    if (typeof ComicBubbles !== 'undefined') {
+      ComicBubbles.spawn(this.x + this.w / 2, this.y + this.h, SPEECH.pick("jump"), "rounded", "#38bdf8");
+    }
+
+    // Guided tutorial hook
+    if (typeof handleGuidedJumpHook === 'function') {
+      handleGuidedJumpHook();
+    }
+    return true;
+  }
+
+  consumeJumpBuffer(currentPlanet, game) {
+    if (!this.onGround || (this.jumpBufferFrames || 0) <= 0) return false;
+    if (game && game.player && game.player !== this) return false;
+    if (game) {
+      this.mass = this.charType === 'star'
+        ? (game.starMass !== undefined ? game.starMass : this.mass)
+        : (game.hopperMass !== undefined ? game.hopperMass : this.mass);
+    }
+    const planetJump = currentPlanet && currentPlanet.physics && Number.isFinite(currentPlanet.physics.jumpPower)
+      ? currentPlanet.physics.jumpPower
+      : this.jumpPower;
+    const jumpForce = Number.isFinite(this.jumpPower) ? this.jumpPower : planetJump;
+    const mass = Number.isFinite(this.mass) && this.mass > 0 ? this.mass : 1;
+    return this.launchJump(jumpForce / mass);
+  }
+
   update(keys, currentPlanet, game) {
     this.updateSpeech();
 
@@ -1185,6 +1230,12 @@ class Player {
     const rightPressed = !!(keys['ArrowRight'] || keys['arrowright'] || keys['Right'] || keys['right']);
     const jumpPressed = !!(keys['w'] || keys['W'] || keys['ArrowUp'] || keys['arrowup'] || keys['Up'] || keys['up'] || keys[' ']);
     const downPressed = !!(keys['s'] || keys['S'] || keys['ArrowDown'] || keys['arrowdown'] || keys['Down'] || keys['down']);
+    const jumpJustPressed = jumpPressed && !this.jumpWasPressed;
+    if (jumpJustPressed) {
+      this.jumpBufferFrames = this.jumpBufferWindow || 6;
+    } else if ((this.jumpBufferFrames || 0) > 0) {
+      this.jumpBufferFrames--;
+    }
     let appliedHorizontalDamping = false;
     this.isBraking = false;
 
@@ -1276,26 +1327,9 @@ class Player {
 
     // 4. Jump movement inputs — fire while grounded OR within the coyote window just
     // after stepping off a ledge. The !isJumping guard keeps it from becoming a double jump.
-    if (jumpPressed && (this.onGround || (this.coyoteFrames > 0 && !this.isJumping))) {
-      this.vy = -jumpMultiplier;
-      this.onGround = false;
-      this.isJumping = true;
-      this.coyoteFrames = 0;
-      // Powered jumps burn fuel: a stronger jump and a heavier suit cost more; a lighter
-      // suit is cheaper (mass reduction = less fuel). A jump near the planet baseline is
-      // effectively free, so ordinary play is never taxed — only cranked-up settings are.
-      const _jumpCost = Math.max(0, this.jumpPower - 14) * this.mass * 0.45;
-      if (_jumpCost > 0) this.fuel = Math.max(0, this.fuel - _jumpCost);
-      SFX.playJump();
-      Particles.spawnBurst(this.x + this.w / 2, this.y + this.h, 'rgba(255,255,255,0.6)', 8, 1.5, 2);
-      if (typeof ComicBubbles !== 'undefined') {
-        ComicBubbles.spawn(this.x + this.w / 2, this.y + this.h, SPEECH.pick("jump"), "rounded", "#38bdf8");
-      }
-
-      // Guided tutorial hook
-      if (typeof handleGuidedJumpHook === 'function') {
-        handleGuidedJumpHook();
-      }
+    if ((jumpPressed || (this.onGround && (this.jumpBufferFrames || 0) > 0)) &&
+        (this.onGround || (this.coyoteFrames > 0 && !this.isJumping))) {
+      this.launchJump(jumpMultiplier);
     }
 
     // 5. Mid-air special maneuvers
@@ -1419,6 +1453,7 @@ class Player {
         );
       }
     }
+    this.jumpWasPressed = jumpPressed;
   }
 
   // Thick dark comic ink outline around the CURRENT path. Temporarily kills the glow

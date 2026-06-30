@@ -3770,6 +3770,60 @@ function runCombatTests() {
     renderTestResult(SUITE, "Movement: reversing triggers a snappy skid", false, err.message);
   }
 
+  // C10b: a jump pressed a few frames before landing buffers and fires on touchdown.
+  try {
+    Compiler.reset();
+    const p = new Player(0, 60);
+    p.charType = 'star';
+    p.onGround = false;
+    p.coyoteFrames = 0;
+    p.vy = 4;
+    p.jumpPower = 15;
+    const stub = { getCurrentGravity: () => 0.6, starMass: 1, hopperMass: 2.5, player: p };
+    p.update({ ' ': true }, PLANETS[0], stub);
+    assertEquals(true, p.jumpBufferFrames > 0, "Airborne jump press is stored in the buffer");
+    assertEquals(true, p.vy > 0, "Buffered airborne press does not jump before landing");
+    p.onGround = true;
+    p.isJumping = false;
+    assertEquals(true, p.consumeJumpBuffer(PLANETS[0], stub), "Landing consumes the buffered jump");
+    assertEquals(false, p.onGround, "Buffered jump immediately launches off the ground");
+    assertEquals(true, p.vy < 0, "Buffered jump creates upward velocity");
+    assertEquals(0, p.jumpBufferFrames, "Buffered jump clears the stored input");
+
+    const g = new StarHopperGame();
+    const map = [
+      [0,0,0,0,0,0],
+      [0,0,0,0,0,0],
+      [0,0,0,0,0,0],
+      [1,1,1,1,1,1]
+    ];
+    g.state = 'playing';
+    g.currentPlanetIndex = 0;
+    g.currentPlanet = PLANETS[0];
+    g.currentVariant = { map };
+    g.canvas = { width: 720, height: 448 };
+    g.player = new Player(64, 60);
+    g.player.charType = 'star';
+    g.player.onGround = false;
+    g.player.coyoteFrames = 0;
+    g.player.vy = 6;
+    g.starMass = 1;
+    g.hopperMass = 2.5;
+    g.keys = { ' ': true };
+    g.interactiveObjects = [];
+    g.enemies = [];
+    g.spawnedBoxes = [];
+    g.mobs = [];
+    g.debris = [];
+    g.meteors = [];
+    g.update();
+    assertEquals(false, g.player.onGround, "Frame loop consumes the buffer right after landing collision");
+    assertEquals(true, g.player.vy < 0, "Frame loop launches from a just-before-landing jump press");
+    renderTestResult(SUITE, "Movement: jump buffer fires on landing", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Movement: jump buffer fires on landing", false, err.message);
+  }
+
   // C11: contact knockback scales with the attacker (a charging hog flings you farther)
   try {
     Compiler.reset(); // clean env so getCurrentGravity uses Earth's gravity (gf = 1)
