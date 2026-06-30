@@ -2689,6 +2689,44 @@ class StarHopperGame {
     return true;
   }
 
+  getClearExplainMission() {
+    if (typeof getActivePlatformerMission === 'function') {
+      return getActivePlatformerMission(this);
+    }
+    const missions = this.currentPlanet && Array.isArray(this.currentPlanet.missions) ? this.currentPlanet.missions : [];
+    return missions.find(mission => !(this.completedMissions && this.completedMissions.has(mission.id))) || missions[0] || null;
+  }
+
+  getClearExplainPrompt() {
+    const activeMission = this.getClearExplainMission();
+    const fullMission = activeMission && activeMission.fullMission ? activeMission.fullMission : null;
+    const reflection = fullMission && Array.isArray(fullMission.reflection) ? fullMission.reflection : [];
+    const question = reflection[0] || "Explain what changed, what evidence you saw, and why the physics behaved that way.";
+    const evidence = typeof buildReflectionEvidenceStarter === 'function'
+      ? buildReflectionEvidenceStarter(this, activeMission)
+      : "Evidence starter - describe the code you tried, what changed, and why the physics behaved that way.";
+    return {
+      kicker: "EXPLAIN THE EVIDENCE",
+      title: "Finish the lab loop",
+      question,
+      evidence,
+      cta: "WRITE EXPLANATION"
+    };
+  }
+
+  runClearExplainPrompt() {
+    const activeMission = this.getClearExplainMission();
+    if (typeof updateActiveQuestion === 'function') updateActiveQuestion(this);
+    if (this.player && typeof updateNotebook === 'function') updateNotebook(this);
+    if (typeof updateReflectionEvidenceStarter === 'function') {
+      updateReflectionEvidenceStarter(this, activeMission);
+    }
+    if (typeof switchMainMode === 'function') switchMainMode('notebook');
+    const response = typeof document !== 'undefined' ? document.getElementById("notebook-user-response") : null;
+    if (response && typeof response.focus === 'function') response.focus();
+    return true;
+  }
+
   getClearSignalStoryPreview({ isDailyRun = false, isFrontierRun = false, nextIndex = null } = {}) {
     if (isDailyRun || isFrontierRun || nextIndex === null || typeof getSignalStoryProgress !== 'function') return null;
     const story = getSignalStoryProgress(this);
@@ -4859,6 +4897,16 @@ class StarHopperGame {
         ${replayContract.cta ? `<button type="button" class="clear-lab-contract-btn" onclick="if (window.Game) window.Game.runClearReplayContract()">${safe(replayContract.cta)}</button>` : ""}
       </div>
     ` : "";
+    const explainPrompt = this.getClearExplainPrompt();
+    const explainBlock = explainPrompt ? `
+      <div class="clear-explain-card">
+        <span>${safe(explainPrompt.kicker)}</span>
+        <strong>${safe(explainPrompt.title)}</strong>
+        <p>${safe(explainPrompt.question)}</p>
+        <em>${safe(explainPrompt.evidence)}</em>
+        <button type="button" class="clear-explain-btn" onclick="if (window.Game) window.Game.runClearExplainPrompt()">${safe(explainPrompt.cta)}</button>
+      </div>
+    ` : "";
     const storyUnlock = this.getClearSignalStoryUnlock({ labStars: starSummary, isDailyRun, isFrontierRun });
     const storyUnlockBlock = storyUnlock ? `
       <div class="clear-story-unlock">
@@ -4943,6 +4991,7 @@ class StarHopperGame {
       ${timeBadge}
       ${storyUnlockBlock}
       ${storyPreviewBlock}
+      ${explainBlock}
       ${replayContractBlock}
       <div class="clear-lab-grid">
         <div class="clear-lab-stat"><span>Max Height</span><strong>${safe(`${maxH}px`)}</strong></div>

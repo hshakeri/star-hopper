@@ -2219,6 +2219,10 @@ function runEngineTests() {
     assertEquals(true, /Moon Loop Echo/.test(report.innerHTML), "Clear report should name the next Signal Story chapter");
     assertEquals(true, /Loops build repeatable patterns/.test(report.innerHTML), "Clear report should show the next chapter concept");
     assertEquals(true, /2\/10 decoded/.test(report.innerHTML), "Clear report should show story progress");
+    assertEquals(true, /EXPLAIN THE EVIDENCE/.test(report.innerHTML), "Clear report should prompt the post-run explanation step");
+    assertEquals(true, /Finish the lab loop/.test(report.innerHTML), "Clear report should frame explanation as the lab-loop finish");
+    assertEquals(true, /Evidence starter/.test(report.innerHTML), "Clear report should include the notebook evidence starter");
+    assertEquals(true, /WRITE EXPLANATION/.test(report.innerHTML), "Clear report should include a direct notebook action");
     assertEquals(true, /NEXT RUN CONTRACT/.test(report.innerHTML), "Clear report should include a replay contract");
     assertEquals(true, /Collect Mass Lab/.test(report.innerHTML), "Replay contract should target the next formula card");
     assertEquals(true, /RETRY FOR FORMULA/.test(report.innerHTML), "Replay contract should include an actionable next-run button");
@@ -2383,6 +2387,39 @@ function runEngineTests() {
     assertEquals(1, dailyCalls, "Daily action should accept the daily signal");
     assertEquals(1, frontierCalls, "Frontier action should start the frontier challenge");
     assertEquals(1, launchCalls, "Launch action should open the navigation bridge");
+
+    const oldSwitchMainMode22fg = typeof switchMainMode === 'function' ? switchMainMode : null;
+    const oldUpdateNotebook22fg = typeof updateNotebook === 'function' ? updateNotebook : null;
+    const oldUpdateActiveQuestion22fg = typeof updateActiveQuestion === 'function' ? updateActiveQuestion : null;
+    const oldUpdateReflectionStarter22fg = typeof updateReflectionEvidenceStarter === 'function' ? updateReflectionEvidenceStarter : null;
+    const oldGetElementById22fg = document.getElementById;
+    try {
+      let notebookMode = null;
+      let notebookUpdated = 0;
+      let questionUpdated = 0;
+      let reflectionMission = null;
+      const responseEl = { focused: false, focus() { this.focused = true; } };
+      switchMainMode = (mode) => { notebookMode = mode; };
+      updateNotebook = () => { notebookUpdated++; };
+      updateActiveQuestion = () => { questionUpdated++; };
+      updateReflectionEvidenceStarter = (gameArg, missionArg) => { reflectionMission = missionArg; return "Evidence starter - test"; };
+      document.getElementById = (id) => id === "notebook-user-response" ? responseEl : null;
+      actionGame.currentPlanet = PLANETS[0];
+      actionGame.completedMissions = new Set();
+      actionGame.player = new Player(0, 0);
+      assertEquals(true, actionGame.runClearExplainPrompt(), "Explain action should complete successfully");
+      assertEquals("notebook", notebookMode, "Explain action should open the Science Notebook");
+      assertEquals(1, notebookUpdated, "Explain action should refresh notebook telemetry when a player exists");
+      assertEquals(1, questionUpdated, "Explain action should refresh the active reflection question");
+      assertEquals("earth-gravity-wall", reflectionMission && reflectionMission.id, "Explain action should use the active platformer mission");
+      assertEquals(true, responseEl.focused, "Explain action should focus the reflection textbox");
+    } finally {
+      if (oldSwitchMainMode22fg) switchMainMode = oldSwitchMainMode22fg;
+      if (oldUpdateNotebook22fg) updateNotebook = oldUpdateNotebook22fg;
+      if (oldUpdateActiveQuestion22fg) updateActiveQuestion = oldUpdateActiveQuestion22fg;
+      if (oldUpdateReflectionStarter22fg) updateReflectionEvidenceStarter = oldUpdateReflectionStarter22fg;
+      document.getElementById = oldGetElementById22fg;
+    }
     renderTestResult("engine-suite", "Curriculum: clear report suggests next replay contract", true);
   } catch (err) {
     renderTestResult("engine-suite", "Curriculum: clear report suggests next replay contract", false, err.message);
