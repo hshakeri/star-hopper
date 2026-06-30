@@ -3332,8 +3332,12 @@ function executeNPCTrade(npcId, tradeId) {
     SFX.playSuccess();
   }
 
-  // Spawn starburst particles above player
-  if (window.Game.player && typeof Particles !== 'undefined') {
+  const rewardEffect = typeof window.Game.spawnTradeRewardEffect === 'function'
+    ? window.Game.spawnTradeRewardEffect(npc, trade)
+    : null;
+
+  // Older game objects fall back to the generic starburst above the player.
+  if (!rewardEffect && window.Game.player && typeof Particles !== 'undefined') {
     Particles.spawnBurst(window.Game.player.x + window.Game.player.w / 2, window.Game.player.y + window.Game.player.h / 2, npc.color, 12, 3, 3, 'glow');
   }
 

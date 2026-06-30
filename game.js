@@ -4085,6 +4085,53 @@ class StarHopperGame {
     }
   }
 
+  spawnTradeRewardEffect(npc, trade) {
+    if (!this.player || !trade || !trade.reward) return null;
+    const reward = trade.reward;
+    const baseX = Number.isFinite(this.player.x) ? this.player.x : 0;
+    const baseY = Number.isFinite(this.player.y) ? this.player.y : 0;
+    const width = Number.isFinite(this.player.w) ? this.player.w : 24;
+    const height = Number.isFinite(this.player.h) ? this.player.h : 32;
+    const px = baseX + width / 2;
+    const py = baseY + height / 2;
+    const color = (npc && npc.color) || "#facc15";
+    let label = "TRADE UP!";
+    let detail = trade.desc || "Upgrade unlocked";
+
+    if (reward.type === "cap") {
+      label = "CAP UP!";
+      const key = String(reward.key || "stat").toUpperCase();
+      detail = `${key} ${reward.amount >= 0 ? "+" : ""}${reward.amount}`;
+    } else if (reward.type === "tool") {
+      label = "TOOL GET!";
+      detail = reward.label || reward.key || "New tool";
+    } else if (reward.type === "planet") {
+      label = "MAP GET!";
+      detail = "New coordinates";
+    }
+
+    if (typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+      ComicBubbles.pop(px, baseY - 28, label, color, 1.05);
+      ComicBubbles.pop(px, baseY - 10, String(detail).toUpperCase(), "#a7f3d0", 0.78);
+    }
+    if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+      Particles.spawnBurst(px, py, color, 14, 2.5, 2.4, 'glow');
+      Particles.spawnBurst(px, py, '#a7f3d0', 8, 1.8, 1.8, 'glow');
+    }
+
+    this.lastTradeRewardEffect = {
+      label,
+      detail,
+      color,
+      rewardType: reward.type || "",
+      tradeId: trade.id || "",
+      npcId: npc && npc.id ? npc.id : "",
+      x: px,
+      y: py
+    };
+    return this.lastTradeRewardEffect;
+  }
+
   // Grant experience: fills the per-world mastery meter (persisted) and levels the blaster
   // at thresholds, so fighting woken mobs makes your gun stronger.
   addXP(n) {

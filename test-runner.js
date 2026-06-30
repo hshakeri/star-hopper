@@ -3824,10 +3824,14 @@ function runCombatTests() {
 
   // C24: an NPC trade deducts gems, applies the cap reward, marks it purchased, and refuses
   // a trade the cadet can't afford.
+  const oldBubblePopC24 = ComicBubbles.pop;
+  const prevGameC24 = (typeof window !== 'undefined') ? window.Game : undefined;
   try {
+    const bubbleLabelsC24 = [];
+    ComicBubbles.pop = (x, y, text) => { bubbleLabelsC24.push(text); };
     const g = new StarHopperGame();
-    const prevGame = (typeof window !== 'undefined') ? window.Game : undefined;
     window.Game = g;
+    g.player = new Player(0, 0);
     g.gemsWallet = { emerald: 5, quartz: 0, amber: 0, ice: 0, flux: 0 };
     g.purchasedTrades = new Set();
     g.upgradeCapBonuses = { engine: 0, jump: 0, rocket: 0, mass: 0, antigravity: 0 };
@@ -3841,17 +3845,30 @@ function runCombatTests() {
     assertEquals(4, g.gemsWallet.emerald, "Trade deducts the cost from the wallet");
     assertEquals(3, g.upgradeCapBonuses.engine, "Cap reward applies the bonus");
     assertEquals(true, g.purchasedTrades.has('engine_1'), "Trade is marked purchased");
+    assertEquals("CAP UP!", g.lastTradeRewardEffect.label, "Cap trade should create an in-level reward cue");
+    assertEquals("ENGINE +3", g.lastTradeRewardEffect.detail, "Cap trade cue should name the upgraded stat");
+    assertEquals(true, bubbleLabelsC24.some(label => /CAP UP!/.test(label)), "Cap trade should pop a named reward cue");
     executeNPCTrade('geary', 'pricey');     // can't afford (have 4, costs 99)
     assertEquals(4, g.gemsWallet.emerald, "Unaffordable trade does not deduct");
     assertEquals(3, g.upgradeCapBonuses.engine, "Unaffordable trade grants no bonus");
-    window.Game = prevGame;
+    window.Game = prevGameC24;
+    ComicBubbles.pop = oldBubblePopC24;
     renderTestResult(SUITE, "Trade: deducts gems, applies cap, blocks over-spend", true);
   } catch (err) {
+    window.Game = prevGameC24;
+    ComicBubbles.pop = oldBubblePopC24;
     renderTestResult(SUITE, "Trade: deducts gems, applies cap, blocks over-spend", false, err.message);
   }
 
   // C25: tool rewards from NPC trades persist and immediately equip the cadet.
+  const oldBubblePopC25 = ComicBubbles.pop;
+  const oldParticleBurstC25 = Particles.spawnBurst;
   try {
+    const bubbleLabelsC25 = [];
+    const particleColorsC25 = [];
+    ComicBubbles.pop = (x, y, text) => { bubbleLabelsC25.push(text); };
+    Particles.spawnBurst = (x, y, color) => { particleColorsC25.push(color); };
+
     const g = new StarHopperGame();
     const prevGame = (typeof window !== 'undefined') ? window.Game : undefined;
     try {
@@ -3870,14 +3887,22 @@ function runCombatTests() {
       assertEquals(true, g.unlockedTools.has('dual_blaster'), "Tool trade records the unlocked tool");
       assertEquals('blaster', g.player.weapon, "Dual blaster reward equips the blaster");
       assertEquals(true, g.weaponLevel >= 3, "Dual blaster reward upgrades weapon level");
+      assertEquals("TOOL GET!", g.lastTradeRewardEffect.label, "Tool trade should create an in-level reward cue");
+      assertEquals("tool", g.lastTradeRewardEffect.rewardType, "Trade reward effect should record the reward type");
+      assertEquals(true, bubbleLabelsC25.some(label => /TOOL GET!/.test(label)), "Tool trade should pop a named reward cue");
+      assertEquals(true, particleColorsC25.some(color => color === "#a7f3d0"), "Tool trade should spawn a secondary reward burst");
       const glaciesTrades = (PLANETS[3].npcs[0] && PLANETS[3].npcs[0].trades) || [];
       const lotionTrade = glaciesTrades.find((trade) => trade.id === 'glacies_taming_lotion');
       assertEquals('taming_lotion', lotionTrade && lotionTrade.reward && lotionTrade.reward.key, "Glacies trade unlocks calming lotion");
     } finally {
       window.Game = prevGame;
+      ComicBubbles.pop = oldBubblePopC25;
+      Particles.spawnBurst = oldParticleBurstC25;
     }
     renderTestResult(SUITE, "Trade: tool rewards unlock and equip weapons", true);
   } catch (err) {
+    ComicBubbles.pop = oldBubblePopC25;
+    Particles.spawnBurst = oldParticleBurstC25;
     renderTestResult(SUITE, "Trade: tool rewards unlock and equip weapons", false, err.message);
   }
 
