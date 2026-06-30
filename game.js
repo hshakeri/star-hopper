@@ -124,6 +124,7 @@ class StarHopperGame {
     this.masteryMeters = {};    // { planetIndex: {...} } — reserved for per-world XP
     this.dailySignalClears = 0; // count of Daily Signal challenges beaten
     this.frontierRecords = {};  // { dateStr: best local Frontier clear record + share code }
+    this.frontierBoard = {};    // { shareCode: best imported classmate Frontier record }
     this.lastPlayedDate = null; // ISO 'YYYY-MM-DD' of last session (return-streak)
     this.streakCount = 0;       // consecutive-day return streak
     this.coachPredictions = {};
@@ -764,7 +765,135 @@ class StarHopperGame {
   getFrontierShareText(frontier = null) {
     const challenge = frontier || this.getFrontierChallenge();
     if (!challenge) return "";
-    return `${challenge.shareCode} · ${challenge.label}`;
+    const record = this.normalizeFrontierRecord((this.frontierRecords || {})[challenge.dateStr]);
+    const proof = record
+      ? ` · best ${record.stars}/3${Number.isFinite(record.bestTime) ? ` · ${record.bestTime.toFixed(1)}s` : ""}`
+      : "";
+    return `${challenge.shareCode} · Pilot ${this.getFrontierPilotName()} · ${challenge.label}${proof}`;
+  }
+
+  getFrontierPilotName() {
+    const profile = this.getActiveCadetProfile ? this.getActiveCadetProfile() : null;
+    const raw = (profile && (profile.name || profile.callsign)) || "Cadet";
+    return String(raw).replace(/[^\w .-]/g, "").trim().slice(0, 24) || "Cadet";
+  }
+
+  planetNameFromFrontierCode(shareCode) {
+    const code = String(shareCode || "").split("-")[1] || "";
+    if (typeof PLANETS !== 'undefined' && Array.isArray(PLANETS)) {
+      const planet = PLANETS.find(p =>
+        p && p.name && p.name.split(" ")[0].toUpperCase().replace(/[^A-Z]/g, "") === code
+      );
+      if (planet) return planet.name;
+    }
+    return code ? code.charAt(0) + code.slice(1).toLowerCase() : "Frontier world";
+  }
+
+  normalizeFrontierBoardEntry(entry) {
+    const record = this.normalizeFrontierRecord(entry);
+    if (!record || !record.shareCode) return null;
+    const pilot = String((entry && (entry.pilot || entry.name)) || "Classmate")
+      .replace(/[^\w .-]/g, "")
+      .trim()
+      .slice(0, 24) || "Classmate";
+    return { ...record, pilot };
+  }
+
+  parseFrontierShareText(text, fallbackPilot = "Classmate") {
+    const raw = String(text || "").trim();
+    const codeMatch = raw.match(/\b(FRONTIER-[A-Z]+-\d{4})\b/i);
+    if (!codeMatch) return null;
+    const shareCode = codeMatch[1].toUpperCase();
+    const tierMatch = raw.match(/\bTier\s+(\d+)\b/i);
+    const starsMatch = raw.match(/\b([0-3])\s*\/\s*3\b/i);
+    const timeMatch = raw.match(/\b(\d+(?:\.\d+)?)\s*s\b/i);
+    const dateMatch = raw.match(/\b(20\d{2}-\d{2}-\d{2})\b/);
+    const pilotMatch = raw.match(/\bPilot\s+([^·|]+)/i);
+    const labelMatch = raw.match(/\bTier\s+\d+\s+([^:·|]+)(?::\s*([^·|]+))?/i);
+    return this.normalizeFrontierBoardEntry({
+      dateStr: dateMatch ? dateMatch[1] : this.getTodayDateStr(),
+      shareCode,
+      tier: tierMatch ? Number(tierMatch[1]) : 1,
+      planetName: labelMatch && labelMatch[1] ? labelMatch[1].trim() : this.planetNameFromFrontierCode(shareCode),
+      variantLabel: labelMatch && labelMatch[2] ? labelMatch[2].replace(/\bbest\b.*$/i, "").trim() : "seeded remix",
+      stars: starsMatch ? Number(starsMatch[1]) : 0,
+      bestTime: timeMatch ? Number(timeMatch[1]) : null,
+      pilot: pilotMatch && pilotMatch[1] ? pilotMatch[1].trim() : fallbackPilot
+    });
+  }
+
+  importFrontierShareText(text, fallbackPilot = "Classmate") {
+    const entry = this.parseFrontierShareText(text, fallbackPilot);
+    if (!entry) return { entry: null, isNewBest: false, error: "No Frontier share code found" };
+    this.frontierBoard = this.frontierBoard || {};
+    const previous = this.frontierBoard[entry.shareCode];
+    const isNewBest = !previous || this.isFrontierRecordBetter(entry, previous);
+    if (isNewBest) this.frontierBoard[entry.shareCode] = entry;
+    if (typeof saveLocalProgress === 'function' && typeof window !== 'undefined' && window.Game === this) saveLocalProgress();
+    return { entry: this.normalizeFrontierBoardEntry(this.frontierBoard[entry.shareCode] || entry), isNewBest };
+  }
+
+  getFrontierBoardList(limit = 5) {
+    return Object.values(this.frontierBoard || {})
+      .map(entry => this.normalizeFrontierBoardEntry(entry))
+      .filter(Boolean)
+      .sort((a, b) => {
+        if (b.tier !== a.tier) return b.tier - a.tier;
+        if (b.stars !== a.stars) return b.stars - a.stars;
+        const at = Number.isFinite(a.bestTime) ? a.bestTime : Infinity;
+        const bt = Number.isFinite(b.bestTime) ? b.bestTime : Infinity;
+        if (at !== bt) return at - bt;
+        return String(a.pilot).localeCompare(String(b.pilot));
+      })
+      .slice(0, limit);
+  }
+
+  escapeFrontierHTML(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  refreshFrontierBoard() {
+    if (typeof document === 'undefined') return;
+    const board = document.getElementById('frontier-board');
+    if (!board) return;
+    const challenge = this.getFrontierChallenge();
+    if (!challenge) {
+      board.style.display = 'none';
+      return;
+    }
+    const list = document.getElementById('frontier-board-list');
+    const entries = this.getFrontierBoardList(4);
+    if (list) {
+      list.innerHTML = entries.length
+        ? entries.map(entry => {
+          const time = Number.isFinite(entry.bestTime) ? ` · ${entry.bestTime.toFixed(1)}s` : "";
+          return `<span><strong>${this.escapeFrontierHTML(entry.pilot)}</strong> T${entry.tier} · ${entry.stars}/3${time} · ${this.escapeFrontierHTML(entry.shareCode)}</span>`;
+        }).join("")
+        : "<span>Paste a classmate's Frontier line to start a local board.</span>";
+    }
+    board.style.display = 'grid';
+  }
+
+  importFrontierBoardFromInput() {
+    if (typeof document === 'undefined') return false;
+    const input = document.getElementById('frontier-board-input');
+    if (!input) return false;
+    const result = this.importFrontierShareText(input.value);
+    if (!result.entry) {
+      if (typeof ui_log_output === 'function') ui_log_output(result.error || "No Frontier share code found.", "error");
+      return false;
+    }
+    input.value = "";
+    this.refreshFrontierBoard();
+    if (typeof ui_log_output === 'function') {
+      ui_log_output(`Frontier Board added ${result.entry.pilot}: ${result.entry.shareCode}`, result.isNewBest ? "success" : "info");
+    }
+    return true;
   }
 
   copyFrontierShareCode() {
@@ -793,6 +922,7 @@ class StarHopperGame {
     const challenge = frontier || this.getFrontierChallenge();
     if (!challenge) {
       banner.style.display = 'none';
+      this.refreshFrontierBoard();
       return;
     }
     const summary = this.getFrontierRecordSummary(challenge.dateStr);
@@ -814,6 +944,7 @@ class StarHopperGame {
       shareBtn.title = this.getFrontierShareText(challenge);
     }
     banner.style.display = 'flex';
+    this.refreshFrontierBoard();
   }
 
   // Keep the start screen's signal strip current (called at init and after clears).

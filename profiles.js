@@ -74,6 +74,7 @@ function shCaptureProgress() {
     masteryMeters: (game && game.masteryMeters) ? { ...game.masteryMeters } : {},
     dailySignalClears: (game && game.dailySignalClears) || 0,
     frontierRecords: (game && game.frontierRecords) ? { ...game.frontierRecords } : {},
+    frontierBoard: (game && game.frontierBoard) ? { ...game.frontierBoard } : {},
     lastPlayedDate: (game && game.lastPlayedDate) ? game.lastPlayedDate : null,
     streakCount: (game && game.streakCount) || 0,
     researchXP: (game && game.researchXP) || 0,
@@ -106,6 +107,7 @@ function shApplyProgress(progress) {
   game.masteryMeters = (progress.masteryMeters && typeof progress.masteryMeters === 'object') ? { ...progress.masteryMeters } : {};
   game.dailySignalClears = progress.dailySignalClears || 0;
   game.frontierRecords = (progress.frontierRecords && typeof progress.frontierRecords === 'object') ? { ...progress.frontierRecords } : {};
+  game.frontierBoard = (progress.frontierBoard && typeof progress.frontierBoard === 'object') ? { ...progress.frontierBoard } : {};
   game.lastPlayedDate = progress.lastPlayedDate || null;
   game.streakCount = progress.streakCount || 0;
   game.researchXP = progress.researchXP || 0;

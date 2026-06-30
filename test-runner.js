@@ -3540,6 +3540,22 @@ function runRetryRemixTests() {
     assertEquals(1, summary.count, "Frontier summary counts local records");
     assertEquals(3, summary.today.stars, "Frontier summary returns today's best stars");
     assertEquals(true, g.getFrontierShareText(frontier).indexOf(frontier.shareCode) >= 0, "Share text includes today's code");
+    assertEquals(true, /Pilot/.test(g.getFrontierShareText(frontier)), "Share text includes a pasteable pilot label");
+
+    const parsed = g.parseFrontierShareText(`${frontier.shareCode} · Pilot Ada · Tier 2 Earth Base Camp: remix lane · best 2/3 · 55.5s`);
+    assertEquals(frontier.shareCode, parsed.shareCode, "Frontier parser extracts the share code");
+    assertEquals("Ada", parsed.pilot, "Frontier parser extracts the pilot name");
+    assertEquals(2, parsed.stars, "Frontier parser extracts star proof");
+    assertEquals(55.5, parsed.bestTime, "Frontier parser extracts clear time");
+    assertEquals("Earth Base Camp", parsed.planetName, "Frontier parser extracts the planet label");
+
+    const imported = g.importFrontierShareText(`${frontier.shareCode} · Pilot Ada · Tier 2 Earth Base Camp: remix lane · best 2/3 · 55.5s`);
+    assertEquals(true, imported.isNewBest, "First imported Frontier record starts the board");
+    const ignored = g.importFrontierShareText(`${frontier.shareCode} · Pilot Ada · Tier 1 Earth Base Camp: remix lane · best 1/3 · 41.0s`);
+    assertEquals(false, ignored.isNewBest, "Worse imported Frontier record does not replace the board entry");
+    const upgraded = g.importFrontierShareText(`${frontier.shareCode} · Pilot Ada · Tier 2 Earth Base Camp: remix lane · best 3/3 · 60.0s`);
+    assertEquals(true, upgraded.isNewBest, "Higher-star imported Frontier record replaces the board entry");
+    assertEquals(3, g.getFrontierBoardList()[0].stars, "Frontier board returns the strongest imported record");
 
     const els = {
       "daily-signal-label": { textContent: "" },
@@ -3547,7 +3563,9 @@ function runRetryRemixTests() {
       "frontier-record-banner": { style: {} },
       "frontier-record-label": { textContent: "" },
       "frontier-record-detail": { textContent: "" },
-      "frontier-share-btn": { textContent: "", title: "" }
+      "frontier-share-btn": { textContent: "", title: "" },
+      "frontier-board": { style: {} },
+      "frontier-board-list": { innerHTML: "" }
     };
     document.getElementById = (id) => els[id] || null;
     g.refreshDailySignalBanner();
@@ -3555,11 +3573,13 @@ function runRetryRemixTests() {
     assertEquals(true, /Today's frontier cleared/.test(els["frontier-record-label"].textContent), "Banner should show today's local clear");
     assertEquals(true, /Best T/.test(els["frontier-record-detail"].textContent), "Banner should show the local best tier");
     assertEquals(true, els["frontier-share-btn"].title.indexOf("FRONTIER-") >= 0, "Copy button should carry the share code");
+    assertEquals("grid", els["frontier-board"].style.display, "Frontier board should appear after star-map completion");
+    assertEquals(true, /Ada/.test(els["frontier-board-list"].innerHTML), "Frontier board should render imported pilots");
     document.getElementById = oldGetElementByIdR11c;
-    renderTestResult(SUITE, "Frontier Records: local best and share banner", true);
+    renderTestResult(SUITE, "Frontier Records: local best and class board", true);
   } catch (err) {
     document.getElementById = oldGetElementByIdR11c;
-    renderTestResult(SUITE, "Frontier Records: local best and share banner", false, err.message);
+    renderTestResult(SUITE, "Frontier Records: local best and class board", false, err.message);
   }
 
   // Test R12: Game-local date formatting uses the browser calendar, not UTC ISO rollover.
@@ -3708,19 +3728,21 @@ function runRetryRemixTests() {
       bestClearTimes: { 0: 12.4 }, bestLabStars: { 0: 3 }, masteryCleared: { 1: true }, masteryMeters: {},
       dailySignalClears: 3, lastPlayedDate: "2026-06-13", streakCount: 5,
       frontierRecords: { "2026-06-30": { dateStr: "2026-06-30", shareCode: "FRONTIER-EARTH-1234", tier: 2, stars: 3, bestTime: 31.2 } },
+      frontierBoard: { "FRONTIER-MOON-2222": { dateStr: "2026-06-30", shareCode: "FRONTIER-MOON-2222", tier: 2, stars: 2, bestTime: 42.5, pilot: "Ada" } },
       researchXP: 24, discoveryCombo: 1, discoveryLog: [], discoveryPassCounts: {},
       discoveredFormulaKinds: new Set(["mass"]),
       confirmedHypotheses: new Set(["earth-gravity-wall"])
     };
     window.Game = Game;
     const snap = shCaptureProgress();
-    Game.bestClearTimes = {}; Game.bestLabStars = {}; Game.dailySignalClears = 0; Game.frontierRecords = {}; Game.lastPlayedDate = null; Game.streakCount = 0; Game.masteryCleared = {}; Game.researchXP = 0; Game.discoveredFormulaKinds = new Set(); Game.confirmedHypotheses = new Set();
+    Game.bestClearTimes = {}; Game.bestLabStars = {}; Game.dailySignalClears = 0; Game.frontierRecords = {}; Game.frontierBoard = {}; Game.lastPlayedDate = null; Game.streakCount = 0; Game.masteryCleared = {}; Game.researchXP = 0; Game.discoveredFormulaKinds = new Set(); Game.confirmedHypotheses = new Set();
     shApplyProgress(snap);
     assertEquals(12.4, Game.bestClearTimes[0], "best clear time round-trips");
     assertEquals(3, Game.bestLabStars[0], "best lab stars round-trip");
     assertEquals(true, Game.masteryCleared[1], "mastery-cleared flag round-trips");
     assertEquals(3, Game.dailySignalClears, "daily-signal clears round-trip");
     assertEquals("FRONTIER-EARTH-1234", Game.frontierRecords["2026-06-30"].shareCode, "Frontier records round-trip");
+    assertEquals("Ada", Game.frontierBoard["FRONTIER-MOON-2222"].pilot, "Frontier class board round-trips");
     assertEquals("2026-06-13", Game.lastPlayedDate, "lastPlayedDate round-trips");
     assertEquals(5, Game.streakCount, "streakCount round-trips");
     assertEquals(24, Game.researchXP, "Research XP round-trips");
@@ -3787,6 +3809,7 @@ function runRetryRemixTests() {
       masteryMeters: { 0: { xp: 80, badges: ["scout"], sources: { combat: 50 } } },
       dailySignalClears: 4,
       frontierRecords: { "2026-06-30": { dateStr: "2026-06-30", shareCode: "FRONTIER-EARTH-1234", tier: 2, stars: 3, bestTime: 31.2 } },
+      frontierBoard: { "FRONTIER-MOON-2222": { dateStr: "2026-06-30", shareCode: "FRONTIER-MOON-2222", tier: 2, stars: 2, bestTime: 42.5, pilot: "Ada" } },
       lastPlayedDate: "2026-06-18",
       streakCount: 3,
       researchXP: 42,
@@ -3804,12 +3827,13 @@ function runRetryRemixTests() {
     assertEquals(3, payload.profileProgress.bestLabStars[0], "Best lab-star scores should export");
     assertEquals(4, payload.profileProgress.dailySignalClears, "Daily Signal clears should export");
     assertEquals("FRONTIER-EARTH-1234", payload.profileProgress.frontierRecords["2026-06-30"].shareCode, "Frontier records should export");
+    assertEquals("Ada", payload.profileProgress.frontierBoard["FRONTIER-MOON-2222"].pilot, "Frontier board should export");
     assertEquals(42, payload.profileProgress.researchXP, "Research XP should export");
     assertEquals(1, payload.profileProgress.discoveryPassCounts["earth-gravity-wall"], "Discovery progress should export");
     assertEquals(true, payload.profileProgress.discoveredFormulaKinds.includes("loop"), "Formula card kinds should export");
     assertEquals(true, payload.profileProgress.confirmedHypotheses.includes("earth-gravity-wall"), "Confirmed hypotheses should export");
     const merged = mergeProgress(
-      { unlockedUpgrades: ["jump"], upgradeLevels: { engine: 0.25 }, planetClears: { 0: 1 }, bestLabStars: { 0: 1, 1: 2 }, masteryMeters: { 0: { xp: 95, badges: ["engineer"], sources: { stars: 40 } } }, frontierRecords: { "2026-06-30": { dateStr: "2026-06-30", shareCode: "FRONTIER-EARTH-9999", tier: 2, stars: 2, bestTime: 25.4 } }, researchXP: 8, discoveryPassCounts: { "earth-gravity-wall": 0 }, discoveredFormulaKinds: ["friction"], confirmedHypotheses: ["moon-canyon-jump"] },
+      { unlockedUpgrades: ["jump"], upgradeLevels: { engine: 0.25 }, planetClears: { 0: 1 }, bestLabStars: { 0: 1, 1: 2 }, masteryMeters: { 0: { xp: 95, badges: ["engineer"], sources: { stars: 40 } } }, frontierRecords: { "2026-06-30": { dateStr: "2026-06-30", shareCode: "FRONTIER-EARTH-9999", tier: 2, stars: 2, bestTime: 25.4 } }, frontierBoard: { "FRONTIER-MOON-2222": { dateStr: "2026-06-30", shareCode: "FRONTIER-MOON-2222", tier: 2, stars: 3, bestTime: 49.5, pilot: "Grace" } }, researchXP: 8, discoveryPassCounts: { "earth-gravity-wall": 0 }, discoveredFormulaKinds: ["friction"], confirmedHypotheses: ["moon-canyon-jump"] },
       progressFromSavePayload(payload)
     );
     assertEquals(true, merged.unlockedUpgrades.includes("engine"), "Incoming unlocked upgrade survives merge");
@@ -3824,6 +3848,7 @@ function runRetryRemixTests() {
     assertEquals(50, merged.masteryMeters[0].sources.combat, "Incoming mastery source survives merge");
     assertEquals(40, merged.masteryMeters[0].sources.stars, "Local mastery source survives merge");
     assertEquals("FRONTIER-EARTH-1234", merged.frontierRecords["2026-06-30"].shareCode, "Merge keeps the stronger Frontier record");
+    assertEquals("Grace", merged.frontierBoard["FRONTIER-MOON-2222"].pilot, "Merge keeps the stronger Frontier board entry");
     assertEquals(42, merged.researchXP, "Merge keeps the higher Research XP");
     assertEquals(1, merged.discoveryPassCounts["earth-gravity-wall"], "Merge keeps discovery pass progress");
     assertEquals(true, merged.discoveredFormulaKinds.includes("mass"), "Incoming formula card survives merge");

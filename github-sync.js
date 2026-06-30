@@ -124,6 +124,14 @@ function normalizeFrontierSyncRecord(record) {
   };
 }
 
+function normalizeFrontierBoardSyncEntry(entry) {
+  const record = normalizeFrontierSyncRecord(entry);
+  const e = plainObject(entry);
+  if (!record.shareCode) return null;
+  const pilot = e.pilot ? String(e.pilot).replace(/[^\w .-]/g, "").trim().slice(0, 24) : "Classmate";
+  return { ...record, pilot: pilot || "Classmate" };
+}
+
 function frontierSyncRecordIsBetter(nextRecord, currentRecord) {
   const next = normalizeFrontierSyncRecord(nextRecord);
   const current = currentRecord ? normalizeFrontierSyncRecord(currentRecord) : null;
@@ -148,6 +156,21 @@ function mergeFrontierRecords(local, incoming) {
     const record = normalizeFrontierSyncRecord({ ...plainObject(value), dateStr: value && value.dateStr ? value.dateStr : key });
     const recordKey = record.dateStr || key;
     if (frontierSyncRecordIsBetter(record, out[recordKey])) out[recordKey] = record;
+  });
+  return out;
+}
+
+function mergeFrontierBoard(local, incoming) {
+  const out = {};
+  Object.entries(plainObject(local)).forEach(([key, value]) => {
+    const entry = normalizeFrontierBoardSyncEntry({ ...plainObject(value), shareCode: value && value.shareCode ? value.shareCode : key });
+    if (entry && entry.shareCode) out[entry.shareCode] = entry;
+  });
+  Object.entries(plainObject(incoming)).forEach(([key, value]) => {
+    const entry = normalizeFrontierBoardSyncEntry({ ...plainObject(value), shareCode: value && value.shareCode ? value.shareCode : key });
+    if (entry && entry.shareCode && (!out[entry.shareCode] || frontierSyncRecordIsBetter(entry, out[entry.shareCode]))) {
+      out[entry.shareCode] = entry;
+    }
   });
   return out;
 }
@@ -186,6 +209,7 @@ function normalizeProgress(progress) {
     masteryMeters: plainObject(p.masteryMeters),
     dailySignalClears: Number(p.dailySignalClears) || 0,
     frontierRecords: mergeFrontierRecords({}, p.frontierRecords),
+    frontierBoard: mergeFrontierBoard({}, p.frontierBoard),
     lastPlayedDate: p.lastPlayedDate || null,
     streakCount: Number(p.streakCount) || 0,
     researchXP: Number(p.researchXP) || 0,
@@ -214,6 +238,7 @@ function getActiveProgressSnapshot() {
     masteryMeters: typeof Game !== 'undefined' && Game.masteryMeters ? { ...Game.masteryMeters } : {},
     dailySignalClears: typeof Game !== 'undefined' ? Game.dailySignalClears : 0,
     frontierRecords: typeof Game !== 'undefined' && Game.frontierRecords ? { ...Game.frontierRecords } : {},
+    frontierBoard: typeof Game !== 'undefined' && Game.frontierBoard ? { ...Game.frontierBoard } : {},
     lastPlayedDate: typeof Game !== 'undefined' ? Game.lastPlayedDate : null,
     streakCount: typeof Game !== 'undefined' ? Game.streakCount : 0,
     researchXP: typeof Game !== 'undefined' ? Game.researchXP : 0,
@@ -273,6 +298,7 @@ function mergeProgress(localProgress, incomingProgress) {
     masteryMeters: mergeMasteryMeters(local.masteryMeters, incoming.masteryMeters),
     dailySignalClears: Math.max(local.dailySignalClears || 0, incoming.dailySignalClears || 0),
     frontierRecords: mergeFrontierRecords(local.frontierRecords, incoming.frontierRecords),
+    frontierBoard: mergeFrontierBoard(local.frontierBoard, incoming.frontierBoard),
     lastPlayedDate: latestPlayed,
     streakCount,
     researchXP: Math.max(local.researchXP || 0, incoming.researchXP || 0),
@@ -303,6 +329,7 @@ function applyProgressSnapshot(progress) {
     Game.masteryMeters = { ...normalized.masteryMeters };
     Game.dailySignalClears = normalized.dailySignalClears;
     Game.frontierRecords = { ...normalized.frontierRecords };
+    Game.frontierBoard = { ...normalized.frontierBoard };
     Game.lastPlayedDate = normalized.lastPlayedDate;
     Game.streakCount = normalized.streakCount;
     Game.researchXP = normalized.researchXP;
