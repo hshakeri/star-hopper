@@ -1015,6 +1015,7 @@ class StarHopperGame {
       frontierBtn.title = frontier ? `${frontier.label} · ${frontier.shareCode}` : 'Complete the star-map to unlock Frontier Challenge';
     }
     this.refreshFrontierRecordBanner(frontier);
+    if (typeof updateStartMissionRadar === 'function') updateStartMissionRadar(this);
   }
 
   // Single source of "today" in the browser's LOCAL calendar, not UTC. That matters in

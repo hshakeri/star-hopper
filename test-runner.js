@@ -1308,15 +1308,25 @@ function runEngineTests() {
     assertEquals("Reach Loop Engineer", quest.title, "After the formula deck, the quest should target the next rank perk");
     assertEquals(true, /Combo Amplifier/.test(quest.reward), "Rank quest should name the next lab perk reward");
 
+    const startKicker = { textContent: "" };
     const els = {
       "research-rank-card": { innerHTML: "" },
-      "discovery-deck": { innerHTML: "" }
+      "discovery-deck": { innerHTML: "" },
+      "start-mission-radar": { querySelector: () => startKicker },
+      "start-mission-radar-progress": { textContent: "" },
+      "start-mission-radar-title": { textContent: "" },
+      "start-mission-radar-body": { textContent: "" },
+      "start-mission-radar-reward": { textContent: "" }
     };
     document.getElementById = (id) => els[id] || null;
     game.discoveredFormulaKinds = new Set(["antigravity"]);
     updateResearchProgress(game);
     assertEquals(true, /NEXT LAB QUEST/.test(els["research-rank-card"].innerHTML), "Rank card should render the lab quest");
     assertEquals(true, /Collect Mass Lab/.test(els["research-rank-card"].innerHTML), "Rendered quest should point to the next formula card");
+    assertEquals("LAB QUEST", startKicker.textContent, "Start radar should reuse the lab quest category");
+    assertEquals("Collect Mass Lab", els["start-mission-radar-title"].textContent, "Start radar should show the same next quest");
+    assertEquals("1/9 formulas · 60 XP", els["start-mission-radar-progress"].textContent, "Start radar should show formula and XP progress");
+    assertEquals(true, /formula card/.test(els["start-mission-radar-reward"].textContent), "Start radar should show the quest reward");
 
     document.getElementById = oldGetElementById22cc;
     renderTestResult("engine-suite", "Curriculum: research panel surfaces next lab quest", true);

@@ -835,9 +835,12 @@ function updateResearchProgress(game = window.Game) {
   const rankCard = document.getElementById("research-rank-card");
   const deck = document.getElementById("discovery-deck");
   const storyPanel = document.getElementById("signal-story-panel");
-  if (!rankCard && !deck && !storyPanel) return;
+  const startRadar = document.getElementById("start-mission-radar");
+  if (!rankCard && !deck && !storyPanel && !startRadar) return;
   const xp = game && Number.isFinite(game.researchXP) ? game.researchXP : 0;
   const rank = getResearchRank(xp);
+
+  if (startRadar) updateStartMissionRadar(game);
 
   if (rankCard) {
     const pct = Math.round(rank.progress * 100);
@@ -1103,6 +1106,25 @@ function getActiveLabQuest(game) {
     body: "Replay a cleared world, compare the new layout, and beat it with cleaner code.",
     reward: "Reward: mastery clear + stronger lab record"
   };
+}
+
+function updateStartMissionRadar(game = window.Game) {
+  const panel = document.getElementById("start-mission-radar");
+  if (!panel) return;
+  const quest = getActiveLabQuest(game);
+  const collection = getFormulaCollection(game);
+  const rank = getResearchRank(game && Number.isFinite(game.researchXP) ? game.researchXP : 0);
+  const kicker = panel.querySelector ? panel.querySelector(".start-mission-radar-head span") : null;
+  const progress = document.getElementById("start-mission-radar-progress");
+  const title = document.getElementById("start-mission-radar-title");
+  const body = document.getElementById("start-mission-radar-body");
+  const reward = document.getElementById("start-mission-radar-reward");
+
+  if (kicker) kicker.textContent = quest ? quest.kicker.replace(/^NEXT\s+/i, "") : "MISSION RADAR";
+  if (progress) progress.textContent = `${collection.unlocked.length}/${collection.cards.length} formulas · ${Math.round(rank.xp)} XP`;
+  if (title) title.textContent = quest ? quest.title : "Keep experimenting";
+  if (body) body.textContent = quest ? quest.body : "Run Mission Coach code, collect formula cards, and improve your lab record.";
+  if (reward) reward.textContent = quest ? quest.reward : "Reward: stronger science record";
 }
 
 function updateFormulaTarget(game) {
