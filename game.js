@@ -2332,13 +2332,13 @@ class StarHopperGame {
   checkMissions() {
     if (!this.currentPlanet || !this.currentPlanet.missions) return;
 
-    let anyCompletedThisFrame = false;
+    const completedThisFrame = [];
     for (const mission of this.currentPlanet.missions) {
       if (!this.completedMissions.has(mission.id)) {
         try {
           if (mission.validate(this)) {
             this.completedMissions.add(mission.id);
-            anyCompletedThisFrame = true;
+            completedThisFrame.push(mission);
             ui_log_output(`★ Mission Complete: ${mission.prompt}`, "success");
             SFX.playSuccess();
             Particles.spawnBurst(this.player.x + this.player.w/2, this.player.y + this.player.h/2, '#facc15', 15, 3, 3, 'glow');
@@ -2351,7 +2351,9 @@ class StarHopperGame {
         }
       }
     }
-    if (anyCompletedThisFrame) {
+    if (completedThisFrame.length > 0) {
+      const status = this.getLevelObjectiveStatus();
+      this.spawnMissionTaskProgressEffect(completedThisFrame, status);
       this.checkLabStarProgress("mission");
       updateMissionList(this);
       this.checkPortalReadyCue("mission");
@@ -2374,6 +2376,48 @@ class StarHopperGame {
       allMissionsComplete,
       allCollectiblesCollected,
       readyForPortal: allMissionsComplete && allCollectiblesCollected
+    };
+  }
+
+  spawnMissionTaskProgressEffect(completedMissions = [], status = this.getLevelObjectiveStatus()) {
+    const completedList = Array.isArray(completedMissions) ? completedMissions.filter(Boolean) : [];
+    if (!completedList.length || !status) return null;
+    const total = Math.max(0, Math.floor(Number(status.missionsTotal) || 0));
+    const complete = Math.max(0, Math.floor(Number(status.missionsComplete) || 0));
+    const samplesLeft = Math.max(0, (Number(status.collectiblesTotal) || 0) - (Number(status.collectiblesCollected) || 0));
+    const label = status.allMissionsComplete ? "TASKS DONE!" : `TASK ${complete}/${total || complete}`;
+    let monitorText;
+    if (status.readyForPortal) {
+      monitorText = "TASKS DONE: portal ready";
+    } else if (status.allMissionsComplete) {
+      monitorText = `TASKS DONE: collect ${samplesLeft} sample${samplesLeft === 1 ? "" : "s"}`;
+    } else {
+      monitorText = `TASK ${complete}/${total}: run the next fix`;
+    }
+
+    const px = this.player ? (Number.isFinite(this.player.x) ? this.player.x : 0) + (Number.isFinite(this.player.w) ? this.player.w : 24) / 2 : 0;
+    const py = this.player ? (Number.isFinite(this.player.y) ? this.player.y : 0) + (Number.isFinite(this.player.h) ? this.player.h : 32) / 2 : 0;
+    if (typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+      ComicBubbles.pop(px, py - 18, label, "#38bdf8", status.allMissionsComplete ? 1.16 : 1.02);
+    }
+    if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+      Particles.spawnBurst(px, py, status.allMissionsComplete ? '#4ade80' : '#38bdf8', status.allMissionsComplete ? 16 : 10, 2.4, 2.4, 'glow');
+    }
+    if (!status.readyForPortal) {
+      this.showMissionBalloon(monitorText, {
+        title: "MISSION CRT",
+        color: status.allMissionsComplete ? "#4ade80" : "#38bdf8",
+        timer: 260
+      });
+    }
+    return {
+      label,
+      monitorText,
+      completed: complete,
+      total,
+      samplesLeft,
+      allTasksComplete: !!status.allMissionsComplete,
+      readyForPortal: !!status.readyForPortal
     };
   }
 

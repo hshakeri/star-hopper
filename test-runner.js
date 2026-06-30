@@ -1213,6 +1213,55 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: mission completion unlocks concept badges", false, err.message);
   }
 
+  // Test 22a: Mission completion gets an in-level task progress cue and CRT next step.
+  const oldBubblePop22a = ComicBubbles.pop;
+  const oldParticleBurst22a = Particles.spawnBurst;
+  try {
+    const labels = [];
+    let bursts = 0;
+    ComicBubbles.pop = (x, y, text) => { labels.push(text); };
+    Particles.spawnBurst = () => { bursts++; };
+
+    let secondReady = false;
+    const game = new StarHopperGame();
+    game.currentPlanet = {
+      missions: [
+        { id: "first", prompt: "Tune the first variable", validate: () => true },
+        { id: "second", prompt: "Tune the second variable", validate: () => secondReady }
+      ]
+    };
+    game.currentPlanetIndex = 0;
+    game.player = { x: 40, y: 50, w: 24, h: 32 };
+    game.requiredCollectiblesTotal = 2;
+    game.requiredCollectiblesCollected = 0;
+    game._labStarPreviewCount = 0;
+
+    game.checkMissions();
+    assertEquals(true, game.completedMissions.has("first"), "First task should complete");
+    assertEquals(false, game.completedMissions.has("second"), "Second task should remain incomplete");
+    assertEquals(true, labels.includes("TASK 1/2"), "Partial task completion should pop progress");
+    assertEquals("TASK 1/2: run the next fix", game.missionBalloon.text, "CRT should point to the next code fix");
+    const firstTaskPops = labels.filter(label => label === "TASK 1/2").length;
+    game.checkMissions();
+    assertEquals(firstTaskPops, labels.filter(label => label === "TASK 1/2").length, "Already-completed tasks should not replay progress pops");
+
+    secondReady = true;
+    game.requiredCollectiblesCollected = 1;
+    game.checkMissions();
+    assertEquals(true, game.completedMissions.has("second"), "Second task should complete once the validator passes");
+    assertEquals(true, labels.includes("TASKS DONE!"), "Final task should pop a tasks-done milestone");
+    assertEquals("TASKS DONE: collect 1 sample", game.missionBalloon.text, "CRT should hand off from code tasks to samples");
+    assertEquals(true, bursts >= 2, "Task progress should spawn reward particles");
+
+    ComicBubbles.pop = oldBubblePop22a;
+    Particles.spawnBurst = oldParticleBurst22a;
+    renderTestResult("engine-suite", "Curriculum: mission tasks pop next-step feedback", true);
+  } catch (err) {
+    ComicBubbles.pop = oldBubblePop22a;
+    Particles.spawnBurst = oldParticleBurst22a;
+    renderTestResult("engine-suite", "Curriculum: mission tasks pop next-step feedback", false, err.message);
+  }
+
   // Test 22b: Mission Coach code creates a science discovery pulse and rewards only new progress.
   const oldBubblePop22b = ComicBubbles.pop;
   const oldParticleBurst22b = Particles.spawnBurst;
