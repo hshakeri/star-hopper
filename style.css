@@ -4874,6 +4874,50 @@ body.navigator-active .coach-bubble { display: none !important; }
   text-align: right;
 }
 
+.signal-story-contract {
+  border: 1px solid rgba(250, 204, 21, 0.28);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(250, 204, 21, 0.12), rgba(34, 211, 238, 0.06)),
+    rgba(2, 6, 23, 0.64);
+  padding: 9px;
+  box-shadow: inset 0 0 12px rgba(250, 204, 21, 0.06);
+}
+
+.signal-story-contract span,
+.signal-story-contract em {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.signal-story-contract span {
+  color: #fde68a;
+}
+
+.signal-story-contract strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+.signal-story-contract p {
+  margin: 5px 0;
+  color: var(--text-muted);
+  font-size: 0.66rem;
+  line-height: 1.3;
+}
+
+.signal-story-contract em {
+  color: #67e8f9;
+}
+
 .signal-story-track {
   display: grid;
   gap: 7px;

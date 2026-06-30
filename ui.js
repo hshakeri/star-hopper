@@ -899,6 +899,59 @@ const SIGNAL_STORY_CHAPTERS = [
   }
 ];
 
+const SIGNAL_STORY_CONTRACTS = {
+  "earth-signal": {
+    title: "Clear Earth (Base Camp)",
+    body: "Change one motion variable until the Emerald wall opens.",
+    reward: "Reward: Emerald Wall Signal"
+  },
+  "moon-loop": {
+    title: "Clear Moon (Luna Outpost)",
+    body: "Use a repeatable spring loop to cross the canyon.",
+    reward: "Reward: Moon Loop Echo"
+  },
+  "jupiter-thrust": {
+    title: "Clear Jupiter (Gas Giant Core)",
+    body: "Tune rocket power and mass until thrust beats heavy gravity.",
+    reward: "Reward: Amber Gravity Well"
+  },
+  "glacies-grip": {
+    title: "Clear Glacies (Ice Comet)",
+    body: "Raise grip or friction and compare how control changes.",
+    reward: "Reward: Violet Grip Code"
+  },
+  "magnet-field": {
+    title: "Clear Mag-Net (Magnetic Nebula)",
+    body: "Use event logic to react when objects touch.",
+    reward: "Reward: Mag-Net Pulse"
+  },
+  "forge-collision": {
+    title: "Clear Asteroid Forge",
+    body: "Make mass move first, then test how much bounce keeps energy.",
+    reward: "Reward: Forge Collision Map"
+  },
+  "star-map-finale": {
+    title: "Restore all six shards",
+    body: "Clear every story world so Vector can connect the full science model.",
+    reward: "Reward: Star-Map Restored"
+  },
+  "mastery-remix": {
+    title: "Earn one 3-star mastery",
+    body: "Replay a cleared world with tasks, samples, and science proof all complete.",
+    reward: "Reward: Remix Key"
+  },
+  "daily-beacon": {
+    title: "Clear today's Daily Signal",
+    body: "Use a date-seeded remix to prove the lesson still works today.",
+    reward: "Reward: Daily Beacon"
+  },
+  "village-pact": {
+    title: "Rescue a village",
+    body: "Clear mob danger so villagers return from caves and trade again.",
+    reward: "Reward: Village Pact"
+  }
+};
+
 function hasClearedStoryPlanet(game, index) {
   if (!game || !game.planetClears) return false;
   return Number(game.planetClears[index] || game.planetClears[String(index)] || 0) > 0;
@@ -944,6 +997,31 @@ function getSignalStoryProgress(game = window.Game) {
   };
 }
 
+function getSignalStoryContract(game = window.Game, story = null) {
+  const progress = story || getSignalStoryProgress(game);
+  const next = progress.nextChapter;
+  if (!next) {
+    return {
+      kicker: "SIGNAL LOOP",
+      title: "Keep the star-map alive",
+      body: "Daily Signals, Frontier runs, and mastery remixes turn old lessons into fresh evidence.",
+      reward: "Reward: stronger lab record"
+    };
+  }
+  const contract = SIGNAL_STORY_CONTRACTS[next.id] || {
+    title: `Decode ${next.title}`,
+    body: next.concept,
+    reward: "Reward: next Signal Story chapter"
+  };
+  return {
+    kicker: "STORY CONTRACT",
+    title: contract.title,
+    body: contract.body,
+    reward: contract.reward,
+    chapter: next
+  };
+}
+
 function getStartSignalStoryPreview(game = window.Game) {
   const story = getSignalStoryProgress(game);
   if (story.nextChapter) {
@@ -967,6 +1045,7 @@ function updateSignalStoryPanel(game = window.Game) {
   if (!panel) return;
   const story = getSignalStoryProgress(game);
   const next = story.nextChapter;
+  const contract = getSignalStoryContract(game, story);
   panel.innerHTML = `
     <div class="signal-story-head">
       <div>
@@ -974,6 +1053,12 @@ function updateSignalStoryPanel(game = window.Game) {
         <strong>${story.unlocked.length}/${story.total} decoded</strong>
       </div>
       <em>${next ? `Next: ${escapeHTML(next.title)}` : "Signal complete"}</em>
+    </div>
+    <div class="signal-story-contract">
+      <span>${escapeHTML(contract.kicker)}</span>
+      <strong>${escapeHTML(contract.title)}</strong>
+      <p>${escapeHTML(contract.body)}</p>
+      <em>${escapeHTML(contract.reward)}</em>
     </div>
     <div class="signal-story-track">
       ${story.chapters.map(chapter => `

@@ -1653,6 +1653,10 @@ function runEngineTests() {
     let story = getSignalStoryProgress(partial);
     assertEquals(2, story.unlocked.length, "Two cleared planets should unlock two story chapters");
     assertEquals("Amber Gravity Well", story.nextChapter.title, "Next story chapter should point at Jupiter");
+    let storyContract = getSignalStoryContract(partial, story);
+    assertEquals("STORY CONTRACT", storyContract.kicker, "Incomplete story should surface a story contract");
+    assertEquals("Clear Jupiter (Gas Giant Core)", storyContract.title, "Story contract should point to the next concrete world clear");
+    assertEquals("Reward: Amber Gravity Well", storyContract.reward, "Story contract should name the next chapter reward");
     const storyGame = new StarHopperGame();
     storyGame.currentPlanetIndex = 0;
     const beforeStoryIds = storyGame.getUnlockedSignalStoryIds();
@@ -1690,6 +1694,9 @@ function runEngineTests() {
     assertEquals(true, /2\/10 decoded/.test(els["signal-story-panel"].innerHTML), "Story panel should show decoded chapter count");
     assertEquals(true, /Emerald Wall Signal/.test(els["signal-story-panel"].innerHTML), "Story panel should show unlocked chapters");
     assertEquals(true, /Next: Amber Gravity Well/.test(els["signal-story-panel"].innerHTML), "Story panel should show the next chapter hook");
+    assertEquals(true, /STORY CONTRACT/.test(els["signal-story-panel"].innerHTML), "Story panel should pin one next story contract");
+    assertEquals(true, /Clear Jupiter \(Gas Giant Core\)/.test(els["signal-story-panel"].innerHTML), "Story contract should name the next action");
+    assertEquals(true, /Reward: Amber Gravity Well/.test(els["signal-story-panel"].innerHTML), "Story contract should name the chapter payoff");
     assertEquals(true, /NEXT EXPERIMENT/.test(els["discovery-deck"].innerHTML), "Empty formula deck should still surface one next experiment");
     assertEquals(true, /hopper\.mass = 1\.0/.test(els["discovery-deck"].innerHTML), "Empty formula deck should include a first runnable command");
     assertEquals(true, /Mass controls acceleration/.test(els["discovery-deck"].innerHTML), "Empty formula focus should name the first science concept");
@@ -1702,6 +1709,10 @@ function runEngineTests() {
     assertEquals(true, /Remix Key/.test(els["signal-story-panel"].innerHTML), "Mastery chapter should render");
     assertEquals(true, /Daily Beacon/.test(els["signal-story-panel"].innerHTML), "Daily chapter should render");
     assertEquals(true, /Village Pact/.test(els["signal-story-panel"].innerHTML), "Village rescue chapter should render");
+    storyContract = getSignalStoryContract(complete);
+    assertEquals("SIGNAL LOOP", storyContract.kicker, "Complete story should keep a loop contract instead of ending cold");
+    assertEquals(true, /SIGNAL LOOP/.test(els["signal-story-panel"].innerHTML), "Complete story panel should show the ongoing loop");
+    assertEquals(true, /Daily Signals, Frontier runs/.test(els["signal-story-panel"].innerHTML), "Complete story loop should point to replay practice");
 
     document.getElementById = oldGetElementById22cb;
     renderTestResult("engine-suite", "Curriculum: signal story tracks science progression", true);
