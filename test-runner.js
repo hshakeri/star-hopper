@@ -3059,7 +3059,14 @@ function runCombatTests() {
   }
 
   // C3: XP accrues to the per-world mastery meter and levels the weapon
+  const oldBubblePopC3 = ComicBubbles.pop;
+  const oldParticleBurstC3 = Particles.spawnBurst;
   try {
+    const bubbleLabelsC3 = [];
+    const particleColorsC3 = [];
+    ComicBubbles.pop = (x, y, text) => { bubbleLabelsC3.push(text); };
+    Particles.spawnBurst = (x, y, color) => { particleColorsC3.push(color); };
+
     const game = new StarHopperGame();
     game.player = new Player(0, 0); game.currentPlanetIndex = 0; game.masteryMeters = {};
     game.weaponLevel = 1; game.totalXP = 0;
@@ -3068,8 +3075,19 @@ function runCombatTests() {
     assertEquals(true, (game.masteryMeters[0].xp || 0) >= 50, "XP fills the per-world mastery meter");
     assertEquals(true, game.masteryMeters[0].badges.includes("scout"), "World mastery awards the first tier badge at 50 XP");
     assertEquals(true, game.earnedBadges.has("world-0-scout"), "World mastery tier badge is tracked idempotently");
+    assertEquals("WORLD TIER!", game.lastWorldMasteryTierEffect.label, "World mastery tier crossing should create an in-level cue");
+    assertEquals("Signal Scout", game.lastWorldMasteryTierEffect.tierLabel, "World mastery cue should name the earned tier");
+    assertEquals(true, bubbleLabelsC3.some(label => /WORLD TIER!/.test(label)), "World mastery tier should pop near the player");
+    assertEquals(true, particleColorsC3.some(color => color === "#38bdf8"), "World mastery tier should spawn a blue reward burst");
+    const tierCueCountC3 = bubbleLabelsC3.filter(label => /WORLD TIER!/.test(label)).length;
+    game.addXP(1);
+    assertEquals(tierCueCountC3, bubbleLabelsC3.filter(label => /WORLD TIER!/.test(label)).length, "More XP without a new tier should not repeat the tier cue");
+    ComicBubbles.pop = oldBubblePopC3;
+    Particles.spawnBurst = oldParticleBurstC3;
     renderTestResult(SUITE, "XP: fills mastery meter + levels the weapon", true);
   } catch (err) {
+    ComicBubbles.pop = oldBubblePopC3;
+    Particles.spawnBurst = oldParticleBurstC3;
     renderTestResult(SUITE, "XP: fills mastery meter + levels the weapon", false, err.message);
   }
 

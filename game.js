@@ -1279,6 +1279,9 @@ class StarHopperGame {
       addedXP: add,
       tierAwards,
       duplicate: false,
+      tierEffect: tierAwards.length && typeof this.spawnWorldMasteryTierEffect === 'function'
+        ? this.spawnWorldMasteryTierEffect(tierAwards[tierAwards.length - 1], meter.xp)
+        : null,
       progress: this.getWorldMasteryProgress(index)
     };
   }
@@ -4780,6 +4783,39 @@ class StarHopperGame {
       x: px,
       y: py
     };
+  }
+
+  spawnWorldMasteryTierEffect(tier, xp = 0) {
+    if (!this.player || !tier) return null;
+    const baseX = Number.isFinite(this.player.x) ? this.player.x : 0;
+    const baseY = Number.isFinite(this.player.y) ? this.player.y : 0;
+    const width = Number.isFinite(this.player.w) ? this.player.w : 24;
+    const height = Number.isFinite(this.player.h) ? this.player.h : 32;
+    const px = baseX + width / 2;
+    const py = baseY + height / 2;
+    const label = "WORLD TIER!";
+    const color = "#38bdf8";
+    const tierLabel = tier.label || "World Mastery";
+
+    if (typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+      ComicBubbles.pop(px, baseY - 72, label, color, 1.08);
+      ComicBubbles.pop(px, baseY - 52, String(tierLabel).toUpperCase(), "#facc15", 0.86);
+    }
+    if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+      Particles.spawnBurst(px, py - 14, color, 16, 2.4, 2.2, 'glow');
+      Particles.spawnBurst(px, py - 14, '#facc15', 10, 1.8, 1.8, 'glow');
+    }
+
+    this.lastWorldMasteryTierEffect = {
+      label,
+      color,
+      tierId: tier.id || "",
+      tierLabel,
+      xp: Math.max(0, Math.floor(Number(xp) || 0)),
+      x: px,
+      y: py
+    };
+    return this.lastWorldMasteryTierEffect;
   }
 
   spawnDiscoveryComboPrimerEffect(pulse) {
