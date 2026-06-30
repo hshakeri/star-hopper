@@ -1139,6 +1139,8 @@ function runEngineTests() {
     assertEquals(true, /NEW LAB TIME/.test(report.innerHTML), "Clear report should celebrate a new personal-best time");
     assertEquals(true, /12.4s/.test(report.innerHTML), "Clear report should include the lab clear time");
     assertEquals(true, /Best Time/.test(report.innerHTML), "Clear report should include best-time progress");
+    assertEquals(true, /NEXT RUN CONTRACT/.test(report.innerHTML), "Clear report should include a replay contract");
+    assertEquals(true, /Collect Mass Lab/.test(report.innerHTML), "Replay contract should target the next formula card");
     assertEquals(true, /1\/9/.test(report.innerHTML), "Clear report should include formula deck progress");
     assertEquals(true, /\+2 emerald/.test(report.innerHTML), "Clear report should include newly banked gems");
     assertEquals(true, /Collect Mass Lab/.test(report.innerHTML), "Clear report should include the next lab quest");
@@ -1202,6 +1204,63 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: clear times record personal bests", true);
   } catch (err) {
     renderTestResult("engine-suite", "Curriculum: clear times record personal bests", false, err.message);
+  }
+
+  // Test 22fg: Clear report replay contracts point to the next concrete learning loop.
+  try {
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[0];
+    game.currentPlanetIndex = 0;
+
+    let contract = game.getClearReplayContract({
+      labStars: {
+        stars: 2,
+        maxStars: 3,
+        checks: [
+          { id: "missions", label: "Mission tasks", earned: true },
+          { id: "gems", label: "Mission gems", earned: true },
+          { id: "science", label: "Science proof", earned: false }
+        ]
+      },
+      clearTime: { best: 9.8 }
+    });
+    assertEquals("Leave science proof", contract.title, "Missing science star should be the first replay contract");
+    assertEquals(true, /3\/3 Lab Stars/.test(contract.reward), "Missing-star contract should name the next star reward");
+
+    game.discoveredFormulaKinds = new Set(["antigravity"]);
+    contract = game.getClearReplayContract({
+      labStars: {
+        stars: 3,
+        maxStars: 3,
+        checks: [
+          { id: "missions", label: "Mission tasks", earned: true },
+          { id: "gems", label: "Mission gems", earned: true },
+          { id: "science", label: "Science proof", earned: true }
+        ]
+      },
+      clearTime: { best: 9.8 }
+    });
+    assertEquals("Collect Mass Lab", contract.title, "After 3 stars, next missing formula should become the contract");
+    assertEquals("Reward: formula card + Research XP", contract.reward, "Formula contract should carry the science reward");
+
+    game.discoveredFormulaKinds = new Set(DISCOVERY_RULES.map(rule => rule.kind));
+    contract = game.getClearReplayContract({
+      labStars: {
+        stars: 3,
+        maxStars: 3,
+        checks: [
+          { id: "missions", label: "Mission tasks", earned: true },
+          { id: "gems", label: "Mission gems", earned: true },
+          { id: "science", label: "Science proof", earned: true }
+        ]
+      },
+      clearTime: { best: 10 }
+    });
+    assertEquals("Beat 10.0s Lab Time", contract.title, "Complete science progress should fall through to personal-best timing");
+    assertEquals("Target: 9.2s", contract.reward, "Timing contract should set a reachable target");
+    renderTestResult("engine-suite", "Curriculum: clear report suggests next replay contract", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Curriculum: clear report suggests next replay contract", false, err.message);
   }
 
   // Test 22g: First 3-star mastery grants Research XP and a discovery pulse.

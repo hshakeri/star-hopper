@@ -1471,6 +1471,86 @@ class StarHopperGame {
     return summary;
   }
 
+  getClearReplayContract({ labStars = null, clearTime = null, isDailyRun = false, nextIndex = null } = {}) {
+    const starSummary = labStars || this.getClearLabStarSummary({ isDailyRun });
+    const missingStar = starSummary && Array.isArray(starSummary.checks)
+      ? starSummary.checks.find(check => !check.earned)
+      : null;
+    if (missingStar) {
+      const missingCopy = {
+        missions: {
+          title: "Finish the mission task",
+          body: "Replay and make the code satisfy the active requirement before entering the portal."
+        },
+        gems: {
+          title: "Collect every mission gem",
+          body: "Use the requirement monitor to unlock the remaining gem gates, then bank the samples."
+        },
+        science: {
+          title: "Leave science proof",
+          body: "Make a prediction or collect a formula card so the run has evidence, not just a finish."
+        }
+      };
+      const copy = missingCopy[missingStar.id] || {
+        title: `Earn ${missingStar.label}`,
+        body: "Replay with one focused improvement and compare the result."
+      };
+      return {
+        kicker: "NEXT RUN CONTRACT",
+        title: copy.title,
+        body: copy.body,
+        reward: `Reward: ${Math.min((starSummary.stars || 0) + 1, starSummary.maxStars || 3)}/${starSummary.maxStars || 3} Lab Stars`
+      };
+    }
+
+    const formulaTarget = (typeof getActiveFormulaTarget === 'function') ? getActiveFormulaTarget(this) : null;
+    if (formulaTarget) {
+      return {
+        kicker: "NEXT RUN CONTRACT",
+        title: `Collect ${formulaTarget.title}`,
+        body: formulaTarget.cue,
+        reward: "Reward: formula card + Research XP"
+      };
+    }
+
+    const timeSummary = clearTime || this.lastClearTimeSummary || null;
+    if (timeSummary && Number.isFinite(timeSummary.best) && timeSummary.best > 0) {
+      const shave = Math.max(0.5, Math.min(4, timeSummary.best * 0.08));
+      const target = Math.max(1, Math.round((timeSummary.best - shave) * 10) / 10);
+      return {
+        kicker: "NEXT RUN CONTRACT",
+        title: `Beat ${timeSummary.best.toFixed(1)}s Lab Time`,
+        body: "Replay with one cleaner route or one better variable tweak, then compare the telemetry.",
+        reward: `Target: ${target.toFixed(1)}s`
+      };
+    }
+
+    if (isDailyRun) {
+      return {
+        kicker: "NEXT RUN CONTRACT",
+        title: "Compare today's remix",
+        body: "Open the log, compare the remix with the original world, and write one observation.",
+        reward: "Reward: stronger lab record"
+      };
+    }
+
+    if (nextIndex !== null && typeof PLANETS !== 'undefined' && PLANETS[nextIndex]) {
+      return {
+        kicker: "NEXT RUN CONTRACT",
+        title: `Launch toward ${PLANETS[nextIndex].name}`,
+        body: "Run the spacecraft bridge plan to continue the signal trail.",
+        reward: "Reward: next science chapter"
+      };
+    }
+
+    return {
+      kicker: "NEXT RUN CONTRACT",
+      title: "Master a daily signal",
+      body: "Use a fresh remix to prove the same physics idea still works when the map changes.",
+      reward: "Reward: daily clear + share code"
+    };
+  }
+
   getClearLabStarSummary({ isDailyRun = false } = {}) {
     const status = (typeof this.getLevelObjectiveStatus === 'function')
       ? this.getLevelObjectiveStatus()
@@ -3304,6 +3384,15 @@ class StarHopperGame {
     const timeBadge = timeSummary && timeSummary.isNewBest
       ? `<div class="clear-lab-time new"><span>NEW LAB TIME</span><strong>${safe(elapsedText)} personal best</strong></div>`
       : (timeSummary ? `<div class="clear-lab-time"><span>LAB TIME</span><strong>${safe(elapsedText)} · best ${safe(bestTimeText)}</strong></div>` : "");
+    const replayContract = this.getClearReplayContract({ labStars: starSummary, clearTime: timeSummary, isDailyRun, nextIndex });
+    const replayContractBlock = replayContract ? `
+      <div class="clear-lab-contract">
+        <span>${safe(replayContract.kicker)}</span>
+        <strong>${safe(replayContract.title)}</strong>
+        <p>${safe(replayContract.body)}</p>
+        <em>${safe(replayContract.reward)}</em>
+      </div>
+    ` : "";
     const starIcons = Array.from({ length: starSummary.maxStars }, (_, index) =>
       `<span class="clear-lab-star${index < starSummary.stars ? " earned" : ""}" aria-hidden="true">★</span>`
     ).join("");
@@ -3339,6 +3428,7 @@ class StarHopperGame {
       <div class="clear-lab-star-list">${starChecklist}</div>
       ${masteryRibbon}
       ${timeBadge}
+      ${replayContractBlock}
       <div class="clear-lab-grid">
         <div class="clear-lab-stat"><span>Max Height</span><strong>${safe(`${maxH}px`)}</strong></div>
         <div class="clear-lab-stat"><span>Max Speed</span><strong>${safe(`${maxV} px/f`)}</strong></div>

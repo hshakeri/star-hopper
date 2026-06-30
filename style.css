@@ -1592,6 +1592,48 @@ body.resizing-panes * {
   box-shadow: 0 0 14px rgba(103, 232, 249, 0.18);
 }
 
+.clear-lab-contract {
+  border: 1px solid rgba(168, 85, 247, 0.32);
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgba(76, 29, 149, 0.18), rgba(15, 23, 42, 0.28)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.022) 0 1px, transparent 1px 4px);
+  padding: 7px 8px;
+  margin: -1px 0 8px;
+}
+
+.clear-lab-contract span,
+.clear-lab-contract em {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.clear-lab-contract span {
+  color: #c4b5fd;
+  margin-bottom: 3px;
+}
+
+.clear-lab-contract strong {
+  display: block;
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+.clear-lab-contract p {
+  margin: 4px 0;
+  color: #dff6ff;
+  font-size: 0.66rem;
+  line-height: 1.3;
+}
+
+.clear-lab-contract em {
+  color: #bef264;
+}
+
 .clear-lab-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
