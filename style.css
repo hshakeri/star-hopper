@@ -1841,6 +1841,14 @@ body.resizing-panes * {
 .return-streak-banner .streak-icon { font-size: 1.1rem; display: inline-block; animation: streak-flame 2s ease-in-out infinite; }
 .return-streak-banner .streak-count { font-size: 1.05rem; font-weight: 800; color: #fde047; }
 .return-streak-banner .streak-label { color: var(--text-muted); font-weight: 600; }
+.return-streak-banner .streak-reward {
+  padding-left: 6px;
+  border-left: 1px solid rgba(253, 224, 71, 0.32);
+  color: #bef264;
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  white-space: nowrap;
+}
 
 @keyframes streak-pop {
   0% { transform: scale(0.8) translateY(8px); opacity: 0; }

@@ -1025,7 +1025,7 @@ function updateDiscoveryPulse(game) {
     return;
   }
   panel.classList.remove("hidden");
-  const progress = pulse.total > 0 ? `${pulse.passed}/${pulse.total} checks` : "free test";
+  const progress = pulse.progressLabel || (pulse.total > 0 ? `${pulse.passed}/${pulse.total} checks` : "free test");
   const reward = pulse.rankUp ? `Rank Up: ${pulse.rankTitle}` : (pulse.rewardXP > 0 ? `+${pulse.rewardXP} Research XP` : "insight logged");
   const combo = pulse.combo > 1 ? ` x${pulse.combo} combo` : "";
   const hypothesis = pulse.hypothesisConfirmed

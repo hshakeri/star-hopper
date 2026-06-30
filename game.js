@@ -11,6 +11,8 @@ const HOPPER_UPGRADES = {
   antigravity: { base: 6,   extreme: 14,  planet: 4, gem: "Magenta Flux", part: "antigravity coil",  cmd: "antigravity",         short: "ANTIGRAV" }
 };
 const MASTERY_CLEAR_RESEARCH_XP = 25;
+const RETURN_STREAK_RESEARCH_BASE_XP = 4;
+const RETURN_STREAK_RESEARCH_CAP_BONUS_XP = 6;
 
 class StarHopperGame {
   constructor() {
@@ -99,6 +101,7 @@ class StarHopperGame {
     this.lastCoachCodeByMission = {};
     this.earnedBadges = new Set();
     this.researchXP = 0;
+    this.lastReturnStreakReward = null;
     this.discoveryCombo = 0;
     this.discoveryPulse = null;
     this.discoveryLog = [];
@@ -414,13 +417,71 @@ class StarHopperGame {
     return 1; // gap of 2+ days (or clock moved back) — reset, no penalty
   }
 
+  getReturnStreakRewardXP(streakCount = this.streakCount) {
+    const streak = Math.max(1, Math.floor(Number(streakCount) || 1));
+    return RETURN_STREAK_RESEARCH_BASE_XP + Math.min(RETURN_STREAK_RESEARCH_CAP_BONUS_XP, Math.max(0, streak - 1));
+  }
+
+  grantReturnStreakReward(previousDate, today) {
+    if (!previousDate || previousDate === today) {
+      this.lastReturnStreakReward = null;
+      return null;
+    }
+    const streak = Math.max(1, Math.floor(Number(this.streakCount) || 1));
+    const xp = this.getReturnStreakRewardXP(streak);
+    const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+    this.researchXP = Math.max(0, (this.researchXP || 0) + xp);
+    const afterRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+    const rankUp = !!(beforeRank && afterRank && afterRank.level > beforeRank.level);
+    const pulse = {
+      kind: "streak",
+      title: "Daily Lab Streak",
+      formula: "streak = one experiment each day",
+      insight: `Day ${streak} keeps your lab habit warm. Come back, predict one thing, and test it.`,
+      cue: "Use today's signal or a remix to compare one new result.",
+      missionId: `streak-${today || this.getTodayDateStr()}`,
+      missionTitle: "Daily Lab",
+      passed: 0,
+      total: 0,
+      progressLabel: `streak day ${streak}`,
+      openedGems: 0,
+      rewardXP: xp,
+      combo: this.discoveryCombo || 0,
+      rankUp,
+      rankTitle: afterRank ? afterRank.title : null,
+      rankPerk: rankUp && afterRank ? afterRank.perk : null
+    };
+    this.discoveryPulse = pulse;
+    this.discoveryLog = [pulse].concat(Array.isArray(this.discoveryLog) ? this.discoveryLog : []).slice(0, 8);
+    this.lastReturnStreakReward = pulse;
+    if (typeof ui_log_output === 'function') {
+      ui_log_output(`Daily lab streak: +${xp} Research XP (day ${streak}).`, "success");
+    }
+    if (typeof logMissionBriefing === 'function') {
+      logMissionBriefing(`${pulse.title}: ${pulse.insight}`);
+    }
+    if (rankUp && typeof showBadgeToast === 'function') {
+      showBadgeToast({
+        icon: "R",
+        label: `Research Rank: ${afterRank.title}`,
+        description: `Daily lab streak unlocked ${afterRank.perk.label}.`
+      });
+    }
+    if (typeof updateDiscoveryPulse === 'function') updateDiscoveryPulse(this);
+    if (typeof updateResearchProgress === 'function') updateResearchProgress(this);
+    return pulse;
+  }
+
   // Roll the streak forward once per real-world day, then persist.
   updateReturnStreak() {
     const today = this.getTodayDateStr();
     if (this.lastPlayedDate === today) return;
+    const previousDate = this.lastPlayedDate;
     this.streakCount = this.computeStreakIncrement();
     this.lastPlayedDate = today;
+    this.grantReturnStreakReward(previousDate, today);
     if (typeof saveLocalProgress === 'function') saveLocalProgress();
+    this.refreshStreakBanner();
   }
 
   // Show the celebratory streak chip on the start screen (hidden until there's a streak).
@@ -428,10 +489,17 @@ class StarHopperGame {
     const banner = document.getElementById('return-streak-banner');
     if (!banner) return;
     const countEl = document.getElementById('return-streak-count');
+    const rewardEl = document.getElementById('return-streak-reward');
     if (this.streakCount > 0) {
       if (countEl) countEl.textContent = this.streakCount;
+      if (rewardEl) {
+        rewardEl.textContent = this.lastReturnStreakReward
+          ? `+${this.lastReturnStreakReward.rewardXP} Research XP today`
+          : "Daily lab habit";
+      }
       banner.style.display = 'flex';
     } else {
+      if (rewardEl) rewardEl.textContent = "";
       banner.style.display = 'none';
     }
   }

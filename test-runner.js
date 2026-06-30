@@ -2831,6 +2831,66 @@ function runRetryRemixTests() {
     renderTestResult(SUITE, "Daily Signal/Streak: local date avoids UTC rollover", false, err.message);
   }
 
+  // Test R12b: returning on a later local day grants a small, once-per-day Research XP pulse.
+  const oldGetElementByIdR12b = document.getElementById;
+  const oldSaveLocalProgressR12b = (typeof saveLocalProgress === "function") ? saveLocalProgress : null;
+  const oldLogMissionBriefingR12b = (typeof logMissionBriefing === "function") ? logMissionBriefing : null;
+  try {
+    let saveCalls = 0;
+    saveLocalProgress = () => { saveCalls++; };
+    logMissionBriefing = () => {};
+    const panel = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };
+    const banner = { style: {} };
+    const count = { textContent: "" };
+    const reward = { textContent: "" };
+    document.getElementById = (id) => ({
+      "discovery-pulse": panel,
+      "return-streak-banner": banner,
+      "return-streak-count": count,
+      "return-streak-reward": reward
+    }[id] || null);
+
+    const g = new StarHopperGame();
+    g.researchXP = 10;
+    g.getTodayDateStr = () => "2026-06-10";
+    g.updateReturnStreak();
+    assertEquals("2026-06-10", g.lastPlayedDate, "First local day should be recorded");
+    assertEquals(1, g.streakCount, "First local day starts the streak");
+    assertEquals(10, g.researchXP, "First-ever play should not grant free Research XP");
+    assertEquals(null, g.lastReturnStreakReward, "No reward pulse is created on the first-ever day");
+    assertEquals("Daily lab habit", reward.textContent, "Start chip should show habit copy without a reward");
+    g.updateReturnStreak();
+    assertEquals(1, saveCalls, "Same-day streak refresh should not save or farm rewards");
+
+    g.discoveryLog = [];
+    g.getTodayDateStr = () => "2026-06-11";
+    g.updateReturnStreak();
+    assertEquals("2026-06-11", g.lastPlayedDate, "Next local day should be recorded");
+    assertEquals(2, g.streakCount, "Consecutive local day increments the streak");
+    assertEquals(15, g.researchXP, "Day 2 streak should grant +5 Research XP");
+    assertEquals(5, g.lastReturnStreakReward.rewardXP, "Reward pulse should expose the XP amount");
+    assertEquals("Daily Lab Streak", g.discoveryPulse.title, "Daily streak reward should create a discovery pulse");
+    assertEquals(1, g.discoveryLog.length, "Daily streak reward enters the discovery log");
+    assertEquals(true, /\+5 Research XP/.test(panel.innerHTML), "Discovery pulse should render the streak XP");
+    assertEquals(true, /streak day 2/.test(panel.innerHTML), "Discovery pulse should use the custom streak progress label");
+    assertEquals("+5 Research XP today", reward.textContent, "Start chip should show today's streak reward");
+    assertEquals(10, g.getReturnStreakRewardXP(99), "Daily streak XP should stay capped");
+    const afterRewardXP = g.researchXP;
+    g.updateReturnStreak();
+    assertEquals(afterRewardXP, g.researchXP, "Same-day repeat should not grant duplicate streak XP");
+    assertEquals(2, saveCalls, "Only real date rollovers should save");
+
+    document.getElementById = oldGetElementByIdR12b;
+    if (oldSaveLocalProgressR12b) saveLocalProgress = oldSaveLocalProgressR12b;
+    if (oldLogMissionBriefingR12b) logMissionBriefing = oldLogMissionBriefingR12b;
+    renderTestResult(SUITE, "Daily Signal/Streak: return streak grants daily Research XP", true);
+  } catch (err) {
+    document.getElementById = oldGetElementByIdR12b;
+    if (oldSaveLocalProgressR12b) saveLocalProgress = oldSaveLocalProgressR12b;
+    if (oldLogMissionBriefingR12b) logMissionBriefing = oldLogMissionBriefingR12b;
+    renderTestResult(SUITE, "Daily Signal/Streak: return streak grants daily Research XP", false, err.message);
+  }
+
   // Test R13: planetClears persists through the cadet-profile snapshot/apply cycle.
   // NOTE: game.js declares a top-level `let Game`, which SHADOWS window.Game — so the
   // mock must be assigned to the bare identifier, not just the window property.
