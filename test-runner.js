@@ -619,6 +619,7 @@ function runEngineTests() {
     const bonusNear = { type: 'coin', requiredCollectible: false, collected: false, x: 28, y: 44, w: 16, h: 16 };
     const unlockedNear = { type: 'coin', requiredCollectible: true, collected: false, x: 64, y: 40, w: 16, h: 16, gemGate: { validate: () => true }, gem: { color: '#4ade80' } };
     const unlockedFar = { type: 'coin', requiredCollectible: true, collected: false, x: 220, y: 40, w: 16, h: 16, gemGate: { validate: () => true } };
+    const offscreenSample = { type: 'coin', requiredCollectible: true, collected: false, x: 520, y: 50, w: 16, h: 16, gemGate: { validate: () => true }, gem: { color: '#67e8f9' } };
     game.interactiveObjects = [lockedNear, bonusNear, unlockedFar, unlockedNear];
 
     assertEquals(unlockedNear, game.getNextMissionSampleTarget(), "Beacon should choose the nearest unlocked required gem");
@@ -626,7 +627,8 @@ function runEngineTests() {
     const labels = [];
     const ctx = {
       save() {}, restore() {}, beginPath() {}, closePath() {}, arc() {}, stroke() {}, fill() {},
-      moveTo() {}, lineTo() {}, setLineDash() {}, strokeText(text) { labels.push(text); }, fillText(text) { labels.push(text); }
+      moveTo() {}, lineTo() {}, setLineDash() {}, translate() {}, rotate() {},
+      strokeText(text) { labels.push(text); }, fillText(text) { labels.push(text); }
     };
     const beacon = game.drawMissionSampleBeacon(ctx);
     assertEquals(unlockedNear, beacon.target, "Beacon render should use the selected sample");
@@ -636,6 +638,16 @@ function runEngineTests() {
 
     unlockedNear.collected = true;
     unlockedFar.gemGate.validate = () => false;
+    game.interactiveObjects = [lockedNear, bonusNear, unlockedFar, offscreenSample];
+    const edgeBeacon = game.drawMissionSampleBeacon(ctx);
+    assertEquals(offscreenSample, edgeBeacon.target, "Offscreen marker should still point to the unlocked sample");
+    assertEquals(false, edgeBeacon.visible, "Offscreen marker should report that the sample itself is not visible");
+    assertEquals(true, !!edgeBeacon.offscreen, "Offscreen sample should render an edge marker");
+    assertEquals('#67e8f9', edgeBeacon.color, "Edge marker should use the offscreen sample color");
+    assertEquals(276, edgeBeacon.x, "Right-edge marker should clamp inside the canvas");
+    assertEquals(true, labels.includes("SAMPLE"), "Edge marker should keep the sample label visible");
+
+    offscreenSample.collected = true;
     assertEquals(null, game.getNextMissionSampleTarget(), "No beacon target remains when all mission gems are locked or collected");
     assertEquals(null, game.drawMissionSampleBeacon(ctx), "Draw helper should no-op without a collectible target");
     renderTestResult("engine-suite", "Objectives: beacon marks unlocked mission samples", true);

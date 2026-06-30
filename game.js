@@ -4666,12 +4666,12 @@ class StarHopperGame {
     const height = Number.isFinite(target.h) ? target.h : 16;
     const cx = (Number.isFinite(target.x) ? target.x : 0) + width / 2 - (this.cameraX || 0);
     const cy = (Number.isFinite(target.y) ? target.y : 0) + height / 2;
-    if (this.canvas && (cx < -48 || cx > this.canvas.width + 48 || cy < -48 || cy > this.canvas.height + 48)) {
-      return { target, visible: false };
-    }
-
     const gem = target.gem || (typeof this.getGemConfig === 'function' ? this.getGemConfig() : null);
     const color = gem && gem.color ? gem.color : "#facc15";
+    if (this.canvas && (cx < -48 || cx > this.canvas.width + 48 || cy < -48 || cy > this.canvas.height + 48)) {
+      return this.drawMissionSampleEdgeMarker(ctx, target, color, cx, cy);
+    }
+
     const t = this.reducedMotion ? 0 : Date.now() / 360;
     const pulse = this.reducedMotion ? 0.5 : 0.5 + 0.5 * Math.sin(t);
     const ring = 18 + pulse * 4;
@@ -4710,6 +4710,48 @@ class StarHopperGame {
     ctx.fillText("SAMPLE", cx, cy - 52 + bob);
     ctx.restore();
     return { target, visible: true, color, x: cx, y: cy };
+  }
+
+  drawMissionSampleEdgeMarker(ctx, target, color, screenX, screenY) {
+    if (!ctx || !this.canvas) return { target, visible: false, offscreen: true, color };
+    const margin = 24;
+    const labelGap = 18;
+    const markerX = Math.max(margin, Math.min(this.canvas.width - margin, screenX));
+    const markerY = Math.max(margin + labelGap, Math.min(this.canvas.height - margin, screenY));
+    const angle = Math.atan2(screenY - markerY, screenX - markerX);
+    const bob = this.reducedMotion ? 0 : Math.sin(Date.now() / 260) * 1.5;
+
+    ctx.save();
+    ctx.translate(markerX, markerY + bob);
+    ctx.rotate(Number.isFinite(angle) ? angle : 0);
+    ctx.globalAlpha = 0.88;
+    ctx.fillStyle = color || "#facc15";
+    ctx.strokeStyle = "rgba(3, 7, 18, 0.9)";
+    ctx.lineWidth = 2;
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = color || "#facc15";
+    ctx.beginPath();
+    ctx.moveTo(13, 0);
+    ctx.lineTo(-7, -8);
+    ctx.lineTo(-4, 0);
+    ctx.lineTo(-7, 8);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    ctx.font = "bold 8px 'Share Tech Mono', monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "rgba(3, 7, 18, 0.88)";
+    ctx.fillStyle = "#f8fafc";
+    ctx.strokeText("SAMPLE", markerX, markerY + labelGap + bob);
+    ctx.fillText("SAMPLE", markerX, markerY + labelGap + bob);
+    ctx.restore();
+    return { target, visible: false, offscreen: true, color, x: markerX, y: markerY, angle };
   }
 
   draw() {
