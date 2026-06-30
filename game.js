@@ -334,6 +334,7 @@ class StarHopperGame {
       const threat = this.findThreateningMobForNPC(obj, 128);
       if (threat) {
         if (this.markNPCShelterThreat(obj, "nearby mob")) touchNeedsSync = true;
+        if (!obj.hiddenInCave && typeof obj.stepTowardCave === 'function') obj.stepTowardCave(2.2);
         continue;
       }
       if (nightShelter) {

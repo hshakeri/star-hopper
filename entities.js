@@ -2450,6 +2450,18 @@ class NPC extends InteractiveObject {
     }
   }
 
+  stepTowardCave(maxSpeed = 2.2) {
+    const targetX = this.caveX + 10;
+    const dxHome = targetX - this.x;
+    this.x += Math.max(-maxSpeed, Math.min(maxSpeed, dxHome * 0.18));
+    if (Math.abs(dxHome) < 5) {
+      this.hiddenInCave = true;
+      if (Number.isFinite(this.caveX)) this.x = this.caveX + 10;
+      if (Number.isFinite(this.caveY)) this.y = this.caveY;
+    }
+    return this.hiddenInCave;
+  }
+
   update(game) {
     if (!game || !game.player) return;
     const threat = (typeof game.findThreateningMobForNPC === 'function') ? game.findThreateningMobForNPC(this, 128) : null;
@@ -2473,10 +2485,7 @@ class NPC extends InteractiveObject {
     const goingHome = nightShelter || this.panicTimer > 0 || !!threat;
     if (goingHome && game.activeNPC === this) game.activeNPC = null;
     if (goingHome && !this.hiddenInCave) {
-      const targetX = this.caveX + 10;
-      const dxHome = targetX - this.x;
-      this.x += Math.max(-2.2, Math.min(2.2, dxHome * 0.18));
-      if (Math.abs(dxHome) < 5) this.hiddenInCave = true;
+      this.stepTowardCave(2.2);
     } else if (!goingHome && this.hiddenInCave) {
       this.hiddenInCave = false;
       if (Number.isFinite(this.caveX)) this.x = this.caveX + 10;

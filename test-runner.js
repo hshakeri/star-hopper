@@ -3525,8 +3525,10 @@ function runCombatTests() {
     g.activeNPC = loopSentry;
     g.interactiveObjects = [loopSentry];
     g.mobs = [new Mob(154, 60, 'hog', '#9a6b4f', 1)];
+    const beforeShelterX = loopSentry.x;
     g.updateVillagerShelterStates();
     assertEquals(true, loopSentry.panicTimer > 0, "Game loop shelter pass marks a close mob as danger");
+    assertEquals(true, loopSentry.x < beforeShelterX, "Game loop shelter pass starts the cave retreat immediately");
     assertEquals(true, loopSentry.rescuePending, "Close mob danger marks the villager rescue as pending");
     assertEquals(null, g.activeNPC, "Villager cannot stay trade-active while sheltering from a mob");
 
