@@ -1734,6 +1734,12 @@ function runEngineTests() {
     assertEquals(true, /a = F \/ m/.test(els["discovery-deck"].innerHTML), "Discovery deck should show collected formulas");
     assertEquals(true, /Loop Lab/.test(els["discovery-deck"].innerHTML), "Discovery deck should show multiple discoveries");
     assertEquals(true, /locked/.test(els["discovery-deck"].innerHTML), "Deck should show locked future cards");
+    assertEquals(true, /next goal/.test(els["discovery-deck"].innerHTML), "Deck should label the next locked formula as a goal");
+    assertEquals(true, /locked goal/.test(els["discovery-deck"].innerHTML), "Deck should label later locked formulas as future goals");
+    assertEquals(true, /Raise hopper\.engine/.test(els["discovery-deck"].innerHTML), "Locked formula cards should preview the coding move");
+    assertEquals(true, /Force changes speed/.test(els["discovery-deck"].innerHTML), "Locked formula cards should preview the science idea");
+    assertEquals(true, /hopper\.engine = 7/.test(els["discovery-deck"].innerHTML), "Locked formula cards should show the sample command");
+    assertEquals(true, /Reach high samples/.test(els["discovery-deck"].innerHTML), "Future locked cards should preview their payoff");
     document.getElementById = oldGetElementById22c;
     window.Game = oldWindowGame22c;
     ComicBubbles.pop = oldBubblePop22c;

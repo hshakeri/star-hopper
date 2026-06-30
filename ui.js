@@ -1599,13 +1599,19 @@ function updateResearchProgress(game = window.Game) {
         </div>
         ${focusCard}
         ${collection.cards.map(card => `
-        <div class="discovery-card formula-card ${card.unlocked ? "unlocked" : "locked"}">
+        <div class="discovery-card formula-card ${card.unlocked ? "unlocked" : "locked"} ${target && target.kind === card.kind ? "next-goal" : ""}">
           <div class="discovery-card-head">
             <strong>${escapeHTML(card.title)}</strong>
-            <span>${card.unlocked ? "collected" : "locked"}</span>
+            <span>${card.unlocked ? "collected" : (target && target.kind === card.kind ? "next goal" : "locked goal")}</span>
           </div>
-          <code>${escapeHTML(card.unlocked ? card.formula : "???")}</code>
+          <code>${escapeHTML(card.unlocked ? card.formula : (card.sampleCode || card.move || "Run a matching code change"))}</code>
           <p>${escapeHTML(card.unlocked ? card.insight : card.cue)}</p>
+          ${card.unlocked ? "" : `
+          <div class="formula-card-preview">
+            <span><b>LEARN</b>${escapeHTML(card.axis || card.formula)}</span>
+            <span><b>CODE</b>${escapeHTML(card.move || card.sampleCode || "Change one value")}</span>
+            <span><b>WIN</b>${escapeHTML(card.payoff || `Collect ${card.title}`)}</span>
+          </div>`}
         </div>
         `).join("")}
       `;
