@@ -1068,10 +1068,17 @@ function runEngineTests() {
     game.discoveryPassCounts = { "earth-gravity-wall": 1 };
     game.discoveredFormulaKinds = new Set(["antigravity"]);
     game.researchXP = 60;
-    game.renderClearLabReport({ isDailyRun: false, nextIndex: 1, earnedGems: 2, gemKey: "emerald" });
+    game.renderClearLabReport({
+      isDailyRun: false,
+      nextIndex: 1,
+      earnedGems: 2,
+      gemKey: "emerald",
+      labStars: game.recordClearLabStars({ isDailyRun: false })
+    });
 
     assertEquals(true, /CLEAR LAB REPORT/.test(report.innerHTML), "Clear report should render a heading");
     assertEquals(true, /3\/3 Lab Stars/.test(report.innerHTML), "Clear report should include the mastery star rating");
+    assertEquals(true, /NEW MASTERY BADGE/.test(report.innerHTML), "Clear report should celebrate a first 3-star mastery");
     assertEquals(true, /OK Mission tasks/.test(report.innerHTML), "Clear report should credit completed mission tasks");
     assertEquals(true, /OK Science proof/.test(report.innerHTML), "Clear report should credit the science-proof action");
     assertEquals(true, /222px/.test(report.innerHTML), "Clear report should include max height");
@@ -1103,7 +1110,9 @@ function runEngineTests() {
     const summary = game.recordClearLabStars({ isDailyRun: false });
     assertEquals(3, summary.stars, "All three lab-star checks should be earned");
     assertEquals(true, summary.isNewBest, "A 3-star clear should beat the previous 2-star best");
+    assertEquals(true, summary.isNewMastery, "First 3-star clear should be a new mastery");
     assertEquals(3, game.bestLabStars[0], "Best lab-star score should persist on the game state");
+    assertEquals(true, game.masteryCleared[0], "3-star clear should mark the planet mastered");
     assertEquals(true, summary.checks.some(check => check.id === "science" && check.earned), "Science proof should count for a lab star");
     renderTestResult("engine-suite", "Curriculum: clear lab stars reward mastery actions", true);
   } catch (err) {
@@ -1187,11 +1196,13 @@ function runEngineTests() {
     game.currentPlanetIndex = 0;
     game.planetClears = { 0: 2 };
     game.bestLabStars = { 0: 3, 1: 1 };
+    game.masteryCleared = { 0: true };
     game.refreshGalaxyMapProgress();
 
     assertEquals(false, nodes[0].disabled, "Cleared Earth node should be selectable");
     assertEquals(true, nodes[0].classList.contains("current"), "Current node should be marked current");
-    assertEquals(true, /Clear 2/.test(nodes[0]._meta.innerHTML), "Cleared node should show clear count");
+    assertEquals(true, nodes[0].classList.contains("mastered"), "Mastered node should get a map class");
+    assertEquals(true, /Mastered/.test(nodes[0]._meta.innerHTML), "Mastered node should show mastered status");
     assertEquals(true, /3 of 3 Lab Stars/.test(nodes[0]._meta.innerHTML), "Cleared node should show best lab stars");
     assertEquals(false, nodes[1].disabled, "Moon should unlock after Earth clear");
     assertEquals(true, /Unlocked/.test(nodes[1]._meta.innerHTML), "Next planet should read as unlocked");

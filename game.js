@@ -466,22 +466,24 @@ class StarHopperGame {
       if (!Number.isFinite(index) || !planets[index]) return;
       const available = this.isPlanetUnlockedOnMap(index);
       const clears = (this.planetClears && this.planetClears[index]) || 0;
+      const mastered = !!(this.masteryCleared && this.masteryCleared[index]);
       const meta = node.querySelector('.mission-meta');
       node.classList.toggle('locked', !available);
       node.classList.toggle('current', available && index === this.currentPlanetIndex);
       node.classList.toggle('active-hover', available);
+      node.classList.toggle('mastered', mastered);
       node.disabled = !available;
       if (meta) {
         if (!available) {
           meta.textContent = "Locked";
         } else {
-          const label = clears > 0 ? `Clear ${clears}` : (index === 0 ? "Start" : "Unlocked");
+          const label = mastered ? "Mastered" : (clears > 0 ? `Clear ${clears}` : (index === 0 ? "Start" : "Unlocked"));
           meta.innerHTML = `${label} · ${this.renderMapStarMeter(index)}`;
         }
       }
       const stars = this.getPlanetLabStarCount(index);
       node.title = available
-        ? `${planets[index].name}: ${stars}/3 Lab Stars${clears > 0 ? " · Mastery Remix ready" : ""}`
+        ? `${planets[index].name}: ${stars}/3 Lab Stars${mastered ? " · Mastered" : (clears > 0 ? " · Mastery Remix ready" : "")}`
         : `${planets[index].name}: locked until the previous signal shard is recovered.`;
     });
   }
@@ -1419,7 +1421,19 @@ class StarHopperGame {
     const summary = this.getClearLabStarSummary({ isDailyRun });
     this.bestLabStars = this.bestLabStars || {};
     if (summary.stars > summary.previousBest) this.bestLabStars[summary.key] = summary.stars;
-    return { ...summary, best: Math.max(summary.previousBest, summary.stars) };
+    const mastered = !isDailyRun && summary.maxStars > 0 && summary.stars >= summary.maxStars;
+    const masteryKey = String(this.currentPlanetIndex || 0);
+    const wasMastered = !!(this.masteryCleared && this.masteryCleared[masteryKey]);
+    if (mastered) {
+      this.masteryCleared = this.masteryCleared || {};
+      this.masteryCleared[masteryKey] = true;
+    }
+    return {
+      ...summary,
+      best: Math.max(summary.previousBest, summary.stars),
+      mastered,
+      isNewMastery: mastered && !wasMastered
+    };
   }
 
   checkLabStarProgress(reason = "progress") {
@@ -3152,6 +3166,13 @@ class StarHopperGame {
     const bestText = starSummary.isNewBest
       ? "NEW BEST"
       : (starSummary.best > starSummary.stars ? `BEST ${starSummary.best}/${starSummary.maxStars}` : "BEST MATCHED");
+    const mastered = !!(starSummary.mastered || (starSummary.maxStars > 0 && starSummary.stars >= starSummary.maxStars && !isDailyRun));
+    const masteryRibbon = mastered ? `
+      <div class="clear-lab-mastery${starSummary.isNewMastery ? " new" : ""}">
+        <span>${safe(starSummary.isNewMastery ? "NEW MASTERY BADGE" : "MASTERY BADGE")}</span>
+        <strong>${safe(starSummary.isNewMastery ? "3-star scientist clear unlocked" : "World mastered")}</strong>
+      </div>
+    ` : "";
     const nextLabel = isDailyRun
       ? "Open the log and compare today's remix."
       : (nextIndex === null ? "Open the log or accept today's signal." : `Launch toward ${typeof PLANETS !== 'undefined' && PLANETS[nextIndex] ? PLANETS[nextIndex].name : "the next planet"}.`);
@@ -3166,6 +3187,7 @@ class StarHopperGame {
         <strong>${safe(`${starSummary.stars}/${starSummary.maxStars} Lab Stars · ${bestText}`)}</strong>
       </div>
       <div class="clear-lab-star-list">${starChecklist}</div>
+      ${masteryRibbon}
       <div class="clear-lab-grid">
         <div class="clear-lab-stat"><span>Max Height</span><strong>${safe(`${maxH}px`)}</strong></div>
         <div class="clear-lab-stat"><span>Max Speed</span><strong>${safe(`${maxV} px/f`)}</strong></div>
