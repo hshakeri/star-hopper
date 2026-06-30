@@ -107,6 +107,51 @@ function mergeMasteryMeters(local, incoming) {
   return out;
 }
 
+function normalizeFrontierSyncRecord(record) {
+  const r = plainObject(record);
+  const tier = Math.max(1, Math.floor(Number(r.tier) || 1));
+  const stars = Math.max(0, Math.min(3, Math.floor(Number(r.stars) || 0)));
+  const bestTime = Number(r.bestTime);
+  return {
+    dateStr: r.dateStr ? String(r.dateStr) : "",
+    shareCode: r.shareCode ? String(r.shareCode) : "",
+    tier,
+    planetIndex: Number.isFinite(Number(r.planetIndex)) ? Number(r.planetIndex) : 0,
+    planetName: r.planetName ? String(r.planetName) : "Frontier world",
+    variantLabel: r.variantLabel ? String(r.variantLabel) : "seeded remix",
+    stars,
+    bestTime: Number.isFinite(bestTime) && bestTime > 0 ? Math.round(bestTime * 10) / 10 : null
+  };
+}
+
+function frontierSyncRecordIsBetter(nextRecord, currentRecord) {
+  const next = normalizeFrontierSyncRecord(nextRecord);
+  const current = currentRecord ? normalizeFrontierSyncRecord(currentRecord) : null;
+  if (!next.dateStr) return false;
+  if (!current || !current.dateStr) return true;
+  if (next.tier !== current.tier) return next.tier > current.tier;
+  if (next.stars !== current.stars) return next.stars > current.stars;
+  if (Number.isFinite(next.bestTime) && Number.isFinite(current.bestTime) && next.bestTime !== current.bestTime) {
+    return next.bestTime < current.bestTime;
+  }
+  if (Number.isFinite(next.bestTime) && !Number.isFinite(current.bestTime)) return true;
+  return false;
+}
+
+function mergeFrontierRecords(local, incoming) {
+  const out = {};
+  Object.entries(plainObject(local)).forEach(([key, value]) => {
+    const record = normalizeFrontierSyncRecord(value);
+    if (record.dateStr || key) out[record.dateStr || key] = record;
+  });
+  Object.entries(plainObject(incoming)).forEach(([key, value]) => {
+    const record = normalizeFrontierSyncRecord({ ...plainObject(value), dateStr: value && value.dateStr ? value.dateStr : key });
+    const recordKey = record.dateStr || key;
+    if (frontierSyncRecordIsBetter(record, out[recordKey])) out[recordKey] = record;
+  });
+  return out;
+}
+
 function mergeNotebookEntries(local, incoming) {
   const out = { ...plainObject(local) };
   Object.entries(plainObject(incoming)).forEach(([key, value]) => {
@@ -140,6 +185,7 @@ function normalizeProgress(progress) {
     masteryCleared: plainObject(p.masteryCleared),
     masteryMeters: plainObject(p.masteryMeters),
     dailySignalClears: Number(p.dailySignalClears) || 0,
+    frontierRecords: mergeFrontierRecords({}, p.frontierRecords),
     lastPlayedDate: p.lastPlayedDate || null,
     streakCount: Number(p.streakCount) || 0,
     researchXP: Number(p.researchXP) || 0,
@@ -167,6 +213,7 @@ function getActiveProgressSnapshot() {
     masteryCleared: typeof Game !== 'undefined' && Game.masteryCleared ? { ...Game.masteryCleared } : {},
     masteryMeters: typeof Game !== 'undefined' && Game.masteryMeters ? { ...Game.masteryMeters } : {},
     dailySignalClears: typeof Game !== 'undefined' ? Game.dailySignalClears : 0,
+    frontierRecords: typeof Game !== 'undefined' && Game.frontierRecords ? { ...Game.frontierRecords } : {},
     lastPlayedDate: typeof Game !== 'undefined' ? Game.lastPlayedDate : null,
     streakCount: typeof Game !== 'undefined' ? Game.streakCount : 0,
     researchXP: typeof Game !== 'undefined' ? Game.researchXP : 0,
@@ -225,6 +272,7 @@ function mergeProgress(localProgress, incomingProgress) {
     masteryCleared: mergeBooleanObject(local.masteryCleared, incoming.masteryCleared),
     masteryMeters: mergeMasteryMeters(local.masteryMeters, incoming.masteryMeters),
     dailySignalClears: Math.max(local.dailySignalClears || 0, incoming.dailySignalClears || 0),
+    frontierRecords: mergeFrontierRecords(local.frontierRecords, incoming.frontierRecords),
     lastPlayedDate: latestPlayed,
     streakCount,
     researchXP: Math.max(local.researchXP || 0, incoming.researchXP || 0),
@@ -254,6 +302,7 @@ function applyProgressSnapshot(progress) {
     Game.masteryCleared = { ...normalized.masteryCleared };
     Game.masteryMeters = { ...normalized.masteryMeters };
     Game.dailySignalClears = normalized.dailySignalClears;
+    Game.frontierRecords = { ...normalized.frontierRecords };
     Game.lastPlayedDate = normalized.lastPlayedDate;
     Game.streakCount = normalized.streakCount;
     Game.researchXP = normalized.researchXP;

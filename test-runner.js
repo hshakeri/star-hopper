@@ -3118,6 +3118,58 @@ function runRetryRemixTests() {
     renderTestResult(SUITE, "Frontier Challenge: unlocks after star-map completion", false, err.message);
   }
 
+  // Test R11c: Frontier records keep the best local clear and expose the share code.
+  const oldGetElementByIdR11c = document.getElementById;
+  try {
+    const g = new StarHopperGame();
+    g.getTodayDateStr = () => "2026-06-30";
+    g.planetClears = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 };
+    g.masteryMeters = { 0: { xp: 120 }, 1: { xp: 120 }, 2: { xp: 120 }, 3: { xp: 120 }, 4: { xp: 120 }, 5: { xp: 120 } };
+    const frontier = g.getFrontierChallenge();
+    const first = g.recordFrontierClear({
+      frontierInfo: frontier,
+      labStars: { stars: 2 },
+      clearTime: { elapsed: 48.2 }
+    });
+    assertEquals(true, first.isNewBest, "First Frontier clear creates a local record");
+    const worse = g.recordFrontierClear({
+      frontierInfo: frontier,
+      labStars: { stars: 1 },
+      clearTime: { elapsed: 36.1 }
+    });
+    assertEquals(false, worse.isNewBest, "Faster but lower-star Frontier clear should not replace the best record");
+    const better = g.recordFrontierClear({
+      frontierInfo: frontier,
+      labStars: { stars: 3 },
+      clearTime: { elapsed: 44.4 }
+    });
+    assertEquals(true, better.isNewBest, "Higher-star Frontier clear replaces the local record");
+    const summary = g.getFrontierRecordSummary("2026-06-30");
+    assertEquals(1, summary.count, "Frontier summary counts local records");
+    assertEquals(3, summary.today.stars, "Frontier summary returns today's best stars");
+    assertEquals(true, g.getFrontierShareText(frontier).indexOf(frontier.shareCode) >= 0, "Share text includes today's code");
+
+    const els = {
+      "daily-signal-label": { textContent: "" },
+      "frontier-signal-btn": { style: {}, textContent: "", title: "" },
+      "frontier-record-banner": { style: {} },
+      "frontier-record-label": { textContent: "" },
+      "frontier-record-detail": { textContent: "" },
+      "frontier-share-btn": { textContent: "", title: "" }
+    };
+    document.getElementById = (id) => els[id] || null;
+    g.refreshDailySignalBanner();
+    assertEquals("flex", els["frontier-record-banner"].style.display, "Frontier record banner should appear after star-map completion");
+    assertEquals(true, /Today's frontier cleared/.test(els["frontier-record-label"].textContent), "Banner should show today's local clear");
+    assertEquals(true, /Best T/.test(els["frontier-record-detail"].textContent), "Banner should show the local best tier");
+    assertEquals(true, els["frontier-share-btn"].title.indexOf("FRONTIER-") >= 0, "Copy button should carry the share code");
+    document.getElementById = oldGetElementByIdR11c;
+    renderTestResult(SUITE, "Frontier Records: local best and share banner", true);
+  } catch (err) {
+    document.getElementById = oldGetElementByIdR11c;
+    renderTestResult(SUITE, "Frontier Records: local best and share banner", false, err.message);
+  }
+
   // Test R12: Game-local date formatting uses the browser calendar, not UTC ISO rollover.
   try {
     const g = new StarHopperGame();
@@ -3263,18 +3315,20 @@ function runRetryRemixTests() {
       upgradeLevels: {}, planetClears: {},
       bestClearTimes: { 0: 12.4 }, bestLabStars: { 0: 3 }, masteryCleared: { 1: true }, masteryMeters: {},
       dailySignalClears: 3, lastPlayedDate: "2026-06-13", streakCount: 5,
+      frontierRecords: { "2026-06-30": { dateStr: "2026-06-30", shareCode: "FRONTIER-EARTH-1234", tier: 2, stars: 3, bestTime: 31.2 } },
       researchXP: 24, discoveryCombo: 1, discoveryLog: [], discoveryPassCounts: {},
       discoveredFormulaKinds: new Set(["mass"]),
       confirmedHypotheses: new Set(["earth-gravity-wall"])
     };
     window.Game = Game;
     const snap = shCaptureProgress();
-    Game.bestClearTimes = {}; Game.bestLabStars = {}; Game.dailySignalClears = 0; Game.lastPlayedDate = null; Game.streakCount = 0; Game.masteryCleared = {}; Game.researchXP = 0; Game.discoveredFormulaKinds = new Set(); Game.confirmedHypotheses = new Set();
+    Game.bestClearTimes = {}; Game.bestLabStars = {}; Game.dailySignalClears = 0; Game.frontierRecords = {}; Game.lastPlayedDate = null; Game.streakCount = 0; Game.masteryCleared = {}; Game.researchXP = 0; Game.discoveredFormulaKinds = new Set(); Game.confirmedHypotheses = new Set();
     shApplyProgress(snap);
     assertEquals(12.4, Game.bestClearTimes[0], "best clear time round-trips");
     assertEquals(3, Game.bestLabStars[0], "best lab stars round-trip");
     assertEquals(true, Game.masteryCleared[1], "mastery-cleared flag round-trips");
     assertEquals(3, Game.dailySignalClears, "daily-signal clears round-trip");
+    assertEquals("FRONTIER-EARTH-1234", Game.frontierRecords["2026-06-30"].shareCode, "Frontier records round-trip");
     assertEquals("2026-06-13", Game.lastPlayedDate, "lastPlayedDate round-trips");
     assertEquals(5, Game.streakCount, "streakCount round-trips");
     assertEquals(24, Game.researchXP, "Research XP round-trips");
@@ -3340,6 +3394,7 @@ function runRetryRemixTests() {
       masteryCleared: { 0: true },
       masteryMeters: { 0: { xp: 80, badges: ["scout"], sources: { combat: 50 } } },
       dailySignalClears: 4,
+      frontierRecords: { "2026-06-30": { dateStr: "2026-06-30", shareCode: "FRONTIER-EARTH-1234", tier: 2, stars: 3, bestTime: 31.2 } },
       lastPlayedDate: "2026-06-18",
       streakCount: 3,
       researchXP: 42,
@@ -3356,12 +3411,13 @@ function runRetryRemixTests() {
     assertEquals(2, payload.profileProgress.planetClears[0], "Campaign clear counts should export");
     assertEquals(3, payload.profileProgress.bestLabStars[0], "Best lab-star scores should export");
     assertEquals(4, payload.profileProgress.dailySignalClears, "Daily Signal clears should export");
+    assertEquals("FRONTIER-EARTH-1234", payload.profileProgress.frontierRecords["2026-06-30"].shareCode, "Frontier records should export");
     assertEquals(42, payload.profileProgress.researchXP, "Research XP should export");
     assertEquals(1, payload.profileProgress.discoveryPassCounts["earth-gravity-wall"], "Discovery progress should export");
     assertEquals(true, payload.profileProgress.discoveredFormulaKinds.includes("loop"), "Formula card kinds should export");
     assertEquals(true, payload.profileProgress.confirmedHypotheses.includes("earth-gravity-wall"), "Confirmed hypotheses should export");
     const merged = mergeProgress(
-      { unlockedUpgrades: ["jump"], upgradeLevels: { engine: 0.25 }, planetClears: { 0: 1 }, bestLabStars: { 0: 1, 1: 2 }, masteryMeters: { 0: { xp: 95, badges: ["engineer"], sources: { stars: 40 } } }, researchXP: 8, discoveryPassCounts: { "earth-gravity-wall": 0 }, discoveredFormulaKinds: ["friction"], confirmedHypotheses: ["moon-canyon-jump"] },
+      { unlockedUpgrades: ["jump"], upgradeLevels: { engine: 0.25 }, planetClears: { 0: 1 }, bestLabStars: { 0: 1, 1: 2 }, masteryMeters: { 0: { xp: 95, badges: ["engineer"], sources: { stars: 40 } } }, frontierRecords: { "2026-06-30": { dateStr: "2026-06-30", shareCode: "FRONTIER-EARTH-9999", tier: 2, stars: 2, bestTime: 25.4 } }, researchXP: 8, discoveryPassCounts: { "earth-gravity-wall": 0 }, discoveredFormulaKinds: ["friction"], confirmedHypotheses: ["moon-canyon-jump"] },
       progressFromSavePayload(payload)
     );
     assertEquals(true, merged.unlockedUpgrades.includes("engine"), "Incoming unlocked upgrade survives merge");
@@ -3375,6 +3431,7 @@ function runRetryRemixTests() {
     assertEquals(true, merged.masteryMeters[0].badges.includes("engineer"), "Local world mastery badge survives merge");
     assertEquals(50, merged.masteryMeters[0].sources.combat, "Incoming mastery source survives merge");
     assertEquals(40, merged.masteryMeters[0].sources.stars, "Local mastery source survives merge");
+    assertEquals("FRONTIER-EARTH-1234", merged.frontierRecords["2026-06-30"].shareCode, "Merge keeps the stronger Frontier record");
     assertEquals(42, merged.researchXP, "Merge keeps the higher Research XP");
     assertEquals(1, merged.discoveryPassCounts["earth-gravity-wall"], "Merge keeps discovery pass progress");
     assertEquals(true, merged.discoveredFormulaKinds.includes("mass"), "Incoming formula card survives merge");

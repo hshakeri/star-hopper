@@ -109,6 +109,7 @@ class StarHopperGame {
     this.masteryCleared = {};   // { planetIndex: true } — mastery challenge beaten
     this.masteryMeters = {};    // { planetIndex: {...} } — reserved for per-world XP
     this.dailySignalClears = 0; // count of Daily Signal challenges beaten
+    this.frontierRecords = {};  // { dateStr: best local Frontier clear record + share code }
     this.lastPlayedDate = null; // ISO 'YYYY-MM-DD' of last session (return-streak)
     this.streakCount = 0;       // consecutive-day return streak
     this.coachPredictions = {};
@@ -464,6 +465,136 @@ class StarHopperGame {
     return true;
   }
 
+  normalizeFrontierRecord(record) {
+    if (!record || typeof record !== 'object') return null;
+    const tier = Math.max(1, Math.floor(Number(record.tier) || 1));
+    const stars = Math.max(0, Math.min(3, Math.floor(Number(record.stars) || 0)));
+    const bestTime = Number(record.bestTime);
+    return {
+      dateStr: record.dateStr ? String(record.dateStr) : this.getTodayDateStr(),
+      shareCode: record.shareCode ? String(record.shareCode) : "",
+      tier,
+      planetIndex: Number.isFinite(Number(record.planetIndex)) ? Number(record.planetIndex) : 0,
+      planetName: record.planetName ? String(record.planetName) : "Frontier world",
+      variantLabel: record.variantLabel ? String(record.variantLabel) : "seeded remix",
+      stars,
+      bestTime: Number.isFinite(bestTime) && bestTime > 0 ? Math.round(bestTime * 10) / 10 : null
+    };
+  }
+
+  isFrontierRecordBetter(candidate, existing) {
+    const next = this.normalizeFrontierRecord(candidate);
+    const prev = this.normalizeFrontierRecord(existing);
+    if (!next) return false;
+    if (!prev) return true;
+    if (next.tier !== prev.tier) return next.tier > prev.tier;
+    if (next.stars !== prev.stars) return next.stars > prev.stars;
+    if (Number.isFinite(next.bestTime) && Number.isFinite(prev.bestTime) && next.bestTime !== prev.bestTime) {
+      return next.bestTime < prev.bestTime;
+    }
+    if (Number.isFinite(next.bestTime) && !Number.isFinite(prev.bestTime)) return true;
+    return false;
+  }
+
+  getFrontierRecordList() {
+    return Object.values(this.frontierRecords || {})
+      .map(record => this.normalizeFrontierRecord(record))
+      .filter(Boolean)
+      .sort((a, b) => {
+        if (b.tier !== a.tier) return b.tier - a.tier;
+        if (b.stars !== a.stars) return b.stars - a.stars;
+        const at = Number.isFinite(a.bestTime) ? a.bestTime : Infinity;
+        const bt = Number.isFinite(b.bestTime) ? b.bestTime : Infinity;
+        if (at !== bt) return at - bt;
+        return String(b.dateStr).localeCompare(String(a.dateStr));
+      });
+  }
+
+  getFrontierRecordSummary(dateStr = this.getTodayDateStr()) {
+    const records = this.getFrontierRecordList();
+    return {
+      count: records.length,
+      best: records[0] || null,
+      today: this.normalizeFrontierRecord((this.frontierRecords || {})[dateStr]) || null
+    };
+  }
+
+  recordFrontierClear({ frontierInfo = this.dailyInfo, labStars = null, clearTime = null } = {}) {
+    if (!frontierInfo || !frontierInfo.isFrontier) return null;
+    const planet = (typeof PLANETS !== 'undefined' && PLANETS[frontierInfo.planetIndex]) || null;
+    const record = this.normalizeFrontierRecord({
+      dateStr: frontierInfo.dateStr || this.getTodayDateStr(),
+      shareCode: frontierInfo.shareCode,
+      tier: frontierInfo.tier || 1,
+      planetIndex: frontierInfo.planetIndex,
+      planetName: planet ? planet.name : "Frontier world",
+      variantLabel: frontierInfo.variant ? frontierInfo.variant.variantLabel : "",
+      stars: labStars ? labStars.stars : 0,
+      bestTime: clearTime ? clearTime.elapsed : null
+    });
+    if (!record) return null;
+    this.frontierRecords = this.frontierRecords || {};
+    const previous = this.frontierRecords[record.dateStr];
+    const isNewBest = this.isFrontierRecordBetter(record, previous);
+    if (isNewBest) this.frontierRecords[record.dateStr] = record;
+    return { record: this.normalizeFrontierRecord(this.frontierRecords[record.dateStr] || record), isNewBest };
+  }
+
+  getFrontierShareText(frontier = null) {
+    const challenge = frontier || this.getFrontierChallenge();
+    if (!challenge) return "";
+    return `${challenge.shareCode} · ${challenge.label}`;
+  }
+
+  copyFrontierShareCode() {
+    const text = this.getFrontierShareText();
+    if (!text) return false;
+    const done = () => {
+      if (typeof ui_log_output === 'function') ui_log_output(`Frontier code ready to share: ${text}`, "success");
+    };
+    if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      navigator.clipboard.writeText(text).then(done).catch(() => {
+        if (typeof ui_log_output === 'function') ui_log_output(text, "info");
+      });
+      return true;
+    }
+    if (typeof ui_log_output === 'function') ui_log_output(text, "info");
+    return false;
+  }
+
+  refreshFrontierRecordBanner(frontier = null) {
+    if (typeof document === 'undefined') return;
+    const banner = document.getElementById('frontier-record-banner');
+    if (!banner) return;
+    const label = document.getElementById('frontier-record-label');
+    const detail = document.getElementById('frontier-record-detail');
+    const shareBtn = document.getElementById('frontier-share-btn');
+    const challenge = frontier || this.getFrontierChallenge();
+    if (!challenge) {
+      banner.style.display = 'none';
+      return;
+    }
+    const summary = this.getFrontierRecordSummary(challenge.dateStr);
+    const today = summary.today;
+    const best = summary.best;
+    const bestText = best
+      ? `Best T${best.tier} · ${best.stars}/3 stars${Number.isFinite(best.bestTime) ? ` · ${best.bestTime.toFixed(1)}s` : ""}`
+      : "No local clear yet";
+    if (label) {
+      label.textContent = today
+        ? `Today's frontier cleared · T${today.tier} · ${today.stars}/3 stars${Number.isFinite(today.bestTime) ? ` · ${today.bestTime.toFixed(1)}s` : ""}`
+        : `Frontier ready · ${challenge.shareCode}`;
+    }
+    if (detail) {
+      detail.textContent = `${bestText}${summary.count ? ` · ${summary.count} recorded` : ""}`;
+    }
+    if (shareBtn) {
+      shareBtn.textContent = 'COPY CODE';
+      shareBtn.title = this.getFrontierShareText(challenge);
+    }
+    banner.style.display = 'flex';
+  }
+
   // Keep the start screen's signal strip current (called at init and after clears).
   refreshDailySignalBanner() {
     const label = document.getElementById('daily-signal-label');
@@ -472,12 +603,13 @@ class StarHopperGame {
     const daily = this.getDailySignal();
     if (!daily) return;
     label.textContent = `📡 Daily Signal ${daily.dateStr} — ${daily.label}`;
+    const frontier = this.getFrontierChallenge();
     if (frontierBtn) {
-      const frontier = this.getFrontierChallenge();
       frontierBtn.style.display = frontier ? 'inline-flex' : 'none';
       frontierBtn.textContent = frontier ? `◆ FRONTIER T${frontier.tier}` : '◆ FRONTIER';
       frontierBtn.title = frontier ? `${frontier.label} · ${frontier.shareCode}` : 'Complete the star-map to unlock Frontier Challenge';
     }
+    this.refreshFrontierRecordBanner(frontier);
   }
 
   // Single source of "today" in the browser's LOCAL calendar, not UTC. That matters in
@@ -3547,6 +3679,7 @@ class StarHopperGame {
     labStars.worldMasteryTierAwards = (labStars.worldMasteryTierAwards || []).concat(clearMastery.tierAwards || []);
     labStars = this.grantMasteryClearReward(labStars);
     const clearTime = this.recordClearTime({ isDailyRun, isFrontierRun });
+    const frontierRecord = isFrontierRun ? this.recordFrontierClear({ labStars, clearTime }) : null;
     this.refreshGalaxyMapProgress();
     if (typeof saveLocalProgress === 'function') saveLocalProgress();
     this.refreshDailySignalBanner();
@@ -3572,6 +3705,7 @@ class StarHopperGame {
         clearSubtitle.textContent = isFrontierRun
           ? `Tier ${this.dailyInfo && this.dailyInfo.tier ? this.dailyInfo.tier : 1} frontier solved: ${share}. Frontier runs keep campaign unlocks stable while pushing world mastery higher.`
           : `Signal solved: ${share}. This counts toward Daily Signal practice, while campaign planet unlocks stay on the main mission path.`;
+        if (frontierRecord && frontierRecord.isNewBest) clearSubtitle.textContent += " Local Frontier record updated.";
       }
       if (nextBtn) nextBtn.textContent = "OPEN LOG";
       if (dailyBtn) dailyBtn.style.display = "none";
