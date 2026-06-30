@@ -1996,6 +1996,10 @@ function runEngineTests() {
       "start-world-preview-title": { textContent: "" },
       "start-world-preview-body": { textContent: "" },
       "start-world-preview-bar": { style: { width: "" } },
+      "start-proof-preview-label": { textContent: "" },
+      "start-proof-preview-title": { textContent: "" },
+      "start-proof-preview-body": { textContent: "" },
+      "start-proof-preview-stars": { innerHTML: "", setAttribute: function (name, value) { this[name] = value; } },
       "start-story-preview-label": { textContent: "" },
       "start-story-preview-title": { textContent: "" },
       "start-story-preview-body": { textContent: "" },
@@ -2006,6 +2010,10 @@ function runEngineTests() {
     game.discoveredFormulaKinds = new Set(["antigravity"]);
     game.planetClears = { 0: 1 };
     game.masteryMeters = { 0: { xp: 80, badges: ["scout"], sources: { "lab-star:0": 20 } } };
+    game.requiredCollectiblesTotal = 2;
+    game.requiredCollectiblesCollected = 0;
+    game.confirmedHypotheses = new Set();
+    game.discoveryPassCounts = {};
     updateResearchProgress(game);
     assertEquals(true, /NEXT LAB QUEST/.test(els["research-rank-card"].innerHTML), "Rank card should render the lab quest");
     assertEquals(true, /Collect Mass Lab/.test(els["research-rank-card"].innerHTML), "Rendered quest should point to the next formula card");
@@ -2021,6 +2029,10 @@ function runEngineTests() {
     assertEquals("Signal Scout · 80 XP", els["start-world-preview-title"].textContent, "Start radar should show current world mastery tier and XP");
     assertEquals(true, /30 XP to World Engineer/.test(els["start-world-preview-body"].textContent), "Start radar should show next world mastery gap");
     assertEquals("44%", els["start-world-preview-bar"].style.width, "Start radar should show world mastery progress");
+    assertEquals("3-STAR PROOF", els["start-proof-preview-label"].textContent, "Start radar should label the lab-star proof preview");
+    assertEquals("0/3 Lab Stars ready", els["start-proof-preview-title"].textContent, "Start radar should show current lab-star readiness");
+    assertEquals(true, /finish mission tasks/.test(els["start-proof-preview-body"].textContent), "Start radar should name the first missing lab-star goal");
+    assertEquals(false, /class="earned"/.test(els["start-proof-preview-stars"].innerHTML), "Start radar should render unearned proof stars");
     assertEquals("NEXT TRANSMISSION", els["start-story-preview-label"].textContent, "Start radar should label the next story hook");
     assertEquals("Moon Loop Echo", els["start-story-preview-title"].textContent, "Start radar should preview the next Signal Story chapter");
     assertEquals(true, /Loops build repeatable patterns/.test(els["start-story-preview-body"].textContent), "Start radar should show the next story concept");
@@ -2030,6 +2042,13 @@ function runEngineTests() {
     assertEquals("START QUEST", els["start-mission-radar-btn"].textContent, "Formula quests should be directly launchable");
     assertEquals("quest", els["start-mission-radar-btn"].dataset.action, "Formula quest button should use the quest action");
     assertEquals("0", els["start-mission-radar-btn"].dataset.level, "Quest action should target the current planet");
+
+    game.completedMissions = new Set((game.currentPlanet.missions || []).map(mission => mission.id));
+    game.requiredCollectiblesCollected = 2;
+    updateStartMissionRadar(game);
+    assertEquals("2/3 Lab Stars ready", els["start-proof-preview-title"].textContent, "Start radar should update lab-star proof readiness");
+    assertEquals(true, /leave science proof/.test(els["start-proof-preview-body"].textContent), "Start radar should point to science proof after tasks and samples");
+    assertEquals(2, (els["start-proof-preview-stars"].innerHTML.match(/class="earned"/g) || []).length, "Start radar should mark earned lab-star goals");
 
     game.discoveredFormulaKinds = new Set(DISCOVERY_RULES.map(rule => rule.kind));
     game.researchXP = 300;

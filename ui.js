@@ -1632,6 +1632,40 @@ function getStartWorldMasteryPreview(game = window.Game) {
   };
 }
 
+function getStartLabStarProofPreview(game = window.Game) {
+  if (!game || typeof game.getClearLabStarSummary !== "function") {
+    return {
+      label: "3-STAR PROOF",
+      title: "Lab stars loading",
+      body: "Finish tasks, bank samples, and leave science proof for mastery.",
+      stars: 0,
+      maxStars: 3
+    };
+  }
+  const summary = game.getClearLabStarSummary();
+  const checks = summary && Array.isArray(summary.checks) ? summary.checks : [];
+  const maxStars = Math.max(1, Math.floor(Number(summary && summary.maxStars) || checks.length || 3));
+  const stars = Math.max(0, Math.min(maxStars, Math.floor(Number(summary && summary.stars) || 0)));
+  const next = checks.find(check => check && !check.earned) || null;
+  let body = "3-star proof is ready. Clear the portal to bank mastery XP.";
+  if (next && next.id === "missions") {
+    body = "Next: finish mission tasks so the code proves it changes the world.";
+  } else if (next && next.id === "gems") {
+    body = "Next: collect mission samples so the experiment banks real evidence.";
+  } else if (next && next.id === "science") {
+    body = "Next: leave science proof with a prediction or formula card before clearing.";
+  } else if (next) {
+    body = `Next: ${next.label || "complete one mastery goal"}.`;
+  }
+  return {
+    label: "3-STAR PROOF",
+    title: `${stars}/${maxStars} Lab Stars ready`,
+    body,
+    stars,
+    maxStars
+  };
+}
+
 function updateSignalStoryPanel(game = window.Game) {
   const panel = document.getElementById("signal-story-panel");
   if (!panel) return;
@@ -2046,6 +2080,7 @@ function updateStartMissionRadar(game = window.Game) {
   const unlockPreview = getResearchUnlockPreview(rank);
   const storyPreview = getStartSignalStoryPreview(game);
   const worldPreview = getStartWorldMasteryPreview(game);
+  const proofPreview = getStartLabStarProofPreview(game);
   const action = getStartMissionRadarAction(game, quest);
   const kicker = panel.querySelector ? panel.querySelector(".start-mission-radar-head span") : null;
   const progress = document.getElementById("start-mission-radar-progress");
@@ -2061,6 +2096,10 @@ function updateStartMissionRadar(game = window.Game) {
   const worldTitle = document.getElementById("start-world-preview-title");
   const worldBody = document.getElementById("start-world-preview-body");
   const worldBar = document.getElementById("start-world-preview-bar");
+  const proofLabel = document.getElementById("start-proof-preview-label");
+  const proofTitle = document.getElementById("start-proof-preview-title");
+  const proofBody = document.getElementById("start-proof-preview-body");
+  const proofStars = document.getElementById("start-proof-preview-stars");
   const storyLabel = document.getElementById("start-story-preview-label");
   const storyTitle = document.getElementById("start-story-preview-title");
   const storyBody = document.getElementById("start-story-preview-body");
@@ -2079,6 +2118,17 @@ function updateStartMissionRadar(game = window.Game) {
   if (worldTitle) worldTitle.textContent = worldPreview.title;
   if (worldBody) worldBody.textContent = worldPreview.body;
   if (worldBar && worldBar.style) worldBar.style.width = `${Math.round(worldPreview.progress * 100)}%`;
+  if (proofLabel) proofLabel.textContent = proofPreview.label;
+  if (proofTitle) proofTitle.textContent = proofPreview.title;
+  if (proofBody) proofBody.textContent = proofPreview.body;
+  if (proofStars) {
+    if (typeof proofStars.setAttribute === "function") {
+      proofStars.setAttribute("aria-label", `${proofPreview.stars} of ${proofPreview.maxStars} Lab Stars ready`);
+    }
+    proofStars.innerHTML = Array.from({ length: proofPreview.maxStars }, (_, index) =>
+      `<span class="${index < proofPreview.stars ? "earned" : ""}">★</span>`
+    ).join("");
+  }
   if (storyLabel) storyLabel.textContent = storyPreview.label;
   if (storyTitle) storyTitle.textContent = storyPreview.title;
   if (storyBody) storyBody.textContent = storyPreview.body;

@@ -2317,6 +2317,71 @@ body.resizing-panes * {
   transition: width 0.35s ease;
 }
 
+.start-proof-preview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 7px;
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  border-radius: 6px;
+  background:
+    linear-gradient(90deg, rgba(12, 74, 110, 0.32), rgba(63, 98, 18, 0.2)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.022) 0 1px, transparent 1px 4px);
+  min-width: 0;
+}
+
+.start-proof-preview span,
+.start-proof-preview em {
+  display: block;
+  font-size: 0.56rem;
+  line-height: 1.25;
+}
+
+.start-proof-preview span {
+  color: #67e8f9;
+  font-weight: 900;
+}
+
+.start-proof-preview strong {
+  display: block;
+  color: #fef08a;
+  font-size: 0.68rem;
+  line-height: 1.18;
+  margin-top: 2px;
+}
+
+.start-proof-preview em {
+  color: #dff6ff;
+  font-style: normal;
+  margin-top: 2px;
+}
+
+.start-proof-preview-stars {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px 5px;
+  border: 1px solid rgba(103, 232, 249, 0.28);
+  border-radius: 999px;
+  background: rgba(2, 6, 23, 0.48);
+  color: rgba(148, 163, 184, 0.72);
+  font-size: 0.68rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.start-proof-preview-stars span {
+  display: inline-block;
+  color: rgba(148, 163, 184, 0.72);
+  font-size: inherit;
+  line-height: 1;
+}
+
+.start-proof-preview-stars span.earned {
+  color: #facc15;
+  text-shadow: 0 0 8px rgba(250, 204, 21, 0.42);
+}
+
 .start-story-preview {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -6694,6 +6759,10 @@ body.readable-text-mode .start-world-preview,
 body.readable-text-mode .start-world-preview span,
 body.readable-text-mode .start-world-preview strong,
 body.readable-text-mode .start-world-preview em,
+body.readable-text-mode .start-proof-preview,
+body.readable-text-mode .start-proof-preview span,
+body.readable-text-mode .start-proof-preview strong,
+body.readable-text-mode .start-proof-preview em,
 body.readable-text-mode .start-story-preview,
 body.readable-text-mode .start-story-preview span,
 body.readable-text-mode .start-story-preview strong,
