@@ -4538,6 +4538,27 @@ class StarHopperGame {
     return { label, color, x: px, y: py };
   }
 
+  spawnHypothesisEffect(pulse) {
+    if (!this.player || !pulse || !pulse.hypothesisConfirmed) return null;
+    const baseX = Number.isFinite(this.player.x) ? this.player.x : 0;
+    const baseY = Number.isFinite(this.player.y) ? this.player.y : 0;
+    const width = Number.isFinite(this.player.w) ? this.player.w : 24;
+    const height = Number.isFinite(this.player.h) ? this.player.h : 32;
+    const px = baseX + width / 2;
+    const py = baseY + height / 2;
+    const label = "HYPOTHESIS!";
+    const color = "#a7f3d0";
+
+    if (typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+      ComicBubbles.pop(px, baseY - 34, label, color, 1.02);
+    }
+    if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+      Particles.spawnBurst(px, py - 2, color, 12, 2.1, 1.9, 'glow');
+      Particles.spawnBurst(px, py - 2, '#67e8f9', 6, 1.7, 1.6, 'glow');
+    }
+    return { label, color, x: px, y: py };
+  }
+
   spawnDiscoveryComboEffect(pulse) {
     const combo = pulse && Number.isFinite(pulse.combo) ? Math.floor(pulse.combo) : 0;
     if (!this.player || combo < 2) return null;

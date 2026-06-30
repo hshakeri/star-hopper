@@ -1215,7 +1215,14 @@ function runEngineTests() {
 
   // Test 22bb: correct predictions become one-time hypothesis confirmations.
   const oldGetElementById22bb = document.getElementById;
+  const oldBubblePop22bb = ComicBubbles.pop;
+  const oldParticleBurst22bb = Particles.spawnBurst;
   try {
+    const bubbleLabels22bb = [];
+    const particleColors22bb = [];
+    ComicBubbles.pop = (x, y, text) => { bubbleLabels22bb.push(text); };
+    Particles.spawnBurst = (x, y, color) => { particleColors22bb.push(color); };
+
     const activeMission = PLANETS[0].missions.find(mission => mission.id === "earth-gravity-wall");
     const partial = {
       allPassed: false,
@@ -1237,12 +1244,18 @@ function runEngineTests() {
     assertEquals(true, game.confirmedHypotheses.has(activeMission.id), "Confirmed hypothesis should be stored by mission");
     assertEquals(true, /HYPOTHESIS CONFIRMED \+6 XP/.test(panel.innerHTML), "Discovery pulse should render the hypothesis chip");
     assertEquals(true, /LAB PERK UNLOCKED: Hypothesis Bonus/.test(panel.innerHTML), "Discovery pulse should render the lab-perk unlock chip");
+    assertEquals(true, bubbleLabels22bb.some(label => /HYPOTHESIS/.test(label)), "Correct prediction should pop a hypothesis cue in the level");
+    assertEquals(true, particleColors22bb.some(color => color === "#a7f3d0"), "Correct prediction should spawn a hypothesis burst");
+    const afterHypothesisBubbles22bb = bubbleLabels22bb.filter(label => /HYPOTHESIS/.test(label)).length;
+    const afterHypothesisBursts22bb = particleColors22bb.filter(color => color === "#a7f3d0").length;
 
     const complete = { allPassed: true, items: partial.items.map(item => ({ ...item, passed: true })) };
     const secondPulse = recordDiscoveryPulse(game, activeMission, "hopper.engine = 6", complete, 0);
     assertEquals(false, !!secondPulse.hypothesisConfirmed, "Same mission should not pay the prediction bonus twice");
     assertEquals(1, game.confirmedHypotheses.size, "Confirmed hypothesis set should not grow on repeat mission progress");
     assertEquals(true, game.researchXP > firstXP, "Regular progress XP should still apply after the one-time bonus");
+    assertEquals(afterHypothesisBubbles22bb, bubbleLabels22bb.filter(label => /HYPOTHESIS/.test(label)).length, "Repeat mission progress should not spawn another hypothesis cue");
+    assertEquals(afterHypothesisBursts22bb, particleColors22bb.filter(color => color === "#a7f3d0").length, "Repeat mission progress should not spawn another hypothesis burst");
 
     const wrong = new StarHopperGame();
     wrong.player = { x: 100, y: 120, w: 24, h: 32 };
@@ -1250,11 +1263,16 @@ function runEngineTests() {
     const wrongPulse = recordDiscoveryPulse(wrong, activeMission, "hopper.mass = 1.2", partial, 0);
     assertEquals(false, !!wrongPulse.hypothesisConfirmed, "Wrong prediction should not award the hypothesis bonus");
     assertEquals(0, wrong.confirmedHypotheses.size, "Wrong prediction should not be marked confirmed");
+    assertEquals(afterHypothesisBursts22bb, particleColors22bb.filter(color => color === "#a7f3d0").length, "Wrong prediction should not spawn hypothesis particles");
 
     document.getElementById = oldGetElementById22bb;
+    ComicBubbles.pop = oldBubblePop22bb;
+    Particles.spawnBurst = oldParticleBurst22bb;
     renderTestResult("engine-suite", "Curriculum: correct predictions earn hypothesis bonuses", true);
   } catch (err) {
     document.getElementById = oldGetElementById22bb;
+    ComicBubbles.pop = oldBubblePop22bb;
+    Particles.spawnBurst = oldParticleBurst22bb;
     renderTestResult("engine-suite", "Curriculum: correct predictions earn hypothesis bonuses", false, err.message);
   }
 
