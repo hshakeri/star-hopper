@@ -1917,7 +1917,9 @@ function runEngineTests() {
     assertEquals("11%", els["start-rank-preview-bar"].style.width, "Start radar should show rank progress toward the next unlock");
     assertEquals("NEXT TRANSMISSION", els["start-story-preview-label"].textContent, "Start radar should label the next story hook");
     assertEquals("Moon Loop Echo", els["start-story-preview-title"].textContent, "Start radar should preview the next Signal Story chapter");
-    assertEquals("Loops build repeatable patterns", els["start-story-preview-body"].textContent, "Start radar should show the next story concept");
+    assertEquals(true, /Loops build repeatable patterns/.test(els["start-story-preview-body"].textContent), "Start radar should show the next story concept");
+    assertEquals(true, /Next: Clear Moon \(Luna Outpost\)/.test(els["start-story-preview-body"].textContent), "Start radar should name the next story action");
+    assertEquals(true, /Reward: Moon Loop Echo/.test(els["start-story-preview-body"].textContent), "Start radar should name the next story reward");
     assertEquals("1/10 decoded", els["start-story-preview-progress"].textContent, "Start radar should show decoded story progress");
     assertEquals("START QUEST", els["start-mission-radar-btn"].textContent, "Formula quests should be directly launchable");
     assertEquals("quest", els["start-mission-radar-btn"].dataset.action, "Formula quest button should use the quest action");
@@ -1936,6 +1938,7 @@ function runEngineTests() {
     assertEquals("100%", els["start-rank-preview-bar"].style.width, "Max research rank should fill the preview meter");
     assertEquals("SIGNAL COMPLETE", els["start-story-preview-label"].textContent, "Complete story should switch the start radar label");
     assertEquals("Star-map restored", els["start-story-preview-title"].textContent, "Complete story should show finale copy on start radar");
+    assertEquals(true, /Daily Signals and Frontier/.test(els["start-story-preview-body"].textContent), "Complete story should point into ongoing signal practice");
     assertEquals("10/10 decoded", els["start-story-preview-progress"].textContent, "Complete story should show all chapters decoded");
     assertEquals("ACCEPT SIGNAL", els["start-mission-radar-btn"].textContent, "Daily quest should get a direct accept button");
     assertEquals("daily", els["start-mission-radar-btn"].dataset.action, "Daily quest button should use the daily action");

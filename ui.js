@@ -1481,10 +1481,12 @@ function getSignalStoryContract(game = window.Game, story = null) {
 function getStartSignalStoryPreview(game = window.Game) {
   const story = getSignalStoryProgress(game);
   if (story.nextChapter) {
+    const contract = getSignalStoryContract(game, story);
+    const reward = contract && contract.reward ? String(contract.reward).replace(/^Reward:\s*/i, "") : story.nextChapter.title;
     return {
       label: "NEXT TRANSMISSION",
       title: story.nextChapter.title,
-      body: story.nextChapter.concept,
+      body: `${story.nextChapter.concept}. Next: ${contract.title}. Reward: ${reward}.`,
       progress: `${story.unlocked.length}/${story.total} decoded`
     };
   }
