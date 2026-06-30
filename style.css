@@ -2761,6 +2761,47 @@ html {
   background: rgba(131, 24, 67, 0.36);
   color: #fbcfe8;
 }
+.discovery-next-unlock {
+  border: 1px solid rgba(250, 204, 21, 0.28);
+  border-radius: 6px;
+  background:
+    linear-gradient(135deg, rgba(113, 63, 18, 0.38), rgba(15, 23, 42, 0.46)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.024) 0 1px, transparent 1px 5px);
+  padding: 7px 8px;
+  display: grid;
+  gap: 4px;
+}
+.discovery-next-unlock span {
+  color: #facc15;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-weight: 900;
+}
+.discovery-next-unlock strong {
+  color: #fef08a;
+  font-size: 0.7rem;
+  line-height: 1.2;
+}
+.discovery-next-unlock p {
+  margin: 0;
+  color: #fde68a;
+  font-size: 0.62rem;
+  line-height: 1.3;
+}
+.discovery-next-unlock-bar {
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.76);
+  box-shadow: inset 0 0 0 1px rgba(250, 204, 21, 0.18);
+}
+.discovery-next-unlock-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #facc15, #bef264);
+  box-shadow: 0 0 10px rgba(250, 204, 21, 0.32);
+}
 .discovery-chain-next {
   border: 1px solid rgba(103, 232, 249, 0.28);
   border-radius: 6px;

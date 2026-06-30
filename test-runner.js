@@ -1576,6 +1576,10 @@ function runEngineTests() {
     assertEquals(true, /CHAIN NEXT x4/.test(panel.innerHTML), "Discovery pulse should show the next combo target");
     assertEquals(true, /New progress can add combo XP \+ amplifier XP/.test(panel.innerHTML), "Chain target should explain the amplified reward");
     assertEquals(true, /Unlock a new sample gate, formula card, or mission check/.test(panel.innerHTML), "Chain target should name valid new progress");
+    assertEquals(true, /NEXT LAB UNLOCK/.test(panel.innerHTML), "Discovery pulse should show the next lab unlock target");
+    assertEquals(true, /Daily Signal Lab in/.test(panel.innerHTML), "Next unlock cue should name the upcoming rank perk");
+    assertEquals(true, /Reach Orbit Scientist/.test(panel.innerHTML), "Next unlock cue should connect XP to the next rank");
+    assertEquals(true, /toward next lab unlock/.test(panel.innerHTML), "Next unlock cue should render progress toward the unlock");
 
     const afterXP = game.researchXP;
     recordDiscoveryPulse(game, activeMission, "hopper.engine = 6", complete, 0);

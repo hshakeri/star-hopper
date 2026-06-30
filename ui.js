@@ -1634,6 +1634,9 @@ function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems
     if (typeof logMissionBriefing === 'function') {
       logMissionBriefing(`${pulse.title}: ${pulse.insight}`);
     }
+    if (afterRank && typeof getResearchUnlockPreview === 'function') {
+      pulse.nextLabUnlock = getResearchUnlockPreview(afterRank);
+    }
   } else {
     pulse.combo = game.discoveryCombo || 0;
   }
@@ -1715,6 +1718,13 @@ function updateDiscoveryPulse(game) {
   const rankPerk = pulse.rankPerk
     ? `<div class="discovery-hypothesis discovery-perk">LAB PERK UNLOCKED: ${escapeHTML(pulse.rankPerk.label)}</div>`
     : "";
+  const unlockCue = pulse.nextLabUnlock || ((pulse.rewardXP || 0) > 0 && typeof getResearchUnlockPreview === 'function' && typeof getResearchRank === 'function'
+    ? getResearchUnlockPreview(getResearchRank(game && Number.isFinite(game.researchXP) ? game.researchXP : 0))
+    : null);
+  const unlockPct = unlockCue ? Math.max(0, Math.min(100, Math.round((Number(unlockCue.progress) || 0) * 100))) : 0;
+  const unlockCard = unlockCue
+    ? `<div class="discovery-next-unlock"><span>${escapeHTML(unlockCue.label)}</span><strong>${escapeHTML(unlockCue.title)}</strong><p>${escapeHTML(unlockCue.body)}</p><div class="discovery-next-unlock-bar" aria-label="${escapeHTML(String(unlockPct))}% toward next lab unlock"><i style="width: ${unlockPct}%"></i></div></div>`
+    : "";
   const chainHint = getDiscoveryChainHint(pulse);
   const chainHintCard = chainHint
     ? `<div class="discovery-chain-next"><span>${escapeHTML(chainHint.label)}</span><strong>${escapeHTML(chainHint.title)}</strong><p>${escapeHTML(chainHint.body)}</p></div>`
@@ -1729,6 +1739,7 @@ function updateDiscoveryPulse(game) {
     ${comboAmplifier}
     ${hypothesis}
     ${rankPerk}
+    ${unlockCard}
     <div class="discovery-pulse-body">${escapeHTML(pulse.insight)}</div>
     ${chainHintCard}
     <div class="discovery-pulse-foot">${escapeHTML(pulse.missionTitle)} · ${escapeHTML(progress)}${pulse.openedGems ? ` · ${escapeHTML(String(pulse.openedGems))} gem gate${pulse.openedGems === 1 ? "" : "s"}` : ""}</div>
