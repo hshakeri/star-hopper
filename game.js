@@ -1235,6 +1235,22 @@ class StarHopperGame {
     return `<span class="map-mastery-meter" aria-label="${progress.xp} world mastery XP"><span style="width: ${progress.pct}%"></span></span><span class="map-mastery-label">${progress.title} · ${progress.xp} XP · ${next}</span>`;
   }
 
+  getPlanetMapConcept(index) {
+    const planets = (typeof PLANETS !== 'undefined' && Array.isArray(PLANETS)) ? PLANETS : [];
+    const planet = planets[index] || null;
+    if (!planet) return "Science mission";
+    return planet.tagline || "Science mission";
+  }
+
+  renderMapConceptChip(index) {
+    const safe = (typeof escapeHTML === 'function')
+      ? escapeHTML
+      : (value) => String(value || "").replace(/[&<>"']/g, ch => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[ch]));
+    return `<span class="map-concept-chip">${safe(this.getPlanetMapConcept(index))}</span>`;
+  }
+
   refreshGalaxyMapProgress() {
     if (typeof document === 'undefined') return;
     const planets = (typeof PLANETS !== 'undefined' && Array.isArray(PLANETS)) ? PLANETS : [];
@@ -1252,18 +1268,20 @@ class StarHopperGame {
       node.classList.toggle('mastered', mastered);
       node.disabled = !available;
       if (meta) {
+        const conceptChip = this.renderMapConceptChip(index);
         if (!available) {
-          meta.textContent = "Locked";
+          meta.innerHTML = `Locked · ${conceptChip}<span class="map-lock-hint">Recover previous shard</span>`;
         } else {
           const label = mastered ? "Mastered" : (clears > 0 ? `Clear ${clears}` : (index === 0 ? "Start" : "Unlocked"));
-          meta.innerHTML = `${label} · ${this.renderMapStarMeter(index)}${this.renderMapMasteryMeter(index)}`;
+          meta.innerHTML = `${label} · ${conceptChip}${this.renderMapStarMeter(index)}${this.renderMapMasteryMeter(index)}`;
         }
       }
       const stars = this.getPlanetLabStarCount(index);
       const worldMastery = this.getWorldMasteryProgress(index);
+      const concept = this.getPlanetMapConcept(index);
       node.title = available
-        ? `${planets[index].name}: ${stars}/3 Lab Stars · ${worldMastery.title} (${worldMastery.xp} XP)${mastered ? " · Mastered" : (clears > 0 ? " · Mastery Remix ready" : "")}`
-        : `${planets[index].name}: locked until the previous signal shard is recovered.`;
+        ? `${planets[index].name}: ${concept} · ${stars}/3 Lab Stars · ${worldMastery.title} (${worldMastery.xp} XP)${mastered ? " · Mastered" : (clears > 0 ? " · Mastery Remix ready" : "")}`
+        : `${planets[index].name}: locked. Next concept: ${concept}. Recover the previous signal shard.`;
     });
   }
 

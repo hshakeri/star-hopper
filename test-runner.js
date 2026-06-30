@@ -1752,14 +1752,20 @@ function runEngineTests() {
     assertEquals(true, nodes[0].classList.contains("current"), "Current node should be marked current");
     assertEquals(true, nodes[0].classList.contains("mastered"), "Mastered node should get a map class");
     assertEquals(true, /Mastered/.test(nodes[0]._meta.innerHTML), "Mastered node should show mastered status");
+    assertEquals(true, /Standard Gravity &amp; Trajectories/.test(nodes[0]._meta.innerHTML), "Cleared node should show its science concept chip");
     assertEquals(true, /3 of 3 Lab Stars/.test(nodes[0]._meta.innerHTML), "Cleared node should show best lab stars");
     assertEquals(true, /World Engineer/.test(nodes[0]._meta.innerHTML), "Cleared node should show world mastery tier");
     assertEquals(true, /110 XP/.test(nodes[0]._meta.innerHTML), "Cleared node should show world mastery XP");
+    assertEquals(true, /Standard Gravity & Trajectories/.test(nodes[0].title), "Cleared node title should include the science concept");
     assertEquals(false, nodes[1].disabled, "Moon should unlock after Earth clear");
     assertEquals(true, /Unlocked/.test(nodes[1]._meta.innerHTML), "Next planet should read as unlocked");
+    assertEquals(true, /Low Gravity &amp; Jump Loops/.test(nodes[1]._meta.innerHTML), "Unlocked next node should preview its science concept");
     assertEquals(true, /1 of 3 Lab Stars/.test(nodes[1]._meta.innerHTML), "Saved next-planet stars should render");
     assertEquals(true, nodes[2].disabled, "Jupiter should remain locked before Moon clear");
-    assertEquals("Locked", nodes[2]._meta.textContent, "Locked node keeps locked copy");
+    assertEquals(true, /Locked/.test(nodes[2]._meta.innerHTML), "Locked node keeps locked copy");
+    assertEquals(true, /High Gravity &amp; Rocket Force/.test(nodes[2]._meta.innerHTML), "Locked node should preview the upcoming science concept");
+    assertEquals(true, /Recover previous shard/.test(nodes[2]._meta.innerHTML), "Locked node should explain how to unlock");
+    assertEquals(true, /Next concept: High Gravity & Rocket Force/.test(nodes[2].title), "Locked node title should name the coming concept");
     document.querySelectorAll = oldQuerySelectorAll22g;
     renderTestResult("engine-suite", "Curriculum: galaxy map surfaces lab-star mastery", true);
   } catch (err) {

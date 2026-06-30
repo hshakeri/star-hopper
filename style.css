@@ -1375,6 +1375,30 @@ body.resizing-panes * {
   color: var(--text-muted);
 }
 
+.map-concept-chip {
+  display: block;
+  width: fit-content;
+  max-width: 92px;
+  margin: 2px auto;
+  padding: 2px 5px;
+  border: 1px solid rgba(103, 232, 249, 0.24);
+  border-radius: 999px;
+  background: rgba(8, 47, 73, 0.42);
+  color: #dff6ff;
+  font-size: 0.46rem;
+  font-weight: 800;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.map-lock-hint {
+  display: block;
+  color: #facc15;
+  font-size: 0.46rem;
+  font-weight: 800;
+  line-height: 1.05;
+}
+
 .map-star-meter {
   display: inline-flex;
   gap: 1px;
