@@ -2499,6 +2499,14 @@ function stageScienceDeltaCommand(command) {
   if (typeof input.setSelectionRange === 'function') {
     try { input.setSelectionRange(code.length, code.length); } catch (e) { /* noop */ }
   }
+  const liveGame = (typeof window !== 'undefined' && window.Game) ? window.Game : null;
+  if (liveGame && typeof liveGame.showMissionBalloon === 'function') {
+    liveGame.showMissionBalloon("CODE STAGED: press Enter to test", {
+      title: "MISSION CRT",
+      color: "#a7f3d0",
+      timer: 220
+    });
+  }
   if (typeof ui_log_output === 'function') ui_log_output("Next experiment staged in the terminal.", "info");
   return true;
 }

@@ -266,18 +266,30 @@ class StarHopperGame {
 
   releaseVillagersFromCaves() {
     const keepSheltered = this.shouldVillagersShelterForNight();
+    let villagers = 0;
     for (const obj of this.interactiveObjects || []) {
       if (!(typeof NPC !== 'undefined' && obj instanceof NPC)) continue;
+      villagers++;
       obj.panicTimer = 0;
       obj.caveCooldown = 0;
       if (keepSheltered) {
-        this.parkNPCInCave(obj);
+        this.parkNPCInCave(obj, "night");
         continue;
       }
       this.releaseNPCFromCave(obj, { returnHome: true });
     }
     if (this.activeNPC && this.activeNPC.hiddenInCave) this.activeNPC = null;
     this.syncTradeTouchControls();
+    if (villagers > 0 && typeof this.showMissionBalloon === 'function') {
+      this.showMissionBalloon(
+        keepSheltered ? "VILLAGE NIGHT: traders wait in caves" : "VILLAGE CLEAR: traders back outside",
+        {
+          title: "MISSION CRT",
+          color: keepSheltered ? "#fde68a" : "#a7f3d0",
+          timer: 220
+        }
+      );
+    }
   }
 
   syncTradeTouchControls() {
@@ -286,11 +298,12 @@ class StarHopperGame {
     if (touch) touch.classList.toggle('npc-near', !!this.activeNPC);
   }
 
-  parkNPCInCave(npc) {
+  parkNPCInCave(npc, reason = "shelter") {
     if (!npc) return;
     npc.hiddenInCave = true;
     if (Number.isFinite(npc.caveX)) npc.x = npc.caveX + 10;
     if (Number.isFinite(npc.caveY)) npc.y = npc.caveY;
+    if (!npc.rescuePending && !npc.shelterReason) npc.shelterReason = reason;
     npc.proximity = false;
     if (this.activeNPC === npc) this.activeNPC = null;
   }
@@ -315,7 +328,7 @@ class StarHopperGame {
     if (!npc) return false;
     npc.panicTimer = Math.max(npc.panicTimer || 0, options.panicTimer || 120);
     npc.rescuePending = true;
-    if (!npc.shelterReason || npc.shelterReason === "nearby mob") npc.shelterReason = reason;
+    if (!npc.shelterReason || npc.shelterReason === "nearby mob" || npc.shelterReason === "night") npc.shelterReason = reason;
     if (!npc.hiddenInCave && options.bubble && typeof ComicBubbles !== 'undefined' && (npc.caveCooldown || 0) <= 0) {
       ComicBubbles.spawn(npc.x + npc.w / 2, npc.y - 8, "CAVE!", "jagged", "#facc15", -0.35, { maxLife: 60, scale: 0.8 });
     }
@@ -338,8 +351,9 @@ class StarHopperGame {
         continue;
       }
       if (nightShelter) {
+        if (!obj.rescuePending && !obj.shelterReason) obj.shelterReason = "night";
         if (this.activeNPC === obj) touchNeedsSync = true;
-        if (obj.hiddenInCave) this.parkNPCInCave(obj);
+        if (obj.hiddenInCave) this.parkNPCInCave(obj, "night");
         else if (typeof obj.stepTowardCave === 'function') obj.stepTowardCave(2.2);
         else obj.proximity = false;
         obj.proximity = false;
@@ -349,6 +363,8 @@ class StarHopperGame {
       if (obj.hiddenInCave && (obj.panicTimer || 0) <= 0) {
         this.releaseNPCFromCave(obj);
         touchNeedsSync = true;
+      } else if (!obj.hiddenInCave && obj.shelterReason === "night" && !obj.rescuePending) {
+        obj.shelterReason = null;
       }
     }
     if (touchNeedsSync) this.syncTradeTouchControls();
@@ -2003,7 +2019,7 @@ class StarHopperGame {
         if (typeof NPC !== 'undefined') {
           const placed = this.placeNpcAwayFromCollectibles(npcConf);
           const npc = new NPC(placed);
-          if (this.shouldVillagersShelterForNight()) this.parkNPCInCave(npc);
+          if (this.shouldVillagersShelterForNight()) this.parkNPCInCave(npc, "night");
           this.interactiveObjects.push(npc);
         }
       }

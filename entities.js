@@ -2472,7 +2472,9 @@ class NPC extends InteractiveObject {
       } else {
         this.panicTimer = 120;
         this.rescuePending = true;
-        this.shelterReason = "nearby mob";
+        if (!this.shelterReason || this.shelterReason === "night" || this.shelterReason === "nearby mob") {
+          this.shelterReason = "nearby mob";
+        }
         if (!this.hiddenInCave && typeof ComicBubbles !== 'undefined' && this.caveCooldown <= 0) {
           ComicBubbles.spawn(this.x + this.w / 2, this.y - 8, "CAVE!", "jagged", "#facc15", -0.35, { maxLife: 60, scale: 0.8 });
         }
@@ -2502,6 +2504,7 @@ class NPC extends InteractiveObject {
       const dxHome = this.homeX - this.x;
       if (Math.abs(dxHome) > 1) this.x += Math.max(-1.1, Math.min(1.1, dxHome * 0.08));
       else this.x = this.homeX;
+      if (this.shelterReason === "night" && !this.rescuePending) this.shelterReason = null;
     }
 
     // Track distance to player
@@ -2546,20 +2549,33 @@ class NPC extends InteractiveObject {
     ctx.fillRect(caveX - 2, caveY + 37, 36, 4);
 
     if (this.hiddenInCave) {
-      ctx.fillStyle = 'rgba(250, 204, 21, 0.18)';
+      ctx.fillStyle = 'rgba(250, 204, 21, 0.28)';
       ctx.beginPath();
-      ctx.roundRect(caveX + 5, caveY + 18, 22, 12, 4);
+      ctx.roundRect(caveX + 3, caveY + 15, 26, 17, 5);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.78)';
+      ctx.beginPath();
+      ctx.roundRect(caveX + 8, caveY + 20, 16, 10, 4);
+      ctx.fill();
+      ctx.fillStyle = this.skinTone;
+      ctx.beginPath();
+      ctx.arc(caveX + 16, caveY + 19, 5.2, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = this.color;
-      ctx.font = "bold 8px 'Share Tech Mono', monospace";
+      ctx.fillRect(caveX + 10, caveY + 13, 12, 4);
+      ctx.fillStyle = 'rgba(254, 240, 138, 0.95)';
+      ctx.beginPath();
+      ctx.arc(caveX + 13, caveY + 19, 1.3, 0, Math.PI * 2);
+      ctx.arc(caveX + 19, caveY + 19, 1.3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = this.color;
+      ctx.font = "bold 7px 'Share Tech Mono', monospace";
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(this.roleMark, caveX + 16, caveY + 24);
-      ctx.fillStyle = 'rgba(254, 240, 138, 0.85)';
-      ctx.beginPath();
-      ctx.arc(caveX + 10, caveY + 21, 1.4, 0, Math.PI * 2);
-      ctx.arc(caveX + 22, caveY + 21, 1.4, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.fillText(this.roleMark, caveX + 16, caveY + 27);
+      ctx.fillStyle = 'rgba(226, 232, 240, 0.92)';
+      ctx.font = "bold 7px 'Share Tech Mono', monospace";
+      ctx.fillText(this.shelterReason === 'night' ? 'NIGHT' : 'SAFE', caveX + 16, caveY + 39);
       if (this.proximity && game && game.activeNPC === this) {
         ctx.fillStyle = 'rgba(15, 23, 42, 0.74)';
         ctx.beginPath();

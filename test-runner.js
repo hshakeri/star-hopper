@@ -1407,6 +1407,7 @@ function runEngineTests() {
   const oldGetElementById22ba = document.getElementById;
   const oldBubblePop22ba = ComicBubbles.pop;
   const oldParticleBurst22ba = Particles.spawnBurst;
+  const oldWindowGame22ba = window.Game;
   try {
     let scienceDeltaBubble22ba = "";
     let scienceDeltaBursts22ba = 0;
@@ -1463,14 +1464,19 @@ function runEngineTests() {
       setSelectionRange(start, end) { this.selection = [start, end]; }
     };
     document.getElementById = (id) => id === "console-input" ? inputEl : null;
+    window.Game = game;
     assertEquals(true, stageScienceDeltaCommand(nextCue.command), "Stage button helper should write the command to the console");
     assertEquals(nextCue.command.trim(), inputEl.value, "Staged command should match the next experiment command");
     assertEquals(true, inputEl.focused, "Staging should focus the terminal input");
+    assertEquals("CODE STAGED: press Enter to test", game.missionBalloon.text, "Staging should create an on-canvas mission cue");
+    assertEquals("MISSION CRT", game.missionBalloon.title, "Staging cue should use the mission monitor");
+    window.Game = oldWindowGame22ba;
     document.getElementById = oldGetElementById22ba;
     ComicBubbles.pop = oldBubblePop22ba;
     Particles.spawnBurst = oldParticleBurst22ba;
     renderTestResult("engine-suite", "Curriculum: code runs create science delta feedback", true);
   } catch (err) {
+    window.Game = oldWindowGame22ba;
     document.getElementById = oldGetElementById22ba;
     ComicBubbles.pop = oldBubblePop22ba;
     Particles.spawnBurst = oldParticleBurst22ba;
@@ -3666,6 +3672,7 @@ function runCombatTests() {
     assertEquals(false, npc.hiddenInCave, "Villager reappears after survival danger ends");
     assertEquals(130, npc.x, "Daylight release returns the villager to the village home");
     assertEquals(60, npc.y, "Daylight release keeps the villager on the village surface");
+    assertEquals("VILLAGE CLEAR: traders back outside", g.missionBalloon && g.missionBalloon.text, "Survival-off daylight release announces visible villagers");
     assertEquals(0, npc.panicTimer, "Villager panic clears after survival mode ends");
     assertEquals(7, g.researchXP, "A danger-caused cave release grants Village Rescue Research XP");
     assertEquals(true, g.hasVillageRescueCredit(1), "Village rescue records world mastery source credit");
@@ -3703,6 +3710,7 @@ function runCombatTests() {
     nightGame.toggleSurvival();
     assertEquals(true, nightNpc.hiddenInCave, "Earth night keeps villagers sheltered after survival danger ends");
     assertEquals(82, nightNpc.x, "Earth night parks the villager at the cave mouth");
+    assertEquals("VILLAGE NIGHT: traders wait in caves", nightGame.missionBalloon && nightGame.missionBalloon.text, "Survival-off night release explains villagers stayed in caves");
     assertEquals(0, nightNpc.panicTimer, "Night shelter clears mob panic without forcing villagers outside");
     assertEquals(0, nightGame.researchXP, "Night shelter waits to reward until the villager can actually return");
     renderTestResult(SUITE, "Villagers: survival off releases cave hiding", true);
@@ -3724,6 +3732,7 @@ function runCombatTests() {
     assertEquals(true, npc.x < beforeNightX, "Game loop night pass starts the cave retreat immediately");
     for (let i = 0; i < 40 && !npc.hiddenInCave; i++) g.updateVillagerShelterStates();
     assertEquals(true, npc.hiddenInCave, "Villager shelters in a cave at night");
+    assertEquals("night", npc.shelterReason, "Night cave shelter is labeled separately from mob rescue");
     npc.x = 300;
     npc.proximity = true;
     g.activeNPC = npc;
@@ -3734,7 +3743,18 @@ function runCombatTests() {
     g.getEarthDayNightPhase = () => ({ t: 0.5, daylight: 1, isDay: true, sunX: 0.5, sunY: 0.34 });
     g.updateVillagerShelterStates();
     assertEquals(false, npc.hiddenInCave, "Villager comes out in daylight");
+    assertEquals(null, npc.shelterReason, "Daylight clears the night shelter reason");
     assertEquals(0, g.researchXP || 0, "Daylight release from night shelter does not award rescue XP");
+    const partialNightNpc = new NPC({ id: 'partial-night', name: 'Partial Night', profession: 'Miner', type: 'npc', x: 140, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60 });
+    partialNightNpc.shelterReason = "night";
+    g.interactiveObjects = [partialNightNpc];
+    g.mobs = [];
+    g.updateVillagerShelterStates();
+    assertEquals(null, partialNightNpc.shelterReason, "Daylight clears a partial night retreat before the cave is reached");
+    partialNightNpc.shelterReason = "night";
+    g.mobs = [new Mob(146, 60, 'hog', '#9a6b4f', 1)];
+    g.updateVillagerShelterStates();
+    assertEquals("nearby mob", partialNightNpc.shelterReason, "Mob danger overrides stale night shelter state");
 
     const loadGame = new StarHopperGame();
     loadGame.state = 'playing';
@@ -3747,6 +3767,7 @@ function runCombatTests() {
     assertEquals(true, loadedNpc.hiddenInCave, "Night-loaded Earth villagers start in caves");
     assertEquals(loadedNpc.caveX + 10, loadedNpc.x, "Night-loaded villager is parked at the cave mouth");
     assertEquals(false, !!loadedNpc.rescuePending, "Night shelter does not count as a mob rescue");
+    assertEquals("night", loadedNpc.shelterReason, "Night-loaded cave state is marked as night shelter");
     loadGame.getEarthDayNightPhase = () => ({ t: 0.5, daylight: 1, isDay: true, sunX: 0.5, sunY: 0.34 });
     loadedNpc.update(loadGame);
     assertEquals(false, loadedNpc.hiddenInCave, "Night-loaded villager comes out at daylight");
