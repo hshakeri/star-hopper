@@ -1805,6 +1805,62 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: mission panel shows lab-star and replay contracts", false, err.message);
   }
 
+  // Test 22i: Mission Coach renders the predict-code-test-explain loop as labeled progress.
+  const oldGetElementById22i = document.getElementById;
+  const oldCreateElement22i = document.createElement;
+  try {
+    const makeCoachEl = () => ({
+      children: [],
+      style: {},
+      className: "",
+      textContent: "",
+      innerHTML: "",
+      title: "",
+      dataset: {},
+      value: "",
+      autocomplete: "",
+      spellcheck: false,
+      type: "",
+      appendChild(child) { this.children.push(child); return child; },
+      querySelectorAll: () => [],
+      addEventListener: () => {},
+      classList: { add: () => {}, remove: () => {}, toggle: () => {}, contains: () => false }
+    });
+    const els = {
+      "pedagogical-mission-panel": makeCoachEl(),
+      "pedagogical-steps": makeCoachEl(),
+      "pedagogical-mission-title": makeCoachEl(),
+      "mission-coach-summary": makeCoachEl(),
+      "mission-coach-focus": makeCoachEl(),
+      "mission-scaffold": makeCoachEl()
+    };
+    document.getElementById = (id) => els[id] || null;
+    document.createElement = () => makeCoachEl();
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[0];
+    game.currentPlanetIndex = 0;
+    game.completedMissions = new Set();
+    game.coachPredictions = { "earth-gravity-wall": "lighter-longer" };
+    game.currentMissionId = "earth-gravity-wall";
+    game.currentMissionSteps = { observe: true, predict: true, code: false, test: false, explain: false, challenge: false };
+    updatePedagogicalGuide(game);
+    const loop = els["pedagogical-steps"].children.find(child => child.className === "coach-lab-loop");
+    assertEquals(true, !!loop, "Coach should render a labeled lab loop strip");
+    assertEquals(5, loop.children.length, "Loop strip should show the five learning steps");
+    assertEquals("Observe Predict Code Test Explain", loop.children.map(child => child.textContent).join(" "), "Loop strip should name each step");
+    assertEquals(true, /done/.test(loop.children[0].className) && /done/.test(loop.children[1].className), "Observed and predicted steps should be marked done");
+    assertEquals(true, /active/.test(loop.children[2].className), "Code should be the active step");
+    assertEquals(true, /Activate Hopper/.test(els["mission-coach-focus"].innerHTML), "Coach focus should show the next code action");
+    assertEquals(true, /Change one number/.test(els["mission-coach-summary"].innerHTML), "Coach summary should surface the beginner concept");
+    document.getElementById = oldGetElementById22i;
+    document.createElement = oldCreateElement22i;
+    renderTestResult("engine-suite", "Curriculum: Mission Coach renders lab loop progress", true);
+  } catch (err) {
+    document.getElementById = oldGetElementById22i;
+    document.createElement = oldCreateElement22i;
+    renderTestResult("engine-suite", "Curriculum: Mission Coach renders lab loop progress", false, err.message);
+  }
+
   // Test 23: Mission Coach copy avoids hidden old mode names
   try {
     const texts = [];

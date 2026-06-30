@@ -2840,6 +2840,40 @@ html {
 .coach-dot.active { background: var(--neon-cyan); transform: scale(1.25); box-shadow: 0 0 8px var(--neon-cyan); }
 .coach-dot.done { background: var(--neon-green); }
 
+.coach-lab-loop {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+  margin: 2px 0 8px;
+}
+.coach-loop-chip {
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.54);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.54rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: 5px 3px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.coach-loop-chip.active {
+  border-color: rgba(56, 189, 248, 0.56);
+  background: rgba(8, 47, 73, 0.72);
+  color: #bae6fd;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.22);
+}
+.coach-loop-chip.done {
+  border-color: rgba(74, 222, 128, 0.42);
+  background: rgba(20, 83, 45, 0.42);
+  color: #bbf7d0;
+}
+
 /* One step shown at a time */
 .coach-active-step {
   background: rgba(15, 23, 42, 0.45);
@@ -4994,6 +5028,7 @@ body.readable-text-mode .mission-coach-focus span,
 body.readable-text-mode .coach-prediction-card p,
 body.readable-text-mode .coach-result-box p,
 body.readable-text-mode .coach-mini-title,
+body.readable-text-mode .coach-loop-chip,
 body.readable-text-mode .concept-progress-item,
 body.readable-text-mode .badge-shelf-item p,
 body.readable-text-mode .research-rank-kicker,

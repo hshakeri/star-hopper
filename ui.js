@@ -1540,6 +1540,15 @@ function getCoachFocusText(game, activeMission) {
   return "Move in the level and watch what changed.";
 }
 
+function getCoachStepParts(step, index = 0) {
+  const prompt = step && step.prompt ? String(step.prompt) : `Step ${index + 1}`;
+  const parts = prompt.match(/^([A-Za-z]+):\s*([\s\S]*)$/);
+  return {
+    tag: parts ? parts[1] : `Step ${index + 1}`,
+    body: parts ? parts[2] : prompt
+  };
+}
+
 // Direction + live reading for the numeric tuners, so the coach can detect an
 // assignment the cadet has already made and skip past it.
 const COACH_SLOT_RULES = {
@@ -2676,7 +2685,7 @@ function updatePedagogicalGuide(game) {
   const steps = activeMission.fullMission.steps.filter(step => step.id !== "challenge");
   
   // Determine current active step index
-  let activeIndex = 0;
+  let activeIndex = steps.length ? steps.length - 1 : 0;
   const keys = ["observe", "predict", "code", "test", "explain"];
   for (let i = 0; i < keys.length; i++) {
     if (!game.currentMissionSteps[keys[i]]) {
@@ -2693,29 +2702,30 @@ function updatePedagogicalGuide(game) {
     focusEl.innerHTML = `<span>Next action</span><strong>${escapeHTML(getCoachFocusText(game, activeMission))}</strong>`;
   }
 
-  // Show ONLY the current step (not the whole wall of 5) with a row of progress
-  // dots — much friendlier for an 8-year-old than the full checklist.
-  const dots = document.createElement("div");
-  dots.className = "coach-step-dots";
+  // Show ONLY the current step plus a labeled lab-loop strip, not the whole wall
+  // of checklist text.
+  const loop = document.createElement("div");
+  loop.className = "coach-lab-loop";
   steps.forEach((s, i) => {
     const done = game.currentMissionSteps[keys[i]];
-    const dot = document.createElement("span");
-    dot.className = "coach-dot" + (done ? " done" : (i === activeIndex ? " active" : ""));
-    dots.appendChild(dot);
+    const chip = document.createElement("span");
+    const parts = getCoachStepParts(s, i);
+    chip.className = "coach-loop-chip" + (done ? " done" : (i === activeIndex ? " active" : ""));
+    chip.textContent = parts.tag;
+    chip.title = parts.body;
+    loop.appendChild(chip);
   });
-  stepsContainer.appendChild(dots);
+  stepsContainer.appendChild(loop);
 
   const activeStep = steps[activeIndex];
   if (activeStep) {
     // Split a "Observe: do the thing" prompt into a chip + friendly sentence.
-    const parts = activeStep.prompt.match(/^([A-Za-z]+):\s*([\s\S]*)$/);
-    const tag = parts ? parts[1] : `Step ${activeIndex + 1}`;
-    const body = parts ? parts[2] : activeStep.prompt;
+    const parts = getCoachStepParts(activeStep, activeIndex);
     const item = document.createElement("div");
     item.className = "coach-active-step";
     item.innerHTML = `
-      <div class="coach-step-num">Step ${activeIndex + 1} of ${steps.length} · <span class="coach-step-tag">${escapeHTML(tag)}</span></div>
-      <div class="coach-step-text">${escapeHTML(body)}</div>
+      <div class="coach-step-num">Step ${activeIndex + 1} of ${steps.length} · <span class="coach-step-tag">${escapeHTML(parts.tag)}</span></div>
+      <div class="coach-step-text">${escapeHTML(parts.body)}</div>
     `;
     stepsContainer.appendChild(item);
   }
