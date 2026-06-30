@@ -2816,7 +2816,7 @@ function runCombatTests() {
     const g = new StarHopperGame();
     g.state = 'playing'; g.currentPlanetIndex = 1; g.currentPlanet = PLANETS[1];
     g.player = new Player(0, 0);
-    const npc = new NPC({ id: 'release', name: 'Release', profession: 'Miner', type: 'npc', x: 82, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60, hiddenInCave: true });
+    const npc = new NPC({ id: 'release', name: 'Release', profession: 'Miner', type: 'npc', x: 130, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60, hiddenInCave: true });
     npc.panicTimer = 80;
     g.interactiveObjects = [npc];
     g.survivalMode = true;
@@ -2825,19 +2825,22 @@ function runCombatTests() {
     assertEquals(false, g.survivalMode, "Survival mode turns off");
     assertEquals(0, g.mobs.length, "Survival mobs are cleared");
     assertEquals(false, npc.hiddenInCave, "Villager reappears after survival danger ends");
+    assertEquals(130, npc.x, "Daylight release returns the villager to the village home");
+    assertEquals(60, npc.y, "Daylight release keeps the villager on the village surface");
     assertEquals(0, npc.panicTimer, "Villager panic clears after survival mode ends");
 
     const nightGame = new StarHopperGame();
     nightGame.state = 'playing'; nightGame.currentPlanetIndex = 0; nightGame.currentPlanet = PLANETS[0];
     nightGame.player = new Player(0, 0);
     nightGame.getEarthDayNightPhase = () => ({ t: 0, daylight: 0.1, isDay: false, sunX: 0.1, sunY: 0.2 });
-    const nightNpc = new NPC({ id: 'night-release', name: 'Night Release', profession: 'Miner', type: 'npc', x: 82, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60, hiddenInCave: true });
+    const nightNpc = new NPC({ id: 'night-release', name: 'Night Release', profession: 'Miner', type: 'npc', x: 120, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60, hiddenInCave: false });
     nightNpc.panicTimer = 80;
     nightGame.interactiveObjects = [nightNpc];
     nightGame.survivalMode = true;
     nightGame.mobs = [new Mob(90, 60, 'hog', '#9a6b4f', 1)];
     nightGame.toggleSurvival();
     assertEquals(true, nightNpc.hiddenInCave, "Earth night keeps villagers sheltered after survival danger ends");
+    assertEquals(82, nightNpc.x, "Earth night parks the villager at the cave mouth");
     assertEquals(0, nightNpc.panicTimer, "Night shelter clears mob panic without forcing villagers outside");
     renderTestResult(SUITE, "Villagers: survival off releases cave hiding", true);
   } catch (err) {

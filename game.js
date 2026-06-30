@@ -179,9 +179,16 @@ class StarHopperGame {
       if (!(typeof NPC !== 'undefined' && obj instanceof NPC)) continue;
       obj.panicTimer = 0;
       obj.caveCooldown = 0;
-      if (keepSheltered) continue;
+      if (keepSheltered) {
+        obj.hiddenInCave = true;
+        if (Number.isFinite(obj.caveX)) obj.x = obj.caveX + 10;
+        if (Number.isFinite(obj.caveY)) obj.y = obj.caveY;
+        obj.proximity = false;
+        continue;
+      }
       obj.hiddenInCave = false;
-      if (Number.isFinite(obj.caveX)) obj.x = obj.caveX + 10;
+      if (Number.isFinite(obj.homeX)) obj.x = obj.homeX;
+      else if (Number.isFinite(obj.caveX)) obj.x = obj.caveX + 10;
       if (Number.isFinite(obj.homeY)) obj.y = obj.homeY;
       obj.proximity = false;
     }

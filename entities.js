@@ -2496,6 +2496,20 @@ class NPC extends InteractiveObject {
     ctx.fillRect(caveX - 2, caveY + 37, 36, 4);
 
     if (this.hiddenInCave) {
+      ctx.fillStyle = 'rgba(250, 204, 21, 0.18)';
+      ctx.beginPath();
+      ctx.roundRect(caveX + 5, caveY + 18, 22, 12, 4);
+      ctx.fill();
+      ctx.fillStyle = this.color;
+      ctx.font = "bold 8px 'Share Tech Mono', monospace";
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(this.roleMark, caveX + 16, caveY + 24);
+      ctx.fillStyle = 'rgba(254, 240, 138, 0.85)';
+      ctx.beginPath();
+      ctx.arc(caveX + 10, caveY + 21, 1.4, 0, Math.PI * 2);
+      ctx.arc(caveX + 22, caveY + 21, 1.4, 0, Math.PI * 2);
+      ctx.fill();
       if (this.proximity && game && game.activeNPC === this) {
         ctx.fillStyle = 'rgba(15, 23, 42, 0.74)';
         ctx.beginPath();
