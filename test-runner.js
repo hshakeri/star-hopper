@@ -1601,6 +1601,8 @@ function runEngineTests() {
   // Test 22c: Research rank and discovery deck render a readable learning collection.
   const oldGetElementById22c = document.getElementById;
   const oldWindowGame22c = window.Game;
+  const oldBubblePop22c = ComicBubbles.pop;
+  const oldParticleBurst22c = Particles.spawnBurst;
   try {
     const rank = getResearchRank(60);
     assertEquals("Physics Tinkerer", rank.title, "60 Research XP should reach the third rank");
@@ -1620,6 +1622,15 @@ function runEngineTests() {
       focus() { this.focused = true; },
       setSelectionRange() {}
     };
+    const focusGame = {
+      player: { x: 48, y: 80, w: 24, h: 32 },
+      missionBalloon: null,
+      showMissionBalloon(text, opts) { this.missionBalloon = { text, ...(opts || {}) }; }
+    };
+    const focusPops = [];
+    let focusBursts = 0;
+    ComicBubbles.pop = (x, y, text) => { focusPops.push(text); };
+    Particles.spawnBurst = () => { focusBursts++; };
     const els = {
       "research-rank-card": { innerHTML: "" },
       "discovery-deck": {
@@ -1629,7 +1640,7 @@ function runEngineTests() {
         }
       }
     };
-    window.Game = null;
+    window.Game = focusGame;
     document.getElementById = (id) => id === "console-input" ? focusInput : (els[id] || null);
     updateResearchProgress({
       researchXP: 60,
@@ -1657,15 +1668,25 @@ function runEngineTests() {
     focusStageButton._events.click();
     assertEquals("hopper.engine = 7", focusInput.value, "Formula focus stage action should stage the next formula command");
     assertEquals(true, focusInput.focused, "Formula focus staging should focus the terminal");
+    assertEquals("Engine Lab", focusGame.lastStagedExperiment && focusGame.lastStagedExperiment.title, "Formula focus staging should remember the target card");
+    assertEquals("engine", focusGame.lastStagedExperiment && focusGame.lastStagedExperiment.kind, "Formula focus staging should remember the formula kind");
+    assertEquals("formula-focus", focusGame.lastStagedExperiment && focusGame.lastStagedExperiment.source, "Formula focus staging should remember its source surface");
+    assertEquals("CODE STAGED: press Enter to test", focusGame.missionBalloon && focusGame.missionBalloon.text, "Formula focus staging should keep the CRT test cue");
+    assertEquals(true, focusPops.includes("ENGINE LAB READY"), "Formula focus staging should pop a ready cue near the cadet");
+    assertEquals(true, focusBursts > 0, "Formula focus staging should add a small particle confirmation");
     assertEquals(true, /a = F \/ m/.test(els["discovery-deck"].innerHTML), "Discovery deck should show collected formulas");
     assertEquals(true, /Loop Lab/.test(els["discovery-deck"].innerHTML), "Discovery deck should show multiple discoveries");
     assertEquals(true, /locked/.test(els["discovery-deck"].innerHTML), "Deck should show locked future cards");
     document.getElementById = oldGetElementById22c;
     window.Game = oldWindowGame22c;
+    ComicBubbles.pop = oldBubblePop22c;
+    Particles.spawnBurst = oldParticleBurst22c;
     renderTestResult("engine-suite", "Curriculum: research ranks render discovery deck", true);
   } catch (err) {
     document.getElementById = oldGetElementById22c;
     window.Game = oldWindowGame22c;
+    ComicBubbles.pop = oldBubblePop22c;
+    Particles.spawnBurst = oldParticleBurst22c;
     renderTestResult("engine-suite", "Curriculum: research ranks render discovery deck", false, err.message);
   }
 

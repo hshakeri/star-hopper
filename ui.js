@@ -523,7 +523,11 @@ function appendLessonLensCard(listContainer, game) {
     action.textContent = needsPrediction ? "PREDICT FIRST" : "STAGE LESSON CODE";
     action.disabled = needsPrediction || !starterCode;
     if (!action.disabled && typeof action.addEventListener === "function") {
-      action.addEventListener("click", () => stageScienceDeltaCommand(starterCode));
+      action.addEventListener("click", () => stageScienceDeltaCommand(starterCode, {
+        title: fullMission.title || "Lesson code",
+        source: "lesson-lens",
+        color: "#67e8f9"
+      }));
     }
     card.appendChild(action);
   }
@@ -618,6 +622,7 @@ function getMissionMentorSignal(game) {
     role: profile.role,
     mark: profile.mark,
     title,
+    kind: rule && rule.kind ? rule.kind : null,
     body: `${profile.line} Code focus: ${move}.`,
     reward: `Payoff: ${payoff}`,
     sampleCode: rule && rule.sampleCode ? rule.sampleCode : ""
@@ -666,7 +671,12 @@ function appendMissionMentorSignal(listContainer, game) {
     stage.className = "mentor-signal-stage-btn";
     stage.textContent = "STAGE FOCUS";
     if (typeof stage.addEventListener === "function") {
-      stage.addEventListener("click", () => stageScienceDeltaCommand(signal.sampleCode));
+      stage.addEventListener("click", () => stageScienceDeltaCommand(signal.sampleCode, {
+        title: signal.title,
+        kind: signal.kind,
+        source: "mentor-signal",
+        color: "#fdba74"
+      }));
     }
     copy.appendChild(stage);
   }
@@ -737,7 +747,11 @@ function appendScienceDeltaCard(listContainer, game) {
       stage.className = "science-delta-stage-btn";
       stage.textContent = "STAGE CODE";
       if (typeof stage.addEventListener === "function") {
-        stage.addEventListener("click", () => stageScienceDeltaCommand(delta.nextExperiment.command));
+        stage.addEventListener("click", () => stageScienceDeltaCommand(delta.nextExperiment.command, {
+          title: delta.nextExperiment.title || "Next experiment",
+          source: "science-delta",
+          color: "#86efac"
+        }));
       }
       next.appendChild(stage);
     }
@@ -1515,7 +1529,12 @@ function bindFormulaFocusStage(deck, target) {
   if (!sample) return;
   const stageBtn = deck.querySelector("[data-formula-focus-stage]");
   if (stageBtn && typeof stageBtn.addEventListener === "function") {
-    stageBtn.addEventListener("click", () => stageScienceDeltaCommand(sample));
+    stageBtn.addEventListener("click", () => stageScienceDeltaCommand(sample, {
+      title: target.title,
+      kind: target.kind,
+      source: "formula-focus",
+      color: "#a7f3d0"
+    }));
   }
 }
 
@@ -1711,7 +1730,12 @@ function updateFormulaTarget(game) {
   `;
   const stageBtn = panel.querySelector ? panel.querySelector("[data-formula-stage]") : null;
   if (stageBtn && typeof stageBtn.addEventListener === "function") {
-    stageBtn.addEventListener("click", () => stageScienceDeltaCommand(sample));
+    stageBtn.addEventListener("click", () => stageScienceDeltaCommand(sample, {
+      title: target.title,
+      kind: target.kind,
+      source: "formula-target",
+      color: "#bef264"
+    }));
   }
 }
 
@@ -2743,7 +2767,18 @@ function buildNextExperimentCommand(fullMission, failed = null) {
   return fullMission.starterCode || "";
 }
 
-function stageScienceDeltaCommand(command) {
+function formatStagedExperimentLabel(title) {
+  const clean = String(title || "Code")
+    .replace(/[^a-z0-9 ]/gi, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 3)
+    .join(" ");
+  return `${clean || "CODE"} READY`.toUpperCase();
+}
+
+function stageScienceDeltaCommand(command, options = {}) {
   const code = String(command || "").trim();
   if (!code || typeof document === 'undefined') return false;
   const input = document.getElementById("console-input");
@@ -2755,12 +2790,32 @@ function stageScienceDeltaCommand(command) {
     try { input.setSelectionRange(code.length, code.length); } catch (e) { /* noop */ }
   }
   const liveGame = (typeof window !== 'undefined' && window.Game) ? window.Game : null;
+  const meta = options && typeof options === 'object' ? options : {};
+  const stagedTitle = meta.title || "Code staged";
+  if (liveGame) {
+    liveGame.lastStagedExperiment = {
+      command: code,
+      title: stagedTitle,
+      kind: meta.kind || null,
+      source: meta.source || "stage-button",
+      time: Date.now()
+    };
+  }
   if (liveGame && typeof liveGame.showMissionBalloon === 'function') {
     liveGame.showMissionBalloon("CODE STAGED: press Enter to test", {
       title: "MISSION CRT",
       color: "#a7f3d0",
       timer: 220
     });
+  }
+  if (liveGame && meta.title && liveGame.player && typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+    const px = liveGame.player.x + (liveGame.player.w || 24) / 2;
+    const py = liveGame.player.y - 18;
+    const color = meta.color || "#a7f3d0";
+    ComicBubbles.pop(px, py, formatStagedExperimentLabel(meta.title), color, 0.92);
+    if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+      Particles.spawnBurst(px, liveGame.player.y + (liveGame.player.h || 32) / 2, color, 9, 1.8, 1.7, 'glow');
+    }
   }
   if (typeof ui_log_output === 'function') ui_log_output("Next experiment staged in the terminal.", "info");
   return true;
