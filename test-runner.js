@@ -1653,6 +1653,20 @@ function runEngineTests() {
     let story = getSignalStoryProgress(partial);
     assertEquals(2, story.unlocked.length, "Two cleared planets should unlock two story chapters");
     assertEquals("Amber Gravity Well", story.nextChapter.title, "Next story chapter should point at Jupiter");
+    const storyGame = new StarHopperGame();
+    storyGame.currentPlanetIndex = 0;
+    const beforeStoryIds = storyGame.getUnlockedSignalStoryIds();
+    assertEquals(0, beforeStoryIds.size, "Fresh story state starts with no decoded chapters");
+    storyGame.planetClears = { 0: 1 };
+    const newChapters = storyGame.getNewSignalStoryChapters(beforeStoryIds);
+    assertEquals(1, newChapters.length, "A campaign clear should identify the newly decoded chapter");
+    assertEquals("Emerald Wall Signal", newChapters[0].title, "Decoded chapter should match the cleared world");
+    storyGame.lastSignalStoryUnlocks = newChapters;
+    const unlockCue = storyGame.getClearSignalStoryUnlock();
+    assertEquals("SIGNAL DECODED", unlockCue.kicker, "Clear report unlock cue should label decoded story");
+    assertEquals("Variables change motion", unlockCue.concept, "Unlock cue should carry the science concept");
+    storyGame.lastSignalStoryUnlocks = [];
+    assertEquals(null, storyGame.getClearSignalStoryUnlock({ isDailyRun: true }), "Daily side runs should not fall back to campaign story chapters");
 
     const complete = {
       planetClears: { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 },
@@ -1927,6 +1941,9 @@ function runEngineTests() {
     assertEquals(true, /NEW LAB TIME/.test(report.innerHTML), "Clear report should celebrate a new personal-best time");
     assertEquals(true, /12.4s/.test(report.innerHTML), "Clear report should include the lab clear time");
     assertEquals(true, /Best Time/.test(report.innerHTML), "Clear report should include best-time progress");
+    assertEquals(true, /SIGNAL DECODED/.test(report.innerHTML), "Clear report should celebrate the chapter decoded by this clear");
+    assertEquals(true, /Emerald Wall Signal/.test(report.innerHTML), "Clear report should name the decoded Signal Story chapter");
+    assertEquals(true, /Variables change motion/.test(report.innerHTML), "Decoded story card should show the science concept");
     assertEquals(true, /NEXT SIGNAL CHAPTER/.test(report.innerHTML), "Clear report should preview the next story chapter");
     assertEquals(true, /Moon Loop Echo/.test(report.innerHTML), "Clear report should name the next Signal Story chapter");
     assertEquals(true, /Loops build repeatable patterns/.test(report.innerHTML), "Clear report should show the next chapter concept");

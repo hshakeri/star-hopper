@@ -2638,6 +2638,48 @@ class StarHopperGame {
     };
   }
 
+  getUnlockedSignalStoryIds() {
+    if (typeof getSignalStoryProgress !== 'function') return new Set();
+    const story = getSignalStoryProgress(this);
+    const unlocked = story && Array.isArray(story.unlocked) ? story.unlocked : [];
+    return new Set(unlocked.map(chapter => chapter && chapter.id).filter(Boolean));
+  }
+
+  getNewSignalStoryChapters(previousIds) {
+    if (typeof getSignalStoryProgress !== 'function') return [];
+    const before = previousIds instanceof Set
+      ? previousIds
+      : new Set(Array.isArray(previousIds) ? previousIds : []);
+    const story = getSignalStoryProgress(this);
+    const unlocked = story && Array.isArray(story.unlocked) ? story.unlocked : [];
+    return unlocked.filter(chapter => chapter && chapter.id && !before.has(chapter.id));
+  }
+
+  getClearSignalStoryUnlock({ labStars = null, isDailyRun = false, isFrontierRun = false } = {}) {
+    if (typeof getSignalStoryProgress !== 'function') return null;
+    const story = getSignalStoryProgress(this);
+    const unlocked = Array.isArray(this.lastSignalStoryUnlocks) && this.lastSignalStoryUnlocks.length
+      ? this.lastSignalStoryUnlocks
+      : [];
+    let chapter = unlocked[0] || null;
+    if (!chapter && !isDailyRun && !isFrontierRun) {
+      const chapters = story && Array.isArray(story.chapters) ? story.chapters : [];
+      const campaignIndex = Math.max(1, (Number(this.currentPlanetIndex) || 0) + 1);
+      chapter = chapters.find(item => item && item.unlocked && item.index === campaignIndex) || null;
+      if (!chapter && labStars && labStars.isNewMastery) {
+        chapter = chapters.find(item => item && item.unlocked && item.id === "mastery-remix") || null;
+      }
+    }
+    if (!chapter) return null;
+    return {
+      kicker: "SIGNAL DECODED",
+      title: chapter.title,
+      concept: chapter.concept,
+      body: chapter.bodyText || "",
+      progress: `${story.unlocked.length}/${story.total} decoded`
+    };
+  }
+
   getClearLabStarSummary({ isDailyRun = false, isFrontierRun = false } = {}) {
     const status = (typeof this.getLevelObjectiveStatus === 'function')
       ? this.getLevelObjectiveStatus()
@@ -4522,6 +4564,7 @@ class StarHopperGame {
 
   clearLevel() {
     this.state = 'clear';
+    const storyBeforeIds = this.getUnlockedSignalStoryIds();
 
     // Award collected gems to the wallet — but only the NEW ones never banked from this planet
     // before, so replaying a level (or the Daily Signal) can't farm unlimited trade currency.
@@ -4576,6 +4619,14 @@ class StarHopperGame {
     labStars.worldMasteryAddedXP = (labStars.worldMasteryAddedXP || 0) + clearMastery.addedXP;
     labStars.worldMasteryTierAwards = (labStars.worldMasteryTierAwards || []).concat(clearMastery.tierAwards || []);
     labStars = this.grantMasteryClearReward(labStars);
+    this.lastSignalStoryUnlocks = this.getNewSignalStoryChapters(storyBeforeIds);
+    if (this.lastSignalStoryUnlocks.length) {
+      const decoded = this.lastSignalStoryUnlocks[0];
+      if (typeof ui_log_output === 'function') ui_log_output(`Signal decoded: ${decoded.title} — ${decoded.concept}.`, "success");
+      if (this.player && typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+        ComicBubbles.pop(this.player.x + this.player.w / 2, this.player.y - 28, "SIGNAL DECODED!", "#67e8f9", 1.12);
+      }
+    }
     const clearTime = this.recordClearTime({ isDailyRun, isFrontierRun });
     const frontierRecord = isFrontierRun ? this.recordFrontierClear({ labStars, clearTime }) : null;
     this.refreshGalaxyMapProgress();
@@ -4679,6 +4730,18 @@ class StarHopperGame {
         <em>${safe(replayContract.reward)}</em>
       </div>
     ` : "";
+    const storyUnlock = this.getClearSignalStoryUnlock({ labStars: starSummary, isDailyRun, isFrontierRun });
+    const storyUnlockBlock = storyUnlock ? `
+      <div class="clear-story-unlock">
+        <div class="clear-story-preview-head">
+          <span>${safe(storyUnlock.kicker)}</span>
+          <em>${safe(storyUnlock.progress)}</em>
+        </div>
+        <strong>${safe(storyUnlock.title)}</strong>
+        <code>${safe(storyUnlock.concept)}</code>
+        <p>${safe(storyUnlock.body)}</p>
+      </div>
+    ` : "";
     const storyPreview = this.getClearSignalStoryPreview({ isDailyRun, isFrontierRun, nextIndex });
     const storyPreviewBlock = storyPreview ? `
       <div class="clear-story-preview">
@@ -4748,6 +4811,7 @@ class StarHopperGame {
       ${masteryRibbon}
       ${worldMasteryBlock}
       ${timeBadge}
+      ${storyUnlockBlock}
       ${storyPreviewBlock}
       ${replayContractBlock}
       <div class="clear-lab-grid">
