@@ -3285,6 +3285,25 @@ html {
   margin: 0;
 }
 
+.science-delta-tested-stage-btn {
+  justify-self: start;
+  border: 1px solid rgba(167, 243, 208, 0.46);
+  border-radius: 4px;
+  background: rgba(20, 83, 45, 0.64);
+  color: #ecfdf5;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  font-weight: 900;
+  line-height: 1;
+  padding: 4px 6px;
+}
+
+.science-delta-tested-stage-btn:hover {
+  background: rgba(52, 211, 153, 0.84);
+  color: #052e16;
+}
+
 .science-delta-list {
   display: grid;
   gap: 4px;
@@ -5901,6 +5920,7 @@ body.readable-text-mode .staged-experiment-stage-btn,
 body.readable-text-mode .science-delta-head,
 body.readable-text-mode .science-delta-tested,
 body.readable-text-mode .science-delta-tested p,
+body.readable-text-mode .science-delta-tested-stage-btn,
 body.readable-text-mode .science-delta-row,
 body.readable-text-mode .science-delta-row em,
 body.readable-text-mode .science-delta-next span,

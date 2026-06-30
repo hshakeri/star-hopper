@@ -2461,7 +2461,15 @@ function runEngineTests() {
     assertEquals(true, /OK Science proof/.test(text), "Contract should credit science proof");
 
     list = makeEl();
-    game.lastScienceDelta = { code: "hopper.mass = 1.0", changes: [{ label: "Mass", value: "2.5 -> 1.0" }] };
+    game.lastScienceDelta = {
+      code: "hopper.mass = 1.0",
+      changes: [{ label: "Mass", value: "2.5 -> 1.0" }],
+      nextExperiment: {
+        title: "Engine Lab",
+        body: "Raise engine, then compare speed.",
+        command: "hopper.engine = 7"
+      }
+    };
     updateMissionList(game);
     assertEquals(false, !!findByClass(list, "staged-experiment-card"), "Staged reminder should hide once that command has produced the latest delta");
     const testedDelta = findByClass(list, "science-delta-card");
@@ -2470,6 +2478,14 @@ function runEngineTests() {
     assertEquals(true, /Mass Lab/.test(testedDeltaText), "Completed staged result should preserve the staged target title");
     assertEquals(true, /Mission CRT/.test(testedDeltaText), "Completed staged result should preserve the source surface");
     assertEquals(true, /Compare these changes/.test(testedDeltaText), "Completed staged result should connect the code run to evidence");
+    assertEquals(true, /STAGE NEXT/.test(testedDeltaText), "Completed staged result should offer the follow-up experiment");
+    const testedNextButton = findByClass(testedDelta || list, "science-delta-tested-stage-btn");
+    inputEl22j.value = "";
+    inputEl22j.focused = false;
+    testedNextButton._events.click();
+    assertEquals("hopper.engine = 7", inputEl22j.value, "Completed staged result should stage the next experiment command");
+    assertEquals(true, inputEl22j.focused, "Completed staged result should focus the terminal for the next test");
+    assertEquals("tested-result", game.lastStagedExperiment && game.lastStagedExperiment.source, "Follow-up staging should remember that it came from the tested result");
 
     list.children = [];
     game.remixContext = 'mastery';

@@ -814,6 +814,20 @@ function appendScienceDeltaCard(listContainer, game) {
     testedCard.appendChild(testedLabel);
     testedCard.appendChild(testedTitle);
     testedCard.appendChild(testedBody);
+    if (delta.nextExperiment && delta.nextExperiment.command) {
+      const nextStage = document.createElement("button");
+      nextStage.type = "button";
+      nextStage.className = "science-delta-tested-stage-btn";
+      nextStage.textContent = "STAGE NEXT";
+      if (typeof nextStage.addEventListener === "function") {
+        nextStage.addEventListener("click", () => stageScienceDeltaCommand(delta.nextExperiment.command, {
+          title: delta.nextExperiment.title || "Next experiment",
+          source: "tested-result",
+          color: "#a7f3d0"
+        }));
+      }
+      testedCard.appendChild(nextStage);
+    }
     card.appendChild(testedCard);
   }
 
