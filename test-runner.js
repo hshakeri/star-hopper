@@ -5126,10 +5126,29 @@ function runExperimentLogTests() {
     g.completedMissions = new Set();
     g.coachPredictions = { "earth-gravity-wall": "lighter-longer" };
     g.lastCoachCodeByMission = { "earth-gravity-wall": "use_hopper()\nhopper.mass = 1.2" };
+    g.lastScienceDelta = {
+      code: "use_hopper()\nhopper.mass = 1.2",
+      changes: [
+        {
+          label: "Mass",
+          value: "2.5 -> 1.2 (-1.3)",
+          cue: "Less mass makes the same force accelerate more."
+        }
+      ]
+    };
+    g.discoveryPulse = {
+      code: "use_hopper()\nhopper.mass = 1.2",
+      combo: 2,
+      rewardXP: 13,
+      comboBonusXP: 2
+    };
     updateActiveQuestion(g);
     assertEquals(true, /code: use_hopper/.test(starter.textContent), "Starter names the latest coach code");
     assertEquals(true, /prediction: More antigravity/.test(starter.textContent), "Starter includes the selected prediction label");
     assertEquals(true, /result: cleared/.test(starter.textContent), "Starter includes the attempt result");
+    assertEquals(true, /changed: Mass 2\.5 -> 1\.2/.test(starter.textContent), "Starter includes the latest science delta");
+    assertEquals(true, /why: Less mass/.test(starter.textContent), "Starter includes the science cue from What Changed");
+    assertEquals(true, /lab chain: active x2/.test(starter.textContent), "Starter includes the matching lab-chain state");
     assertEquals(true, /height: 140px/.test(response.placeholder), "Starter becomes the empty reflection placeholder");
     assertEquals(starter.textContent, question.dataset.evidenceStarter, "Question dataset stores the starter for saving");
     response.value = "Student is already typing";

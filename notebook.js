@@ -142,6 +142,36 @@ function getLastNotebookAttemptEvidence(game) {
   return null;
 }
 
+function getNotebookLabChainEvidence(game, delta = null) {
+  const pulse = game && game.discoveryPulse;
+  if (!pulse) return "";
+  if (delta && delta.code) {
+    const pulseCode = String(pulse.code || "").trim();
+    const deltaCode = String(delta.code || "").trim();
+    if (!pulseCode || pulseCode !== deltaCode) return "";
+  }
+  const combo = Math.max(0, Math.floor(Number(pulse.combo) || 0));
+  const earned = (pulse.rewardXP || 0) > 0 || !!pulse.cardUnlocked || !!pulse.hypothesisConfirmed || (pulse.openedGems || 0) > 0;
+  if (!earned && combo > 0) return "paused repeat run";
+  if (combo > 1) return `active x${combo}`;
+  if (combo === 1) return "ready for one new change";
+  return "";
+}
+
+function getNotebookScienceDeltaEvidence(game) {
+  const delta = game && game.lastScienceDelta;
+  if (!delta || !Array.isArray(delta.changes) || !delta.changes.length) return [];
+  const first = delta.changes[0] || {};
+  const out = [];
+  if (first.label && first.value) {
+    out.push(`changed: ${first.label} ${compactNotebookEvidenceValue(first.value, 56)}`);
+  }
+  if (first.cue) out.push(`why: ${compactNotebookEvidenceValue(first.cue, 52)}`);
+  const chain = getNotebookLabChainEvidence(game, delta);
+  if (chain) out.push(`lab chain: ${chain}`);
+  return out;
+}
+
 function buildReflectionEvidenceStarter(game, activeMission = null) {
   const missionId = activeMission && activeMission.id ? activeMission.id : null;
   const parts = [];
@@ -162,6 +192,8 @@ function buildReflectionEvidenceStarter(game, activeMission = null) {
     if (Number.isFinite(attempt.maxH)) parts.push(`height: ${Math.round(attempt.maxH)}px`);
     if (Number.isFinite(attempt.maxV)) parts.push(`speed: ${Math.round(attempt.maxV)}px/f`);
   }
+
+  parts.push(...getNotebookScienceDeltaEvidence(game));
 
   if (!parts.length && activeMission && activeMission.fullMission && activeMission.fullMission.starterCode) {
     const starterSnippet = compactNotebookEvidenceValue(activeMission.fullMission.starterCode);
