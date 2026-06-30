@@ -1567,11 +1567,16 @@ function runEngineTests() {
     assertEquals(4, pulse.comboAmplifierBonusXP, "Loop Engineer adds the amplifier bonus");
     assertEquals(true, game.researchXP > beforeXP, "Amplified combo still awards Research XP");
     assertEquals(true, /COMBO AMPLIFIER \+4 XP/.test(panel.innerHTML), "Discovery pulse renders the amplifier chip");
+    assertEquals(true, /CHAIN NEXT x4/.test(panel.innerHTML), "Discovery pulse should show the next combo target");
+    assertEquals(true, /New progress can add combo XP \+ amplifier XP/.test(panel.innerHTML), "Chain target should explain the amplified reward");
+    assertEquals(true, /Unlock a new sample gate, formula card, or mission check/.test(panel.innerHTML), "Chain target should name valid new progress");
 
     const afterXP = game.researchXP;
     recordDiscoveryPulse(game, activeMission, "hopper.engine = 6", complete, 0);
     assertEquals(afterXP, game.researchXP, "Repeating completed progress does not farm amplifier XP");
     assertEquals(3, game.discoveryCombo, "Repeating completed progress does not extend the combo");
+    assertEquals(true, /CHAIN PAUSED/.test(panel.innerHTML), "Repeating completed progress should pause the chain hint");
+    assertEquals(true, /Repeat commands do not count/.test(panel.innerHTML), "Paused chain should explain why no reward was added");
 
     document.getElementById = oldGetElementById22bc;
     renderTestResult("engine-suite", "Curriculum: combo amplifier rewards chained progress", true);

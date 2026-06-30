@@ -1636,6 +1636,29 @@ function finishSuccessfulCodeRunDiscovery(game, activeMission, code, resultState
   return { opened, pulse, lockedAfter };
 }
 
+function getDiscoveryChainHint(pulse) {
+  const combo = Math.max(0, Math.floor(Number(pulse && pulse.combo) || 0));
+  if (!pulse || combo <= 0) return "";
+  const earned = (pulse.rewardXP || 0) > 0 || !!pulse.cardUnlocked || !!pulse.hypothesisConfirmed || (pulse.openedGems || 0) > 0;
+  if (!earned) {
+    return {
+      label: "CHAIN PAUSED",
+      title: "Repeat commands do not count",
+      body: "Make one new checklist item, sample gate, or formula card change to restart the lab chain."
+    };
+  }
+  const nextCombo = combo + 1;
+  const nextTarget = pulse.total > 0 && pulse.passed < pulse.total
+    ? "Pass one new checklist item"
+    : "Unlock a new sample gate, formula card, or mission check";
+  const amplifier = pulse.comboAmplifierUnlocked ? " + amplifier XP" : "";
+  return {
+    label: `CHAIN NEXT x${nextCombo}`,
+    title: `New progress can add combo XP${amplifier}`,
+    body: nextTarget
+  };
+}
+
 function updateDiscoveryPulse(game) {
   const panel = document.getElementById("discovery-pulse");
   if (!panel) return;
@@ -1662,6 +1685,10 @@ function updateDiscoveryPulse(game) {
   const rankPerk = pulse.rankPerk
     ? `<div class="discovery-hypothesis discovery-perk">LAB PERK UNLOCKED: ${escapeHTML(pulse.rankPerk.label)}</div>`
     : "";
+  const chainHint = getDiscoveryChainHint(pulse);
+  const chainHintCard = chainHint
+    ? `<div class="discovery-chain-next"><span>${escapeHTML(chainHint.label)}</span><strong>${escapeHTML(chainHint.title)}</strong><p>${escapeHTML(chainHint.body)}</p></div>`
+    : "";
   panel.innerHTML = `
     <div class="discovery-pulse-head">
       <span>DISCOVERY PULSE</span>
@@ -1673,6 +1700,7 @@ function updateDiscoveryPulse(game) {
     ${hypothesis}
     ${rankPerk}
     <div class="discovery-pulse-body">${escapeHTML(pulse.insight)}</div>
+    ${chainHintCard}
     <div class="discovery-pulse-foot">${escapeHTML(pulse.missionTitle)} · ${escapeHTML(progress)}${pulse.openedGems ? ` · ${escapeHTML(String(pulse.openedGems))} gem gate${pulse.openedGems === 1 ? "" : "s"}` : ""}</div>
   `;
 }
