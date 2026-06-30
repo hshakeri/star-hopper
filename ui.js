@@ -1065,6 +1065,9 @@ const DISCOVERY_RULES = [
     formula: "a = F / m",
     insight: "Lower mass makes the same engine and jump force create more acceleration.",
     cue: "Watch speed and jump height change when mass changes.",
+    axis: "Mass controls acceleration",
+    move: "Tune hopper.mass once",
+    payoff: "Open lighter-build routes",
     sampleCode: "hopper.mass = 1.0"
   },
   {
@@ -1074,6 +1077,9 @@ const DISCOVERY_RULES = [
     formula: "speed = engine / mass",
     insight: "More engine force raises top speed, especially when Hopper is light.",
     cue: "Use the Agility gauge to see the new speed.",
+    axis: "Force changes speed",
+    move: "Raise hopper.engine",
+    payoff: "Beat Agility gates",
     sampleCode: "hopper.engine = 7"
   },
   {
@@ -1083,6 +1089,9 @@ const DISCOVERY_RULES = [
     formula: "jump = force / mass",
     insight: "Jump force lifts better when the rover has less mass to accelerate.",
     cue: "Try the same jump with two different masses.",
+    axis: "Impulse launches mass",
+    move: "Tune hopper.jump_power",
+    payoff: "Reach high samples",
     sampleCode: "hopper.jump_power = 20"
   },
   {
@@ -1092,6 +1101,9 @@ const DISCOVERY_RULES = [
     formula: "felt g = planet g - antigravity",
     insight: "Antigravity lowers the pull you feel, stretching hang time and jump arcs.",
     cue: "A smaller felt g makes the same jump stay airborne longer.",
+    axis: "Felt gravity changes hang time",
+    move: "Set antigravity",
+    payoff: "Stretch jump arcs",
     sampleCode: "antigravity = 4.9"
   },
   {
@@ -1101,6 +1113,9 @@ const DISCOVERY_RULES = [
     formula: "thrust = rocket x 2.5 / mass",
     insight: "Rocket power fights gravity, but heavy builds spend more fuel to climb.",
     cue: "Watch Thrust and the fuel tank together.",
+    axis: "Thrust must beat weight",
+    move: "Tune hopper.rocket_power",
+    payoff: "Climb gravity wells",
     sampleCode: "hopper.rocket_power = 75"
   },
   {
@@ -1110,6 +1125,9 @@ const DISCOVERY_RULES = [
     formula: "repeat n = command x n",
     insight: "A loop turns one instruction into a pattern, saving lines and building faster.",
     cue: "Count the spawned tools after the loop runs.",
+    axis: "Loops build patterns",
+    move: "Repeat one spawn command",
+    payoff: "Build bridges faster",
     sampleCode: "repeat 3 { spawn_spring() }"
   },
   {
@@ -1119,6 +1137,9 @@ const DISCOVERY_RULES = [
     formula: "friction opposes sliding",
     insight: "Higher friction turns sliding motion into grip, helping the rover stop.",
     cue: "Compare how far the rover skids before and after the change.",
+    axis: "Friction opposes motion",
+    move: "Tune friction",
+    payoff: "Stop on ice",
     sampleCode: "friction = 8"
   },
   {
@@ -1128,6 +1149,9 @@ const DISCOVERY_RULES = [
     formula: "bounce kept = elasticity x speed",
     insight: "Elasticity decides how much speed survives a collision or springy bounce.",
     cue: "Mass gives the shove; elasticity preserves the rebound.",
+    axis: "Elasticity preserves rebound",
+    move: "Tune elasticity",
+    payoff: "Keep bounce speed",
     sampleCode: "elasticity = 1.0"
   },
   {
@@ -1137,6 +1161,9 @@ const DISCOVERY_RULES = [
     formula: "opposite poles attract",
     insight: "Changing pole flips whether the field pulls or pushes Hopper.",
     cue: "The same magnet becomes a lift or a barrier after the pole changes.",
+    axis: "Polarity flips force",
+    move: "Change hopper.pole",
+    payoff: "Turn fields into lifts",
     sampleCode: "when player.touching('magnet'): hopper.pole = 'south'"
   }
 ];
@@ -1210,12 +1237,20 @@ function renderFormulaFocusCard(collection, target) {
   const current = collection.unlocked ? collection.unlocked.length : 0;
   const total = collection.cards.length;
   const sample = target.sampleCode || target.cue || "";
+  const axis = target.axis || target.formula || "One science idea";
+  const move = target.move || "Change one code value";
+  const payoff = target.payoff || `Collect ${target.title} + Research XP`;
   return `
     <div class="formula-focus-card">
       <div class="formula-focus-copy">
         <span>NEXT EXPERIMENT</span>
         <strong>${escapeHTML(target.title)}</strong>
         <p>${escapeHTML(target.cue)}</p>
+        <div class="formula-focus-steps">
+          <span><b>LEARN</b>${escapeHTML(axis)}</span>
+          <span><b>CODE</b>${escapeHTML(move)}</span>
+          <span><b>WIN</b>${escapeHTML(payoff)}</span>
+        </div>
       </div>
       <div class="formula-focus-command">
         <span>${current}/${total} cards</span>

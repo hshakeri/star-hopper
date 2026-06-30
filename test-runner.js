@@ -1609,6 +1609,11 @@ function runEngineTests() {
     assertEquals(true, /Formula Cards 2\/9/.test(els["discovery-deck"].innerHTML), "Deck should show formula collection progress");
     assertEquals(true, /NEXT EXPERIMENT/.test(els["discovery-deck"].innerHTML), "Deck should turn the next card into a focused experiment");
     assertEquals(true, /Engine Lab/.test(els["discovery-deck"].innerHTML), "Formula focus should point at the next locked card");
+    assertEquals(true, /LEARN/.test(els["discovery-deck"].innerHTML), "Formula focus should label the science idea");
+    assertEquals(true, /CODE/.test(els["discovery-deck"].innerHTML), "Formula focus should label the coding move");
+    assertEquals(true, /WIN/.test(els["discovery-deck"].innerHTML), "Formula focus should label the in-game payoff");
+    assertEquals(true, /Force changes speed/.test(els["discovery-deck"].innerHTML), "Formula focus should name the target concept axis");
+    assertEquals(true, /Beat Agility gates/.test(els["discovery-deck"].innerHTML), "Formula focus should name a concrete payoff");
     assertEquals(true, /hopper\.engine = 7/.test(els["discovery-deck"].innerHTML), "Formula focus should show a runnable sample command");
     assertEquals(true, /a = F \/ m/.test(els["discovery-deck"].innerHTML), "Discovery deck should show collected formulas");
     assertEquals(true, /Loop Lab/.test(els["discovery-deck"].innerHTML), "Discovery deck should show multiple discoveries");
@@ -1658,6 +1663,8 @@ function runEngineTests() {
     assertEquals(true, /Next: Amber Gravity Well/.test(els["signal-story-panel"].innerHTML), "Story panel should show the next chapter hook");
     assertEquals(true, /NEXT EXPERIMENT/.test(els["discovery-deck"].innerHTML), "Empty formula deck should still surface one next experiment");
     assertEquals(true, /hopper\.mass = 1\.0/.test(els["discovery-deck"].innerHTML), "Empty formula deck should include a first runnable command");
+    assertEquals(true, /Mass controls acceleration/.test(els["discovery-deck"].innerHTML), "Empty formula focus should name the first science concept");
+    assertEquals(true, /Open lighter-build routes/.test(els["discovery-deck"].innerHTML), "Empty formula focus should show the first payoff");
     assertEquals(true, /Run the focus command/.test(els["discovery-deck"].innerHTML), "Empty formula deck should still render while story updates");
 
     updateSignalStoryPanel(complete);

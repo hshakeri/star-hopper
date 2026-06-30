@@ -4515,6 +4515,34 @@ body.navigator-active .coach-bubble { display: none !important; }
   line-height: 1.3;
 }
 
+.formula-focus-steps {
+  display: grid;
+  gap: 4px;
+  margin-top: 7px;
+}
+
+.formula-focus-steps span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  color: #c4f1ff;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  line-height: 1.25;
+}
+
+.formula-focus-steps b {
+  flex: 0 0 auto;
+  min-width: 36px;
+  color: #030712;
+  background: #67e8f9;
+  border-radius: 4px;
+  padding: 2px 4px;
+  font-size: 0.52rem;
+  text-align: center;
+}
+
 .formula-focus-command {
   border-left: 1px solid rgba(250, 204, 21, 0.24);
   padding-left: 8px;
