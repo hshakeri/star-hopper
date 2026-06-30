@@ -124,6 +124,66 @@ function resetNotebookStats() {
   flightStartTimestamp = null;
 }
 
+function compactNotebookEvidenceValue(value, maxLen = 60) {
+  const raw = Array.isArray(value) ? value.join("; ") : String(value || "");
+  const compact = raw.replace(/\s+/g, " ").trim();
+  return compact.length > maxLen ? compact.slice(0, maxLen - 1) + "..." : compact;
+}
+
+function getLastNotebookAttemptEvidence(game) {
+  if (typeof AttemptLog === "undefined" || !AttemptLog.byPlanet || !game) return null;
+  const rows = AttemptLog.byPlanet[game.currentPlanetIndex] || [];
+  for (let i = rows.length - 1; i >= 0; i--) {
+    const row = rows[i];
+    if (!row) continue;
+    const hasCode = Array.isArray(row.code) ? row.code.length > 0 : !!row.code;
+    if (row.result || hasCode || Number.isFinite(row.maxH) || Number.isFinite(row.maxV)) return row;
+  }
+  return null;
+}
+
+function buildReflectionEvidenceStarter(game, activeMission = null) {
+  const missionId = activeMission && activeMission.id ? activeMission.id : null;
+  const parts = [];
+  const code = missionId && game && game.lastCoachCodeByMission
+    ? game.lastCoachCodeByMission[missionId]
+    : "";
+  const codeSnippet = compactNotebookEvidenceValue(code);
+  if (codeSnippet) parts.push(`code: ${codeSnippet}`);
+
+  const prediction = missionId && game && typeof getCoachPredictionOption === "function"
+    ? getCoachPredictionOption(game, missionId)
+    : null;
+  if (prediction && prediction.label) parts.push(`prediction: ${prediction.label}`);
+
+  const attempt = getLastNotebookAttemptEvidence(game);
+  if (attempt) {
+    if (attempt.result) parts.push(`result: ${attempt.result}`);
+    if (Number.isFinite(attempt.maxH)) parts.push(`height: ${Math.round(attempt.maxH)}px`);
+    if (Number.isFinite(attempt.maxV)) parts.push(`speed: ${Math.round(attempt.maxV)}px/f`);
+  }
+
+  if (!parts.length && activeMission && activeMission.fullMission && activeMission.fullMission.starterCode) {
+    const starterSnippet = compactNotebookEvidenceValue(activeMission.fullMission.starterCode);
+    if (starterSnippet) parts.push(`try: ${starterSnippet}`);
+  }
+
+  return parts.length
+    ? `Evidence starter - ${parts.join(" | ")}. Explain what changed and why.`
+    : "Evidence starter - describe the code you tried, what changed, and why the physics behaved that way.";
+}
+
+function updateReflectionEvidenceStarter(game, activeMission = null) {
+  const evidence = buildReflectionEvidenceStarter(game, activeMission);
+  const starterEl = document.getElementById("notebook-reflection-starter");
+  const textEl = document.getElementById("notebook-user-response");
+  const qEl = document.getElementById("notebook-prompt-question");
+  if (starterEl) starterEl.textContent = evidence;
+  if (qEl) qEl.dataset.evidenceStarter = evidence;
+  if (textEl && !textEl.value) textEl.placeholder = evidence;
+  return evidence;
+}
+
 // Refresh the reflection prompt based on active mission
 function updateActiveQuestion(game) {
   const qEl = document.getElementById("notebook-prompt-question");
@@ -132,6 +192,7 @@ function updateActiveQuestion(game) {
   const currentPlanet = game.currentPlanet;
   if (!currentPlanet || !currentPlanet.missions) {
     qEl.textContent = "Take data observations of Rover's movements!";
+    updateReflectionEvidenceStarter(game, null);
     return;
   }
 
@@ -145,9 +206,11 @@ function updateActiveQuestion(game) {
       qEl.dataset.missionTitle = activeMission.fullMission.title;
       qEl.dataset.starterCode = activeMission.fullMission.starterCode;
       qEl.dataset.badgeId = activeMission.fullMission.badge ? activeMission.fullMission.badge.id : "";
+      updateReflectionEvidenceStarter(game, activeMission);
     }
   } else {
     qEl.textContent = "Write code to explore gravity boundaries!";
+    updateReflectionEvidenceStarter(game, activeMission);
   }
 }
 
@@ -174,6 +237,7 @@ function saveNotebookReflection() {
   const prediction = window.Game && typeof getCoachPredictionOption === 'function'
     ? getCoachPredictionOption(window.Game, missionId)
     : null;
+  const evidence = qEl.dataset.evidenceStarter || ((document.getElementById("notebook-reflection-starter") || {}).textContent || "");
   const badge = mission && mission.badge && window.Game && window.Game.earnedBadges && window.Game.earnedBadges.has(mission.badge.id)
     ? mission.badge
     : null;
@@ -184,6 +248,7 @@ function saveNotebookReflection() {
     answer: responseText,
     code: starterCode,
     prediction: prediction ? prediction.label : "",
+    evidence,
     badge: badge ? `${badge.icon} ${badge.label}` : "",
     timestamp: new Date().toLocaleTimeString()
   };
@@ -228,6 +293,7 @@ function renderNotebookHistory() {
       </div>
       <p style="color: var(--neon-cyan); font-size: 0.75rem; font-family: monospace; margin-bottom: 4px;">Code: ${(entry.code || "").replace(/\n/g, '; ')}</p>
       ${entry.prediction ? `<p style="color: var(--neon-orange); font-size: 0.72rem; margin-bottom: 4px;">Prediction: ${entry.prediction}</p>` : ""}
+      ${entry.evidence ? `<p class="notebook-entry-evidence">Evidence: ${entry.evidence}</p>` : ""}
       ${entry.badge ? `<p style="color: var(--neon-green); font-size: 0.72rem; margin-bottom: 4px;">Badge: ${entry.badge}</p>` : ""}
       <p style="color: var(--text-muted); font-style: italic; font-size: 0.72rem; margin-bottom: 4px;">Q: ${entry.question || ""}</p>
       <p style="font-size: 0.78rem; color: var(--text-primary);">A: ${entry.answer || ""}</p>

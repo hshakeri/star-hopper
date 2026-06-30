@@ -4150,6 +4150,46 @@ function runExperimentLogTests() {
   } catch (err) {
     renderTestResult(SUITE, "Experiment log: hypothesis staging + retried auto-close", false, err.message);
   }
+
+  // Test E4: notebook reflection starter turns code/prediction/attempt data into an evidence prompt.
+  let oldGetElementByIdE4 = null;
+  try {
+    oldGetElementByIdE4 = document.getElementById;
+    AttemptLog.byPlanet = {
+      0: [{ result: "cleared", code: ["hopper.mass = 1.2"], maxH: 140, maxV: 9.2 }]
+    };
+    const question = { textContent: "", dataset: {} };
+    const starter = { textContent: "" };
+    const response = { value: "", placeholder: "" };
+    const els = {
+      "notebook-prompt-question": question,
+      "notebook-reflection-starter": starter,
+      "notebook-user-response": response
+    };
+    document.getElementById = (id) => els[id] || null;
+    const g = new StarHopperGame();
+    g.currentPlanetIndex = 0;
+    g.currentPlanet = PLANETS[0];
+    g.completedMissions = new Set();
+    g.coachPredictions = { "earth-gravity-wall": "lighter-longer" };
+    g.lastCoachCodeByMission = { "earth-gravity-wall": "use_hopper()\nhopper.mass = 1.2" };
+    updateActiveQuestion(g);
+    assertEquals(true, /code: use_hopper/.test(starter.textContent), "Starter names the latest coach code");
+    assertEquals(true, /prediction: More antigravity/.test(starter.textContent), "Starter includes the selected prediction label");
+    assertEquals(true, /result: cleared/.test(starter.textContent), "Starter includes the attempt result");
+    assertEquals(true, /height: 140px/.test(response.placeholder), "Starter becomes the empty reflection placeholder");
+    assertEquals(starter.textContent, question.dataset.evidenceStarter, "Question dataset stores the starter for saving");
+    response.value = "Student is already typing";
+    response.placeholder = "keep me";
+    updateActiveQuestion(g);
+    assertEquals("keep me", response.placeholder, "Refreshing never overwrites a typed reflection placeholder");
+    document.getElementById = oldGetElementByIdE4;
+    renderTestResult(SUITE, "Notebook: reflection starter uses evidence", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Notebook: reflection starter uses evidence", false, err.message);
+  } finally {
+    if (oldGetElementByIdE4) document.getElementById = oldGetElementByIdE4;
+  }
 }
 
 // Suite 8: Render cache — pre-baked layers and sprites (graphics fast path)

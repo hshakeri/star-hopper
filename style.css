@@ -4312,6 +4312,17 @@ body.navigator-active .coach-bubble { display: none !important; }
   letter-spacing: 0.5px;
 }
 
+.notebook-reflection-starter {
+  padding: 6px 8px;
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.24);
+  border-radius: 6px;
+  color: #bae6fd;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
 .notebook-textarea {
   width: 100%;
   height: 65px;
@@ -4381,6 +4392,14 @@ body.navigator-active .coach-bubble { display: none !important; }
   margin-bottom: 6px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   padding-bottom: 4px;
+}
+
+.notebook-entry-evidence {
+  color: #bae6fd;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  line-height: 1.35;
+  margin-bottom: 4px;
 }
 
 /* Energy plot placeholder */
@@ -4925,6 +4944,8 @@ body.readable-text-mode .discovery-card p,
 body.readable-text-mode .discovery-deck-empty,
 body.readable-text-mode .notebook-stat-card .label,
 body.readable-text-mode .notebook-prompt-title,
+body.readable-text-mode .notebook-reflection-starter,
+body.readable-text-mode .notebook-entry-evidence,
 body.readable-text-mode .notebook-entry,
 body.readable-text-mode .guide-container,
 body.readable-text-mode .guide-section-title,

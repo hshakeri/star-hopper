@@ -95,7 +95,7 @@ const files = [
   'interpreter.js', 'missions.js', 'planets.js', 'audio.js', 'render-cache.js', 'entities.js',
   'physics.js', 'ui.js', 'nav-core.js', 'nav-bodies.js', 'nav-physics.js', 'nav-ship.js',
   'nav-transfer.js', 'nav-renderer.js', 'nav-missions.js', 'navigator.js', 'retry-variants.js',
-  'diagnostics.js', 'attempt-log.js', 'github-sync.js', 'profiles.js', 'game.js', 'guided-mode.js', 'test-runner.js',
+  'diagnostics.js', 'attempt-log.js', 'github-sync.js', 'profiles.js', 'game.js', 'guided-mode.js', 'notebook.js', 'test-runner.js',
 ];
 const bundle = files.map((f) => fs.readFileSync(path.join(basePath, f), 'utf8')).join('\n');
 
