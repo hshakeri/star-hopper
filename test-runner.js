@@ -891,6 +891,7 @@ function runEngineTests() {
     assertEquals(2, game.discoveryCombo, "Second new discovery extends combo");
     assertEquals(true, !!finalPulse.rankUp, "Crossing a Research XP threshold should flag rank-up");
     assertEquals("Variable Scout", finalPulse.rankTitle, "Rank-up should name the new rank");
+    assertEquals("Hypothesis Bonus", finalPulse.rankPerk.label, "Rank-up should unlock the rank's lab perk");
     assertEquals(true, game.discoveredFormulaKinds.has("engine"), "Engine formula should be collected");
     assertEquals(2, game.formulaCardEffects.length, "A second new formula should spawn a second card effect");
     renderTestResult("engine-suite", "Curriculum: code runs create discovery rewards", true);
@@ -921,6 +922,7 @@ function runEngineTests() {
     assertEquals(6, pulse.hypothesisBonusXP, "Hypothesis confirmation should award the bonus XP");
     assertEquals(true, game.confirmedHypotheses.has(activeMission.id), "Confirmed hypothesis should be stored by mission");
     assertEquals(true, /HYPOTHESIS CONFIRMED \+6 XP/.test(panel.innerHTML), "Discovery pulse should render the hypothesis chip");
+    assertEquals(true, /LAB PERK UNLOCKED: Hypothesis Bonus/.test(panel.innerHTML), "Discovery pulse should render the lab-perk unlock chip");
 
     const complete = { allPassed: true, items: partial.items.map(item => ({ ...item, passed: true })) };
     const secondPulse = recordDiscoveryPulse(game, activeMission, "hopper.engine = 6", complete, 0);
@@ -947,6 +949,8 @@ function runEngineTests() {
   try {
     const rank = getResearchRank(60);
     assertEquals("Physics Tinkerer", rank.title, "60 Research XP should reach the third rank");
+    assertEquals("Formula Deck", rank.perk.label, "Rank should carry the current lab perk");
+    assertEquals("Combo Amplifier", rank.nextPerk.label, "Rank should preview the next lab perk");
     assertEquals(40, rank.remaining, "Remaining XP should point to the next rank");
 
     const els = {
@@ -962,6 +966,10 @@ function runEngineTests() {
       ]
     });
     assertEquals(true, /Physics Tinkerer/.test(els["research-rank-card"].innerHTML), "Rank card should show the current title");
+    assertEquals(true, /Lab Perk/.test(els["research-rank-card"].innerHTML), "Rank card should label the current lab perk");
+    assertEquals(true, /Formula Deck/.test(els["research-rank-card"].innerHTML), "Rank card should show the current lab perk");
+    assertEquals(true, /Next Perk/.test(els["research-rank-card"].innerHTML), "Rank card should preview the next lab perk");
+    assertEquals(true, /Combo Amplifier/.test(els["research-rank-card"].innerHTML), "Rank card should name the next lab perk");
     assertEquals(true, /Formula Cards 2\/9/.test(els["discovery-deck"].innerHTML), "Deck should show formula collection progress");
     assertEquals(true, /a = F \/ m/.test(els["discovery-deck"].innerHTML), "Discovery deck should show collected formulas");
     assertEquals(true, /Loop Lab/.test(els["discovery-deck"].innerHTML), "Discovery deck should show multiple discoveries");

@@ -468,12 +468,60 @@ function getCoachPredictionOption(game, missionId) {
 }
 
 const RESEARCH_RANKS = [
-  { level: 1, title: "Lab Rookie", min: 0 },
-  { level: 2, title: "Variable Scout", min: 20 },
-  { level: 3, title: "Physics Tinkerer", min: 55 },
-  { level: 4, title: "Loop Engineer", min: 100 },
-  { level: 5, title: "Orbit Scientist", min: 170 },
-  { level: 6, title: "Star Mentor", min: 260 }
+  {
+    level: 1,
+    title: "Lab Rookie",
+    min: 0,
+    perk: {
+      label: "Prediction Gate",
+      description: "Guess before code so every mission starts like a real experiment."
+    }
+  },
+  {
+    level: 2,
+    title: "Variable Scout",
+    min: 20,
+    perk: {
+      label: "Hypothesis Bonus",
+      description: "Correct mission predictions can pay one-time Research XP."
+    }
+  },
+  {
+    level: 3,
+    title: "Physics Tinkerer",
+    min: 55,
+    perk: {
+      label: "Formula Deck",
+      description: "Collected formulas become a visible science card set."
+    }
+  },
+  {
+    level: 4,
+    title: "Loop Engineer",
+    min: 100,
+    perk: {
+      label: "Combo Amplifier",
+      description: "New checklist progress keeps a discovery combo moving."
+    }
+  },
+  {
+    level: 5,
+    title: "Orbit Scientist",
+    min: 170,
+    perk: {
+      label: "Daily Signal Lab",
+      description: "Daily remixes turn practice into a fresh signal chase."
+    }
+  },
+  {
+    level: 6,
+    title: "Star Mentor",
+    min: 260,
+    perk: {
+      label: "Mastery Mentor",
+      description: "A complete lab record points toward mastery clears."
+    }
+  }
 ];
 
 function getResearchRank(xp = 0) {
@@ -490,6 +538,7 @@ function getResearchRank(xp = 0) {
     xp: score,
     nextTitle: next ? next.title : "Max Rank",
     nextMin: next ? next.min : current.min,
+    nextPerk: next ? next.perk : null,
     remaining: next ? Math.max(0, next.min - score) : 0,
     progress
   };
@@ -514,6 +563,19 @@ function updateResearchProgress(game = window.Game) {
       </div>
       <div class="research-rank-bar" aria-label="Research rank progress">
         <span style="width: ${pct}%"></span>
+      </div>
+      <div class="research-rank-perks">
+        <div class="research-perk current">
+          <span>Lab Perk</span>
+          <strong>${escapeHTML(rank.perk.label)}</strong>
+          <p>${escapeHTML(rank.perk.description)}</p>
+        </div>
+        ${rank.nextPerk ? `
+        <div class="research-perk next">
+          <span>Next Perk</span>
+          <strong>${escapeHTML(rank.nextPerk.label)}</strong>
+          <p>${escapeHTML(rank.nextPerk.description)}</p>
+        </div>` : ""}
       </div>
       <div class="research-rank-next">${rank.remaining > 0 ? `${Math.round(rank.remaining)} XP to ${escapeHTML(rank.nextTitle)}` : "Max rank reached"}</div>
     `;
@@ -812,11 +874,12 @@ function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems
     if (beforeRank && afterRank && afterRank.level > beforeRank.level) {
       pulse.rankUp = true;
       pulse.rankTitle = afterRank.title;
+      pulse.rankPerk = afterRank.perk;
       if (typeof showBadgeToast === 'function') {
         showBadgeToast({
           icon: "🔬",
           label: `Research Rank: ${afterRank.title}`,
-          description: `${Math.round(game.researchXP || 0)} Research XP earned`
+          description: `Lab Perk: ${afterRank.perk.label} (${Math.round(game.researchXP || 0)} XP)`
         });
       }
     }
@@ -824,6 +887,9 @@ function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems
       ui_log_output(`Research +${pulse.rewardXP} XP: ${pulse.formula}`, "success");
       if (pulse.hypothesisConfirmed) {
         ui_log_output(`Hypothesis confirmed +${pulse.hypothesisBonusXP} XP.`, "success");
+      }
+      if (pulse.rankPerk) {
+        ui_log_output(`Lab Perk unlocked: ${pulse.rankPerk.label}.`, "success");
       }
     }
     if (typeof logMissionBriefing === 'function') {
@@ -860,6 +926,9 @@ function updateDiscoveryPulse(game) {
   const hypothesis = pulse.hypothesisConfirmed
     ? `<div class="discovery-hypothesis">HYPOTHESIS CONFIRMED +${escapeHTML(String(pulse.hypothesisBonusXP || 0))} XP</div>`
     : "";
+  const rankPerk = pulse.rankPerk
+    ? `<div class="discovery-hypothesis discovery-perk">LAB PERK UNLOCKED: ${escapeHTML(pulse.rankPerk.label)}</div>`
+    : "";
   panel.innerHTML = `
     <div class="discovery-pulse-head">
       <span>DISCOVERY PULSE</span>
@@ -867,6 +936,7 @@ function updateDiscoveryPulse(game) {
     </div>
     <div class="discovery-pulse-formula">${escapeHTML(pulse.formula)}</div>
     ${hypothesis}
+    ${rankPerk}
     <div class="discovery-pulse-body">${escapeHTML(pulse.insight)}</div>
     <div class="discovery-pulse-foot">${escapeHTML(pulse.missionTitle)} · ${escapeHTML(progress)}${pulse.openedGems ? ` · ${escapeHTML(String(pulse.openedGems))} gem gate${pulse.openedGems === 1 ? "" : "s"}` : ""}</div>
   `;
