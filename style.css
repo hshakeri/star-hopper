@@ -1668,6 +1668,60 @@ body.resizing-panes * {
   line-height: 1.25;
 }
 
+.clear-research-unlock {
+  border: 1px solid rgba(190, 242, 100, 0.3);
+  border-radius: 6px;
+  background:
+    linear-gradient(90deg, rgba(20, 83, 45, 0.2), rgba(8, 47, 73, 0.18)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.022) 0 1px, transparent 1px 4px);
+  padding: 6px 7px;
+  margin: -1px 0 8px;
+}
+
+.clear-research-unlock-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+  font-family: var(--font-mono);
+}
+
+.clear-research-unlock-head span {
+  color: #bbf7d0;
+  font-size: 0.56rem;
+  font-weight: 800;
+}
+
+.clear-research-unlock-head strong {
+  color: #fef08a;
+  font-size: 0.64rem;
+  text-align: right;
+}
+
+.clear-research-unlock-bar {
+  height: 6px;
+  margin: 5px 0 4px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.64);
+  border: 1px solid rgba(190, 242, 100, 0.2);
+  overflow: hidden;
+}
+
+.clear-research-unlock-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #22c55e, #67e8f9);
+  box-shadow: 0 0 8px rgba(103, 232, 249, 0.26);
+}
+
+.clear-research-unlock p {
+  margin: 0;
+  color: #dff6ff;
+  font-size: 0.62rem;
+  line-height: 1.25;
+}
+
 .clear-lab-time {
   display: flex;
   justify-content: space-between;
@@ -6718,6 +6772,8 @@ body.readable-text-mode .certificate-progress-head,
 body.readable-text-mode .certificate-progress-card p,
 body.readable-text-mode .certificate-progress-list span,
 body.readable-text-mode .clear-story-preview p,
+body.readable-text-mode .clear-research-unlock-head,
+body.readable-text-mode .clear-research-unlock p,
 body.readable-text-mode .clear-lab-contract-btn,
 body.readable-text-mode .mission-coach-summary,
 body.readable-text-mode .mission-coach-focus span,

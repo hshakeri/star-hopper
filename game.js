@@ -4822,6 +4822,18 @@ class StarHopperGame {
     const formulaText = formulas ? `${formulas.unlocked.length}/${formulas.cards.length}` : `${this.discoveredFormulaKinds ? this.discoveredFormulaKinds.size : 0}`;
     const quest = (typeof getActiveLabQuest === 'function') ? getActiveLabQuest(this) : null;
     const rank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+    const unlockPreview = rank && typeof getResearchUnlockPreview === 'function' ? getResearchUnlockPreview(rank) : null;
+    const unlockPct = unlockPreview ? Math.max(0, Math.min(100, Math.round((Number(unlockPreview.progress) || 0) * 100))) : 0;
+    const unlockBlock = unlockPreview ? `
+      <div class="clear-research-unlock">
+        <div class="clear-research-unlock-head">
+          <span>${safe(unlockPreview.label)}</span>
+          <strong>${safe(unlockPreview.title)}</strong>
+        </div>
+        <div class="clear-research-unlock-bar" aria-label="${safe(`${unlockPct}% toward next lab unlock`)}"><span style="width: ${unlockPct}%"></span></div>
+        <p>${safe(unlockPreview.body)}</p>
+      </div>
+    ` : "";
     const starSummary = labStars || this.getClearLabStarSummary({ isDailyRun });
     const timeSummary = clearTime || this.lastClearTimeSummary || null;
     const elapsedText = timeSummary && Number.isFinite(timeSummary.elapsed) ? `${timeSummary.elapsed.toFixed(1)}s` : "--";
@@ -4920,6 +4932,7 @@ class StarHopperGame {
       <div class="clear-lab-star-list">${starChecklist}</div>
       ${masteryRibbon}
       ${worldMasteryBlock}
+      ${unlockBlock}
       ${timeBadge}
       ${storyUnlockBlock}
       ${storyPreviewBlock}

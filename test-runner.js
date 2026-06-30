@@ -2180,6 +2180,9 @@ function runEngineTests() {
     assertEquals(true, /\+25 Research XP/.test(report.innerHTML), "Clear report should show the mastery XP reward");
     assertEquals(true, /WORLD MASTERY/.test(report.innerHTML), "Clear report should include per-world mastery progress");
     assertEquals(true, /Signal Scout/.test(report.innerHTML), "Clear report should show newly earned world mastery tier");
+    assertEquals(true, /NEXT LAB UNLOCK/.test(report.innerHTML), "Clear report should show the next research unlock target");
+    assertEquals(true, /Combo Amplifier in 15 XP/.test(report.innerHTML), "Clear report should show the post-run XP gap to the next perk");
+    assertEquals(true, /67% toward next lab unlock/.test(report.innerHTML), "Clear report should render research unlock progress");
     assertEquals(true, /OK Mission tasks/.test(report.innerHTML), "Clear report should credit completed mission tasks");
     assertEquals(true, /OK Science proof/.test(report.innerHTML), "Clear report should credit the science-proof action");
     assertEquals(true, /222px/.test(report.innerHTML), "Clear report should include max height");
