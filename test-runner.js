@@ -1069,7 +1069,14 @@ function runEngineTests() {
   }
 
   // Test 22b: Mission Coach code creates a science discovery pulse and rewards only new progress.
+  const oldBubblePop22b = ComicBubbles.pop;
+  const oldParticleBurst22b = Particles.spawnBurst;
   try {
+    const bubbleLabels22b = [];
+    let particleBursts22b = 0;
+    ComicBubbles.pop = (x, y, text) => { bubbleLabels22b.push(text); };
+    Particles.spawnBurst = () => { particleBursts22b++; };
+
     const game = new StarHopperGame();
     game.player = { x: 100, y: 120, w: 24, h: 32 };
     game.cameraX = 0;
@@ -1094,6 +1101,9 @@ function runEngineTests() {
     const firstWorldXP = game.getWorldMasteryProgress(0).xp;
     assertEquals(true, firstWorldXP > 0, "Science progress should also feed the world mastery meter");
     assertEquals(1, game.discoveryCombo, "New discovery starts the combo");
+    const firstBubbleCount = bubbleLabels22b.length;
+    const firstBurstCount = particleBursts22b;
+    assertEquals(false, bubbleLabels22b.some(label => /LAB CHAIN/.test(label)), "First discovery should not claim a chain yet");
 
     recordDiscoveryPulse(game, activeMission, "hopper.mass = 1.2", partial, 0);
     assertEquals(firstXP, game.researchXP, "Repeating the same progress should not farm Research XP");
@@ -1101,6 +1111,8 @@ function runEngineTests() {
     assertEquals(1, game.discoveryCombo, "Repeating without progress should not raise combo");
     assertEquals(1, game.discoveredFormulaKinds.size, "Repeating without progress should not unlock new cards");
     assertEquals(1, game.formulaCardEffects.length, "Repeating without a new card should not spawn another effect");
+    assertEquals(firstBubbleCount, bubbleLabels22b.length, "Repeating without progress should not spawn combo text");
+    assertEquals(firstBurstCount, particleBursts22b, "Repeating without progress should not spawn combo particles");
 
     const complete = {
       allPassed: true,
@@ -1116,8 +1128,14 @@ function runEngineTests() {
     assertEquals("Hypothesis Bonus", finalPulse.rankPerk.label, "Rank-up should unlock the rank's lab perk");
     assertEquals(true, game.discoveredFormulaKinds.has("engine"), "Engine formula should be collected");
     assertEquals(2, game.formulaCardEffects.length, "A second new formula should spawn a second card effect");
+    assertEquals(true, bubbleLabels22b.some(label => /LAB CHAIN x2/.test(label)), "Second real discovery should pop the lab-chain cue");
+    assertEquals(true, particleBursts22b > firstBurstCount, "Second real discovery should add a visual burst");
+    ComicBubbles.pop = oldBubblePop22b;
+    Particles.spawnBurst = oldParticleBurst22b;
     renderTestResult("engine-suite", "Curriculum: code runs create discovery rewards", true);
   } catch (err) {
+    ComicBubbles.pop = oldBubblePop22b;
+    Particles.spawnBurst = oldParticleBurst22b;
     renderTestResult("engine-suite", "Curriculum: code runs create discovery rewards", false, err.message);
   }
 

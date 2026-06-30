@@ -1520,6 +1520,9 @@ function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems
     pulse.comboAmplifierBonusXP = comboBonus.amplifier;
     pulse.comboAmplifierUnlocked = comboBonus.amplifierUnlocked;
     pulse.rewardXP = 5 + newPasses * 4 + opened * 3 + (finalPassBonus ? 6 : 0) + (cardUnlocked ? 5 : 0) + comboBonus.total + pulse.hypothesisBonusXP;
+    if (pulse.combo > 1 && typeof game.spawnDiscoveryComboEffect === 'function') {
+      game.spawnDiscoveryComboEffect(pulse);
+    }
     if (cardUnlocked && typeof game.spawnFormulaCardEffect === 'function') {
       game.spawnFormulaCardEffect(pulse);
     }

@@ -4538,6 +4538,29 @@ class StarHopperGame {
     return { label, color, x: px, y: py };
   }
 
+  spawnDiscoveryComboEffect(pulse) {
+    const combo = pulse && Number.isFinite(pulse.combo) ? Math.floor(pulse.combo) : 0;
+    if (!this.player || combo < 2) return null;
+    const baseX = Number.isFinite(this.player.x) ? this.player.x : 0;
+    const baseY = Number.isFinite(this.player.y) ? this.player.y : 0;
+    const width = Number.isFinite(this.player.w) ? this.player.w : 24;
+    const height = Number.isFinite(this.player.h) ? this.player.h : 32;
+    const px = baseX + width / 2;
+    const py = baseY + height / 2;
+    const boosted = !!(pulse.comboAmplifierBonusXP > 0);
+    const label = `LAB CHAIN x${Math.min(99, combo)}`;
+    const color = boosted ? "#facc15" : "#67e8f9";
+
+    if (typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+      ComicBubbles.pop(px, baseY - 38, label, color, boosted ? 1.08 : 0.96);
+    }
+    if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+      Particles.spawnBurst(px, py - 4, color, boosted ? 16 : 10, boosted ? 2.4 : 2.0, 2.0, 'glow');
+      if (boosted) Particles.spawnBurst(px, py - 4, '#fef08a', 8, 1.8, 1.7, 'glow');
+    }
+    return { label, color, combo, boosted };
+  }
+
   updateFormulaCardEffects() {
     if (!this.formulaCardEffects || !this.formulaCardEffects.length) return;
     for (const fx of this.formulaCardEffects) {
