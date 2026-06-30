@@ -2443,15 +2443,30 @@ class StarHopperGame {
       Particles.spawnBurst(cx, cy, '#bbf7d0', 10, 2.0, 1.8, 'glow');
     }
     if (typeof SFX !== 'undefined' && SFX.playSuccess) SFX.playSuccess();
-    if (typeof ui_log_output === 'function') {
-      ui_log_output("Portal ready — mission tasks and samples are complete. Drive to the exit.", "success");
+    const labStars = typeof this.getClearLabStarSummary === 'function' ? this.getClearLabStarSummary() : null;
+    const scienceCheck = labStars && Array.isArray(labStars.checks)
+      ? labStars.checks.find(check => check && check.id === "science")
+      : null;
+    const missingScienceProof = !!(scienceCheck && !scienceCheck.earned);
+    const monitorText = missingScienceProof
+      ? "PORTAL READY: proof for 3 stars or drive"
+      : "PORTAL READY: drive to the exit";
+    if (missingScienceProof && this.player && typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+      const px = (Number.isFinite(this.player.x) ? this.player.x : 0) + (Number.isFinite(this.player.w) ? this.player.w : 24) / 2;
+      const py = (Number.isFinite(this.player.y) ? this.player.y : 0) + (Number.isFinite(this.player.h) ? this.player.h : 32) / 2;
+      ComicBubbles.pop(px, py - 22, "3-STAR PROOF?", "#a7f3d0", 0.95);
     }
-    this.showMissionBalloon("PORTAL READY: drive to the exit", {
+    if (typeof ui_log_output === 'function') {
+      ui_log_output(missingScienceProof
+        ? "Portal ready — add a prediction/formula proof for 3 stars, or drive to the exit."
+        : "Portal ready — mission tasks and samples are complete. Drive to the exit.", "success");
+    }
+    this.showMissionBalloon(monitorText, {
       title: "MISSION CRT",
-      color: "#4ade80",
+      color: missingScienceProof ? "#a7f3d0" : "#4ade80",
       timer: 280
     });
-    return { reason, x: cx, y: cy, portal, status };
+    return { reason, x: cx, y: cy, portal, status, missingScienceProof, monitorText };
   }
 
   getClearLabStarKey({ isDailyRun = false, isFrontierRun = false } = {}) {

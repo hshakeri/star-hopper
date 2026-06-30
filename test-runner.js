@@ -570,9 +570,24 @@ function runEngineTests() {
     assertEquals(true, labels.includes("PORTAL READY!"), "Portal-ready cue should pop at the portal");
     assertEquals(1, portal.unlockPulse, "Portal should get a ready pulse ring");
     assertEquals(true, bursts >= 2, "Portal-ready cue should sparkle");
-    assertEquals("PORTAL READY: drive to the exit", game.missionBalloon.text, "CRT should name the next action");
+    assertEquals(true, cue.missingScienceProof, "Ready cue should detect missing science proof for the 3-star lab goal");
+    assertEquals(true, labels.includes("3-STAR PROOF?"), "Ready cue should pop an optional science-proof nudge");
+    assertEquals("PORTAL READY: proof for 3 stars or drive", game.missionBalloon.text, "CRT should make science proof optional, not blocking");
     assertEquals(null, game.checkPortalReadyCue("again"), "Portal-ready cue should be one-time per level");
     assertEquals(1, labels.filter(label => label === "PORTAL READY!").length, "Portal-ready pop should not repeat");
+
+    const proofGame = new StarHopperGame();
+    proofGame.currentPlanet = { missions: [{ id: "build" }] };
+    proofGame.currentPlanetIndex = 0;
+    proofGame.player = { x: 10, y: 20, w: 24, h: 32 };
+    proofGame.interactiveObjects = [{ type: "portal", x: 160, y: 64, w: 32, h: 32, collected: false }];
+    proofGame.completedMissions = new Set(["build"]);
+    proofGame.requiredCollectiblesTotal = 1;
+    proofGame.requiredCollectiblesCollected = 1;
+    proofGame.confirmedHypotheses = new Set(["build"]);
+    const proofCue = proofGame.checkPortalReadyCue("proof");
+    assertEquals(false, proofCue.missingScienceProof, "Existing science proof should remove the 3-star nudge");
+    assertEquals("PORTAL READY: drive to the exit", proofGame.missionBalloon.text, "Proven runs keep the direct exit instruction");
     ComicBubbles.pop = oldBubblePop16;
     Particles.spawnBurst = oldParticleBurst16;
     renderTestResult("engine-suite", "Objectives: portal requires tasks plus mission gems", true);
