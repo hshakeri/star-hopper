@@ -3656,7 +3656,10 @@ function runCombatTests() {
     g.getEarthDayNightPhase = () => ({ t: 0, daylight: 0.1, isDay: false, sunX: 0.1, sunY: 0.2 });
     const npc = new NPC({ id: 'nightwatch', name: 'Nightwatch', profession: 'Miner', type: 'npc', x: 100, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60 });
     g.interactiveObjects = [npc];
-    for (let i = 0; i < 40 && !npc.hiddenInCave; i++) npc.update(g);
+    const beforeNightX = npc.x;
+    g.updateVillagerShelterStates();
+    assertEquals(true, npc.x < beforeNightX, "Game loop night pass starts the cave retreat immediately");
+    for (let i = 0; i < 40 && !npc.hiddenInCave; i++) g.updateVillagerShelterStates();
     assertEquals(true, npc.hiddenInCave, "Villager shelters in a cave at night");
     npc.x = 300;
     npc.proximity = true;
@@ -3666,8 +3669,9 @@ function runCombatTests() {
     assertEquals(false, npc.proximity, "Night-sheltered villagers cannot open trades");
     assertEquals(null, g.activeNPC, "Night shelter clears active trade target");
     g.getEarthDayNightPhase = () => ({ t: 0.5, daylight: 1, isDay: true, sunX: 0.5, sunY: 0.34 });
-    npc.update(g);
+    g.updateVillagerShelterStates();
     assertEquals(false, npc.hiddenInCave, "Villager comes out in daylight");
+    assertEquals(0, g.researchXP || 0, "Daylight release from night shelter does not award rescue XP");
 
     const loadGame = new StarHopperGame();
     loadGame.state = 'playing';
@@ -4126,6 +4130,8 @@ function runRetryRemixTests() {
     assertEquals(a.planetIndex, b.planetIndex, "Same date must give the same planet");
     assertEquals(a.variant.variantLabel, b.variant.variantLabel, "Same date must give the same remix");
     assertEquals(true, a.variant.isRemix, "The daily is always a remix (attempt >= 1)");
+    assertEquals(PLANETS[a.planetIndex].tagline, a.concept, "Daily Signal should carry the planet science concept");
+    assertEquals("3 Lab Stars: tasks + samples + proof", a.labGoal, "Daily Signal should name the mastery goal");
     assertEquals(true, /^[A-Z]+-\d+$/.test(a.shareCode), "Share code format WORLD-NNNN: " + a.shareCode);
     assertEquals(true, dateSeed("2026-06-11") !== dateSeed("2026-06-12"), "Different dates should hash differently");
     renderTestResult(SUITE, "Daily Signal: deterministic per date, always a remix", true);
@@ -4159,6 +4165,8 @@ function runRetryRemixTests() {
     const frontier = g.getFrontierChallenge();
     assertEquals(true, !!frontier, "Frontier should unlock after all playable worlds are cleared");
     assertEquals(3, frontier.tier, "Average world mastery should set the frontier tier");
+    assertEquals(PLANETS[frontier.planetIndex].tagline, frontier.concept, "Frontier challenge should carry the planet science concept");
+    assertEquals("3 Lab Stars: tasks + samples + proof", frontier.labGoal, "Frontier challenge should name the mastery goal");
     assertEquals(true, /^FRONTIER-[A-Z]+-\d{4}$/.test(frontier.shareCode), "Frontier share code should be explicit and padded");
     assertEquals(true, frontier.attempt >= 98, "Frontier should use attempts beyond the normal daily range");
     let startedIndex = null;
@@ -4250,11 +4258,15 @@ function runRetryRemixTests() {
       "frontier-rival-btn": { style: {} }
     };
     document.getElementById = (id) => els[id] || null;
+    const bannerDaily = g.getDailySignal();
     g.refreshDailySignalBanner();
+    assertEquals(true, /Daily Signal/.test(els["daily-signal-label"].textContent), "Daily strip should render the daily challenge");
+    assertEquals(true, els["daily-signal-label"].textContent.indexOf(bannerDaily.concept) >= 0, "Daily strip should name the science concept");
     assertEquals("flex", els["frontier-record-banner"].style.display, "Frontier record banner should appear after star-map completion");
     assertEquals(true, /Today's frontier cleared/.test(els["frontier-record-label"].textContent), "Banner should show today's local clear");
     assertEquals(true, /Best T/.test(els["frontier-record-detail"].textContent), "Banner should show the local best tier");
     assertEquals(true, els["frontier-share-btn"].title.indexOf("FRONTIER-") >= 0, "Copy button should carry the share code");
+    assertEquals(true, /3 Lab Stars/.test(els["frontier-signal-btn"].title), "Frontier button should name the lab-star goal");
     assertEquals("grid", els["frontier-board"].style.display, "Frontier board should appear after star-map completion");
     assertEquals(true, /Grace/.test(els["frontier-board-list"].innerHTML), "Frontier board should render the leading imported pilot");
     assertEquals(true, /Beat Grace/.test(els["frontier-rival-copy"].textContent), "Frontier board should render a specific rival target");

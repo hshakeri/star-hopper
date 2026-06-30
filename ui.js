@@ -1274,7 +1274,7 @@ function getActiveLabQuest(game) {
     return {
       kicker: "NEXT LAB QUEST",
       title: "Clear today's signal",
-      body: `${daily.label || "A fresh remix"} is ready for another experiment run.`,
+      body: `${daily.concept || "A fresh science remix"} on ${daily.planetName || "today's world"} is ready for another experiment run.`,
       reward: "Reward: daily clear + share code"
     };
   }

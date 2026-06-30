@@ -445,12 +445,16 @@ function getDailySignal(planets, dateStr, maxPlanetIndex) {
   const planet = planets[planetIndex];
   const variant = buildPlanetVariant(planet, planetIndex, attempt);
   const codeName = (planet.name || "WORLD").split(" ")[0].toUpperCase().replace(/[^A-Z]/g, "");
+  const concept = planet.tagline || "Physics remix";
   return {
     dateStr,
     seed,
     planetIndex,
     attempt,
     variant,
+    planetName: planet.name || "World",
+    concept,
+    labGoal: "3 Lab Stars: tasks + samples + proof",
     shareCode: `${codeName}-${seed % 10000}`,
     label: `${planet.name} remix #${seed % 10000}: ${variant.variantLabel}`
   };

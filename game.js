@@ -340,7 +340,9 @@ class StarHopperGame {
       if (nightShelter) {
         if (this.activeNPC === obj) touchNeedsSync = true;
         if (obj.hiddenInCave) this.parkNPCInCave(obj);
+        else if (typeof obj.stepTowardCave === 'function') obj.stepTowardCave(2.2);
         else obj.proximity = false;
+        obj.proximity = false;
         if (this.activeNPC === obj) this.activeNPC = null;
         continue;
       }
@@ -719,6 +721,7 @@ class StarHopperGame {
     const planet = PLANETS[planetIndex];
     const variant = buildPlanetVariant(planet, planetIndex, attempt);
     const codeName = (planet.name || "WORLD").split(" ")[0].toUpperCase().replace(/[^A-Z]/g, "");
+    const concept = planet.tagline || "Physics remix";
     return {
       dateStr: today,
       seed,
@@ -727,6 +730,9 @@ class StarHopperGame {
       tier,
       variant,
       isFrontier: true,
+      planetName: planet.name || "World",
+      concept,
+      labGoal: "3 Lab Stars: tasks + samples + proof",
       shareCode: `FRONTIER-${codeName}-${String(seed % 10000).padStart(4, '0')}`,
       label: `Tier ${tier} ${planet.name}: ${variant.variantLabel}`
     };
@@ -1069,12 +1075,15 @@ class StarHopperGame {
     if (!label) return;
     const daily = this.getDailySignal();
     if (!daily) return;
-    label.textContent = `📡 Daily Signal ${daily.dateStr} — ${daily.label}`;
+    const dailyPlanet = daily.planetName || (typeof PLANETS !== 'undefined' && PLANETS[daily.planetIndex] ? PLANETS[daily.planetIndex].name : "World");
+    const dailyConcept = daily.concept || (typeof PLANETS !== 'undefined' && PLANETS[daily.planetIndex] ? PLANETS[daily.planetIndex].tagline : "Physics remix");
+    const dailyVariant = daily.variant && daily.variant.variantLabel ? daily.variant.variantLabel : daily.label;
+    label.textContent = `📡 Daily Signal ${daily.dateStr} — ${dailyPlanet}: ${dailyConcept} · ${dailyVariant}`;
     const frontier = this.getFrontierChallenge();
     if (frontierBtn) {
       frontierBtn.style.display = frontier ? 'inline-flex' : 'none';
       frontierBtn.textContent = frontier ? `◆ FRONTIER T${frontier.tier}` : '◆ FRONTIER';
-      frontierBtn.title = frontier ? `${frontier.label} · ${frontier.shareCode}` : 'Complete the star-map to unlock Frontier Challenge';
+      frontierBtn.title = frontier ? `${frontier.concept || "Physics remix"} · ${frontier.labGoal || "3 Lab Stars"} · ${frontier.label} · ${frontier.shareCode}` : 'Complete the star-map to unlock Frontier Challenge';
     }
     this.refreshFrontierRecordBanner(frontier);
     if (typeof updateStartMissionRadar === 'function') updateStartMissionRadar(this);
