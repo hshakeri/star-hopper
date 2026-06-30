@@ -1050,6 +1050,39 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: CRT surfaces next formula card target", false, err.message);
   }
 
+  // Test 22e: Clear screen lab report summarizes telemetry, formula progress, and next quest.
+  const oldGetElementById22e = document.getElementById;
+  const oldAttemptRows22e = (typeof AttemptLog !== 'undefined' && AttemptLog.byPlanet) ? AttemptLog.byPlanet : null;
+  try {
+    if (typeof AttemptLog !== 'undefined') AttemptLog.byPlanet = { 0: [{ maxH: 222, maxV: 6.4, result: "cleared" }] };
+    const report = { innerHTML: "" };
+    document.getElementById = (id) => id === "clear-lab-report" ? report : null;
+
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[0];
+    game.currentPlanetIndex = 0;
+    game.completedMissions = new Set();
+    game.coachPredictions = { "earth-gravity-wall": "lighter-longer" };
+    game.discoveredFormulaKinds = new Set(["antigravity"]);
+    game.researchXP = 60;
+    game.renderClearLabReport({ isDailyRun: false, nextIndex: 1, earnedGems: 2, gemKey: "emerald" });
+
+    assertEquals(true, /CLEAR LAB REPORT/.test(report.innerHTML), "Clear report should render a heading");
+    assertEquals(true, /222px/.test(report.innerHTML), "Clear report should include max height");
+    assertEquals(true, /6.4 px\/f/.test(report.innerHTML), "Clear report should include max speed");
+    assertEquals(true, /1\/9/.test(report.innerHTML), "Clear report should include formula deck progress");
+    assertEquals(true, /\+2 emerald/.test(report.innerHTML), "Clear report should include newly banked gems");
+    assertEquals(true, /Collect Mass Lab/.test(report.innerHTML), "Clear report should include the next lab quest");
+
+    if (typeof AttemptLog !== 'undefined') AttemptLog.byPlanet = oldAttemptRows22e || {};
+    document.getElementById = oldGetElementById22e;
+    renderTestResult("engine-suite", "Curriculum: clear screen renders lab report", true);
+  } catch (err) {
+    if (typeof AttemptLog !== 'undefined') AttemptLog.byPlanet = oldAttemptRows22e || {};
+    document.getElementById = oldGetElementById22e;
+    renderTestResult("engine-suite", "Curriculum: clear screen renders lab report", false, err.message);
+  }
+
   // Test 23: Mission Coach copy avoids hidden old mode names
   try {
     const texts = [];

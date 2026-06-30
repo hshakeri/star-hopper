@@ -2893,12 +2893,15 @@ class StarHopperGame {
 
     // Award collected gems to the wallet — but only the NEW ones never banked from this planet
     // before, so replaying a level (or the Daily Signal) can't farm unlimited trade currency.
+    let earnedGems = 0;
+    const clearGemKey = this.getGemKeyForPlanet(this.currentPlanetIndex);
     if (this.requiredCollectiblesCollected > 0) {
-      const gemKey = this.getGemKeyForPlanet(this.currentPlanetIndex);
+      const gemKey = clearGemKey;
       this.gemsAwardedForPlanet = this.gemsAwardedForPlanet || {};
       const alreadyBanked = this.gemsAwardedForPlanet[this.currentPlanetIndex] || 0;
       const newGems = Math.max(0, this.requiredCollectiblesCollected - alreadyBanked);
       if (newGems > 0) {
+        earnedGems = newGems;
         this.gemsWallet = this.gemsWallet || { emerald: 0, quartz: 0, amber: 0, ice: 0, flux: 0, forge: 0 };
         this.gemsWallet[gemKey] = (this.gemsWallet[gemKey] || 0) + newGems;
         this.gemsAwardedForPlanet[this.currentPlanetIndex] = this.requiredCollectiblesCollected;
@@ -2967,9 +2970,50 @@ class StarHopperGame {
       if (nextBtn) nextBtn.textContent = "RUN LAUNCH PLAN";
       if (dailyBtn) dailyBtn.style.display = "none";
     }
+    this.renderClearLabReport({ isDailyRun, nextIndex, earnedGems, gemKey: clearGemKey });
     ui_log_output(`✓ Level cleared! Target coordinates secured.`, "success");
     ui_log_output(`Rover returning to spacecraft docking bay...`, "info");
     if (typeof updateCertificateState === 'function') updateCertificateState();
+  }
+
+  renderClearLabReport({ isDailyRun = false, nextIndex = null, earnedGems = 0, gemKey = "gem" } = {}) {
+    if (typeof document === 'undefined') return;
+    const report = document.getElementById("clear-lab-report");
+    if (!report) return;
+    const safe = (typeof escapeHTML === 'function')
+      ? escapeHTML
+      : (value) => String(value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
+
+    const rows = (typeof AttemptLog !== 'undefined' && AttemptLog.byPlanet)
+      ? (AttemptLog.byPlanet[this.currentPlanetIndex] || [])
+      : [];
+    const lastAttempt = rows.length ? rows[rows.length - 1] : null;
+    const maxH = lastAttempt && Number.isFinite(lastAttempt.maxH) ? lastAttempt.maxH : 0;
+    const maxV = lastAttempt && Number.isFinite(lastAttempt.maxV) ? lastAttempt.maxV : 0;
+    const formulas = (typeof getFormulaCollection === 'function') ? getFormulaCollection(this) : null;
+    const formulaText = formulas ? `${formulas.unlocked.length}/${formulas.cards.length}` : `${this.discoveredFormulaKinds ? this.discoveredFormulaKinds.size : 0}`;
+    const quest = (typeof getActiveLabQuest === 'function') ? getActiveLabQuest(this) : null;
+    const rank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+    const nextLabel = isDailyRun
+      ? "Open the log and compare today's remix."
+      : (nextIndex === null ? "Open the log or accept today's signal." : `Launch toward ${typeof PLANETS !== 'undefined' && PLANETS[nextIndex] ? PLANETS[nextIndex].name : "the next planet"}.`);
+
+    report.innerHTML = `
+      <div class="clear-lab-head">
+        <span>CLEAR LAB REPORT</span>
+        <strong>${safe(isDailyRun ? "Daily Signal solved" : "Shard experiment complete")}</strong>
+      </div>
+      <div class="clear-lab-grid">
+        <div class="clear-lab-stat"><span>Max Height</span><strong>${safe(`${maxH}px`)}</strong></div>
+        <div class="clear-lab-stat"><span>Max Speed</span><strong>${safe(`${maxV} px/f`)}</strong></div>
+        <div class="clear-lab-stat"><span>Formula Cards</span><strong>${safe(formulaText)}</strong></div>
+        <div class="clear-lab-stat"><span>Wallet Gain</span><strong>${safe(earnedGems > 0 ? `+${earnedGems} ${gemKey}` : "banked")}</strong></div>
+      </div>
+      <div class="clear-lab-next">
+        <span>${safe(rank ? `${rank.title} · ${Math.round(rank.xp)} XP` : "Next step")}</span>
+        <strong>${safe(quest ? `${quest.title} — ${quest.reward}` : nextLabel)}</strong>
+      </div>
+    `;
   }
 
   spawnFormulaCardEffect(pulse) {
