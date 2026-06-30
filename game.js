@@ -1924,6 +1924,7 @@ class StarHopperGame {
     this.shownGemGateIds = new Set();   // reset once-per-level gem-gate hints
     this._lastGemLogKey = null;         // reset shell gem-status de-duplication
     this._lastPortalLockMsg = null;     // reset portal-lock message de-duplication
+    this._portalReadyCueShown = false;  // reset the one-time portal-ready fanfare
     this.formulaCardEffects = [];
     // Keep global completed missions across planet switches
     Particles.clear();
@@ -2353,6 +2354,7 @@ class StarHopperGame {
     if (anyCompletedThisFrame) {
       this.checkLabStarProgress("mission");
       updateMissionList(this);
+      this.checkPortalReadyCue("mission");
       if (typeof handleGuidedClearHook === 'function') handleGuidedClearHook();
       if (typeof triggerCloudSave === 'function') triggerCloudSave();
     }
@@ -2373,6 +2375,39 @@ class StarHopperGame {
       allCollectiblesCollected,
       readyForPortal: allMissionsComplete && allCollectiblesCollected
     };
+  }
+
+  checkPortalReadyCue(reason = "progress") {
+    if (this._portalReadyCueShown) return null;
+    const status = this.getLevelObjectiveStatus();
+    if (!status.readyForPortal) return null;
+    this._portalReadyCueShown = true;
+
+    const portal = Array.isArray(this.interactiveObjects)
+      ? this.interactiveObjects.find(obj => obj && obj.type === 'portal' && !obj.collected)
+      : null;
+    const target = portal || this.player;
+    const cx = target ? (Number.isFinite(target.x) ? target.x : 0) + (Number.isFinite(target.w) ? target.w : 24) / 2 : 0;
+    const cy = target ? (Number.isFinite(target.y) ? target.y : 0) + (Number.isFinite(target.h) ? target.h : 32) / 2 : 0;
+    if (portal) portal.unlockPulse = 1;
+
+    if (typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+      ComicBubbles.pop(cx, cy - 18, "PORTAL READY!", "#4ade80", 1.18);
+    }
+    if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+      Particles.spawnBurst(cx, cy, '#4ade80', 18, 2.8, 2.6, 'glow');
+      Particles.spawnBurst(cx, cy, '#bbf7d0', 10, 2.0, 1.8, 'glow');
+    }
+    if (typeof SFX !== 'undefined' && SFX.playSuccess) SFX.playSuccess();
+    if (typeof ui_log_output === 'function') {
+      ui_log_output("Portal ready — mission tasks and samples are complete. Drive to the exit.", "success");
+    }
+    this.showMissionBalloon("PORTAL READY: drive to the exit", {
+      title: "MISSION CRT",
+      color: "#4ade80",
+      timer: 280
+    });
+    return { reason, x: cx, y: cy, portal, status };
   }
 
   getClearLabStarKey({ isDailyRun = false, isFrontierRun = false } = {}) {
@@ -3244,6 +3279,7 @@ class StarHopperGame {
             ui_log_output(`◆ ${gem.name} gem collected: ${this.requiredCollectiblesCollected}/${this.requiredCollectiblesTotal}`, "success");
             this.checkLabStarProgress("gems");
             updateMissionList(this);
+            this.checkPortalReadyCue("gems");
             // Each gem nudges this planet's cap up one notch (green balloon).
             this.applyGemUpgradeProgress(this.currentPlanetIndex);
             // Collecting ALL of a planet's samples fully reinforces the part (extreme cap).

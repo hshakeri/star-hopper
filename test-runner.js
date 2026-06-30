@@ -534,6 +534,8 @@ function runEngineTests() {
   }
 
   // Test 16: Portal readiness requires all mission tasks and required collectibles
+  const oldBubblePop16 = ComicBubbles.pop;
+  const oldParticleBurst16 = Particles.spawnBurst;
   try {
     const game = new StarHopperGame();
     game.currentPlanet = {
@@ -542,20 +544,41 @@ function runEngineTests() {
         { id: "collect" }
       ]
     };
+    game.player = { x: 10, y: 20, w: 24, h: 32 };
+    const portal = { type: "portal", x: 160, y: 64, w: 32, h: 32, collected: false };
+    game.interactiveObjects = [portal];
     game.completedMissions = new Set(["build"]);
     game.requiredCollectiblesTotal = 3;
     game.requiredCollectiblesCollected = 2;
+    const labels = [];
+    let bursts = 0;
+    ComicBubbles.pop = (x, y, text) => { labels.push(text); };
+    Particles.spawnBurst = () => { bursts++; };
 
     let status = game.getLevelObjectiveStatus();
     assertEquals(false, status.readyForPortal, "Portal should stay locked while tasks or gems remain");
+    assertEquals(null, game.checkPortalReadyCue("incomplete"), "Portal-ready cue should stay silent before all requirements are done");
 
     game.completedMissions.add("collect");
     game.requiredCollectiblesCollected = 3;
     status = game.getLevelObjectiveStatus();
 
     assertEquals(true, status.readyForPortal, "Portal should unlock only after tasks and gems are complete");
+    const cue = game.checkPortalReadyCue("test");
+    assertEquals(true, !!cue, "Portal-ready cue should fire once when the objective flips complete");
+    assertEquals("test", cue.reason, "Portal-ready cue should keep the triggering reason for diagnostics");
+    assertEquals(true, labels.includes("PORTAL READY!"), "Portal-ready cue should pop at the portal");
+    assertEquals(1, portal.unlockPulse, "Portal should get a ready pulse ring");
+    assertEquals(true, bursts >= 2, "Portal-ready cue should sparkle");
+    assertEquals("PORTAL READY: drive to the exit", game.missionBalloon.text, "CRT should name the next action");
+    assertEquals(null, game.checkPortalReadyCue("again"), "Portal-ready cue should be one-time per level");
+    assertEquals(1, labels.filter(label => label === "PORTAL READY!").length, "Portal-ready pop should not repeat");
+    ComicBubbles.pop = oldBubblePop16;
+    Particles.spawnBurst = oldParticleBurst16;
     renderTestResult("engine-suite", "Objectives: portal requires tasks plus mission gems", true);
   } catch (err) {
+    ComicBubbles.pop = oldBubblePop16;
+    Particles.spawnBurst = oldParticleBurst16;
     renderTestResult("engine-suite", "Objectives: portal requires tasks plus mission gems", false, err.message);
   }
 

@@ -2217,6 +2217,19 @@ class InteractiveObject {
       ctx.fill();
       ctx.stroke();
 
+      if (this.unlockPulse > 0) {
+        const readyPulse = Math.max(0, Math.min(1, this.unlockPulse));
+        ctx.save();
+        ctx.globalAlpha = 0.75 * readyPulse;
+        ctx.setLineDash([]);
+        ctx.strokeStyle = '#bbf7d0';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, this.w / 2 + 8 + (1 - readyPulse) * 22, this.h / 2 + 8 + (1 - readyPulse) * 22, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+
       ctx.lineWidth = 1.4;
       ctx.setLineDash([4, 4]);
       ctx.beginPath();
