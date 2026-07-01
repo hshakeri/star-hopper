@@ -3954,11 +3954,23 @@ function runEngineTests() {
     let dailyCalls = 0;
     const startedLevels = [];
     window.Game = {
-      startDailySignal: () => { dailyCalls++; },
+      startDailySignal: () => { dailyCalls++; return true; },
+      getDailySignal: () => ({
+        concept: "Force changes motion",
+        planetName: "Earth",
+        labContract: {
+          title: "Mass remix proof",
+          command: "hopper.mass = 1.5\nhopper.engine = 6"
+        }
+      }),
       startLevel: (level) => { startedLevels.push(level); }
     };
     assertEquals(true, runStartMissionRadarAction(), "Daily radar action should execute");
     assertEquals(1, dailyCalls, "Daily radar action should start the Daily Signal");
+    assertEquals("hopper.mass = 1.5\nhopper.engine = 6", els["console-input"].value, "Daily radar action should stage the full Signal Lab command");
+    assertEquals(true, els["console-input"].focused, "Daily radar action should focus the terminal after staging");
+    assertEquals("signal-lab-contract", window.Game.lastStagedExperiment && window.Game.lastStagedExperiment.source, "Daily radar action should stage through the Signal Lab proof source");
+    assertEquals("Mass remix proof", window.Game.lastStagedExperiment && window.Game.lastStagedExperiment.title, "Daily radar action should preserve the Signal Lab focus");
     els["start-mission-radar-btn"].dataset.action = "quest";
     els["start-mission-radar-btn"].dataset.level = "2";
     assertEquals(true, runStartMissionRadarAction(), "Quest radar action should execute");

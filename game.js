@@ -7107,7 +7107,10 @@ class StarHopperGame {
           dailyBtn.textContent = `📡 TODAY'S SIGNAL`;
           dailyBtn.style.background = "var(--neon-cyan)";
           dailyBtn.style.color = "#030712";
-          dailyBtn.onclick = () => this.startDailySignal();
+          dailyBtn.onclick = () => {
+            if (typeof runDailySignalAction === 'function') return runDailySignalAction(this);
+            return this.startDailySignal();
+          };
         }
       }
     } else {

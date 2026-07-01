@@ -3709,6 +3709,42 @@ function runStartResumeTestAction() {
   });
 }
 
+function getDailySignalActionFocus(game = window.Game || (typeof Game !== 'undefined' ? Game : null)) {
+  if (game && typeof game.getReturnStreakDailyFocus === 'function') {
+    return game.getReturnStreakDailyFocus();
+  }
+  const daily = game && typeof game.getDailySignal === 'function' ? game.getDailySignal() : null;
+  const contract = daily && daily.labContract ? daily.labContract : null;
+  const title = (contract && contract.title) || (daily && daily.concept) || (daily && daily.planetName) || "Daily Signal";
+  const command = contract && contract.command ? String(contract.command).trim() : "";
+  const firstCommand = command.split(/\n/).map(line => line.trim()).find(Boolean) || "";
+  return {
+    title,
+    command,
+    firstCommand,
+    label: `Focus: ${title}`
+  };
+}
+
+function runDailySignalAction(game = window.Game || (typeof Game !== 'undefined' ? Game : null)) {
+  if (game && typeof game.startDailySignal === 'function') {
+    const focus = getDailySignalActionFocus(game);
+    const started = game.startDailySignal();
+    if (started === false) return false;
+    const command = focus && focus.command ? String(focus.command).trim() : "";
+    if (command && typeof stageScienceDeltaCommand === 'function') {
+      stageScienceDeltaCommand(command, {
+        title: focus.title || "Daily Signal",
+        source: "signal-lab-contract",
+        color: "#67e8f9",
+        kind: "daily-signal"
+      });
+    }
+    return true;
+  }
+  return false;
+}
+
 function getStartMissionRadarAction(game = window.Game, quest = null) {
   const q = quest || getActiveLabQuest(game);
   const currentLevel = game && Number.isFinite(Number(game.currentPlanetIndex)) ? Number(game.currentPlanetIndex) : 0;
@@ -3801,8 +3837,7 @@ function runStartMissionRadarAction() {
   const button = document.getElementById("start-mission-radar-btn");
   const action = button && button.dataset ? button.dataset.action : "quest";
   if (action === "daily" && game && typeof game.startDailySignal === 'function') {
-    game.startDailySignal();
-    return true;
+    return runDailySignalAction(game);
   }
   if (action === "frontier" && game && typeof game.startFrontierChallenge === 'function') {
     const kind = button && button.dataset ? String(button.dataset.kind || "") : "";
@@ -3876,22 +3911,7 @@ function runStartMissionRadarAction() {
 }
 
 function runReturnStreakAction(game = window.Game || (typeof Game !== 'undefined' ? Game : null)) {
-  if (game && typeof game.startDailySignal === 'function') {
-    const focus = typeof game.getReturnStreakDailyFocus === 'function' ? game.getReturnStreakDailyFocus() : null;
-    const started = game.startDailySignal();
-    if (started === false) return false;
-    const command = focus && focus.command ? String(focus.command).trim() : "";
-    if (command && typeof stageScienceDeltaCommand === 'function') {
-      stageScienceDeltaCommand(command, {
-        title: focus.title || "Daily Signal",
-        source: "signal-lab-contract",
-        color: "#67e8f9",
-        kind: "daily-signal"
-      });
-    }
-    return true;
-  }
-  return false;
+  return runDailySignalAction(game);
 }
 
 function updateFormulaTarget(game) {
