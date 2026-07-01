@@ -7200,9 +7200,13 @@ function runEngineTests() {
       autocomplete: "",
       spellcheck: false,
       type: "",
+      focused: false,
+      _events: {},
       appendChild(child) { this.children.push(child); return child; },
       querySelectorAll: () => [],
-      addEventListener: () => {},
+      addEventListener(type, handler) { this._events[type] = handler; },
+      focus() { this.focused = true; },
+      setSelectionRange() {},
       classList: { add: () => {}, remove: () => {}, toggle: () => {}, contains: () => false }
     });
     const els = {
@@ -7211,7 +7215,8 @@ function runEngineTests() {
       "pedagogical-mission-title": makeCoachEl(),
       "mission-coach-summary": makeCoachEl(),
       "mission-coach-focus": makeCoachEl(),
-      "mission-scaffold": makeCoachEl()
+      "mission-scaffold": makeCoachEl(),
+      "console-input": makeCoachEl()
     };
     document.getElementById = (id) => els[id] || null;
     document.createElement = () => makeCoachEl();
@@ -7247,6 +7252,14 @@ function runEngineTests() {
     assertEquals(true, /LAB CHAIN x2/.test(proofHook.innerHTML), "Proof hook should show the active reward path");
     assertEquals(true, /Engine Lab/.test(proofHook.innerHTML), "Proof hook should name the next experiment");
     assertEquals(true, /hopper\.engine = 7/.test(proofHook.innerHTML), "Proof hook should show the runnable follow-up command");
+    const proofStage = proofHook.children.find(child => child.className === "coach-proof-stage-btn");
+    assertEquals("STAGE PROOF", proofStage && proofStage.textContent, "Proof hook should expose a stage action");
+    proofStage._events.click();
+    assertEquals("hopper.engine = 7", els["console-input"].value, "Coach proof action should stage the follow-up command");
+    assertEquals(true, els["console-input"].focused, "Coach proof action should focus the terminal");
+    assertEquals("coach-proof-hook", game.lastStagedExperiment && game.lastStagedExperiment.source, "Coach proof action should preserve the coach source");
+    assertEquals("Engine Lab", game.lastStagedExperiment && game.lastStagedExperiment.title, "Coach proof action should preserve the payoff title");
+    assertEquals("Mission Coach proof", getStagedExperimentSourceLabel(game.lastStagedExperiment.source), "Coach proof staged reminder should name the source");
     document.getElementById = oldGetElementById22i;
     document.createElement = oldCreateElement22i;
     renderTestResult("engine-suite", "Curriculum: Mission Coach renders lab loop progress", true);

@@ -2033,6 +2033,7 @@ function getStagedExperimentSourceLabel(source) {
     "tested-result": "Tested result",
     "science-proof": "Science proof",
     "science-checkpoint": "Science checkpoint",
+    "coach-proof-hook": "Mission Coach proof",
     "lab-chain-target": "Lab chain",
     "lab-chain-next": "Lab chain",
     "start-lab-chain": "Lab chain",
@@ -6954,7 +6955,8 @@ function getCoachProofHook(game, activeMission) {
       label: labChain.label || "LAB CHAIN",
       title: labChain.title || "Make one fresh change",
       body: labChain.reward || labChain.body || "Fresh progress keeps the experiment chain alive.",
-      command: labChain.command || ""
+      command: labChain.command || "",
+      kind: labChain.kind || "lab-chain"
     };
   }
 
@@ -6964,7 +6966,8 @@ function getCoachProofHook(game, activeMission) {
       label: "FORMULA CARD",
       title: `Collect ${formulaTarget.title || "science proof"}`,
       body: formulaTarget.cue || formulaTarget.axis || "Run the matching code and compare what changed.",
-      command: formulaTarget.sampleCode || ""
+      command: formulaTarget.sampleCode || "",
+      kind: formulaTarget.kind || "formula-card"
     };
   }
 
@@ -6974,7 +6977,8 @@ function getCoachProofHook(game, activeMission) {
       label: "CODE CONCEPT",
       title: `Collect ${codeConceptTarget.title || "coding idea"}`,
       body: codeConceptTarget.reward || codeConceptTarget.body || "Practice one programming idea and save it to the deck.",
-      command: codeConceptTarget.command
+      command: codeConceptTarget.command,
+      kind: codeConceptTarget.concept || "code-concept"
     };
   }
 
@@ -6986,7 +6990,8 @@ function getCoachProofHook(game, activeMission) {
     label: "NEXT PROOF",
     title: badge ? `Unlock ${badge.label}` : "Run one clean test",
     body: badge && badge.description ? badge.description : "Make one obvious tweak, test the result, then compare the evidence.",
-    command
+    command,
+    kind: fullMission.id || activeMission.id || "mission-proof"
   };
 }
 
@@ -8529,6 +8534,20 @@ function updatePedagogicalGuide(game) {
       <p>${escapeHTML(proofHook.body || "Run the code, compare the result, and save the evidence.")}</p>
       ${command}
     `;
+    if (proofHook.command) {
+      const stage = document.createElement("button");
+      stage.type = "button";
+      stage.className = "coach-proof-stage-btn";
+      stage.textContent = "STAGE PROOF";
+      stage.addEventListener("click", () => stageScienceDeltaCommand(proofHook.command, {
+        game,
+        title: proofHook.title || "Coach proof",
+        kind: proofHook.kind || null,
+        source: "coach-proof-hook",
+        color: "#bbf7d0"
+      }));
+      hook.appendChild(stage);
+    }
     stepsContainer.appendChild(hook);
   }
 

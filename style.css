@@ -7409,6 +7409,24 @@ html {
   white-space: normal;
   word-break: break-word;
 }
+.coach-proof-stage-btn {
+  justify-self: start;
+  border: 1px solid rgba(187, 247, 208, 0.42);
+  border-radius: 6px;
+  background: rgba(20, 83, 45, 0.76);
+  color: #dcfce7;
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+.coach-proof-stage-btn:hover {
+  background: rgba(22, 101, 52, 0.92);
+  box-shadow: 0 0 10px rgba(187, 247, 208, 0.18);
+}
 
 /* One assignment at a time */
 .coach-one, .coach-skip, .coach-done {
@@ -11208,6 +11226,7 @@ body.readable-text-mode .coach-proof-hook span,
 body.readable-text-mode .coach-proof-hook strong,
 body.readable-text-mode .coach-proof-hook p,
 body.readable-text-mode .coach-proof-hook code,
+body.readable-text-mode .coach-proof-stage-btn,
 body.readable-text-mode .coach-prediction-card p,
 body.readable-text-mode .coach-result-box p,
 body.readable-text-mode .coach-mini-title,
