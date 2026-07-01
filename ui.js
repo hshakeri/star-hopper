@@ -680,6 +680,7 @@ function getRunObjectiveQueue(game) {
       kind: labChain.kind || "lab-chain",
       source: "lab-chain-target",
       color: labChain.state === "paused" ? "#cbd5e1" : "#67e8f9",
+      lessonSteps: getLabChainLearningSteps(game, labChain),
       progress
     });
   }
@@ -2200,6 +2201,25 @@ function getLabChainProgressMeta(game, labChain = null) {
     target: targetCombo,
     total: targetCombo,
     label
+  };
+}
+
+function getLabChainLearningSteps(game, labChain = null) {
+  if (!labChain) return null;
+  const command = String(labChain.command || "").trim();
+  const context = `${labChain.label || ""} ${labChain.title || ""} ${labChain.body || ""} ${labChain.reward || ""}`;
+  const fallbackCommand = command
+    ? (command.split(/\n+/).map(line => line.trim()).filter(line => /=/.test(line)).pop()
+      || command.split(/\n+/).map(line => line.trim()).filter(Boolean).pop())
+    : "";
+  const code = command && game && typeof game.getSalientCommandLine === "function"
+    ? game.getSalientCommandLine(command, context)
+    : fallbackCommand;
+  const paused = labChain.state === "paused";
+  return {
+    learn: paused ? "Make a fresh change" : (labChain.title || "One fresh variable"),
+    code: code || (paused ? "Change one variable" : "Run one new command"),
+    win: labChain.reward || (paused ? "Restart combo" : "Grow the combo")
   };
 }
 
@@ -4762,6 +4782,7 @@ function getStartObjectiveQueue(game = window.Game, context = {}) {
       color: labChain.state === "paused" ? "#cbd5e1" : "#67e8f9",
       levelIndex: Number.isFinite(Number(game && game.currentPlanetIndex)) ? Number(game.currentPlanetIndex) : 0,
       stageTitle: labChain.title || "Lab chain",
+      lessonSteps: getLabChainLearningSteps(game, labChain),
       progress
     });
   }

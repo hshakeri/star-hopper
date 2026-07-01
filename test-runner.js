@@ -2263,8 +2263,14 @@ function runEngineTests() {
     assertEquals("STAGE CHAIN", chainStartQueue[0] && chainStartQueue[0].cta, "Start lab-chain queue should expose a stage action");
     assertEquals("lab-chain", chainStartQueue[0] && chainStartQueue[0].action, "Start lab-chain queue should keep action metadata");
     assertEquals("lab-chain", chainStartQueue[0] && chainStartQueue[0].progress && chainStartQueue[0].progress.mode, "Start lab-chain queue should carry progress metadata");
+    assertEquals("Raise engine again", chainStartQueue[0] && chainStartQueue[0].lessonSteps && chainStartQueue[0].lessonSteps.learn, "Start lab-chain queue should teach the fresh target");
+    assertEquals("hopper.engine = 7", chainStartQueue[0] && chainStartQueue[0].lessonSteps && chainStartQueue[0].lessonSteps.code, "Start lab-chain queue should teach the salient code line");
+    assertEquals("Next new progress can reach x3", chainStartQueue[0] && chainStartQueue[0].lessonSteps && chainStartQueue[0].lessonSteps.win, "Start lab-chain queue should teach the combo payoff");
     updateStartObjectiveQueue(chainQueueGame, chainStartQueue);
     assertEquals(true, /start-objective-code/.test(startQueuePanel22codeDeck.innerHTML), "Start lab-chain queue should render a command chip");
+    assertEquals(true, /LEARN/.test(startQueuePanel22codeDeck.innerHTML) && /Raise engine again/.test(startQueuePanel22codeDeck.innerHTML), "Start lab-chain queue should render the LEARN chip");
+    assertEquals(true, /CODE/.test(startQueuePanel22codeDeck.innerHTML) && /hopper\.engine = 7/.test(startQueuePanel22codeDeck.innerHTML), "Start lab-chain queue should render the CODE chip");
+    assertEquals(true, /WIN/.test(startQueuePanel22codeDeck.innerHTML) && /Next new progress can reach x3/.test(startQueuePanel22codeDeck.innerHTML), "Start lab-chain queue should render the WIN chip");
     assertEquals(true, /hopper\.engine = 7/.test(startQueuePanel22codeDeck.innerHTML), "Start lab-chain command chip should show the next chain command");
     assertEquals(true, /start-objective-progress lab-chain/.test(startQueuePanel22codeDeck.innerHTML), "Start lab-chain queue should render chain progress pips");
     assertEquals(true, /2\/3 to TRIPLE TEST/.test(startQueuePanel22codeDeck.innerHTML), "Start lab-chain progress should show the next milestone");
@@ -2274,6 +2280,20 @@ function runEngineTests() {
     assertEquals("lab-chain", chainRunQueue[0] && chainRunQueue[0].progress && chainRunQueue[0].progress.mode, "Run lab-chain queue should carry progress metadata");
     assertEquals(2, chainRunQueue[0] && chainRunQueue[0].progress && chainRunQueue[0].progress.value, "Run lab-chain progress should show the current combo");
     assertEquals(3, chainRunQueue[0] && chainRunQueue[0].progress && chainRunQueue[0].progress.target, "Run lab-chain progress should show the next milestone target");
+    assertEquals("Raise engine again", chainRunQueue[0] && chainRunQueue[0].lessonSteps && chainRunQueue[0].lessonSteps.learn, "Run lab-chain queue should teach the fresh target");
+    assertEquals("hopper.engine = 7", chainRunQueue[0] && chainRunQueue[0].lessonSteps && chainRunQueue[0].lessonSteps.code, "Run lab-chain queue should teach the salient code line");
+    assertEquals("Next new progress can reach x3", chainRunQueue[0] && chainRunQueue[0].lessonSteps && chainRunQueue[0].lessonSteps.win, "Run lab-chain queue should teach the combo payoff");
+    chainQueueGame.state = "playing";
+    chainQueueGame.canvas = { width: 360, height: 220 };
+    chainQueueGame.player = { x: 120, y: 128, w: 24, h: 32 };
+    chainQueueGame.cameraX = 0;
+    chainQueueGame.reducedMotion = true;
+    const chainCompassCue = chainQueueGame.getRunObjectiveCompassCue();
+    assertEquals("LAB CHAIN x2", chainCompassCue && chainCompassCue.label, "Objective compass should surface lab-chain targets when they lead the queue");
+    assertEquals("hopper.engine = 7", chainCompassCue && chainCompassCue.commandLine, "Objective compass should show the lab-chain salient command");
+    assertEquals("Raise engine again", chainCompassCue && chainCompassCue.lessonSteps && chainCompassCue.lessonSteps.learn, "Objective compass should carry the lab-chain learn step");
+    assertEquals("hopper.engine = 7", chainCompassCue && chainCompassCue.lessonSteps && chainCompassCue.lessonSteps.code, "Objective compass should carry the lab-chain code step");
+    assertEquals("Next new progress can reach x3", chainCompassCue && chainCompassCue.lessonSteps && chainCompassCue.lessonSteps.win, "Objective compass should carry the lab-chain win step");
     chainQueueGame.lastStartObjectiveQueue = chainStartQueue;
     const chainStarts = [];
     const chainModes = [];
@@ -2345,6 +2365,9 @@ function runEngineTests() {
     const chainRunProgressText = flattenQueueText(chainRunProgress || chainQueuePanel);
     assertEquals(true, !!chainRunProgress, "Run lab-chain queue should render milestone progress pips");
     assertEquals(true, /2\/3 to TRIPLE TEST/.test(chainRunProgressText), "Run lab-chain progress should name the next combo milestone");
+    assertEquals(true, /LEARN/.test(flattenQueueText(chainQueuePanel)) && /Raise engine again/.test(flattenQueueText(chainQueuePanel)), "Run lab-chain queue should render the LEARN chip");
+    assertEquals(true, /CODE/.test(flattenQueueText(chainQueuePanel)) && /hopper\.engine = 7/.test(flattenQueueText(chainQueuePanel)), "Run lab-chain queue should render the CODE chip");
+    assertEquals(true, /WIN/.test(flattenQueueText(chainQueuePanel)) && /Next new progress can reach x3/.test(flattenQueueText(chainQueuePanel)), "Run lab-chain queue should render the WIN chip");
     assertEquals(3, collectQueueByClass(chainRunProgress, "run-objective-progress-pip").length, "Run lab-chain progress should render one pip per milestone step");
     assertEquals(2, collectQueueByClass(chainRunProgress, "filled").length, "Run lab-chain progress should fill current combo pips");
     assertEquals(1, collectQueueByClass(chainRunProgress, "next").length, "Run lab-chain progress should mark the next combo pip");
@@ -2382,6 +2405,16 @@ function runEngineTests() {
     assertEquals(true, inputEl.focused, "Clear Code Concept action should focus the terminal");
     assertEquals("clear-code-concept", clearQueueGame.lastStagedExperiment && clearQueueGame.lastStagedExperiment.source, "Clear Code Concept action should preserve its source");
     assertEquals("Code concept", getStagedExperimentSourceLabel(clearQueueGame.lastStagedExperiment.source), "Clear Code Concept staged reminder should name the source");
+
+    const clearChainTarget = getLabChainTarget(chainQueueGame);
+    const clearChainQueue = chainQueueGame.getClearObjectiveQueue({ labChainTarget: clearChainTarget });
+    assertEquals("LAB CHAIN x2", clearChainQueue[0] && clearChainQueue[0].label, "Clear objective queue should offer active lab-chain follow-ups");
+    assertEquals("Raise engine again", clearChainQueue[0] && clearChainQueue[0].lessonSteps && clearChainQueue[0].lessonSteps.learn, "Clear lab-chain objective should keep the learn chip");
+    assertEquals("hopper.engine = 7", clearChainQueue[0] && clearChainQueue[0].lessonSteps && clearChainQueue[0].lessonSteps.code, "Clear lab-chain objective should keep the code chip");
+    assertEquals("Next new progress can reach x3", clearChainQueue[0] && clearChainQueue[0].lessonSteps && clearChainQueue[0].lessonSteps.win, "Clear lab-chain objective should keep the win chip");
+    const clearChainContract = renderObjectiveLearningContract(clearChainQueue[0], "clear-objective-contract");
+    assertEquals(true, /clear-objective-contract objective-learning-steps/.test(clearChainContract), "Clear lab-chain objective should render learning chips");
+    assertEquals(true, /Raise engine again/.test(clearChainContract) && /Next new progress can reach x3/.test(clearChainContract), "Clear lab-chain objective should show the target and payoff chips");
     window.Game = oldWindowGame22codeDeck;
     switchMainMode = oldSwitchMainMode22codeDeck;
 
@@ -5858,7 +5891,7 @@ function runEngineTests() {
     assertEquals(true, /One tweak -&gt; better evidence/.test(report.innerHTML), "Clear replay objective should explain the one-more-run contract");
     assertEquals(true, /Evidence -&gt; explanation/.test(report.innerHTML), "Clear explanation objective should name the evidence loop");
     assertEquals(true, /Signal clue -&gt; next chapter/.test(report.innerHTML), "Clear story objective should name the signal-story loop");
-    assertEquals(true, /Fresh test -&gt; combo/.test(report.innerHTML), "Clear lab-chain objective should name the combo loop");
+    assertEquals(true, /LEARN/.test(report.innerHTML) && /WIN/.test(report.innerHTML) && /Compare a lighter Hopper/.test(report.innerHTML), "Clear lab-chain objective should render the one-more-run learning chips");
     assertEquals(true, /state \+ event -&gt; next state/.test(report.innerHTML), "Clear AI objective should name the state-machine loop");
     assertEquals(true, /Compare a lighter Hopper/.test(report.innerHTML), "Lab-chain objective should name the next one-variable tweak");
     assertEquals(true, /clear-objective-item clear-lab-chain/.test(report.innerHTML), "Lab-chain clear objective should get a distinct collectible style");

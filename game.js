@@ -4944,6 +4944,7 @@ class StarHopperGame {
         command: labChainTarget.command || "",
         kind: labChainTarget.kind || "lab-chain",
         source: "clear-lab-chain",
+        lessonSteps: typeof getLabChainLearningSteps === "function" ? getLabChainLearningSteps(this, labChainTarget) : null,
         progress
       });
     }
