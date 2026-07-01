@@ -900,6 +900,59 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: Forge coach phases mass before elasticity", false, err.message);
   }
 
+  // Test 17c1b: completing a visible Forge phase creates a non-farmable visual cue.
+  const oldGetElementById17c1b = document.getElementById;
+  const oldBubblePop17c1b = ComicBubbles.pop;
+  const oldParticleBurst17c1b = Particles.spawnBurst;
+  try {
+    Compiler.reset();
+    const panel = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };
+    document.getElementById = (id) => id === "discovery-pulse" ? panel : null;
+    const labels = [];
+    let bursts = 0;
+    ComicBubbles.pop = (x, y, text) => { labels.push(text); };
+    Particles.spawnBurst = () => { bursts++; };
+
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[5];
+    game.currentPlanetIndex = 5;
+    game.player = { charType: 'hopper', x: 96, y: 90, w: 24, h: 32, jumpPower: 10, rocketPower: 40, mass: 4.0, spikes: false };
+    game.hopperMass = 4.0;
+    const forgeMission = PlatformerMissions.find(mission => mission.id === "asteroid-forge-momentum");
+    const activeMission = { id: "asteroid-forge-momentum", fullMission: forgeMission };
+    const massState = {
+      allPassed: false,
+      items: [
+        { id: "asteroid-mass-check", label: "First shove: Hopper mass 4.0", passed: true, message: "Mass proof passed" },
+        { id: "asteroid-elasticity-check", label: "Second tweak: elasticity 1.0", passed: false, message: "Bounce still locked" }
+      ]
+    };
+
+    const outcome = finishSuccessfulCodeRunDiscovery(game, activeMission, "use_hopper()\nhopper.mass = 4.0", massState, 0, []);
+    assertEquals("PHASE DONE", outcome.lessonPhaseAdvance && outcome.lessonPhaseAdvance.label, "Forge mass proof should create a phase-complete cue");
+    assertEquals("1 Momentum shove", outcome.lessonPhaseAdvance && outcome.lessonPhaseAdvance.title, "Phase cue should name the completed step");
+    assertEquals("2 Bounce control", outcome.lessonPhaseAdvance && outcome.lessonPhaseAdvance.nextTitle, "Phase cue should name the next step");
+    assertEquals("PHASE DONE: 1 Momentum shove -> 2 Bounce control", game.missionBalloon && game.missionBalloon.text, "Mission CRT should announce the phase transition");
+    assertEquals(true, labels.includes("PHASE DONE!"), "Phase completion should pop an in-world label");
+    assertEquals(true, bursts >= 2, "Phase completion should spawn visual particles");
+    assertEquals(true, /PHASE DONE/.test(panel.innerHTML), "Discovery Pulse should render the phase chip");
+    assertEquals(true, /Next: 2 Bounce control/.test(panel.innerHTML), "Discovery Pulse phase chip should preview the next phase");
+
+    const repeat = finishSuccessfulCodeRunDiscovery(game, activeMission, "hopper.mass = 4.0", massState, 0, []);
+    assertEquals(null, repeat.lessonPhaseAdvance, "Repeating the same completed phase should not replay the phase cue");
+    assertEquals(1, labels.filter(label => label === "PHASE DONE!").length, "Phase cue should remain one-time per session phase");
+
+    document.getElementById = oldGetElementById17c1b;
+    ComicBubbles.pop = oldBubblePop17c1b;
+    Particles.spawnBurst = oldParticleBurst17c1b;
+    renderTestResult("engine-suite", "Curriculum: Forge phase completion gets visual cue", true);
+  } catch (err) {
+    document.getElementById = oldGetElementById17c1b;
+    ComicBubbles.pop = oldBubblePop17c1b;
+    Particles.spawnBurst = oldParticleBurst17c1b;
+    renderTestResult("engine-suite", "Curriculum: Forge phase completion gets visual cue", false, err.message);
+  }
+
   // Test 17c2: Earth no-jump replay locks gems unless Agility is met with stock jump_power.
   try {
     Compiler.reset();

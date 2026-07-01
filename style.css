@@ -3506,6 +3506,11 @@ html {
   background: rgba(113, 63, 18, 0.36);
   color: #fef08a;
 }
+.discovery-phase {
+  border-color: rgba(251, 191, 36, 0.5);
+  background: rgba(120, 53, 15, 0.34);
+  color: #fde68a;
+}
 .discovery-combo {
   border-color: rgba(56, 189, 248, 0.46);
   background: rgba(8, 47, 73, 0.42);

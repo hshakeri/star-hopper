@@ -539,6 +539,61 @@ function renderMissionLessonPhaseLadder(game, fullMission, label = "LESSON PATH"
   `;
 }
 
+function recordLessonPhaseAdvance(game, activeMission, resultState, pulse = null) {
+  const fullMission = activeMission && activeMission.fullMission ? activeMission.fullMission : null;
+  if (!game || !fullMission || !Array.isArray(fullMission.lessonPhases) || !resultState || !Array.isArray(resultState.items)) return null;
+  const rows = getMissionLessonPhaseRows(game, fullMission);
+  if (!rows.length) return null;
+  const passedIds = new Set(resultState.items.filter(item => item && item.passed).map(item => item.id));
+  const missionId = activeMission.id || fullMission.id || "mission";
+  game.lessonPhaseNotices = game.lessonPhaseNotices || {};
+  const completed = rows.find(row => {
+    const key = `${missionId}:${row.id || row.checkId || row.index}`;
+    return row.status === "complete" && row.checkId && passedIds.has(row.checkId) && !game.lessonPhaseNotices[key];
+  });
+  if (!completed) return null;
+
+  const sourceKey = `${missionId}:${completed.id || completed.checkId || completed.index}`;
+  game.lessonPhaseNotices[sourceKey] = 1;
+  const next = rows.find(row => row.status === "active" && row.id !== completed.id) || null;
+  const result = {
+    label: "PHASE DONE",
+    title: completed.label || "Lesson phase",
+    nextTitle: next ? (next.label || "Next phase") : null,
+    formula: completed.formula || "",
+    payoff: completed.payoff || "",
+    sourceKey
+  };
+  game.lastLessonPhaseAdvance = result;
+  if (pulse) {
+    pulse.lessonPhaseAdvance = result;
+    updateDiscoveryPulse(game);
+  }
+
+  const nextText = result.nextTitle ? ` Next: ${result.nextTitle}.` : " Lesson path complete.";
+  if (typeof ui_log_output === 'function') {
+    ui_log_output(`Lesson phase complete: ${result.title}.${nextText}`, "success");
+  }
+  if (typeof game.showMissionBalloon === 'function') {
+    game.showMissionBalloon(`PHASE DONE: ${result.title}${result.nextTitle ? ` -> ${result.nextTitle}` : ""}`, {
+      title: "LESSON PATH",
+      color: "#fbbf24",
+      timer: 230
+    });
+  }
+  if (game.player && typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+    const px = (Number.isFinite(game.player.x) ? game.player.x : 0) + (game.player.w || 24) / 2;
+    const py = Number.isFinite(game.player.y) ? game.player.y : 0;
+    ComicBubbles.pop(px, py - 54, "PHASE DONE!", "#fbbf24", 0.94);
+    if (result.nextTitle) ComicBubbles.pop(px, py - 36, `NEXT: ${String(result.nextTitle).replace(/^\d+\s*/, "").toUpperCase()}`, "#a7f3d0", 0.7);
+    if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+      Particles.spawnBurst(px, py - 4, "#fbbf24", 10, 2.0, 1.8, "glow");
+      Particles.spawnBurst(px, py - 4, "#67e8f9", 6, 1.5, 1.5, "glow");
+    }
+  }
+  return result;
+}
+
 function appendLessonLensCard(listContainer, game) {
   if (!listContainer || !game) return;
   const activeMission = getActivePlatformerMission(game);
@@ -3940,11 +3995,12 @@ function finishSuccessfulCodeRunDiscovery(game, activeMission, code, resultState
     }
   }
   const pulse = recordDiscoveryPulse(game, activeMission, code, resultState, opened);
+  const lessonPhaseAdvance = recordLessonPhaseAdvance(game, activeMission, resultState, pulse);
   const signalLabProof = awardSignalLabContractProof(game, code, pulse);
   const anomalyTraceProof = awardAnomalyTraceProof(game, code, pulse);
   const quantumBranchProof = awardQuantumBranchProof(game, code, pulse);
   const quantumChanceProof = awardQuantumChanceProof(game, code, pulse);
-  return { opened, pulse, signalLabProof, anomalyTraceProof, quantumBranchProof, quantumChanceProof, lockedAfter };
+  return { opened, pulse, lessonPhaseAdvance, signalLabProof, anomalyTraceProof, quantumBranchProof, quantumChanceProof, lockedAfter };
 }
 
 function getDiscoveryChainHint(pulse, game = null) {
@@ -3996,6 +4052,9 @@ function updateDiscoveryPulse(game) {
     : "";
   const hypothesis = pulse.hypothesisConfirmed
     ? `<div class="discovery-hypothesis">HYPOTHESIS CONFIRMED +${escapeHTML(String(pulse.hypothesisBonusXP || 0))} XP</div>`
+    : "";
+  const lessonPhase = pulse.lessonPhaseAdvance
+    ? `<div class="discovery-hypothesis discovery-phase">${escapeHTML(pulse.lessonPhaseAdvance.label || "PHASE DONE")} · ${escapeHTML(pulse.lessonPhaseAdvance.title || "Lesson phase")}${pulse.lessonPhaseAdvance.nextTitle ? ` · Next: ${escapeHTML(pulse.lessonPhaseAdvance.nextTitle)}` : ""}</div>`
     : "";
   const formulaDeckMastery = pulse.formulaDeckMastery
     ? `<div class="discovery-hypothesis discovery-perk">${escapeHTML(pulse.formulaDeckMastery.label || "DECK MASTERED")} +${escapeHTML(String(pulse.formulaDeckMastery.rewardXP || 0))} XP · ${escapeHTML(String(pulse.formulaDeckMastery.count || 0))}/${escapeHTML(String(pulse.formulaDeckMastery.total || 0))} cards</div>`
@@ -4057,6 +4116,7 @@ function updateDiscoveryPulse(game) {
     ${comboAmplifier}
     ${comboMilestone}
     ${hypothesis}
+    ${lessonPhase}
     ${formulaDeckMastery}
     ${signalLabProof}
     ${anomalyTraceProof}
