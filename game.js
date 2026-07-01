@@ -790,7 +790,7 @@ class StarHopperGame {
     };
   }
 
-  startFrontierChallenge() {
+  startFrontierChallenge(options = {}) {
     const frontier = this.getFrontierChallenge();
     if (!frontier) {
       if (typeof ui_log_output === 'function') {
@@ -798,11 +798,28 @@ class StarHopperGame {
       }
       return false;
     }
+    const darkMatterPrep = !!(options && (options.source === "dark-matter-prep" || options.darkMatterPrep));
+    if (darkMatterPrep) {
+      const base = frontier.labContract || {};
+      frontier.darkMatterPrep = true;
+      frontier.labGoal = "Dark Matter Prep: curve + speed + force evidence";
+      frontier.labContract = {
+        title: "Dark Matter Prep: curve evidence",
+        body: `${base.title ? `${base.title}: ` : ""}Run the Frontier remix, then compare path curve, speed, and force changes as hidden-force clues.`,
+        concept: "Infer hidden forces from motion",
+        command: base.command || ""
+      };
+    }
     this.dailyInfo = frontier;
     this._pendingAttemptOverride = frontier.attempt; // consumed by loadPlanet
     this.startLevel(frontier.planetIndex);
     if (typeof ui_log_output === 'function') {
-      ui_log_output(`◆ Frontier Challenge tier ${frontier.tier} accepted — share code ${frontier.shareCode}`, "success");
+      ui_log_output(
+        darkMatterPrep
+          ? `◆ Dark Matter prep run accepted — bank curve evidence with ${frontier.shareCode}`
+          : `◆ Frontier Challenge tier ${frontier.tier} accepted — share code ${frontier.shareCode}`,
+        "success"
+      );
     }
     return true;
   }
@@ -2832,6 +2849,21 @@ class StarHopperGame {
       };
     }
 
+    if (isFrontierRun && this.dailyInfo && this.dailyInfo.isFrontier && this.dailyInfo.darkMatterPrep) {
+      const focus = this.dailyInfo.labContract || null;
+      const command = focus && focus.command ? ` Try: ${String(focus.command).replace(/\s*\n\s*/g, " / ")}` : "";
+      return {
+        kicker: "DARK MATTER PREP CONTRACT",
+        title: focus ? focus.title : "Bank curve evidence",
+        body: focus
+          ? `${focus.body}${command}`
+          : "Run another Frontier remix, then compare path curve, speed, and force changes as hidden-force clues.",
+        reward: "Reward: hidden-force evidence + share code",
+        action: "dark-matter-prep",
+        cta: "RUN PREP"
+      };
+    }
+
     if (isFrontierRun && frontierRivalResult && frontierRivalResult.state === "behind" && frontierRivalResult.entry) {
       const rival = frontierRivalResult.entry;
       const timeText = Number.isFinite(rival.bestTime) ? ` under ${rival.bestTime.toFixed(1)}s` : "";
@@ -2861,15 +2893,16 @@ class StarHopperGame {
       const frontier = (this.dailyInfo && this.dailyInfo.isFrontier) ? this.dailyInfo : this.getFrontierChallenge();
       const focus = frontier && frontier.labContract ? frontier.labContract : null;
       const command = focus && focus.command ? ` Try: ${String(focus.command).replace(/\s*\n\s*/g, " / ")}` : "";
+      const darkMatterPrep = !!(frontier && frontier.darkMatterPrep);
       return {
-        kicker: "NEXT FRONTIER CONTRACT",
+        kicker: darkMatterPrep ? "DARK MATTER PREP CONTRACT" : "NEXT FRONTIER CONTRACT",
         title: focus ? focus.title : (frontier ? `Climb Frontier Tier ${frontier.tier}` : "Climb the frontier ladder"),
         body: focus
           ? `${focus.body}${command}`
           : "Use a seeded remix to prove the same science idea still works after the star-map is complete.",
-        reward: "Reward: world mastery XP + share code",
-        action: "frontier",
-        cta: "NEXT FRONTIER"
+        reward: darkMatterPrep ? "Reward: hidden-force evidence + share code" : "Reward: world mastery XP + share code",
+        action: darkMatterPrep ? "dark-matter-prep" : "frontier",
+        cta: darkMatterPrep ? "RUN PREP" : "NEXT FRONTIER"
       };
     }
 
@@ -2927,6 +2960,9 @@ class StarHopperGame {
     const action = contract && contract.action ? contract.action : "replay";
     if (action === "frontier" && typeof this.startFrontierChallenge === 'function') {
       return this.startFrontierChallenge();
+    }
+    if (action === "dark-matter-prep" && typeof this.startFrontierChallenge === 'function') {
+      return this.startFrontierChallenge({ source: "dark-matter-prep" });
     }
     if (action === "daily" && typeof this.startDailySignal === 'function') {
       return this.startDailySignal();

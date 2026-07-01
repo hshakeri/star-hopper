@@ -2431,11 +2431,14 @@ function runEngineTests() {
     assertEquals(true, /hidden-force record/.test(els["start-mission-radar-reward"].textContent), "Prep quest should name the hidden-force payoff");
     assertEquals("RUN PREP", els["start-mission-radar-btn"].textContent, "Prep quest should expose a direct run action");
     assertEquals("frontier", els["start-mission-radar-btn"].dataset.action, "Prep quest should start a Frontier evidence run");
+    assertEquals("dark-matter-prep", els["start-mission-radar-btn"].dataset.kind, "Prep quest should tag the Frontier launch as Dark Matter prep");
     let prepCalls = 0;
-    game.startFrontierChallenge = () => { prepCalls++; return true; };
+    let prepOptions = null;
+    game.startFrontierChallenge = (options) => { prepCalls++; prepOptions = options || null; return true; };
     window.Game = game;
     assertEquals(true, runStartMissionRadarAction(), "Prep radar action should execute");
     assertEquals(1, prepCalls, "Prep radar action should start the Frontier challenge");
+    assertEquals("dark-matter-prep", prepOptions && prepOptions.source, "Prep radar action should pass the Dark Matter prep source");
 
     game.frontierRecords = {};
     game.discoveryPassCounts = {};
@@ -2758,19 +2761,23 @@ function runEngineTests() {
     let replayArgs = null;
     let dailyCalls = 0;
     let frontierCalls = 0;
+    const frontierOptions = [];
     let launchCalls = 0;
     actionGame.startLevel = (index, preserve) => { replayArgs = { index, preserve }; };
     actionGame.startDailySignal = () => { dailyCalls++; return true; };
-    actionGame.startFrontierChallenge = () => { frontierCalls++; return true; };
+    actionGame.startFrontierChallenge = (options) => { frontierCalls++; frontierOptions.push(options || null); return true; };
     actionGame.beginNextPlanetNavigation = () => { launchCalls++; };
     actionGame.runClearReplayContract({ action: "replay" });
     assertEquals(2, replayArgs.index, "Replay action should restart the current world");
     assertEquals(true, replayArgs.preserve, "Replay action should preserve tunings for one-more-test iteration");
     actionGame.runClearReplayContract({ action: "daily" });
     actionGame.runClearReplayContract({ action: "frontier" });
+    actionGame.runClearReplayContract({ action: "dark-matter-prep" });
     actionGame.runClearReplayContract({ action: "launch" });
     assertEquals(1, dailyCalls, "Daily action should accept the daily signal");
-    assertEquals(1, frontierCalls, "Frontier action should start the frontier challenge");
+    assertEquals(2, frontierCalls, "Frontier and prep actions should start Frontier challenges");
+    assertEquals(null, frontierOptions[0], "Normal Frontier action should not carry prep options");
+    assertEquals("dark-matter-prep", frontierOptions[1] && frontierOptions[1].source, "Prep action should carry the Dark Matter prep source");
     assertEquals(1, launchCalls, "Launch action should open the navigation bridge");
 
     const oldSwitchMainMode22fg = typeof switchMainMode === 'function' ? switchMainMode : null;
@@ -3308,6 +3315,28 @@ function runEngineTests() {
     assertEquals(true, /Beat Grace/.test(frontierRivalText), "Frontier rival card should show the chase target");
     assertEquals(true, /3\/3 Lab Stars/.test(frontierRivalText), "Frontier rival card should show target lab stars");
     assertEquals(true, /35\.5s/.test(frontierRivalText), "Frontier rival card should show target time");
+
+    list = makeEl();
+    game.dailyInfo = {
+      isFrontier: true,
+      darkMatterPrep: true,
+      dateStr: "2026-06-30",
+      tier: 4,
+      shareCode: "FRONTIER-ICE-4242",
+      concept: "Infer hidden forces from motion",
+      labContract: {
+        title: "Dark Matter Prep: curve evidence",
+        body: "Run the Frontier remix, then compare path curve, speed, and force changes as hidden-force clues.",
+        concept: "Infer hidden forces from motion",
+        command: signalFocus.command
+      }
+    };
+    updateMissionList(game);
+    const prepSignalLab = findByClass(list, "signal-lab-contract-card");
+    const prepSignalText = flattenText(prepSignalLab || list);
+    assertEquals(true, /DARK MATTER PREP/.test(prepSignalText), "Tagged prep runs should label the in-run Signal Lab card as Dark Matter prep");
+    assertEquals(true, /curve evidence/.test(prepSignalText), "Prep signal card should show the evidence target");
+    assertEquals(true, /Infer hidden forces from motion/.test(prepSignalText), "Prep signal card should show the hidden-force concept");
     assertEquals(true, !!scienceDelta, "Mission panel should show the latest science delta");
     assertEquals(true, /WHAT CHANGED/.test(scienceDeltaText), "Science delta card should identify itself");
     assertEquals(true, /Mass/.test(scienceDeltaText), "Science delta should list changed values");
@@ -5503,6 +5532,34 @@ function runRetryRemixTests() {
     assertEquals(frontier.labContract.title, contract.title, "Frontier clear contract should reuse the replay lab focus");
     assertEquals(true, contract.body.indexOf(frontier.labContract.command.split("\n")[0]) >= 0, "Frontier clear contract should include the sample command");
     assertEquals(true, /world mastery XP/.test(contract.reward), "Frontier reward should name world mastery XP");
+
+    const prepGame = new StarHopperGame();
+    prepGame.getTodayDateStr = () => "2026-06-30";
+    prepGame.planetClears = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 };
+    prepGame.masteryMeters = { ...g.masteryMeters };
+    let prepStartedIndex = null;
+    prepGame.startLevel = (index) => { prepStartedIndex = index; };
+    assertEquals(true, prepGame.startFrontierChallenge({ source: "dark-matter-prep" }), "Dark Matter prep starts a tagged Frontier run");
+    assertEquals(true, prepGame.dailyInfo.darkMatterPrep, "Prep Frontier run keeps the Dark Matter prep tag");
+    assertEquals(prepGame.dailyInfo.planetIndex, prepStartedIndex, "Prep Frontier run launches its selected planet");
+    assertEquals("Dark Matter Prep: curve + speed + force evidence", prepGame.dailyInfo.labGoal, "Prep Frontier run rewrites the lab goal around evidence");
+    assertEquals("Dark Matter Prep: curve evidence", prepGame.dailyInfo.labContract.title, "Prep Frontier run uses a Dark Matter lab contract");
+    assertEquals("Infer hidden forces from motion", prepGame.dailyInfo.labContract.concept, "Prep lab contract names the hidden-force concept");
+    assertEquals(true, /path curve, speed, and force/.test(prepGame.dailyInfo.labContract.body), "Prep lab contract asks for curve/speed/force comparison");
+    assertEquals(true, !!prepGame.dailyInfo.labContract.command, "Prep lab contract keeps the runnable replay command");
+    const prepContract = prepGame.getClearReplayContract({
+      labStars: { stars: 3, maxStars: 3, checks: [{ id: "missions", earned: true }, { id: "gems", earned: true }, { id: "science", earned: true }] },
+      clearTime: null,
+      isDailyRun: true,
+      isFrontierRun: true,
+      nextIndex: null
+    });
+    assertEquals("DARK MATTER PREP CONTRACT", prepContract.kicker, "Prep Frontier clear keeps the future-lab prep loop");
+    assertEquals("Dark Matter Prep: curve evidence", prepContract.title, "Prep clear contract keeps the Dark Matter lab focus");
+    assertEquals(true, /hidden-force clues/.test(prepContract.body), "Prep clear contract preserves the evidence framing");
+    assertEquals("Reward: hidden-force evidence + share code", prepContract.reward, "Prep clear contract names the hidden-force reward");
+    assertEquals("dark-matter-prep", prepContract.action, "Prep clear contract restarts another tagged prep run");
+    assertEquals("RUN PREP", prepContract.cta, "Prep clear contract uses the prep CTA");
     renderTestResult(SUITE, "Frontier Challenge: unlocks after star-map completion", true);
   } catch (err) {
     renderTestResult(SUITE, "Frontier Challenge: unlocks after star-map completion", false, err.message);

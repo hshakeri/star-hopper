@@ -696,9 +696,11 @@ function appendSignalLabContractCard(listContainer, game) {
   const head = document.createElement("div");
   head.className = "signal-lab-contract-head";
   const label = document.createElement("span");
-  label.textContent = isFrontier ? "FRONTIER LAB" : "DAILY SIGNAL LAB";
+  label.textContent = signal.darkMatterPrep ? "DARK MATTER PREP" : (isFrontier ? "FRONTIER LAB" : "DAILY SIGNAL LAB");
   const reward = document.createElement("strong");
-  reward.textContent = isFrontier
+  reward.textContent = signal.darkMatterPrep
+    ? "curve evidence"
+    : isFrontier
     ? `T${signal.tier || 1} · ${signal.shareCode || "frontier"}`
     : (signal.dateStr || signal.shareCode || "today");
   head.appendChild(label);
@@ -2296,7 +2298,7 @@ function getActiveLabQuest(game) {
       body: "Run a Frontier remix and compare path curve, speed, and force changes. Dark Matter Lab will need evidence, not guesses.",
       reward: "Reward: stronger hidden-force record",
       action: "dark-matter-prep",
-      kind: "frontier"
+      kind: "dark-matter-prep"
     };
   }
 
@@ -2519,7 +2521,9 @@ function runStartMissionRadarAction() {
     return true;
   }
   if (action === "frontier" && game && typeof game.startFrontierChallenge === 'function') {
-    game.startFrontierChallenge();
+    const kind = button && button.dataset ? String(button.dataset.kind || "") : "";
+    const options = kind === "dark-matter-prep" ? { source: "dark-matter-prep" } : undefined;
+    game.startFrontierChallenge(options);
     return true;
   }
   if (action === "log") {
