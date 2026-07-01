@@ -4164,7 +4164,10 @@ function awardCodeConceptCard(game, concept, options = {}) {
     nextConcept: progress.next ? progress.next.concept : "",
     nextTitle: progress.next ? progress.next.title : "Code deck complete",
     nextBody: progress.next ? progress.next.body : "",
-    nextCommand: progress.next && progress.next.sampleCode ? progress.next.sampleCode : ""
+    nextCommand: progress.next && progress.next.sampleCode ? progress.next.sampleCode : "",
+    nextLearn: progress.next ? (progress.next.learn || "") : "",
+    nextCodeMove: progress.next ? (progress.next.codeMove || "") : "",
+    nextPayoff: progress.next ? (progress.next.payoff || "") : ""
   };
   if (game.player && typeof ComicBubbles !== "undefined" && ComicBubbles.pop) {
     const baseX = Number.isFinite(game.player.x) ? game.player.x : 0;
@@ -6685,8 +6688,11 @@ function updateDiscoveryPulse(game) {
     ? String(codeConceptProof.nextCommand).trim()
     : "";
   const codeConceptNextCommandLabel = codeConceptNextCommand.replace(/\s+/g, " ");
+  const codeConceptNextLesson = codeConceptNextCommand && codeConceptProof
+    ? `<div class="discovery-code-concept-lesson"><span><b>LEARN</b>${escapeHTML(codeConceptProof.nextLearn || "Next coding idea")}</span><span><b>CODE</b>${escapeHTML(codeConceptProof.nextCodeMove || "Try the sample")}</span><span><b>WIN</b>${escapeHTML(codeConceptProof.nextPayoff || "Collect the card")}</span></div>`
+    : "";
   const codeConcept = pulse.codeConceptProof
-    ? `<div class="discovery-hypothesis discovery-code-concept"><strong>${escapeHTML(pulse.codeConceptProof.label || "CODE CONCEPT")} · ${escapeHTML(pulse.codeConceptProof.concept || "")}</strong><span>${escapeHTML(pulse.codeConceptProof.title || "Coding idea")} · ${escapeHTML(pulse.codeConceptProof.progress || "")}${pulse.codeConceptProof.nextTitle ? ` · Next: ${escapeHTML(pulse.codeConceptProof.nextTitle)}` : ""}</span>${codeConceptNextCommand ? `<div class="discovery-code-concept-next">Try <code>${escapeHTML(codeConceptNextCommandLabel)}</code><button type="button" class="discovery-code-concept-stage-btn" data-code-concept-next-command="${escapeHTML(codeConceptNextCommand)}" data-code-concept-next-title="${escapeHTML(pulse.codeConceptProof.nextTitle || "Next coding idea")}" data-code-concept-next-kind="${escapeHTML(pulse.codeConceptProof.nextConcept || "code-concept")}">STAGE IDEA</button></div>` : ""}</div>`
+    ? `<div class="discovery-hypothesis discovery-code-concept"><strong>${escapeHTML(pulse.codeConceptProof.label || "CODE CONCEPT")} · ${escapeHTML(pulse.codeConceptProof.concept || "")}</strong><span>${escapeHTML(pulse.codeConceptProof.title || "Coding idea")} · ${escapeHTML(pulse.codeConceptProof.progress || "")}${pulse.codeConceptProof.nextTitle ? ` · Next: ${escapeHTML(pulse.codeConceptProof.nextTitle)}` : ""}</span>${codeConceptNextLesson}${codeConceptNextCommand ? `<div class="discovery-code-concept-next">Try <code>${escapeHTML(codeConceptNextCommandLabel)}</code><button type="button" class="discovery-code-concept-stage-btn" data-code-concept-next-command="${escapeHTML(codeConceptNextCommand)}" data-code-concept-next-title="${escapeHTML(pulse.codeConceptProof.nextTitle || "Next coding idea")}" data-code-concept-next-kind="${escapeHTML(pulse.codeConceptProof.nextConcept || "code-concept")}">STAGE IDEA</button></div>` : ""}</div>`
     : "";
   const codeConceptDeckMastery = pulse.codeConceptDeckMastery
     ? `<div class="discovery-hypothesis discovery-code-concept">${escapeHTML(pulse.codeConceptDeckMastery.label || "CODE DECK MASTERED")} +${escapeHTML(String(pulse.codeConceptDeckMastery.rewardXP || 0))} XP · ${escapeHTML(String(pulse.codeConceptDeckMastery.count || 0))}/${escapeHTML(String(pulse.codeConceptDeckMastery.total || 0))} ideas</div>`

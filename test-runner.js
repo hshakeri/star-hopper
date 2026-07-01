@@ -2706,6 +2706,9 @@ function runEngineTests() {
     assertEquals("1/5", firstPulse.codeConceptProof && firstPulse.codeConceptProof.progress, "Code concept proof should show deck progress");
     assertEquals("LOOP", firstPulse.codeConceptProof && firstPulse.codeConceptProof.nextConcept, "Code concept proof should identify the next idea");
     assertEquals("repeat 3 { spawn_block() }", firstPulse.codeConceptProof && firstPulse.codeConceptProof.nextCommand, "Code concept proof should carry the next runnable idea");
+    assertEquals("Repeat count makes tools", firstPulse.codeConceptProof && firstPulse.codeConceptProof.nextLearn, "Code concept proof should carry the next learning idea");
+    assertEquals("Repeat a helper", firstPulse.codeConceptProof && firstPulse.codeConceptProof.nextCodeMove, "Code concept proof should carry the next coding move");
+    assertEquals("Build the route", firstPulse.codeConceptProof && firstPulse.codeConceptProof.nextPayoff, "Code concept proof should carry the next game payoff");
     assertEquals(true, game.discoveredFormulaKinds.has("mass"), "Mass formula should be collected");
     assertEquals(1, game.formulaCardEffects.length, "Formula card unlock should spawn an in-world card effect");
     assertEquals("Mass Lab", game.formulaCardEffects[0].title, "Formula card effect should name the collected card");
@@ -2737,6 +2740,10 @@ function runEngineTests() {
     assertEquals(true, /SCIENCE/.test(pulsePanel22b.innerHTML) && /F\/m=a/.test(pulsePanel22b.innerHTML), "Science proof should show the formula relation");
     assertEquals(true, /WIN/.test(pulsePanel22b.innerHTML) && /(NEXT Agility 30\+ reached|TARGET Agility)/.test(pulsePanel22b.innerHTML), "Science proof should show the next game target");
     assertEquals(true, /CODE CONCEPT/.test(pulsePanel22b.innerHTML) && /ASSIGN/.test(pulsePanel22b.innerHTML), "Discovery Pulse should show the collected coding concept");
+    assertEquals(true, /discovery-code-concept-lesson/.test(pulsePanel22b.innerHTML), "Discovery Pulse should render next Code Concept lesson chips");
+    assertEquals(true, /LEARN/.test(pulsePanel22b.innerHTML) && /Repeat count makes tools/.test(pulsePanel22b.innerHTML), "Discovery Pulse Code Concept handoff should teach the next idea");
+    assertEquals(true, /CODE/.test(pulsePanel22b.innerHTML) && /Repeat a helper/.test(pulsePanel22b.innerHTML), "Discovery Pulse Code Concept handoff should name the next coding move");
+    assertEquals(true, /WIN/.test(pulsePanel22b.innerHTML) && /Build the route/.test(pulsePanel22b.innerHTML), "Discovery Pulse Code Concept handoff should name the next payoff");
     assertEquals(true, /data-code-concept-next-command/.test(pulsePanel22b.innerHTML), "Code Concept proof should carry a next-idea stage command");
     assertEquals(true, /STAGE IDEA/.test(pulsePanel22b.innerHTML), "Code Concept proof should expose a next-idea stage action");
     assertEquals(true, typeof codeConceptClick === "function", "Discovery Pulse Code Concept action should attach a click handler");

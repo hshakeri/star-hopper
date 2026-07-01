@@ -4512,6 +4512,31 @@ html {
   color: #dbeafe;
   font-size: 0.54rem;
 }
+.discovery-code-concept-lesson {
+  display: grid;
+  gap: 3px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.discovery-code-concept-lesson span {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  border: 1px solid rgba(147, 197, 253, 0.22);
+  border-radius: 3px;
+  background: rgba(15, 23, 42, 0.42);
+  color: #dbeafe;
+  font-family: var(--font-mono);
+  font-size: 0.48rem;
+  font-weight: 900;
+  line-height: 1.08;
+  padding: 3px 4px;
+  overflow-wrap: anywhere;
+}
+.discovery-code-concept-lesson b {
+  color: #fef08a;
+  font-size: 0.44rem;
+  letter-spacing: 0;
+}
 .discovery-code-concept-stage-btn {
   border: 1px solid rgba(147, 197, 253, 0.58);
   border-radius: 4px;
@@ -11348,6 +11373,7 @@ body.readable-text-mode .discovery-pulse-foot,
 body.readable-text-mode .discovery-hypothesis,
 body.readable-text-mode .discovery-phase-stage-btn,
 body.readable-text-mode .discovery-code-concept-stage-btn,
+body.readable-text-mode .discovery-code-concept-lesson span,
 body.readable-text-mode .discovery-formula-stage-btn,
 body.readable-text-mode .discovery-chain-next span,
 body.readable-text-mode .discovery-chain-progress span,
