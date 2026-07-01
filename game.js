@@ -7943,6 +7943,7 @@ class StarHopperGame {
     const codeLine = typeof this.getScienceDeltaCodeLine === 'function'
       ? this.getScienceDeltaCodeLine(delta, change)
       : "CODE run";
+    const codeSkillChip = this.getCommandCodeSkillChip(codeLine);
     const relation = typeof this.getScienceDeltaFormulaChip === 'function'
       ? this.getScienceDeltaFormulaChip(change)
       : "code->evidence";
@@ -7963,6 +7964,7 @@ class StarHopperGame {
       maxLife: 104,
       color,
       codeLine: codeLine || "CODE run",
+      codeSkillChip,
       relation,
       deltaChip,
       predictionLabel: predictionCue && predictionCue.line ? predictionCue.line : "",
@@ -8159,8 +8161,10 @@ class StarHopperGame {
       const predictionLabel = fx.predictionLabel || "";
       const nextLabel = fx.nextLabel || "";
       const nextCommandLabel = fx.nextCommandLabel || "";
+      const codeSkillChip = fx.codeSkillChip || "";
       drawn.push({
         codeLine: fx.codeLine,
+        codeSkillChip,
         relation: fx.relation,
         valueLine: fx.valueLine,
         deltaLabel,
@@ -8245,6 +8249,20 @@ class StarHopperGame {
       ctx.fillStyle = "#93c5fd";
       ctx.font = "bold 6.5px 'Share Tech Mono', monospace";
       ctx.fillText("CODE", -138, -17);
+      if (codeSkillChip) {
+        const codeChipW = Math.max(34, Math.min(52, Math.ceil(12 + String(codeSkillChip).length * 5.2)));
+        ctx.fillStyle = "rgba(14, 165, 233, 0.18)";
+        ctx.strokeStyle = "#67e8f9";
+        ctx.beginPath();
+        ctx.roundRect(-34 - codeChipW, -22, codeChipW, 9, 4);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#67e8f9";
+        ctx.font = "bold 5.5px 'Share Tech Mono', monospace";
+        ctx.textAlign = "center";
+        ctx.fillText(this.fitCardText(ctx, codeSkillChip, codeChipW - 8), -34 - codeChipW / 2, -17.5);
+        ctx.textAlign = "left";
+      }
       ctx.fillStyle = "#f8fafc";
       ctx.font = "7px 'Share Tech Mono', monospace";
       ctx.fillText(this.fitCardText(ctx, fx.codeLine, 104), -138, -6);

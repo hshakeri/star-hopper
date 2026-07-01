@@ -3066,6 +3066,7 @@ function runEngineTests() {
     assertEquals(true, scienceDeltaBubbles22ba.some(text => /MASS/.test(text)), "Science delta should pop the changed value in the level");
     assertEquals(true, scienceDeltaBursts22ba >= 2, "Science delta should spawn a small particle reward");
     assertEquals("CODE hopper.mass = 1.2", breadcrumb22ba.codeLine, "Experiment breadcrumb should keep the causal code line");
+    assertEquals("ASSIGN", breadcrumb22ba.codeSkillChip, "Experiment breadcrumb should name the coding construct behind the code line");
     assertEquals("F/m=a", breadcrumb22ba.relation, "Experiment breadcrumb should name the science relation");
     assertEquals("Mass 2.5 -> 1.2 (-1.3)", breadcrumb22ba.valueLine, "Experiment breadcrumb should keep the changed value");
     assertEquals("-1.3", breadcrumb22ba.deltaChip, "Experiment breadcrumb should expose the numeric delta");
@@ -3077,6 +3078,10 @@ function runEngineTests() {
     assertEquals(true, /use_hopper\(\)/.test(nextCue.command), "Next experiment cue should include runnable scaffold code");
     assertEquals(true, /hopper\.engine = 6/.test(nextCue.command), "Next experiment cue should keep the mission's target syntax");
     assertEquals(nextCue, game.lastScienceDelta.nextExperiment, "Next experiment cue should be pinned to the latest delta");
+    assertEquals("ASSIGN", game.getCommandCodeSkillChip("hopper.mass = 1.2"), "Code-skill helper should identify assignments");
+    assertEquals("LOOP", game.getCommandCodeSkillChip("repeat(3): spawn_block()"), "Code-skill helper should identify loops");
+    assertEquals("IF", game.getCommandCodeSkillChip("if player.touching('ice'): friction = 8"), "Code-skill helper should identify conditionals");
+    assertEquals("CALL", game.getCommandCodeSkillChip("use_hopper()"), "Code-skill helper should identify function calls");
     game.state = 'playing';
     game.canvas = { width: 720, height: 448 };
     const runCue = game.getScienceDeltaRunCue();
@@ -3135,6 +3140,7 @@ function runEngineTests() {
     const drawnBreadcrumbs = game.drawScienceBreadcrumbEffects(breadcrumbCtx);
     assertEquals(1, drawnBreadcrumbs.length, "Drawing should return the experiment breadcrumb payload");
     assertEquals("CODE hopper.mass = 1.2", drawnBreadcrumbs[0].codeLine, "Drawn breadcrumb should expose the causal code");
+    assertEquals("ASSIGN", drawnBreadcrumbs[0].codeSkillChip, "Drawn breadcrumb should expose the coding construct chip");
     assertEquals("F/m=a", drawnBreadcrumbs[0].relation, "Drawn breadcrumb should expose the science relation");
     assertEquals("Mass 2.5 -> 1.2 (-1.3)", drawnBreadcrumbs[0].valueLine, "Drawn breadcrumb should expose the changed value");
     assertEquals("DELTA -1.3", drawnBreadcrumbs[0].deltaLabel, "Drawn breadcrumb should expose the signed delta label");
@@ -3142,6 +3148,7 @@ function runEngineTests() {
     assertEquals("NEXT Agility 30+ reached", drawnBreadcrumbs[0].nextLabel, "Drawn breadcrumb should expose the next-test title");
     assertEquals("TRY hopper.engine = 6", drawnBreadcrumbs[0].nextCommandLabel, "Drawn breadcrumb should expose the next-test command");
     assertEquals(true, breadcrumbLabels.includes("CODE"), "Breadcrumb draw should label the code side");
+    assertEquals(true, breadcrumbLabels.includes("ASSIGN"), "Breadcrumb draw should write the coding construct chip");
     assertEquals(true, breadcrumbLabels.includes("RESULT"), "Breadcrumb draw should label the result side");
     assertEquals(true, breadcrumbLabels.includes("F/m=a"), "Breadcrumb draw should write the formula relation");
     assertEquals(true, breadcrumbLabels.includes("DELTA -1.3"), "Breadcrumb draw should write the numeric delta");
