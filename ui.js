@@ -1886,6 +1886,7 @@ function getStagedExperimentSourceLabel(source) {
     "tested-result": "Tested result",
     "lab-chain-target": "Lab chain",
     "formula-focus": "Formula Deck",
+    "formula-card-reward": "Formula reward",
     "formula-target": "Formula target",
     "failure-lab": "Crash Lab",
     "signal-lab-contract": "Signal Lab",
@@ -5697,6 +5698,14 @@ function updateDiscoveryPulse(game) {
   const formulaDeckMastery = pulse.formulaDeckMastery
     ? `<div class="discovery-hypothesis discovery-perk">${escapeHTML(pulse.formulaDeckMastery.label || "DECK MASTERED")} +${escapeHTML(String(pulse.formulaDeckMastery.rewardXP || 0))} XP · ${escapeHTML(String(pulse.formulaDeckMastery.count || 0))}/${escapeHTML(String(pulse.formulaDeckMastery.total || 0))} cards</div>`
     : "";
+  const formulaProgress = pulse.cardUnlocked && pulse.formulaDeckProgress ? pulse.formulaDeckProgress : null;
+  const formulaNextCommand = formulaProgress && formulaProgress.nextCommand
+    ? String(formulaProgress.nextCommand).trim()
+    : "";
+  const formulaNextCommandLabel = formulaNextCommand.replace(/\s+/g, " ");
+  const formulaDeckNext = formulaProgress
+    ? `<div class="discovery-hypothesis discovery-formula-next">${escapeHTML(formulaProgress.label || "FORMULA CARD")} · ${formulaProgress.complete ? "Deck complete" : `Next: ${escapeHTML(formulaProgress.nextTitle || "Formula Deck")}`}${formulaNextCommand ? ` · Try <code>${escapeHTML(formulaNextCommandLabel)}</code><button type="button" class="discovery-formula-stage-btn" data-formula-next-command="${escapeHTML(formulaNextCommand)}" data-formula-next-title="${escapeHTML(formulaProgress.nextTitle || "Next formula")}">STAGE CARD</button>` : ""}</div>`
+    : "";
   const aiStateDeckMastery = pulse.aiStateDeckMastery
     ? `<div class="discovery-hypothesis discovery-ai-state">${escapeHTML(pulse.aiStateDeckMastery.label || "AI DECK MASTERED")} +${escapeHTML(String(pulse.aiStateDeckMastery.rewardXP || 0))} XP · ${escapeHTML(String(pulse.aiStateDeckMastery.count || 0))}/${escapeHTML(String(pulse.aiStateDeckMastery.total || 0))} states</div>`
     : "";
@@ -5775,6 +5784,7 @@ function updateDiscoveryPulse(game) {
     ${lessonPhase}
     ${lessonPathMastery}
     ${formulaDeckMastery}
+    ${formulaDeckNext}
     ${aiStateDeckMastery}
     ${signalLabProof}
     ${repairProof}
@@ -5817,6 +5827,25 @@ function attachDiscoveryPulseStageButtons(panel, game, pulse) {
         kind: "lesson-phase",
         source: "phase-reward",
         color: "#fbbf24"
+      });
+    });
+  });
+  const formulaProgress = pulse && pulse.formulaDeckProgress ? pulse.formulaDeckProgress : null;
+  panel.querySelectorAll("[data-formula-next-command]").forEach(button => {
+    if (!button || typeof button.addEventListener !== "function") return;
+    button.addEventListener("click", () => {
+      const command = button.dataset && button.dataset.formulaNextCommand
+        ? button.dataset.formulaNextCommand
+        : (formulaProgress && formulaProgress.nextCommand ? formulaProgress.nextCommand : "");
+      if (!String(command || "").trim()) return false;
+      const title = button.dataset && button.dataset.formulaNextTitle
+        ? button.dataset.formulaNextTitle
+        : (formulaProgress && formulaProgress.nextTitle ? formulaProgress.nextTitle : "Next formula");
+      return stageScienceDeltaCommand(command, {
+        title,
+        kind: "formula-card",
+        source: "formula-card-reward",
+        color: "#facc15"
       });
     });
   });

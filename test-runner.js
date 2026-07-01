@@ -2116,9 +2116,37 @@ function runEngineTests() {
   }
 
   // Test 22b: Mission Coach code creates a science discovery pulse and rewards only new progress.
+  const oldGetElementById22b = document.getElementById;
+  const oldWindowGame22b = window.Game;
   const oldBubblePop22b = ComicBubbles.pop;
   const oldParticleBurst22b = Particles.spawnBurst;
   try {
+    let formulaRewardClick = null;
+    const formulaRewardButton = {
+      dataset: { formulaNextCommand: "hopper.engine = 7", formulaNextTitle: "Engine Lab" },
+      addEventListener(event, handler) { if (event === "click") formulaRewardClick = handler; }
+    };
+    const pulsePanel22b = {
+      classList: { add: () => {}, remove: () => {} },
+      innerHTML: "",
+      querySelectorAll(selector) {
+        return selector === "[data-formula-next-command]" && /data-formula-next-command/.test(this.innerHTML)
+          ? [formulaRewardButton]
+          : [];
+      }
+    };
+    const input22b = {
+      value: "",
+      focused: false,
+      style: {},
+      focus() { this.focused = true; },
+      setSelectionRange() {}
+    };
+    document.getElementById = (id) => {
+      if (id === "discovery-pulse") return pulsePanel22b;
+      if (id === "console-input") return input22b;
+      return null;
+    };
     const bubbleLabels22b = [];
     let particleBursts22b = 0;
     ComicBubbles.pop = (x, y, text) => { bubbleLabels22b.push(text); };
@@ -2165,6 +2193,11 @@ function runEngineTests() {
     game.drawFormulaCardEffects(formulaCtx22b);
     assertEquals(true, formulaLabels22b.includes("NEXT Engine Lab"), "Formula card draw should write the next deck target");
     assertEquals(true, formulaLabels22b.includes("TRY hopper.engine = 7"), "Formula card draw should write the next runnable command");
+    assertEquals(true, pulsePanel22b.innerHTML.includes(`CARD 1/${formulaDeckTotal22b}`), "Discovery Pulse should show formula deck progress after a card unlock");
+    assertEquals(true, /Next: Engine Lab/.test(pulsePanel22b.innerHTML), "Discovery Pulse should show the next formula card target");
+    assertEquals(true, /Try <code>hopper\.engine = 7<\/code>/.test(pulsePanel22b.innerHTML), "Discovery Pulse should show the next runnable formula command");
+    assertEquals(true, /STAGE CARD/.test(pulsePanel22b.innerHTML), "Discovery Pulse should expose a formula stage action");
+    assertEquals(true, typeof formulaRewardClick === "function", "Discovery Pulse formula action should attach a click handler");
     assertEquals(true, firstXP > 0, "New check/gem progress should award Research XP");
     const firstWorldXP = game.getWorldMasteryProgress(0).xp;
     assertEquals(true, firstWorldXP > 0, "Science progress should also feed the world mastery meter");
@@ -2185,6 +2218,12 @@ function runEngineTests() {
     assertEquals(1, game.formulaCardEffects.length, "Repeating without a new card should not spawn another effect");
     assertEquals(firstBubbleCount, bubbleLabels22b.length, "Repeating without progress should not spawn combo text");
     assertEquals(firstBurstCount, particleBursts22b, "Repeating without progress should not spawn combo particles");
+    window.Game = game;
+    formulaRewardClick();
+    assertEquals("hopper.engine = 7", input22b.value, "Formula reward stage button should write the next command to the console");
+    assertEquals(true, input22b.focused, "Formula reward stage button should focus the console");
+    assertEquals("formula-card-reward", game.lastStagedExperiment && game.lastStagedExperiment.source, "Formula reward stage button should preserve its source");
+    assertEquals("Formula reward", getStagedExperimentSourceLabel(game.lastStagedExperiment.source), "Formula reward staged reminder should name the reward source");
 
     const complete = {
       allPassed: true,
@@ -2208,10 +2247,14 @@ function runEngineTests() {
     assertEquals(true, bubbleLabels22b.some(label => /LAB CHAIN x2/.test(label)), "Second real discovery should pop the lab-chain cue");
     assertEquals(true, bubbleLabels22b.some(label => /LAB RANK UP!/.test(label)), "Rank-up should pop a visible lab-rank cue");
     assertEquals(true, particleBursts22b > firstBurstCount, "Second real discovery should add a visual burst");
+    document.getElementById = oldGetElementById22b;
+    window.Game = oldWindowGame22b;
     ComicBubbles.pop = oldBubblePop22b;
     Particles.spawnBurst = oldParticleBurst22b;
     renderTestResult("engine-suite", "Curriculum: code runs create discovery rewards", true);
   } catch (err) {
+    document.getElementById = oldGetElementById22b;
+    window.Game = oldWindowGame22b;
     ComicBubbles.pop = oldBubblePop22b;
     Particles.spawnBurst = oldParticleBurst22b;
     renderTestResult("engine-suite", "Curriculum: code runs create discovery rewards", false, err.message);
