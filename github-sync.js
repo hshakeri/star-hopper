@@ -107,6 +107,29 @@ function mergeMasteryMeters(local, incoming) {
   return out;
 }
 
+function mergeVillageTrust(local, incoming) {
+  const out = { ...plainObject(local) };
+  Object.entries(plainObject(incoming)).forEach(([key, value]) => {
+    const incomingTrust = plainObject(value);
+    const currentTrust = plainObject(out[key]);
+    const sources = { ...plainObject(currentTrust.sources), ...plainObject(incomingTrust.sources) };
+    const sourcePoints = Object.values(sources).reduce((sum, value) => {
+      const n = Number(value);
+      return sum + (Number.isFinite(n) && n > 0 ? n : 0);
+    }, 0);
+    const currentPoints = Number(currentTrust.points) || 0;
+    const incomingPoints = Number(incomingTrust.points) || 0;
+    out[key] = {
+      ...currentTrust,
+      ...incomingTrust,
+      points: Math.max(currentPoints, incomingPoints, sourcePoints),
+      badges: arrayUnion(currentTrust.badges, incomingTrust.badges),
+      sources
+    };
+  });
+  return out;
+}
+
 function normalizeFrontierSyncRecord(record) {
   const r = plainObject(record);
   const tier = Math.max(1, Math.floor(Number(r.tier) || 1));
@@ -207,6 +230,7 @@ function normalizeProgress(progress) {
     bestLabStars: plainObject(p.bestLabStars),
     masteryCleared: plainObject(p.masteryCleared),
     masteryMeters: plainObject(p.masteryMeters),
+    villageTrust: plainObject(p.villageTrust),
     dailySignalClears: Number(p.dailySignalClears) || 0,
     frontierRecords: mergeFrontierRecords({}, p.frontierRecords),
     frontierBoard: mergeFrontierBoard({}, p.frontierBoard),
@@ -236,6 +260,7 @@ function getActiveProgressSnapshot() {
     bestLabStars: typeof Game !== 'undefined' && Game.bestLabStars ? { ...Game.bestLabStars } : {},
     masteryCleared: typeof Game !== 'undefined' && Game.masteryCleared ? { ...Game.masteryCleared } : {},
     masteryMeters: typeof Game !== 'undefined' && Game.masteryMeters ? { ...Game.masteryMeters } : {},
+    villageTrust: typeof Game !== 'undefined' && Game.villageTrust ? { ...Game.villageTrust } : {},
     dailySignalClears: typeof Game !== 'undefined' ? Game.dailySignalClears : 0,
     frontierRecords: typeof Game !== 'undefined' && Game.frontierRecords ? { ...Game.frontierRecords } : {},
     frontierBoard: typeof Game !== 'undefined' && Game.frontierBoard ? { ...Game.frontierBoard } : {},
@@ -296,6 +321,7 @@ function mergeProgress(localProgress, incomingProgress) {
     bestLabStars: mergeNumberMax(local.bestLabStars, incoming.bestLabStars),
     masteryCleared: mergeBooleanObject(local.masteryCleared, incoming.masteryCleared),
     masteryMeters: mergeMasteryMeters(local.masteryMeters, incoming.masteryMeters),
+    villageTrust: mergeVillageTrust(local.villageTrust, incoming.villageTrust),
     dailySignalClears: Math.max(local.dailySignalClears || 0, incoming.dailySignalClears || 0),
     frontierRecords: mergeFrontierRecords(local.frontierRecords, incoming.frontierRecords),
     frontierBoard: mergeFrontierBoard(local.frontierBoard, incoming.frontierBoard),
@@ -327,6 +353,7 @@ function applyProgressSnapshot(progress) {
     Game.bestLabStars = { ...normalized.bestLabStars };
     Game.masteryCleared = { ...normalized.masteryCleared };
     Game.masteryMeters = { ...normalized.masteryMeters };
+    Game.villageTrust = { ...normalized.villageTrust };
     Game.dailySignalClears = normalized.dailySignalClears;
     Game.frontierRecords = { ...normalized.frontierRecords };
     Game.frontierBoard = { ...normalized.frontierBoard };

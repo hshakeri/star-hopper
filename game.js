@@ -18,6 +18,11 @@ const WORLD_MASTERY_TIERS = [
   { id: "engineer", xp: 110, label: "World Engineer" },
   { id: "mentor", xp: 180, label: "Planet Mentor" }
 ];
+const VILLAGE_TRUST_TIERS = [
+  { id: "friend", points: 3, label: "Trading Friend" },
+  { id: "ally", points: 7, label: "Cave Ally" },
+  { id: "guardian", points: 12, label: "Village Guardian" }
+];
 
 function dateSeedFallback(value) {
   const s = String(value || "");
@@ -122,6 +127,7 @@ class StarHopperGame {
     this.bestLabStars = {};     // { planetIndex|daily:date: highest clear-screen lab stars }
     this.masteryCleared = {};   // { planetIndex: true } — mastery challenge beaten
     this.masteryMeters = {};    // { planetIndex: {...} } — reserved for per-world XP
+    this.villageTrust = {};     // { planetIndex: { points, badges, sources } } — village relationship progress
     this.dailySignalClears = 0; // count of Daily Signal challenges beaten
     this.frontierRecords = {};  // { dateStr: best local Frontier clear record + share code }
     this.frontierBoard = {};    // { shareCode: best imported classmate Frontier record }
@@ -242,11 +248,101 @@ class StarHopperGame {
     return Object.keys(meter.sources || {}).some(source => source.indexOf(`village-rescue:${key}:`) === 0);
   }
 
+  normalizeVillageTrust(index = this.currentPlanetIndex) {
+    const key = String(Number.isFinite(index) ? index : 0);
+    this.villageTrust = this.villageTrust || {};
+    const raw = this.villageTrust[key] || this.villageTrust[index] || {};
+    const points = Math.max(0, Math.floor(Number(raw.points) || 0));
+    const sources = raw.sources && typeof raw.sources === 'object' ? { ...raw.sources } : {};
+    const badges = Array.isArray(raw.badges)
+      ? raw.badges.slice()
+      : VILLAGE_TRUST_TIERS.filter(tier => points >= tier.points).map(tier => tier.id);
+    const normalized = { ...raw, points, sources, badges: Array.from(new Set(badges)) };
+    this.villageTrust[key] = normalized;
+    if (key !== String(index) && this.villageTrust[index]) delete this.villageTrust[index];
+    return normalized;
+  }
+
+  getVillageTrustProgress(index = this.currentPlanetIndex) {
+    const meter = this.normalizeVillageTrust(index);
+    const earnedTiers = VILLAGE_TRUST_TIERS.filter(tier => meter.badges.includes(tier.id) || meter.points >= tier.points);
+    const nextTier = VILLAGE_TRUST_TIERS.find(tier => meter.points < tier.points) || null;
+    const currentTier = earnedTiers.length ? earnedTiers[earnedTiers.length - 1] : null;
+    const finalTier = VILLAGE_TRUST_TIERS[VILLAGE_TRUST_TIERS.length - 1];
+    return {
+      points: meter.points,
+      badges: meter.badges.slice(),
+      earnedTiers,
+      currentTier,
+      nextTier,
+      title: currentTier ? currentTier.label : "New Arrival",
+      pct: finalTier ? Math.max(0, Math.min(100, Math.round((meter.points / finalTier.points) * 100))) : 0
+    };
+  }
+
+  grantVillageTrust(amount, sourceKey, action = "help", options = {}) {
+    const add = Math.max(0, Math.floor(Number(amount) || 0));
+    if (add <= 0) return { added: 0, duplicate: false, progress: this.getVillageTrustProgress(options.index) };
+    const index = Number.isFinite(options.index) ? options.index : this.currentPlanetIndex;
+    const key = String(Number.isFinite(index) ? index : 0);
+    const meter = this.normalizeVillageTrust(index);
+    const source = sourceKey ? String(sourceKey) : `village-trust:${key}:${action}:${Object.keys(meter.sources || {}).length}`;
+    if (meter.sources[source]) {
+      return { added: 0, duplicate: true, progress: this.getVillageTrustProgress(index) };
+    }
+
+    const beforePoints = meter.points;
+    meter.points += add;
+    meter.sources[source] = add;
+    const tierAwards = [];
+    for (const tier of VILLAGE_TRUST_TIERS) {
+      if (beforePoints < tier.points && meter.points >= tier.points && !meter.badges.includes(tier.id)) {
+        meter.badges.push(tier.id);
+        tierAwards.push(tier);
+      }
+    }
+    this.villageTrust[key] = meter;
+
+    const progress = this.getVillageTrustProgress(index);
+    const topTier = tierAwards.length ? tierAwards[tierAwards.length - 1] : progress.currentTier;
+    const label = tierAwards.length ? "TRUST UP" : `TRUST +${add}`;
+    const result = {
+      label,
+      added: add,
+      points: meter.points,
+      title: progress.title,
+      action,
+      sourceKey: source,
+      tierUp: tierAwards.length > 0,
+      nextTier: progress.nextTier ? progress.nextTier.label : null
+    };
+    this.lastVillageTrustEffect = result;
+
+    const fx = options.npc || this.player;
+    if (fx && typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+      const width = Number.isFinite(fx.w) ? fx.w : 28;
+      const x = (Number.isFinite(fx.x) ? fx.x : 0) + width / 2;
+      const y = Number.isFinite(fx.y) ? fx.y : 0;
+      ComicBubbles.pop(x, y - 54, label, options.color || (fx.color || "#67e8f9"), 0.82);
+      ComicBubbles.pop(x, y - 36, `${progress.title}`.toUpperCase(), "#fde68a", 0.68);
+    }
+    if (fx && typeof Particles !== 'undefined' && Particles.spawnBurst) {
+      const width = Number.isFinite(fx.w) ? fx.w : 28;
+      const height = Number.isFinite(fx.h) ? fx.h : 36;
+      Particles.spawnBurst((Number.isFinite(fx.x) ? fx.x : 0) + width / 2, (Number.isFinite(fx.y) ? fx.y : 0) + height / 2, options.color || "#67e8f9", 8 + tierAwards.length * 4, 1.9, 2.0, "glow");
+    }
+    if (topTier && typeof ui_log_output === 'function') {
+      ui_log_output(`Village trust: ${progress.title} (${meter.points} trust).`, "success");
+    }
+    return result;
+  }
+
   grantVillageRescueReward(npc, reason = "danger") {
     if (!npc) return null;
     const sourceKey = this.getVillageRescueSourceKey(npc);
     const award = this.awardWorldMasteryXP(12, "village rescue", { sourceKey, silent: true });
     if (!award || award.duplicate || award.addedXP <= 0) return null;
+    const villageTrust = this.grantVillageTrust(4, sourceKey, "rescue", { npc, color: npc.color || "#4ade80" });
 
     const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
     const xp = 7;
@@ -271,7 +367,8 @@ class StarHopperGame {
       rankUp,
       rankTitle: afterRank ? afterRank.title : null,
       rankPerk: rankUp && afterRank ? afterRank.perk : null,
-      worldMasteryAddedXP: award.addedXP
+      worldMasteryAddedXP: award.addedXP,
+      villageTrust: villageTrust && villageTrust.added > 0 ? villageTrust : null
     };
     this.discoveryPulse = pulse;
     this.discoveryLog = [pulse].concat(Array.isArray(this.discoveryLog) ? this.discoveryLog : []).slice(0, 8);
@@ -4256,6 +4353,9 @@ class StarHopperGame {
       this.discoveryPassCounts[sourceKey] = 1;
       return null;
     }
+    const villageTrust = action === 'guard'
+      ? this.grantVillageTrust(3, sourceKey, 'pet guard', { color })
+      : null;
 
     const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
     this.discoveryPassCounts[sourceKey] = 1;
@@ -4286,7 +4386,8 @@ class StarHopperGame {
         rewardXP,
         action,
         sourceKey
-      }
+      },
+      villageTrust: villageTrust && villageTrust.added > 0 ? villageTrust : null
     };
     this.discoveryPulse = pulse;
     this.discoveryLog = [pulse].concat(Array.isArray(this.discoveryLog) ? this.discoveryLog : []).slice(0, 8);
@@ -4933,6 +5034,11 @@ class StarHopperGame {
       this.discoveryPassCounts[sourceKey] = 1;
       return null;
     }
+    const villageTrust = this.grantVillageTrust(rewardType === "planet" ? 4 : 3, sourceKey, "trade", {
+      npc,
+      trade,
+      color: npc.color || "#4ade80"
+    });
 
     const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
     this.discoveryPassCounts[sourceKey] = 1;
@@ -4967,7 +5073,8 @@ class StarHopperGame {
         tradeId: trade.id || "",
         npcId: npc.id || "",
         rewardType
-      }
+      },
+      villageTrust: villageTrust && villageTrust.added > 0 ? villageTrust : null
     };
     this.discoveryPulse = pulse;
     this.discoveryLog = [pulse].concat(Array.isArray(this.discoveryLog) ? this.discoveryLog : []).slice(0, 8);

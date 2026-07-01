@@ -4595,10 +4595,14 @@ function runCombatTests() {
     assertEquals(21, g.getWorldMasteryProgress(0).xp, "Pet guard proof and woken-mob practice add mastery XP");
     assertEquals("Pet Guard Proof", g.discoveryPulse && g.discoveryPulse.title, "Pet protection creates a guard proof pulse");
     assertEquals("GUARD PROOF", g.discoveryPulse && g.discoveryPulse.petProof && g.discoveryPulse.petProof.label, "Pet protection exposes a guard proof chip");
+    assertEquals(3, g.getVillageTrustProgress(0).points, "Pet guard proof adds village trust");
+    assertEquals("Trading Friend", g.getVillageTrustProgress(0).title, "Pet guard proof reaches the first village trust tier");
+    assertEquals("TRUST UP", g.discoveryPulse && g.discoveryPulse.villageTrust && g.discoveryPulse.villageTrust.label, "Pet guard proof exposes a village trust chip");
     assertEquals("GUARD PROOF: +4 Research XP", g.missionBalloon && g.missionBalloon.text, "Guard proof announces the XP payoff");
     assertEquals(1, g.discoveryPassCounts[g.getPetBondProofSourceKey('guard')], "Guard proof stores its one-time source");
     assertEquals(null, g.grantPetBondProof('guard', pet), "Repeating the guard proof is blocked");
     assertEquals(7, g.researchXP, "Repeated guard proof does not farm Research XP");
+    assertEquals(3, g.getVillageTrustProgress(0).points, "Repeated guard proof does not farm village trust");
     renderTestResult(SUITE, "Mobs: lotion tames pets that protect the cadet", true);
   } catch (err) {
     renderTestResult(SUITE, "Mobs: lotion tames pets that protect the cadet", false, err.message);
@@ -5009,8 +5013,12 @@ function runCombatTests() {
     assertEquals(0, npc.panicTimer, "Villager panic clears after survival mode ends");
     assertEquals(7, g.researchXP, "A danger-caused cave release grants Village Rescue Research XP");
     assertEquals(true, g.hasVillageRescueCredit(1), "Village rescue records world mastery source credit");
+    assertEquals(4, g.getVillageTrustProgress(1).points, "Village rescue adds relationship trust");
+    assertEquals("Trading Friend", g.getVillageTrustProgress(1).title, "First rescue reaches the first village trust tier");
+    assertEquals("TRUST UP", g.discoveryPulse && g.discoveryPulse.villageTrust && g.discoveryPulse.villageTrust.label, "Rescue pulse exposes the trust tier-up");
     assertEquals(null, g.grantVillageRescueReward(npc, "nearby mob"), "The same villager rescue cannot be farmed twice");
     assertEquals(7, g.researchXP, "Duplicate rescue credit does not add more Research XP");
+    assertEquals(4, g.getVillageTrustProgress(1).points, "Duplicate rescue credit does not add more village trust");
 
     const midRetreat = new StarHopperGame();
     midRetreat.state = 'playing'; midRetreat.currentPlanetIndex = 1; midRetreat.currentPlanet = PLANETS[1];
@@ -5307,12 +5315,16 @@ function runCombatTests() {
     assertEquals(8, g.getWorldMasteryProgress(0).xp, "First village trade should add world mastery XP");
     assertEquals("Village Trade Proof", g.discoveryPulse && g.discoveryPulse.title, "Village trade should create a discovery pulse");
     assertEquals("TRADE PACT", g.discoveryPulse && g.discoveryPulse.villageTradeProof && g.discoveryPulse.villageTradeProof.label, "Cap trade should expose a trade proof chip");
+    assertEquals(3, g.getVillageTrustProgress(0).points, "First trade should add village trust");
+    assertEquals("Trading Friend", g.getVillageTrustProgress(0).title, "First trade should reach the first village trust tier");
+    assertEquals("TRUST UP", g.discoveryPulse && g.discoveryPulse.villageTrust && g.discoveryPulse.villageTrust.label, "Trade pulse should expose the village trust chip");
     assertEquals("VILLAGE LAB", g.missionBalloon && g.missionBalloon.title, "Trade proof should use the mission monitor");
     assertEquals("TRADE PACT: +4 Research XP", g.missionBalloon && g.missionBalloon.text, "Trade proof should announce the XP payoff");
     const tradeProofKey = g.getVillageTradeProofSourceKey(npc, npc.trades[0]);
     assertEquals(1, g.discoveryPassCounts[tradeProofKey], "Trade proof stores its one-time source key");
     assertEquals(null, g.grantVillageTradeProof(npc, npc.trades[0]), "Repeating the same trade proof is blocked");
     assertEquals(4, g.researchXP, "Repeated trade proof does not farm Research XP");
+    assertEquals(3, g.getVillageTrustProgress(0).points, "Repeated trade proof does not farm village trust");
     request = getVillageTradeRequest(g, npc);
     assertEquals("VILLAGE REQUEST", request.kicker, "After a purchase, request should move to the next unpurchased offer");
     assertEquals(95, request.missing, "Trade request should state the remaining gem gap");
@@ -6025,6 +6037,7 @@ function runRetryRemixTests() {
       completedMissions: new Set(), earnedBadges: new Set(), unlockedUpgrades: new Set(),
       upgradeLevels: {}, planetClears: {},
       bestClearTimes: { 0: 12.4 }, bestLabStars: { 0: 3 }, masteryCleared: { 1: true }, masteryMeters: {},
+      villageTrust: { 0: { points: 7, badges: ["friend", "ally"], sources: { "village-trade:0:geary:engine_1": 3, "village-rescue:0:geary": 4 } } },
       dailySignalClears: 3, lastPlayedDate: "2026-06-13", streakCount: 5,
       frontierRecords: { "2026-06-30": { dateStr: "2026-06-30", shareCode: "FRONTIER-EARTH-1234", tier: 2, stars: 3, bestTime: 31.2 } },
       frontierBoard: { "FRONTIER-MOON-2222": { dateStr: "2026-06-30", shareCode: "FRONTIER-MOON-2222", tier: 2, stars: 2, bestTime: 42.5, pilot: "Ada" } },
@@ -6034,11 +6047,13 @@ function runRetryRemixTests() {
     };
     window.Game = Game;
     const snap = shCaptureProgress();
-    Game.bestClearTimes = {}; Game.bestLabStars = {}; Game.dailySignalClears = 0; Game.frontierRecords = {}; Game.frontierBoard = {}; Game.lastPlayedDate = null; Game.streakCount = 0; Game.masteryCleared = {}; Game.researchXP = 0; Game.discoveredFormulaKinds = new Set(); Game.confirmedHypotheses = new Set();
+    Game.bestClearTimes = {}; Game.bestLabStars = {}; Game.dailySignalClears = 0; Game.frontierRecords = {}; Game.frontierBoard = {}; Game.lastPlayedDate = null; Game.streakCount = 0; Game.masteryCleared = {}; Game.villageTrust = {}; Game.researchXP = 0; Game.discoveredFormulaKinds = new Set(); Game.confirmedHypotheses = new Set();
     shApplyProgress(snap);
     assertEquals(12.4, Game.bestClearTimes[0], "best clear time round-trips");
     assertEquals(3, Game.bestLabStars[0], "best lab stars round-trip");
     assertEquals(true, Game.masteryCleared[1], "mastery-cleared flag round-trips");
+    assertEquals(7, Game.villageTrust[0].points, "village trust points round-trip");
+    assertEquals(4, Game.villageTrust[0].sources["village-rescue:0:geary"], "village trust sources round-trip");
     assertEquals(3, Game.dailySignalClears, "daily-signal clears round-trip");
     assertEquals("FRONTIER-EARTH-1234", Game.frontierRecords["2026-06-30"].shareCode, "Frontier records round-trip");
     assertEquals("Ada", Game.frontierBoard["FRONTIER-MOON-2222"].pilot, "Frontier class board round-trips");
@@ -6106,6 +6121,7 @@ function runRetryRemixTests() {
       bestLabStars: { 0: 3 },
       masteryCleared: { 0: true },
       masteryMeters: { 0: { xp: 80, badges: ["scout"], sources: { combat: 50 } } },
+      villageTrust: { 0: { points: 4, badges: ["friend"], sources: { "village-rescue:0:geary": 4 } } },
       dailySignalClears: 4,
       frontierRecords: { "2026-06-30": { dateStr: "2026-06-30", shareCode: "FRONTIER-EARTH-1234", tier: 2, stars: 3, bestTime: 31.2 } },
       frontierBoard: { "FRONTIER-MOON-2222": { dateStr: "2026-06-30", shareCode: "FRONTIER-MOON-2222", tier: 2, stars: 2, bestTime: 42.5, pilot: "Ada" } },
@@ -6127,12 +6143,13 @@ function runRetryRemixTests() {
     assertEquals(4, payload.profileProgress.dailySignalClears, "Daily Signal clears should export");
     assertEquals("FRONTIER-EARTH-1234", payload.profileProgress.frontierRecords["2026-06-30"].shareCode, "Frontier records should export");
     assertEquals("Ada", payload.profileProgress.frontierBoard["FRONTIER-MOON-2222"].pilot, "Frontier board should export");
+    assertEquals(4, payload.profileProgress.villageTrust[0].points, "Village trust should export");
     assertEquals(42, payload.profileProgress.researchXP, "Research XP should export");
     assertEquals(1, payload.profileProgress.discoveryPassCounts["earth-gravity-wall"], "Discovery progress should export");
     assertEquals(true, payload.profileProgress.discoveredFormulaKinds.includes("loop"), "Formula card kinds should export");
     assertEquals(true, payload.profileProgress.confirmedHypotheses.includes("earth-gravity-wall"), "Confirmed hypotheses should export");
     const merged = mergeProgress(
-      { unlockedUpgrades: ["jump"], upgradeLevels: { engine: 0.25 }, planetClears: { 0: 1 }, bestLabStars: { 0: 1, 1: 2 }, masteryMeters: { 0: { xp: 95, badges: ["engineer"], sources: { stars: 40 } } }, frontierRecords: { "2026-06-30": { dateStr: "2026-06-30", shareCode: "FRONTIER-EARTH-9999", tier: 2, stars: 2, bestTime: 25.4 } }, frontierBoard: { "FRONTIER-MOON-2222": { dateStr: "2026-06-30", shareCode: "FRONTIER-MOON-2222", tier: 2, stars: 3, bestTime: 49.5, pilot: "Grace" } }, researchXP: 8, discoveryPassCounts: { "earth-gravity-wall": 0 }, discoveredFormulaKinds: ["friction"], confirmedHypotheses: ["moon-canyon-jump"] },
+      { unlockedUpgrades: ["jump"], upgradeLevels: { engine: 0.25 }, planetClears: { 0: 1 }, bestLabStars: { 0: 1, 1: 2 }, masteryMeters: { 0: { xp: 95, badges: ["engineer"], sources: { stars: 40 } } }, villageTrust: { 0: { points: 3, badges: ["friend"], sources: { "village-trade:0:geary:engine_1": 3 } } }, frontierRecords: { "2026-06-30": { dateStr: "2026-06-30", shareCode: "FRONTIER-EARTH-9999", tier: 2, stars: 2, bestTime: 25.4 } }, frontierBoard: { "FRONTIER-MOON-2222": { dateStr: "2026-06-30", shareCode: "FRONTIER-MOON-2222", tier: 2, stars: 3, bestTime: 49.5, pilot: "Grace" } }, researchXP: 8, discoveryPassCounts: { "earth-gravity-wall": 0 }, discoveredFormulaKinds: ["friction"], confirmedHypotheses: ["moon-canyon-jump"] },
       progressFromSavePayload(payload)
     );
     assertEquals(true, merged.unlockedUpgrades.includes("engine"), "Incoming unlocked upgrade survives merge");
@@ -6146,6 +6163,9 @@ function runRetryRemixTests() {
     assertEquals(true, merged.masteryMeters[0].badges.includes("engineer"), "Local world mastery badge survives merge");
     assertEquals(50, merged.masteryMeters[0].sources.combat, "Incoming mastery source survives merge");
     assertEquals(40, merged.masteryMeters[0].sources.stars, "Local mastery source survives merge");
+    assertEquals(7, merged.villageTrust[0].points, "Village trust merges unique local and incoming sources");
+    assertEquals(3, merged.villageTrust[0].sources["village-trade:0:geary:engine_1"], "Local village trust source survives merge");
+    assertEquals(4, merged.villageTrust[0].sources["village-rescue:0:geary"], "Incoming village trust source survives merge");
     assertEquals("FRONTIER-EARTH-1234", merged.frontierRecords["2026-06-30"].shareCode, "Merge keeps the stronger Frontier record");
     assertEquals("Grace", merged.frontierBoard["FRONTIER-MOON-2222"].pilot, "Merge keeps the stronger Frontier board entry");
     assertEquals(42, merged.researchXP, "Merge keeps the higher Research XP");

@@ -72,6 +72,7 @@ function shCaptureProgress() {
     bestLabStars: (game && game.bestLabStars) ? { ...game.bestLabStars } : {},
     masteryCleared: (game && game.masteryCleared) ? { ...game.masteryCleared } : {},
     masteryMeters: (game && game.masteryMeters) ? { ...game.masteryMeters } : {},
+    villageTrust: (game && game.villageTrust) ? { ...game.villageTrust } : {},
     dailySignalClears: (game && game.dailySignalClears) || 0,
     frontierRecords: (game && game.frontierRecords) ? { ...game.frontierRecords } : {},
     frontierBoard: (game && game.frontierBoard) ? { ...game.frontierBoard } : {},
@@ -105,6 +106,7 @@ function shApplyProgress(progress) {
   game.bestLabStars = (progress.bestLabStars && typeof progress.bestLabStars === 'object') ? { ...progress.bestLabStars } : {};
   game.masteryCleared = (progress.masteryCleared && typeof progress.masteryCleared === 'object') ? { ...progress.masteryCleared } : {};
   game.masteryMeters = (progress.masteryMeters && typeof progress.masteryMeters === 'object') ? { ...progress.masteryMeters } : {};
+  game.villageTrust = (progress.villageTrust && typeof progress.villageTrust === 'object') ? { ...progress.villageTrust } : {};
   game.dailySignalClears = progress.dailySignalClears || 0;
   game.frontierRecords = (progress.frontierRecords && typeof progress.frontierRecords === 'object') ? { ...progress.frontierRecords } : {};
   game.frontierBoard = (progress.frontierBoard && typeof progress.frontierBoard === 'object') ? { ...progress.frontierBoard } : {};

@@ -3334,6 +3334,11 @@ html {
   background: rgba(131, 24, 67, 0.36);
   color: #fbcfe8;
 }
+.discovery-village-trust {
+  border-color: rgba(125, 211, 252, 0.5);
+  background: rgba(12, 74, 110, 0.38);
+  color: #bae6fd;
+}
 .discovery-next-unlock {
   border: 1px solid rgba(250, 204, 21, 0.28);
   border-radius: 6px;
