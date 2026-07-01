@@ -2535,7 +2535,11 @@ class NPC extends InteractiveObject {
     if (goingHome && game.activeNPC === this) game.activeNPC = null;
     if (goingHome && typeof game.ensureNPCSafeCave === 'function') game.ensureNPCSafeCave(this);
     if (goingHome && !this.hiddenInCave) {
-      this.stepTowardCave(2.2);
+      if (typeof game.routeNPCToCave === 'function') {
+        game.routeNPCToCave(this, nightShelter ? "night" : (this.shelterReason || "nearby mob"), 2.2);
+      } else {
+        this.stepTowardCave(2.2);
+      }
     } else if (!goingHome && this.hiddenInCave) {
       if (typeof game.releaseNPCFromCave === 'function') {
         game.releaseNPCFromCave(this, { returnHome: true, exitAtCave: true });

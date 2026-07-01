@@ -8739,12 +8739,15 @@ function runCombatTests() {
     midRetreat.mobs = [new Mob(90, 60, 'hog', '#9a6b4f', 1)];
     midRetreat.toggleSurvival();
     assertEquals(false, midNpc.hiddenInCave, "Survival-off release also restores villagers that were mid-retreat");
-    assertEquals(150, midNpc.x, "Mid-retreat survival release returns the villager to the village home");
+    assertEquals(108, midNpc.x, "Mid-retreat survival release keeps the villager visible instead of snapping away");
+    assertEquals(true, !!midNpc.returningFromCave, "Mid-retreat survival release starts a visible walk home");
     assertEquals(null, midNpc.shelterReason, "Mid-retreat survival release clears stale shelter reason");
     assertEquals(null, midRetreat.activeNPC, "Mid-retreat survival release closes stale trade focus");
     midRetreat.updateVillagerShelterStates();
     assertEquals(false, midNpc.hiddenInCave, "Survival-off villagers stay visible after the next shelter tick");
-    assertEquals(150, midNpc.x, "Survival-off villagers remain at their village home after the next shelter tick");
+    assertEquals(true, midNpc.x >= 108 && midNpc.x < 150, "Survival-off villagers keep walking home after the next shelter tick");
+    walkReturningVillagerHome(midRetreat, midNpc);
+    assertEquals(150, midNpc.x, "Survival-off mid-retreat villagers end at their village home");
 
     const hiddenOff = new StarHopperGame();
     hiddenOff.state = 'playing'; hiddenOff.currentPlanetIndex = 1; hiddenOff.currentPlanet = PLANETS[1];
@@ -8833,10 +8836,13 @@ function runCombatTests() {
     loopTurnBack.mobs = [];
     loopTurnBack.updateVillagerShelterStates();
     assertEquals(false, turnBackNpc.hiddenInCave, "Mid-retreat villager stays visible when mob danger clears");
-    assertEquals(150, turnBackNpc.x, "Mid-retreat game-loop release returns the villager home");
+    assertEquals(108, turnBackNpc.x, "Mid-retreat game-loop release keeps the villager at the visible turn-back point");
+    assertEquals(true, !!turnBackNpc.returningFromCave, "Mid-retreat game-loop release starts a visible return walk");
     assertEquals(null, turnBackNpc.shelterReason, "Mid-retreat game-loop release clears stale mob shelter reason");
     assertEquals(null, loopTurnBack.activeNPC, "Mid-retreat game-loop release closes stale trade focus");
     assertEquals(7, loopTurnBack.researchXP, "Mid-retreat game-loop release still records the rescue proof once");
+    walkReturningVillagerHome(loopTurnBack, turnBackNpc);
+    assertEquals(150, turnBackNpc.x, "Mid-retreat game-loop return ends at the village home");
 
     const directRelease = new StarHopperGame();
     directRelease.state = 'playing'; directRelease.currentPlanetIndex = 1; directRelease.currentPlanet = PLANETS[1];
@@ -8877,9 +8883,12 @@ function runCombatTests() {
     directTurnBack.mobs = [];
     directTurnNpc.update(directTurnBack);
     assertEquals(false, directTurnNpc.hiddenInCave, "NPC update keeps a mid-retreat villager visible once danger clears");
-    assertEquals(150, directTurnNpc.x, "NPC update returns a mid-retreat villager home");
+    assertEquals(108, directTurnNpc.x, "NPC update keeps the mid-retreat villager visible at the turn-back point");
+    assertEquals(true, !!directTurnNpc.returningFromCave, "NPC update starts a visible mid-retreat return");
     assertEquals(null, directTurnNpc.shelterReason, "NPC update clears stale mid-retreat shelter reason");
     assertEquals(null, directTurnBack.activeNPC, "NPC update closes stale mid-retreat trade focus");
+    walkReturningVillagerHome(directTurnBack, directTurnNpc);
+    assertEquals(150, directTurnNpc.x, "NPC update mid-retreat return ends at the village home");
 
     const nightGame = new StarHopperGame();
     nightGame.state = 'playing'; nightGame.currentPlanetIndex = 0; nightGame.currentPlanet = PLANETS[0];

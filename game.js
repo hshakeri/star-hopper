@@ -1030,12 +1030,18 @@ class StarHopperGame {
       if (!(typeof NPC !== 'undefined' && obj instanceof NPC)) continue;
       villagers++;
       const hadShelterState = !!(obj.hiddenInCave || obj.rescuePending || obj.shelterReason || (obj.panicTimer || 0) > 0);
+      const shelter = typeof this.getVillagerShelterSignal === 'function'
+        ? this.getVillagerShelterSignal(obj)
+        : { active: keepSheltered, reason: keepSheltered ? "night" : null };
+      const keepNpcSheltered = keepSheltered || !!(shelter && shelter.active);
       obj.panicTimer = 0;
       obj.caveCooldown = 0;
-      if (keepSheltered) {
+      if (keepNpcSheltered) {
         sheltered++;
-        if (!obj.rescuePending) obj.shelterReason = "night";
-        this.parkNPCInCave(obj, "night");
+        const reason = shelter && shelter.reason ? shelter.reason : "night";
+        if (!obj.rescuePending) obj.shelterReason = reason;
+        else if (reason !== "night" && (!obj.shelterReason || obj.shelterReason === "night")) obj.shelterReason = reason;
+        this.parkNPCInCave(obj, reason);
         continue;
       }
       if (hadShelterState) {
@@ -1048,10 +1054,7 @@ class StarHopperGame {
         obj.returningFromCave = false;
         obj.returningFromCaveTimer = 0;
         obj.proximity = false;
-        if (Number.isFinite(obj.homeX)) obj.x = obj.homeX;
-        if (Number.isFinite(obj.homeY)) obj.y = obj.homeY;
         if (this.activeNPC === obj) this.activeNPC = null;
-        released++;
       }
     }
     if (this.activeNPC && this.activeNPC.hiddenInCave) this.activeNPC = null;
@@ -1081,6 +1084,8 @@ class StarHopperGame {
     npc.hiddenInCave = true;
     if (Number.isFinite(npc.caveX)) npc.x = npc.caveX + 10;
     if (Number.isFinite(npc.caveY)) npc.y = npc.caveY;
+    npc.returningFromCave = false;
+    npc.returningFromCaveTimer = 0;
     if (reason === "night" && !npc.rescuePending) npc.shelterReason = "night";
     else if (!npc.rescuePending && !npc.shelterReason) npc.shelterReason = reason;
     npc.proximity = false;
@@ -1092,19 +1097,24 @@ class StarHopperGame {
     const wasHidden = !!npc.hiddenInCave;
     const rescuePending = !!npc.rescuePending;
     const exitAtCave = !!(options.exitAtCave && wasHidden && Number.isFinite(npc.caveX));
+    const walkHome = !!options.returnHome && !options.snapHome;
     npc.hiddenInCave = false;
     if (exitAtCave) npc.x = npc.caveX + 10;
-    else if (options.returnHome && Number.isFinite(npc.homeX)) npc.x = npc.homeX;
-    else if (Number.isFinite(npc.caveX)) npc.x = npc.caveX + 10;
+    else if (!walkHome && options.returnHome && Number.isFinite(npc.homeX)) npc.x = npc.homeX;
+    else if (!options.returnHome && Number.isFinite(npc.caveX)) npc.x = npc.caveX + 10;
     if (exitAtCave && Number.isFinite(npc.caveY)) npc.y = npc.caveY;
-    else if (Number.isFinite(npc.homeY)) npc.y = npc.homeY;
+    else if (!walkHome && Number.isFinite(npc.homeY)) npc.y = npc.homeY;
     if (rescuePending) this.grantVillageRescueReward(npc, npc.shelterReason || "danger");
     npc.rescuePending = false;
     npc.shelterReason = null;
     npc.panicTimer = 0;
     npc.caveCooldown = 0;
-    npc.returningFromCave = !!exitAtCave;
-    npc.returningFromCaveTimer = exitAtCave ? 180 : 0;
+    const homeDx = Number.isFinite(npc.homeX) ? Math.abs(npc.homeX - npc.x) : 0;
+    const homeDy = Number.isFinite(npc.homeY) ? Math.abs(npc.homeY - npc.y) : 0;
+    npc.returningFromCave = walkHome && (homeDx > 2 || homeDy > 2);
+    npc.returningFromCaveTimer = npc.returningFromCave
+      ? Math.max(90, Math.min(240, Math.ceil(Math.max(homeDx, homeDy) / 1.1) + 35))
+      : 0;
     npc.proximity = false;
     if (this.activeNPC === npc) this.activeNPC = null;
   }
@@ -1118,9 +1128,30 @@ class StarHopperGame {
       ComicBubbles.spawn(npc.x + npc.w / 2, npc.y - 8, "CAVE!", "jagged", "#facc15", -0.35, { maxLife: 60, scale: 0.8 });
     }
     npc.caveCooldown = Math.max(npc.caveCooldown || 0, options.caveCooldown || 90);
+    npc.returningFromCave = false;
+    npc.returningFromCaveTimer = 0;
     npc.proximity = false;
     if (this.activeNPC === npc) this.activeNPC = null;
     return true;
+  }
+
+  routeNPCToCave(npc, reason = "nearby mob", speed = 2.4) {
+    if (!npc) return false;
+    if (typeof this.ensureNPCSafeCave === 'function') this.ensureNPCSafeCave(npc);
+    if (npc.hiddenInCave) {
+      this.parkNPCInCave(npc, reason);
+      return true;
+    }
+    const reached = typeof npc.stepTowardCave === 'function' ? npc.stepTowardCave(speed) : false;
+    npc.returningFromCave = false;
+    npc.returningFromCaveTimer = 0;
+    npc.proximity = false;
+    if (this.activeNPC === npc) this.activeNPC = null;
+    if (reached || npc.hiddenInCave || typeof npc.stepTowardCave !== 'function') {
+      this.parkNPCInCave(npc, reason);
+      return true;
+    }
+    return false;
   }
 
   updateVillagerShelterStates() {
@@ -1132,28 +1163,18 @@ class StarHopperGame {
       const threat = shelter.threat;
       if (threat) {
         if (this.markNPCShelterThreat(obj, "nearby mob", { bubble: true, panicTimer: 150 })) touchNeedsSync = true;
-        if (typeof this.ensureNPCSafeCave === 'function') this.ensureNPCSafeCave(obj);
-        if (!obj.hiddenInCave && typeof obj.stepTowardCave === 'function' && obj.stepTowardCave(2.8)) touchNeedsSync = true;
+        if (this.routeNPCToCave(obj, "nearby mob", 2.8)) touchNeedsSync = true;
         continue;
       }
       if (shelter.reason === "night") {
         if (!obj.rescuePending) obj.shelterReason = "night";
         if (this.activeNPC === obj) touchNeedsSync = true;
-        if (typeof this.ensureNPCSafeCave === 'function') this.ensureNPCSafeCave(obj);
-        if (obj.hiddenInCave) this.parkNPCInCave(obj, "night");
-        else if (typeof obj.stepTowardCave === 'function' && obj.stepTowardCave(2.4)) touchNeedsSync = true;
-        else obj.proximity = false;
-        obj.proximity = false;
-        if (this.activeNPC === obj) this.activeNPC = null;
+        if (this.routeNPCToCave(obj, "night", 2.4)) touchNeedsSync = true;
         continue;
       }
       if (this.shouldNPCWaitInCave(obj, shelter)) {
         if (this.activeNPC === obj) touchNeedsSync = true;
-        if (typeof this.ensureNPCSafeCave === 'function') this.ensureNPCSafeCave(obj);
-        if (obj.hiddenInCave) this.parkNPCInCave(obj, obj.shelterReason || "nearby mob");
-        else if (typeof obj.stepTowardCave === 'function' && obj.stepTowardCave(2.8)) touchNeedsSync = true;
-        obj.proximity = false;
-        if (this.activeNPC === obj) this.activeNPC = null;
+        if (this.routeNPCToCave(obj, obj.shelterReason || "nearby mob", 2.8)) touchNeedsSync = true;
         continue;
       }
       if ((obj.panicTimer || 0) > 0) obj.panicTimer = 0;
@@ -6546,7 +6567,8 @@ class StarHopperGame {
     if (typeof SFX !== 'undefined' && SFX.playError) SFX.playError();
     if (typeof Particles !== 'undefined') Particles.spawnBurst(npc.x + npc.w / 2, npc.y + npc.h / 2, '#ef4444', 8, 2.2, 2.1, 'glow');
     if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(npc.x + npc.w / 2, npc.y - 5, "RUN!", "#facc15", 0.95);
-    if (!npc.hiddenInCave && typeof npc.stepTowardCave === 'function') npc.stepTowardCave(3.2);
+    if (!npc.hiddenInCave && typeof this.routeNPCToCave === 'function') this.routeNPCToCave(npc, "mob attack", 3.2);
+    else if (!npc.hiddenInCave && typeof npc.stepTowardCave === 'function') npc.stepTowardCave(3.2);
     if (npc.health <= 0) {
       npc.health = npc.maxHealth || 3;
       this.parkNPCInCave(npc, "mob attack");
