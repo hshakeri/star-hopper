@@ -5250,6 +5250,9 @@ function grantScienceCheckpointProof(game, delta) {
   pulse.scienceDeltaProof = buildDiscoveryScienceDeltaProof(game, pulse);
   const codeConcept = grantCodeConceptProgress(game, pulse);
   if (codeConcept) pulse.codeConceptProof = codeConcept;
+  if (codeConcept && codeConcept.complete && typeof game.grantCodeConceptDeckMastery === "function") {
+    game.grantCodeConceptDeckMastery(pulse);
+  }
   game.discoveryPulse = pulse;
   game.discoveryLog = [pulse].concat(Array.isArray(game.discoveryLog) ? game.discoveryLog : []).slice(0, 8);
   updateDiscoveryPulse(game);
@@ -5307,6 +5310,9 @@ function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems
     }
     if (typeof game.grantFormulaDeckMastery === 'function') {
       game.grantFormulaDeckMastery(pulse, { deferResearchXP: true });
+    }
+    if (codeConcept && codeConcept.complete && typeof game.grantCodeConceptDeckMastery === 'function') {
+      game.grantCodeConceptDeckMastery(pulse, { deferResearchXP: true });
     }
     if (typeof game.awardWorldMasteryXP === 'function') {
       game.awardWorldMasteryXP(6 + newPasses * 3 + opened * 2 + (cardUnlocked ? 6 : 0), "science proof", {
@@ -6209,6 +6215,9 @@ function updateDiscoveryPulse(game) {
   const codeConcept = pulse.codeConceptProof
     ? `<div class="discovery-hypothesis discovery-code-concept"><strong>${escapeHTML(pulse.codeConceptProof.label || "CODE CONCEPT")} · ${escapeHTML(pulse.codeConceptProof.concept || "")}</strong><span>${escapeHTML(pulse.codeConceptProof.title || "Coding idea")} · ${escapeHTML(pulse.codeConceptProof.progress || "")}${pulse.codeConceptProof.nextTitle ? ` · Next: ${escapeHTML(pulse.codeConceptProof.nextTitle)}` : ""}</span></div>`
     : "";
+  const codeConceptDeckMastery = pulse.codeConceptDeckMastery
+    ? `<div class="discovery-hypothesis discovery-code-concept">${escapeHTML(pulse.codeConceptDeckMastery.label || "CODE DECK MASTERED")} +${escapeHTML(String(pulse.codeConceptDeckMastery.rewardXP || 0))} XP · ${escapeHTML(String(pulse.codeConceptDeckMastery.count || 0))}/${escapeHTML(String(pulse.codeConceptDeckMastery.total || 0))} ideas</div>`
+    : "";
   const formulaProgress = pulse.cardUnlocked && pulse.formulaDeckProgress ? pulse.formulaDeckProgress : null;
   const formulaNextCommand = formulaProgress && formulaProgress.nextCommand
     ? String(formulaProgress.nextCommand).trim()
@@ -6300,6 +6309,7 @@ function updateDiscoveryPulse(game) {
     ${scienceCheckpoint}
     ${scienceProof}
     ${codeConcept}
+    ${codeConceptDeckMastery}
     ${lessonPhase}
     ${lessonPathMastery}
     ${formulaDeckMastery}

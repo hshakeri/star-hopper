@@ -776,6 +776,81 @@ class StarHopperGame {
     return result;
   }
 
+  grantCodeConceptDeckMastery(pulse = null, options = {}) {
+    if (typeof getCodeConceptProgress !== 'function') return null;
+    const progress = getCodeConceptProgress(this);
+    if (!progress || !progress.complete || !Array.isArray(progress.cards) || progress.cards.length === 0) return null;
+    this.discoveryPassCounts = this.discoveryPassCounts || {};
+    const sourceKey = "code-concept-deck-mastery";
+    if (this.discoveryPassCounts[sourceKey]) return null;
+
+    this.discoveryPassCounts[sourceKey] = 1;
+    const rewardXP = 8;
+    const masteryXP = 10;
+    const color = "#93c5fd";
+    const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+    const mastery = typeof this.awardWorldMasteryXP === 'function'
+      ? this.awardWorldMasteryXP(masteryXP, "code concept deck mastery", { sourceKey, silent: true })
+      : { addedXP: 0, duplicate: false };
+    const result = {
+      label: "CODE DECK MASTERED",
+      title: "Code Concept Deck Mastery",
+      rewardXP,
+      worldMasteryAddedXP: mastery && Number.isFinite(mastery.addedXP) ? mastery.addedXP : 0,
+      count: progress.count,
+      total: progress.total,
+      sourceKey
+    };
+
+    if (pulse) {
+      pulse.codeConceptDeckMastery = result;
+      pulse.rewardXP = Math.max(0, (pulse.rewardXP || 0) + rewardXP);
+      pulse.worldMasteryAddedXP = Math.max(0, (pulse.worldMasteryAddedXP || 0) + result.worldMasteryAddedXP);
+      pulse.nextLabUnlock = {
+        label: "CODE DECK COMPLETE",
+        title: "Core coding moves collected",
+        body: "Use assignments, loops, conditionals, and calls together in science missions and remixes.",
+        progress: 1
+      };
+    }
+
+    if (!options || !options.deferResearchXP) {
+      this.researchXP = Math.max(0, (this.researchXP || 0) + rewardXP);
+      const afterRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+      if (beforeRank && afterRank && afterRank.level > beforeRank.level && pulse) {
+        pulse.rankUp = true;
+        pulse.rankTitle = afterRank.title;
+        pulse.rankPerk = afterRank.perk;
+        if (typeof this.spawnResearchRankEffect === 'function') {
+          pulse.rankEffect = this.spawnResearchRankEffect(pulse);
+        }
+      }
+    }
+
+    if (typeof ui_log_output === 'function') {
+      const masteryText = result.worldMasteryAddedXP > 0 ? `, +${result.worldMasteryAddedXP} world mastery XP` : "";
+      ui_log_output(`Code Concept Deck mastered: +${rewardXP} Research XP${masteryText}.`, "success");
+    }
+    if (typeof this.showMissionBalloon === 'function') {
+      this.showMissionBalloon(`CODE DECK MASTERED: +${rewardXP} Research XP`, {
+        title: "CODE CONCEPT DECK",
+        color,
+        timer: 260
+      });
+    }
+    if (this.player && typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+      const px = (Number.isFinite(this.player.x) ? this.player.x : 0) + (this.player.w || 24) / 2;
+      const py = Number.isFinite(this.player.y) ? this.player.y : 0;
+      ComicBubbles.pop(px, py - 82, "CODE DECK!", color, 1.0);
+      ComicBubbles.pop(px, py - 62, `${result.count}/${result.total} IDEAS`, "#fde68a", 0.76);
+      if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+        Particles.spawnBurst(px, py - 10, color, 14, 2.2, 1.9, "glow");
+        Particles.spawnBurst(px, py - 10, "#fde68a", 8, 1.7, 1.5, "glow");
+      }
+    }
+    return result;
+  }
+
   getDiscoveryComboMilestoneSourceKey(combo) {
     const count = Math.max(1, Math.floor(Number(combo) || 1));
     return `lab-chain:${count}`;

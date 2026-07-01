@@ -2034,6 +2034,62 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: Code Concept Deck reviews coding ideas", false, err.message);
   }
 
+  // Test 22a1e: completing the Code Concept Deck creates a one-time mastery payoff.
+  const oldGetElementById22codeMastery = document.getElementById;
+  const oldBubblePop22codeMastery = ComicBubbles.pop;
+  const oldParticleBurst22codeMastery = Particles.spawnBurst;
+  try {
+    const labels = [];
+    let bursts = 0;
+    const panel = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };
+    document.getElementById = (id) => id === "discovery-pulse" ? panel : null;
+    ComicBubbles.pop = (x, y, text) => { labels.push(text); };
+    Particles.spawnBurst = () => { bursts++; };
+
+    const game = new StarHopperGame();
+    game.currentPlanetIndex = 0;
+    game.currentPlanet = PLANETS[0];
+    game.player = { x: 90, y: 110, w: 24, h: 32 };
+    game.codeConcepts = new Set(["ASSIGN", "LOOP", "IF"]);
+    game.researchXP = 0;
+    game.masteryMeters = {};
+    game.discoveryPassCounts = {};
+    const activeMission = PLANETS[0].missions.find(mission => mission.id === "earth-gravity-wall");
+    const resultState = {
+      allPassed: true,
+      items: [{ id: "call-proof", label: "Function call proof", passed: true, message: "Call proof logged" }]
+    };
+    const pulse = recordDiscoveryPulse(game, activeMission, "use_hopper()", resultState, 0);
+    assertEquals(true, game.codeConcepts.has("CALL"), "Final code concept should be collected from the successful call");
+    assertEquals("CALL", pulse.codeConceptProof && pulse.codeConceptProof.concept, "Pulse should name the final collected code concept");
+    assertEquals(true, pulse.codeConceptProof && pulse.codeConceptProof.complete, "Final concept proof should mark the code deck complete");
+    assertEquals("CODE DECK MASTERED", pulse.codeConceptDeckMastery && pulse.codeConceptDeckMastery.label, "Full code deck should create a mastery chip");
+    assertEquals(4, pulse.codeConceptDeckMastery && pulse.codeConceptDeckMastery.count, "Code deck mastery should count all ideas");
+    assertEquals(4, pulse.codeConceptDeckMastery && pulse.codeConceptDeckMastery.total, "Code deck mastery should know the deck total");
+    assertEquals(1, game.discoveryPassCounts["code-concept-deck-mastery"], "Code deck mastery should store a one-time source");
+    assertEquals(true, game.researchXP >= 8, "Code deck mastery should add Research XP to the discovery reward");
+    assertEquals(true, game.getWorldMasteryProgress(0).xp >= 10, "Code deck mastery should feed world mastery");
+    assertEquals("CODE DECK MASTERED: +8 Research XP", game.missionBalloon && game.missionBalloon.text, "Code deck mastery should write to the Mission CRT");
+    assertEquals(true, labels.includes("CODE DECK!"), "Code deck mastery should pop a visible collection cue");
+    assertEquals(true, labels.includes("4/4 IDEAS"), "Code deck mastery should name the full-deck payoff");
+    assertEquals(true, bursts > 0, "Code deck mastery should spawn reward particles");
+    assertEquals(true, /CODE DECK MASTERED \+8 XP/.test(panel.innerHTML), "Discovery Pulse should render the Code Concept Deck mastery chip");
+    assertEquals(true, /CODE DECK COMPLETE/.test(panel.innerHTML), "Discovery Pulse should show the completed code-deck unlock card");
+    const xpAfterFirst = game.researchXP;
+    assertEquals(null, game.grantCodeConceptDeckMastery(pulse), "Repeating Code Concept Deck mastery should be blocked");
+    assertEquals(xpAfterFirst, game.researchXP, "Repeated Code Concept Deck mastery should not farm Research XP");
+
+    document.getElementById = oldGetElementById22codeMastery;
+    ComicBubbles.pop = oldBubblePop22codeMastery;
+    Particles.spawnBurst = oldParticleBurst22codeMastery;
+    renderTestResult("engine-suite", "Curriculum: Code Concept Deck mastery rewards full collection", true);
+  } catch (err) {
+    document.getElementById = oldGetElementById22codeMastery;
+    ComicBubbles.pop = oldBubblePop22codeMastery;
+    Particles.spawnBurst = oldParticleBurst22codeMastery;
+    renderTestResult("engine-suite", "Curriculum: Code Concept Deck mastery rewards full collection", false, err.message);
+  }
+
   // Test 22a2: Scientist Certificate unlock path is visible before it is earned.
   const oldGetElementById22cert = document.getElementById;
   const oldWindowGame22cert = window.Game;
