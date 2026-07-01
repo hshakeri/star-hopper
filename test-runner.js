@@ -6083,9 +6083,21 @@ function runExperimentLogTests() {
   const oldWindowGameE6 = window.Game;
   const oldNotebookEntriesE6 = (typeof notebookEntries !== 'undefined') ? { ...notebookEntries } : {};
   const oldTriggerCloudSaveE6 = typeof triggerCloudSave === 'function' ? triggerCloudSave : null;
+  let oldBubblePopE6 = null;
+  let oldParticleBurstE6 = null;
   try {
     oldGetElementByIdE6 = document.getElementById;
     Object.keys(notebookEntries).forEach(key => delete notebookEntries[key]);
+    const reflectionLabels = [];
+    let reflectionBursts = 0;
+    if (typeof ComicBubbles !== 'undefined') {
+      oldBubblePopE6 = ComicBubbles.pop;
+      ComicBubbles.pop = (x, y, text) => { reflectionLabels.push(text); };
+    }
+    if (typeof Particles !== 'undefined') {
+      oldParticleBurstE6 = Particles.spawnBurst;
+      Particles.spawnBurst = () => { reflectionBursts++; };
+    }
     const response = { value: "The lower mass moved higher, so the same force changed acceleration." };
     const question = {
       textContent: "Why did changing mass alter the acceleration evidence?",
@@ -6126,6 +6138,7 @@ function runExperimentLogTests() {
     game.researchXP = 10;
     game.masteryMeters = {};
     game.discoveryLog = [];
+    game.player = { x: 80, y: 100, w: 24, h: 32 };
     game.currentMissionSteps = { observe: true, predict: true, code: true, test: true, explain: false };
     game.lastScienceDelta = {
       nextExperiment: {
@@ -6142,6 +6155,9 @@ function runExperimentLogTests() {
     assertEquals(14, game.researchXP, "First saved reflection should award +4 Research XP");
     assertEquals("Reflection Proof", game.discoveryPulse.title, "Reflection save should create a discovery pulse");
     assertEquals(8, game.discoveryPulse.worldMasteryAddedXP, "Reflection save should add world mastery proof XP");
+    assertEquals("PROOF SAVED!", game.discoveryPulse.reflectionEffect && game.discoveryPulse.reflectionEffect.label, "Reflection save should pop an in-level proof cue");
+    assertEquals("EXPLAIN SAVED: +4 Research XP", game.missionBalloon && game.missionBalloon.text, "Reflection save should write a Science Notebook CRT reward line");
+    assertEquals(true, reflectionLabels.includes("PROOF SAVED!"), "Reflection save should call the proof bubble");
     assertEquals(4, entry.reflectionRewardXP, "Notebook entry should remember the reflection reward");
     assertEquals(true, /Reflection Proof: \+4 Research XP/.test(history.children[0].innerHTML), "Notebook history should show the proof reward");
     assertEquals("Raise engine", entry.nextExperiment.title, "Reflection proof should preserve the next experiment cue");
@@ -6178,6 +6194,10 @@ function runExperimentLogTests() {
     const signalEntry = notebookEntries[signalEntryKey];
     assertEquals(18, game.researchXP, "Signal Lab reflection should award its own +4 Research XP");
     assertEquals("Signal Reflection Proof", game.discoveryPulse.title, "Signal Lab reflection should create a specific discovery pulse");
+    assertEquals("SIGNAL PROOF!", game.discoveryPulse.reflectionEffect && game.discoveryPulse.reflectionEffect.label, "Signal Lab reflection should use the stronger proof cue");
+    assertEquals("SIGNAL PROOF: +4 Research XP", game.missionBalloon && game.missionBalloon.text, "Signal Lab reflection should write a signal-specific CRT reward line");
+    assertEquals(true, reflectionLabels.includes("SIGNAL PROOF!"), "Signal Lab reflection should call the signal proof bubble");
+    assertEquals(true, reflectionBursts > 0, "Reflection proof saves should spawn reward particles");
     assertEquals("Mass remix proof", signalEntry.title, "Signal Lab notebook entry should use the replay focus title");
     assertEquals(4, signalEntry.reflectionRewardXP, "Signal Lab notebook entry should remember its proof reward");
     assertEquals("Signal Reflection Proof", signalEntry.reflectionRewardLabel, "Signal Lab notebook entry should label the specific proof");
@@ -6196,6 +6216,8 @@ function runExperimentLogTests() {
     Object.assign(notebookEntries, oldNotebookEntriesE6);
     window.Game = oldWindowGameE6;
     if (oldTriggerCloudSaveE6) triggerCloudSave = oldTriggerCloudSaveE6;
+    if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop = oldBubblePopE6;
+    if (typeof Particles !== 'undefined') Particles.spawnBurst = oldParticleBurstE6;
     renderTestResult(SUITE, "Notebook: saved reflections earn proof once", true);
   } catch (err) {
     renderTestResult(SUITE, "Notebook: saved reflections earn proof once", false, err.message);
@@ -6205,6 +6227,8 @@ function runExperimentLogTests() {
     Object.assign(notebookEntries, oldNotebookEntriesE6);
     window.Game = oldWindowGameE6;
     if (oldTriggerCloudSaveE6) triggerCloudSave = oldTriggerCloudSaveE6;
+    if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop = oldBubblePopE6;
+    if (typeof Particles !== 'undefined') Particles.spawnBurst = oldParticleBurstE6;
   }
 }
 

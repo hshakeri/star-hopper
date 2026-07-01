@@ -343,6 +343,9 @@ function awardNotebookReflectionReward(game, missionId, missionTitle, alreadyRew
   }
   game.discoveryPulse = pulse;
   game.discoveryLog = [pulse].concat(Array.isArray(game.discoveryLog) ? game.discoveryLog : []).slice(0, 8);
+  if (typeof game.spawnNotebookReflectionEffect === 'function') {
+    pulse.reflectionEffect = game.spawnNotebookReflectionEffect(pulse);
+  }
   if (typeof ui_log_output === 'function') {
     ui_log_output(`${title}: +${xp} Research XP for explaining evidence.`, "success");
   }
