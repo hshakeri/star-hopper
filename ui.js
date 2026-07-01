@@ -74,7 +74,7 @@ function syncReadableTextButton(enabled) {
   if (!btn) return;
   btn.classList.toggle("readable-on", !!enabled);
   btn.setAttribute("aria-pressed", enabled ? "true" : "false");
-  btn.title = enabled ? "Readable text mode on" : "Readable text mode";
+  btn.title = enabled ? "High-contrast readable text mode on" : "High-contrast readable text mode";
 }
 
 function applyReadableTextPreference(enabled) {

@@ -5519,10 +5519,12 @@ function runEngineTests() {
     assertEquals(true, bodyClasses.has("readable-text-mode"), "Body class should mark readable mode");
     assertEquals(true, btnClasses.has("readable-on"), "Button should show active readable mode");
     assertEquals("true", attrs["aria-pressed"], "Button aria-pressed should be true");
+    assertEquals("High-contrast readable text mode on", button.title, "Button title should name high-contrast mode when active");
     assertEquals("1", localStorage.getItem(readableKey), "Readable mode should persist on");
 
     assertEquals(false, toggleReadableTextMode(), "Toggle should turn readable mode off");
     assertEquals(false, bodyClasses.has("readable-text-mode"), "Body class should clear when toggled off");
+    assertEquals("High-contrast readable text mode", button.title, "Button title should name high-contrast mode when inactive");
     assertEquals("0", localStorage.getItem(readableKey), "Readable mode should persist off");
 
     localStorage.setItem(readableKey, "1");
@@ -5540,6 +5542,22 @@ function runEngineTests() {
     if (oldReadableSetting === null) localStorage.removeItem(readableKey);
     else localStorage.setItem(readableKey, oldReadableSetting);
     renderTestResult("engine-suite", "Accessibility: readable text mode persists", false, err.message);
+  }
+
+  // Test 24d: readable-text mode has a contrast contract for lesson cards and code.
+  try {
+    if (typeof require === "function") {
+      const fs = require("fs");
+      const path = require("path");
+      const css = fs.readFileSync(path.resolve(__dirname, "..", "style.css"), "utf8");
+      assertEquals(true, /readable-mode-contrast-contract/.test(css), "Readable mode CSS should carry an explicit contrast contract marker");
+      assertEquals(true, /body\.readable-text-mode\s*\{[\s\S]*--panel-bg:\s*rgba\(2,\s*6,\s*23,\s*0\.92\)/.test(css), "Readable mode should darken panels through shared variables");
+      assertEquals(true, css.includes(".lesson-lens-card") && css.includes(".mission-lab-question-card") && css.includes(".signal-lab-contract-card") && css.includes(".start-mission-radar") && css.includes(".notebook-entry"), "Readable mode should cover core lesson surfaces");
+      assertEquals(true, /body\.readable-text-mode :is\([\s\S]*\.console-input[\s\S]*\.notebook-textarea[\s\S]*\)\s*\{[\s\S]*background:\s*#020617;[\s\S]*border:\s*1px solid rgba\(226,\s*232,\s*240,\s*0\.3\);[\s\S]*color:\s*#f8fafc;/.test(css), "Readable mode should give code and input surfaces solid high-contrast styling");
+    }
+    renderTestResult("engine-suite", "Accessibility: readable mode boosts lesson contrast", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Accessibility: readable mode boosts lesson contrast", false, err.message);
   }
 
   // Test 25: Hopper pole assignment controls magnetic polarity state

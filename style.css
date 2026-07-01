@@ -9749,6 +9749,162 @@ body.readable-text-mode .signal-chapter strong {
   line-height: 1.35;
 }
 
+/* readable-mode-contrast-contract: Aa mode must increase contrast on dense lesson surfaces. */
+body.readable-text-mode {
+  --panel-bg: rgba(2, 6, 23, 0.92);
+  --panel-border: rgba(226, 232, 240, 0.24);
+  --text-muted: #cbd5e1;
+}
+
+body.readable-text-mode :is(
+  .glass-panel,
+  .bash-shell,
+  .mission-list,
+  .mission-briefing-log,
+  .lesson-lens-card,
+  .lesson-phase-ladder,
+  .mission-lab-question-card,
+  .staged-experiment-card,
+  .science-delta-card,
+  .lab-chain-target-card,
+  .run-replay-contract,
+  .mentor-signal-card,
+  .formula-focus-card,
+  .formula-target-card,
+  .signal-story-crt-card,
+  .signal-lab-contract-card,
+  .frontier-rival-crt-card,
+  .world-mastery-crt-card,
+  .village-trust-crt-card,
+  .village-state-crt-card,
+  .village-request-crt-card,
+  .village-chain-crt-card,
+  .ai-state-run-crt-card,
+  .start-mission-radar,
+  .start-rank-preview,
+  .start-world-preview,
+  .start-proof-preview,
+  .start-village-preview,
+  .start-story-preview,
+  .start-resume-test,
+  .start-cadet-identity,
+  .clear-explain-card,
+  .clear-objective-item,
+  .clear-research-unlock,
+  .clear-story-preview,
+  .clear-village-trust,
+  .clear-village-chain,
+  .discovery-card,
+  .badge-shelf-item,
+  .science-passport-stamp,
+  .future-lab-roadmap-stage,
+  .village-almanac-card,
+  .ai-state-card,
+  .notebook-entry,
+  .notebook-entry-next,
+  .notebook-reflection-starter,
+  .attempt-row
+) {
+  background-color: rgba(2, 6, 23, 0.94);
+  border-color: rgba(226, 232, 240, 0.3);
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+body.readable-text-mode :is(
+  .lesson-lens-card p,
+  .mission-lab-question-card p,
+  .staged-experiment-card p,
+  .science-delta-card p,
+  .lab-chain-target-body p,
+  .signal-story-crt-body p,
+  .signal-lab-contract-body p,
+  .frontier-rival-crt-body p,
+  .world-mastery-crt-body p,
+  .village-trust-crt-body p,
+  .village-state-crt-body p,
+  .village-request-crt-body p,
+  .village-chain-crt-body p,
+  .ai-state-run-crt-body p,
+  .start-mission-radar p,
+  .start-rank-preview span,
+  .start-world-preview span,
+  .start-proof-preview span,
+  .start-village-preview span,
+  .start-story-preview span,
+  .clear-objective-item p,
+  .clear-explain-card p,
+  .discovery-card p,
+  .science-passport-stamp p,
+  .future-lab-roadmap-stage p,
+  .village-almanac-request p,
+  .ai-state-card p,
+  .notebook-entry-evidence,
+  .notebook-entry-next p,
+  .attempt-cell-stats
+) {
+  color: #e2e8f0;
+}
+
+body.readable-text-mode :is(
+  .lesson-lens-card code,
+  .lesson-phase-step code,
+  .mission-lab-question-card code,
+  .staged-experiment-card code,
+  .science-delta-next code,
+  .lab-chain-target-card code,
+  .signal-story-crt-body code,
+  .signal-lab-contract-card code,
+  .village-state-crt-body code,
+  .village-request-crt-body code,
+  .village-chain-crt-body code,
+  .ai-state-run-crt-body code,
+  .start-story-preview code,
+  .start-resume-test code,
+  .formula-target-code,
+  .formula-focus-command code,
+  .discovery-card code,
+  .science-passport-stamp code,
+  .future-lab-roadmap-stage code,
+  .village-almanac-card code,
+  .ai-state-card code,
+  .notebook-entry-next code,
+  .attempt-cell-code,
+  .code-card,
+  .console-input,
+  .notebook-textarea
+) {
+  background: #020617;
+  border: 1px solid rgba(226, 232, 240, 0.3);
+  color: #f8fafc;
+  text-shadow: none;
+}
+
+body.readable-text-mode :is(
+  .lesson-lens-stage-btn,
+  .mission-lab-question-stage-btn,
+  .staged-experiment-stage-btn,
+  .science-delta-stage-btn,
+  .lab-chain-target-stage-btn,
+  .signal-lab-contract-stage-btn,
+  .signal-lab-contract-explain-btn,
+  .formula-target-stage-btn,
+  .formula-focus-stage-btn,
+  .start-mission-radar-btn,
+  .start-resume-test-btn,
+  .start-cadet-ai-btn,
+  .clear-explain-btn,
+  .clear-objective-action-btn,
+  .notebook-entry-next-btn,
+  .ai-state-deck-btn,
+  .ai-state-run-crt-action-btn
+) {
+  border-color: rgba(125, 211, 252, 0.7);
+  background: rgba(8, 47, 73, 0.9);
+  color: #f8fafc;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
