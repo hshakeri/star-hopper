@@ -2421,6 +2421,7 @@ class NPC extends InteractiveObject {
     this.panicTimer = 0;
     this.caveCooldown = 0;
     this.rescuePending = !!config.rescuePending;
+    this.rescueReason = config.rescueReason || null;
     this.shelterReason = config.shelterReason || null;
     this.caveExitTimer = Number.isFinite(config.caveExitTimer) ? config.caveExitTimer : 0;
     
@@ -2515,6 +2516,7 @@ class NPC extends InteractiveObject {
       } else {
         this.panicTimer = 120;
         this.rescuePending = true;
+        this.rescueReason = "nearby mob";
         if (!this.shelterReason || this.shelterReason === "night" || this.shelterReason === "nearby mob") {
           this.shelterReason = "nearby mob";
         }
@@ -2552,9 +2554,10 @@ class NPC extends InteractiveObject {
         else if (Number.isFinite(this.caveX)) this.x = this.caveX + 10;
         if (Number.isFinite(this.homeY)) this.y = this.homeY;
         if (this.rescuePending && typeof game.grantVillageRescueReward === 'function') {
-          game.grantVillageRescueReward(this, this.shelterReason || "danger");
+          game.grantVillageRescueReward(this, this.rescueReason || this.shelterReason || "danger");
         }
         this.rescuePending = false;
+        this.rescueReason = null;
         this.shelterReason = null;
         this.panicTimer = 0;
         this.caveCooldown = 0;

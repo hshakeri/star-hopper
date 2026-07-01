@@ -1039,8 +1039,10 @@ class StarHopperGame {
       if (keepNpcSheltered) {
         sheltered++;
         const reason = shelter && shelter.reason ? shelter.reason : "night";
-        if (!obj.rescuePending) obj.shelterReason = reason;
-        else if (reason !== "night" && (!obj.shelterReason || obj.shelterReason === "night")) obj.shelterReason = reason;
+        if (obj.rescuePending && !obj.rescueReason) {
+          obj.rescueReason = obj.shelterReason && obj.shelterReason !== "night" ? obj.shelterReason : "danger";
+        }
+        obj.shelterReason = reason;
         this.parkNPCInCave(obj, reason);
         continue;
       }
@@ -1050,6 +1052,7 @@ class StarHopperGame {
       } else {
         obj.hiddenInCave = false;
         obj.rescuePending = false;
+        obj.rescueReason = null;
         obj.shelterReason = null;
         obj.returningFromCave = false;
         obj.returningFromCaveTimer = 0;
@@ -1088,8 +1091,8 @@ class StarHopperGame {
     npc.returningFromCave = false;
     npc.returningFromCaveTimer = 0;
     npc.caveExitTimer = 0;
-    if (reason === "night" && !npc.rescuePending) npc.shelterReason = "night";
-    else if (!npc.rescuePending && !npc.shelterReason) npc.shelterReason = reason;
+    if (reason === "night") npc.shelterReason = "night";
+    else if (!npc.shelterReason || npc.shelterReason === "night") npc.shelterReason = reason;
     npc.proximity = false;
     if (this.activeNPC === npc) this.activeNPC = null;
   }
@@ -1098,6 +1101,7 @@ class StarHopperGame {
     if (!npc) return;
     const wasHidden = !!npc.hiddenInCave;
     const rescuePending = !!npc.rescuePending;
+    const rescueReason = npc.rescueReason || (npc.shelterReason && npc.shelterReason !== "night" ? npc.shelterReason : null) || "danger";
     const exitAtCave = !!(options.exitAtCave && wasHidden && Number.isFinite(npc.caveX));
     const walkHome = !!options.returnHome && !options.snapHome;
     npc.hiddenInCave = false;
@@ -1106,8 +1110,9 @@ class StarHopperGame {
     else if (!options.returnHome && Number.isFinite(npc.caveX)) npc.x = npc.caveX + 10;
     if (exitAtCave && Number.isFinite(npc.caveY)) npc.y = npc.caveY;
     else if (!walkHome && Number.isFinite(npc.homeY)) npc.y = npc.homeY;
-    if (rescuePending) this.grantVillageRescueReward(npc, npc.shelterReason || "danger");
+    if (rescuePending) this.grantVillageRescueReward(npc, rescueReason);
     npc.rescuePending = false;
+    npc.rescueReason = null;
     npc.shelterReason = null;
     npc.panicTimer = 0;
     npc.caveCooldown = 0;
@@ -1128,6 +1133,7 @@ class StarHopperGame {
     if (!npc) return false;
     npc.panicTimer = Math.max(npc.panicTimer || 0, options.panicTimer || 120);
     npc.rescuePending = true;
+    npc.rescueReason = reason;
     if (!npc.shelterReason || npc.shelterReason === "nearby mob" || npc.shelterReason === "night") npc.shelterReason = reason;
     if (!npc.hiddenInCave && options.bubble && typeof ComicBubbles !== 'undefined' && (npc.caveCooldown || 0) <= 0) {
       ComicBubbles.spawn(npc.x + npc.w / 2, npc.y - 8, "CAVE!", "jagged", "#facc15", -0.35, { maxLife: 60, scale: 0.8 });

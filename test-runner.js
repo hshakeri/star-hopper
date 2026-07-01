@@ -8835,6 +8835,7 @@ function runCombatTests() {
     assertEquals(false, npc.hiddenInCave, "Villager reappears after survival danger ends");
     assertEquals(82, npc.x, "Daylight release shows the villager exiting at the cave mouth");
     assertEquals(60, npc.y, "Daylight cave exit keeps the villager on the village surface");
+    assertEquals(null, npc.rescueReason, "Daylight survival release clears the saved mob-rescue cause");
     assertEquals(true, (npc.caveExitTimer || 0) > 0, "Survival-off release keeps a visible cave-exit cue");
     assertEquals(true, !!npc.returningFromCave, "Daylight release starts a visible walk back to the village");
     assertEquals(false, g.canNPCTrade(npc), "Villager cannot trade while still walking home from the cave");
@@ -9061,6 +9062,8 @@ function runCombatTests() {
     assertEquals(0, nightSummary && nightSummary.released, "Survival-off night release reports no daylight villagers");
     assertEquals(1, nightSummary && nightSummary.sheltered, "Survival-off night release reports one villager kept in a cave");
     assertEquals(82, nightNpc.x, "Earth night parks the villager at the cave mouth");
+    assertEquals("night", nightNpc.shelterReason, "Earth night becomes the active visible cave state");
+    assertEquals("nearby mob", nightNpc.rescueReason, "Earth night preserves the mob-rescue cause for daylight");
     assertEquals("NIGHT", nightGame.getVillagerCaveStatus(nightNpc).label, "Survival-off night cave marker explains the villager did not disappear");
     const nightCrtPreview = getVillageStateCrtPreview(nightGame);
     assertEquals("NIGHT", nightCrtPreview && nightCrtPreview.label, "Mission CRT should show night shelter after Survival-off clears mobs");
@@ -9081,7 +9084,9 @@ function runCombatTests() {
     assertEquals(82, nightNpc.x, "Daylight after survival-off shows the villager at the cave mouth first");
     assertEquals(true, (nightNpc.caveExitTimer || 0) > 0, "Daylight release after night shows a cave-exit cue");
     assertEquals(null, nightNpc.shelterReason, "Daylight after survival-off clears the cave reason");
+    assertEquals(null, nightNpc.rescueReason, "Daylight after survival-off clears the preserved rescue cause");
     assertEquals(7, nightGame.researchXP, "The rescue reward waits until the villager actually returns");
+    assertEquals(true, /nearby mob/.test(nightGame.discoveryPulse && nightGame.discoveryPulse.insight), "Delayed daylight rescue still explains the original mob danger");
     assertEquals(false, nightGame.canNPCTrade(nightNpc), "Daylight-returned villager waits to trade until it reaches home");
     walkReturningVillagerHome(nightGame, nightNpc);
     assertEquals(120, nightNpc.x, "Daylight after survival-off walks the villager to the village home");
