@@ -2088,6 +2088,58 @@ function runEngineTests() {
     assertEquals(1, queue[0] && queue[0].progress && queue[0].progress.value, "Run objective queue should carry Code Concept pip progress");
     assertEquals(4, queue[0] && queue[0].progress && queue[0].progress.target, "Run objective queue should carry Code Concept pip total");
 
+    const startQueue = getStartObjectiveQueue(queueGame, { quest: {}, resumeCue: null, cadetPreview: {} });
+    assertEquals("CODE CONCEPT", startQueue[0] && startQueue[0].label, "Start objective queue should surface the next Code Concept when higher-priority routes are absent");
+    assertEquals("Collect Loop", startQueue[0] && startQueue[0].title, "Start objective queue should name the next coding idea");
+    assertEquals("STAGE IDEA", startQueue[0] && startQueue[0].cta, "Start objective queue should expose a Code Concept stage action");
+    assertEquals("code-concept", startQueue[0] && startQueue[0].action, "Start objective queue should keep Code Concept action metadata");
+    queueGame.lastStartObjectiveQueue = startQueue;
+    const startQueueStarts = [];
+    const startQueueModes = [];
+    queueGame.startLevel = (level) => { startQueueStarts.push(level); };
+    switchMainMode = (mode) => { startQueueModes.push(mode); };
+    window.Game = queueGame;
+    inputEl.value = "";
+    inputEl.focused = false;
+    assertEquals(true, runStartObjectiveQueueAction(1), "Start objective Code Concept action should dispatch");
+    assertEquals(0, startQueueStarts[0], "Start objective Code Concept action should launch the current world");
+    assertEquals("terminal", startQueueModes[0], "Start objective Code Concept action should return to the terminal");
+    assertEquals("repeat 3 { spawn_block() }", inputEl.value, "Start objective Code Concept action should stage the sample command");
+    assertEquals(true, inputEl.focused, "Start objective Code Concept action should focus the terminal");
+    assertEquals("start-code-concept", queueGame.lastStagedExperiment && queueGame.lastStagedExperiment.source, "Start objective Code Concept action should preserve its source");
+
+    const chainQueueGame = new StarHopperGame();
+    chainQueueGame.currentPlanet = { name: "Chain Lab", missions: [] };
+    chainQueueGame.currentPlanetIndex = 2;
+    chainQueueGame.codeConcepts = new Set(["ASSIGN", "LOOP", "IF", "CALL"]);
+    chainQueueGame.discoveryPulse = { combo: 2, rewardXP: 5, formula: "engine changed", insight: "Fresh proof." };
+    chainQueueGame.lastScienceDelta = {
+      nextExperiment: {
+        title: "Raise engine again",
+        body: "Change one fresh variable to keep the lab chain alive.",
+        command: "hopper.engine = 7"
+      }
+    };
+    const chainStartQueue = getStartObjectiveQueue(chainQueueGame, { quest: {}, resumeCue: null, cadetPreview: {} });
+    assertEquals("LAB CHAIN x2", chainStartQueue[0] && chainStartQueue[0].label, "Start objective queue should surface active lab-chain targets");
+    assertEquals("Raise engine again", chainStartQueue[0] && chainStartQueue[0].title, "Start lab-chain queue should name the next experiment");
+    assertEquals("STAGE CHAIN", chainStartQueue[0] && chainStartQueue[0].cta, "Start lab-chain queue should expose a stage action");
+    assertEquals("lab-chain", chainStartQueue[0] && chainStartQueue[0].action, "Start lab-chain queue should keep action metadata");
+    chainQueueGame.lastStartObjectiveQueue = chainStartQueue;
+    const chainStarts = [];
+    const chainModes = [];
+    chainQueueGame.startLevel = (level) => { chainStarts.push(level); };
+    switchMainMode = (mode) => { chainModes.push(mode); };
+    window.Game = chainQueueGame;
+    inputEl.value = "";
+    inputEl.focused = false;
+    assertEquals(true, runStartObjectiveQueueAction(1), "Start objective Lab Chain action should dispatch");
+    assertEquals(2, chainStarts[0], "Start objective Lab Chain action should launch the current world");
+    assertEquals("terminal", chainModes[0], "Start objective Lab Chain action should return to the terminal");
+    assertEquals("hopper.engine = 7", inputEl.value, "Start objective Lab Chain action should stage the next chain command");
+    assertEquals(true, inputEl.focused, "Start objective Lab Chain action should focus the terminal");
+    assertEquals("start-lab-chain", chainQueueGame.lastStagedExperiment && chainQueueGame.lastStagedExperiment.source, "Start objective Lab Chain action should preserve its source");
+
     const makeQueueEl = () => ({
       className: "",
       textContent: "",
@@ -2117,6 +2169,7 @@ function runEngineTests() {
     };
     const queuePanel = makeQueueEl();
     document.createElement = () => makeQueueEl();
+    queueGame.lastStagedExperiment = null;
     appendRunObjectiveQueueCard(queuePanel, queueGame);
     const cartridge = findQueueByClass(queuePanel, "code-concept-cartridge");
     const cartridgeText = flattenQueueText(cartridge || queuePanel);
@@ -2128,6 +2181,7 @@ function runEngineTests() {
     assertEquals(1, collectQueueByClass(cartridge, "filled").length, "Code Concept cartridge should fill collected ideas");
     assertEquals(1, collectQueueByClass(cartridge, "next").length, "Code Concept cartridge should mark the next idea");
     const queueStageButton = findQueueByClass(queuePanel, "run-objective-queue-action-btn");
+    window.Game = queueGame;
     inputEl.value = "";
     inputEl.focused = false;
     queueStageButton._events.click();

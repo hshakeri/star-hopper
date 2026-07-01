@@ -1970,6 +1970,7 @@ function getStagedExperimentSourceLabel(source) {
     "science-checkpoint": "Science checkpoint",
     "lab-chain-target": "Lab chain",
     "lab-chain-next": "Lab chain",
+    "start-lab-chain": "Lab chain",
     "formula-focus": "Formula Deck",
     "formula-card-reward": "Formula reward",
     "formula-target": "Formula target",
@@ -4437,6 +4438,10 @@ function getStartObjectiveQueue(game = window.Game, context = {}) {
       missionId: item.missionId || "",
       command: item.command || "",
       kind: item.kind || "",
+      source: item.source || "",
+      color: item.color || "",
+      levelIndex: Number.isFinite(Number(item.levelIndex)) ? Number(item.levelIndex) : null,
+      stageTitle: item.stageTitle || "",
       priority: queue.length + 1
     });
   };
@@ -4500,6 +4505,47 @@ function getStartObjectiveQueue(game = window.Game, context = {}) {
       cta: aiAction.label || "RUN STATE",
       action: "ai-state",
       cardId: aiAction.cardId
+    });
+  }
+
+  const codeConceptTarget = typeof getActiveCodeConceptTarget === "function" ? getActiveCodeConceptTarget(game) : null;
+  const radarAlreadyCodeConcept = !!(radarAction && radarAction.action === "code-concept");
+  const codeConceptCommand = codeConceptTarget && codeConceptTarget.command ? String(codeConceptTarget.command).trim() : "";
+  if (codeConceptTarget && codeConceptCommand && !radarAlreadyCodeConcept) {
+    add({
+      key: `code-concept:${codeConceptTarget.concept}`,
+      label: "CODE CONCEPT",
+      title: `Collect ${codeConceptTarget.title}`,
+      body: `${codeConceptTarget.body} Try ${codeConceptCommand}.`,
+      reward: codeConceptTarget.reward,
+      cta: "STAGE IDEA",
+      action: "code-concept",
+      command: codeConceptCommand,
+      kind: codeConceptTarget.concept || "code-concept",
+      source: "start-code-concept",
+      color: codeConceptTarget.color || "#93c5fd",
+      levelIndex: Number.isFinite(Number(game && game.currentPlanetIndex)) ? Number(game.currentPlanetIndex) : 0,
+      stageTitle: `Code Concept: ${codeConceptTarget.title}`
+    });
+  }
+
+  const labChain = typeof getLabChainTarget === "function" ? getLabChainTarget(game) : null;
+  const labChainCommand = labChain && labChain.command ? String(labChain.command).trim() : "";
+  if (labChain && labChainCommand && labChainCommand !== codeConceptCommand) {
+    add({
+      key: `lab-chain:${labChainCommand}`,
+      label: labChain.label || "LAB CHAIN",
+      title: labChain.title || "Make one fresh change",
+      body: labChain.body || "Change one variable, run it, and compare the new result.",
+      reward: labChain.reward || "Next new progress keeps the chain alive",
+      cta: "STAGE CHAIN",
+      action: "lab-chain",
+      command: labChainCommand,
+      kind: labChain.kind || "lab-chain",
+      source: "start-lab-chain",
+      color: labChain.state === "paused" ? "#cbd5e1" : "#67e8f9",
+      levelIndex: Number.isFinite(Number(game && game.currentPlanetIndex)) ? Number(game.currentPlanetIndex) : 0,
+      stageTitle: labChain.title || "Lab chain"
     });
   }
 
@@ -4770,6 +4816,24 @@ function runStartObjectiveQueueAction(priority = 1) {
   if (item.action === "ai-state") {
     if (!item.cardId || typeof runAIStateDeckAction !== 'function') return false;
     return runAIStateDeckAction(item.cardId, game);
+  }
+  if (item.action === "code-concept" || item.action === "lab-chain") {
+    const command = item.command ? String(item.command).trim() : "";
+    if (game && typeof game.startLevel === "function") {
+      const level = Number.isFinite(Number(item.levelIndex))
+        ? Number(item.levelIndex)
+        : (Number.isFinite(Number(game.currentPlanetIndex)) ? Number(game.currentPlanetIndex) : 0);
+      game.startLevel(level);
+    }
+    if (typeof switchMainMode === "function") switchMainMode("terminal");
+    if (!command || typeof stageScienceDeltaCommand !== "function") return !!(game && typeof game.startLevel === "function");
+    return stageScienceDeltaCommand(command, {
+      title: item.stageTitle || item.title || (item.action === "lab-chain" ? "Lab chain" : "Code Concept"),
+      kind: item.kind || (item.action === "lab-chain" ? "lab-chain" : "code-concept"),
+      source: item.source || (item.action === "lab-chain" ? "start-lab-chain" : "start-code-concept"),
+      color: item.color || (item.action === "lab-chain" ? "#67e8f9" : "#93c5fd"),
+      game
+    });
   }
   if (item.action === "daily") {
     return runDailySignalAction(game);
