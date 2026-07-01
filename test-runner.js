@@ -8479,11 +8479,17 @@ function runDiagnosticsTests() {
     assertEquals(true, hypButtons[0].classList.contains("recommended"), "Higher hypothesis button is marked as recommended");
     assertEquals(true, /max height/.test(hypLabel.textContent), "Crash lab hypothesis label names the measured telemetry");
     const stagedCommand = firstFix.children.find(child => child.className === "failure-choice-code").textContent;
+    const retryProof = firstFix.children.find(child => child.className === "failure-choice-reward");
+    assertEquals("RETRY PROOF", retryProof && retryProof.textContent, "Crash fix should mark the next retry as a proof attempt");
     firstFix._events.click();
     assertEquals("higher", AttemptLog.byPlanet[0][0].prediction, "Suggested hypothesis attaches to the next attempt before reset");
     assertEquals(null, AttemptLog.pendingPrediction, "Pending hypothesis is consumed by the new attempt row");
     assertEquals(stagedCommand, input.value, "Clicking the fix still stages the command in the console");
     assertEquals(true, input.focused, "Clicking the fix focuses the console for the next experiment");
+    assertEquals("failure-lab", window.Game.lastStagedExperiment && window.Game.lastStagedExperiment.source, "Failure fix should enter the shared staged-experiment loop");
+    assertEquals("failure-diagnosis", window.Game.lastStagedExperiment && window.Game.lastStagedExperiment.kind, "Failure fix should record the diagnosis kind");
+    assertEquals("higher", window.Game.lastStagedExperiment && window.Game.lastStagedExperiment.prediction, "Failure fix should carry prediction metadata");
+    assertEquals(stagedCommand, window.Game.lastFailureFix && window.Game.lastFailureFix.command, "Failure fix metadata should remember the staged command");
 
     document.getElementById = oldGetElementByIdD6;
     document.createElement = oldCreateElementD6;

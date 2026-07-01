@@ -2600,6 +2600,19 @@ body.resizing-panes * {
   text-transform: uppercase;
   letter-spacing: 0;
 }
+.failure-choice-reward {
+  align-self: flex-start;
+  border: 1px solid rgba(250, 204, 21, 0.42);
+  border-radius: 4px;
+  color: var(--neon-yellow);
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1;
+  margin-top: 2px;
+  padding: 3px 5px;
+}
 .failure-hint {
   font-size: 0.7rem;
   color: var(--text-muted);

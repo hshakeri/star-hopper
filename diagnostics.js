@@ -222,7 +222,11 @@ function renderFailureLab(game) {
         pred.textContent = `predict: ${prediction}`;
         btn.appendChild(pred);
       }
-      btn.addEventListener("click", () => stageDiagnosisFix(ch.command, prediction));
+      const reward = document.createElement("span");
+      reward.className = "failure-choice-reward";
+      reward.textContent = prediction ? "RETRY PROOF" : "ROUTE RETRY";
+      btn.appendChild(reward);
+      btn.addEventListener("click", () => stageDiagnosisFix(ch.command, prediction, ch.label));
       choicesEl.appendChild(btn);
     });
     choicesEl.style.display = d.choices.length ? "flex" : "none";
@@ -245,23 +249,59 @@ function renderFailureLab(game) {
 
 // One-tap fix: respawn (tunings preserved → the retry remixes) with the suggested
 // command staged in the shell. The cadet reads it, can edit it, and presses Enter.
-function stageDiagnosisFix(command, prediction = null) {
+function stageDiagnosisFix(command, prediction = null, label = "Failure lab retry") {
+  const code = String(command || "").trim();
+  if (!code) return false;
   if (prediction && typeof predictNextAttempt === "function") {
     predictNextAttempt(prediction);
   }
-  if (typeof window !== "undefined" && window.Game && typeof window.Game.resetLevel === "function") {
-    window.Game.resetLevel();
+  const liveGame = (typeof window !== "undefined" && window.Game) ? window.Game : null;
+  if (liveGame && typeof liveGame.resetLevel === "function") {
+    liveGame.resetLevel();
   }
-  const input = (typeof document !== "undefined") && document.getElementById("console-input");
-  if (input) {
-    input.value = command;
-    if (typeof autoGrowConsoleInput === "function") autoGrowConsoleInput(input);
-    input.focus();
-    try { input.setSelectionRange(command.length, command.length); } catch (_) {}
+  let staged = false;
+  if (typeof stageScienceDeltaCommand === "function") {
+    staged = stageScienceDeltaCommand(code, {
+      title: label || "Failure lab retry",
+      kind: "failure-diagnosis",
+      source: "failure-lab",
+      color: "#facc15"
+    });
+  }
+  if (!staged) {
+    const input = (typeof document !== "undefined") && document.getElementById("console-input");
+    if (input) {
+      input.value = code;
+      if (typeof autoGrowConsoleInput === "function") autoGrowConsoleInput(input);
+      input.focus();
+      try { input.setSelectionRange(code.length, code.length); } catch (_) {}
+      staged = true;
+    }
+    if (liveGame) {
+      liveGame.lastStagedExperiment = {
+        command: code,
+        title: label || "Failure lab retry",
+        kind: "failure-diagnosis",
+        source: "failure-lab",
+        time: Date.now()
+      };
+    }
+  }
+  if (liveGame) {
+    liveGame.lastFailureFix = {
+      command: code,
+      prediction: prediction || null,
+      title: label || "Failure lab retry",
+      time: Date.now()
+    };
+    if (liveGame.lastStagedExperiment && liveGame.lastStagedExperiment.command === code) {
+      liveGame.lastStagedExperiment.prediction = prediction || null;
+    }
   }
   if (typeof ui_log_output === "function") {
-    ui_log_output(`🧪 Staged fix: ${command} — press Enter to run the experiment.`, "info");
+    ui_log_output(`🧪 Staged fix: ${code} — press Enter to run the experiment.`, "info");
   }
+  return staged;
 }
 
 // Globals for browser + node test harness.
