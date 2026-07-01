@@ -18,6 +18,59 @@ const BEGINNER_CONCEPT_PROGRESS = [
   { id: "navigation", label: "Navigation", navigation: true }
 ];
 
+const AI_STATE_DECK_CARDS = [
+  {
+    id: "trade-flow",
+    title: "Trade Flow",
+    state: "samples -> trade -> tool",
+    concept: "Resource system",
+    body: "A villager turns collected evidence into a tool or upgrade.",
+    next: "Make one fair sample trade with a planet villager.",
+    reward: "Logs when a village trade proof is earned.",
+    prefixes: ["village-trade:"]
+  },
+  {
+    id: "shelter-loop",
+    title: "Shelter Loop",
+    state: "patrol -> cave -> trade",
+    concept: "State machine",
+    body: "A villager changes behavior when danger appears, then returns when the world is safe.",
+    next: "Clear mob danger so a villager leaves the cave.",
+    reward: "Logs when a village rescue proof is earned.",
+    prefixes: ["village-rescue:"]
+  },
+  {
+    id: "pet-pact",
+    title: "Pet Pact",
+    state: "wild -> scared -> pet",
+    concept: "Hidden behavior",
+    body: "Rave mode and calming lotion can turn a small mob into a helper.",
+    next: "Use calming lotion on a scared blob or critter.",
+    reward: "Logs when a pet pact proof is earned.",
+    prefixes: ["pet:tame:"]
+  },
+  {
+    id: "guard-mode",
+    title: "Guard Mode",
+    state: "follow -> protect",
+    concept: "Behavior switch",
+    body: "A trained pet switches from following the cadet to intercepting danger.",
+    next: "Let a trained pet stop a hostile mob near the cadet or a villager.",
+    reward: "Logs when a pet guard proof is earned.",
+    prefixes: ["pet:guard:"]
+  },
+  {
+    id: "guardian-pact",
+    title: "Guardian Pact",
+    state: "trust -> guardian",
+    concept: "Long arc",
+    body: "Trades, rescues, and pet guards combine into one village relationship story.",
+    next: "Reach the Village Guardian trust tier and trigger the pact.",
+    reward: "Completes the village AI storyline.",
+    prefixes: ["village-pact:"]
+  }
+];
+
 // Updates the Science Notebook UI with telemetry from the active game
 function updateNotebook(game) {
   if (!game) return;
@@ -81,6 +134,7 @@ function updateNotebook(game) {
   updateFutureLabRoadmap(game);
   updateSciencePassport(game);
   updateVillageAlmanac(game);
+  updateAIStateDeck(game);
 
   // Render Mini Energy Bars
   const maxKE = 100;
@@ -1136,6 +1190,94 @@ function updateVillageAlmanac(game = window.Game) {
   `;
 }
 
+function collectAIStateDeckSources(game) {
+  const sources = {};
+  const addSourceMap = (sourceMap) => {
+    if (!sourceMap || typeof sourceMap !== 'object') return;
+    Object.keys(sourceMap).forEach(key => {
+      if (sourceMap[key]) sources[String(key)] = true;
+    });
+  };
+
+  if (!game) return sources;
+  addSourceMap(game.discoveryPassCounts);
+
+  const villageTrust = game.villageTrust && typeof game.villageTrust === 'object' ? game.villageTrust : {};
+  Object.keys(villageTrust).forEach(key => addSourceMap(villageTrust[key] && villageTrust[key].sources));
+
+  const masteryMeters = game.masteryMeters && typeof game.masteryMeters === 'object' ? game.masteryMeters : {};
+  Object.keys(masteryMeters).forEach(key => addSourceMap(masteryMeters[key] && masteryMeters[key].sources));
+
+  return sources;
+}
+
+function aiStateDeckHasProof(sources, prefixes) {
+  if (!sources || !prefixes || !prefixes.length) return false;
+  const keys = Object.keys(sources);
+  return keys.some(key => prefixes.some(prefix => key.indexOf(prefix) === 0));
+}
+
+function getAIStateDeckCards(game = window.Game) {
+  const sources = collectAIStateDeckSources(game);
+  return AI_STATE_DECK_CARDS.map(card => ({
+    ...card,
+    earned: aiStateDeckHasProof(sources, card.prefixes)
+  }));
+}
+
+function getAIStateDeckProgress(game = window.Game) {
+  const cards = getAIStateDeckCards(game);
+  const earned = cards.filter(card => card.earned);
+  const nextCard = cards.find(card => !card.earned) || null;
+  return {
+    cards,
+    earnedCount: earned.length,
+    total: cards.length,
+    nextCard,
+    complete: earned.length === cards.length,
+    pct: cards.length ? Math.round((earned.length / cards.length) * 100) : 0
+  };
+}
+
+function updateAIStateDeck(game = window.Game) {
+  const panel = document.getElementById("ai-state-deck-panel");
+  if (!panel) return;
+  const progress = getAIStateDeckProgress(game);
+  const next = progress.nextCard;
+  const headerCue = next
+    ? `Next: ${next.title} - ${next.next}`
+    : "All village AI behavior cards logged. Use the system in remixes and Daily Signals.";
+
+  panel.innerHTML = `
+    <div class="ai-state-deck-head">
+      <div>
+        <span>BEHAVIOR COLLECTION</span>
+        <strong>${escapeHTML(String(progress.earnedCount))}/${escapeHTML(String(progress.total))} AI states logged</strong>
+      </div>
+      <em>${escapeHTML(headerCue)}</em>
+    </div>
+    <div class="ai-state-deck-meter" aria-label="${escapeHTML(String(progress.pct))}% of AI state deck collected"><span style="width: ${escapeHTML(String(progress.pct))}%"></span></div>
+    <div class="ai-state-deck-grid">
+      ${progress.cards.map(card => {
+        const isNext = next && card.id === next.id;
+        const stateLabel = card.earned ? "LOGGED" : (isNext ? "NEXT STATE" : "LOCKED");
+        return `
+          <div class="ai-state-card ${card.earned ? "earned" : ""} ${isNext ? "next" : ""}">
+            <div class="ai-state-card-head">
+              <span>${escapeHTML(stateLabel)}</span>
+              <strong>${escapeHTML(card.title)}</strong>
+            </div>
+            <code>${escapeHTML(`state = ${card.state}`)}</code>
+            <p>${escapeHTML(card.body)}</p>
+            <em>${escapeHTML(card.earned ? card.reward : card.next)}</em>
+            <b>${escapeHTML(card.concept)}</b>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
 function updateBadgeShelf(game = window.Game) {
   const list = document.getElementById("badge-shelf-list");
   if (!list || typeof PlatformerMissions === 'undefined') return;
@@ -1281,6 +1423,9 @@ function switchMainMode(mode) {
   }
   if (typeof updateVillageAlmanac === 'function' && window.Game) {
     updateVillageAlmanac(window.Game);
+  }
+  if (typeof updateAIStateDeck === 'function' && window.Game) {
+    updateAIStateDeck(window.Game);
   }
   if (typeof updateBadgeShelf === 'function' && window.Game) {
     updateBadgeShelf(window.Game);

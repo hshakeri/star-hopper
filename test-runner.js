@@ -1547,6 +1547,66 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: Village Almanac shows requests and pacts", false, err.message);
   }
 
+  // Test 22a1c: AI State Deck turns village and pet behavior proofs into collectible lesson cards.
+  const oldGetElementById22aiDeck = document.getElementById;
+  try {
+    const panel = { innerHTML: "" };
+    document.getElementById = (id) => id === "ai-state-deck-panel" ? panel : null;
+
+    const partialGame = new StarHopperGame();
+    partialGame.villageTrust = {
+      0: { points: 3, sources: { "village-trade:0:geary:engine_1": 3 } }
+    };
+    partialGame.masteryMeters = {};
+    partialGame.discoveryPassCounts = {};
+    let progress = getAIStateDeckProgress(partialGame);
+    assertEquals(1, progress.earnedCount, "AI State Deck should count village trade proof from trust sources");
+    assertEquals("shelter-loop", progress.nextCard && progress.nextCard.id, "After trade proof, the next AI card should ask for shelter/rescue evidence");
+
+    updateAIStateDeck(partialGame);
+    assertEquals(true, /1\/5 AI states logged/.test(panel.innerHTML), "AI State Deck should render partial collection progress");
+    assertEquals(true, /LOGGED/.test(panel.innerHTML) && /Trade Flow/.test(panel.innerHTML), "AI State Deck should mark the trade-flow card logged");
+    assertEquals(true, /NEXT STATE/.test(panel.innerHTML) && /Shelter Loop/.test(panel.innerHTML), "AI State Deck should mark the next unearned behavior card");
+    assertEquals(true, /state = samples -&gt; trade -&gt; tool/.test(panel.innerHTML), "AI State Deck should show the trade state formula");
+    assertEquals(true, /Clear mob danger so a villager leaves the cave/.test(panel.innerHTML), "AI State Deck should show the next rescue action");
+
+    const completeGame = new StarHopperGame();
+    completeGame.villageTrust = {
+      3: {
+        points: 12,
+        sources: {
+          "village-trade:3:cryo:glacies_ice_spikes": 3,
+          "village-rescue:3:cryo": 4
+        }
+      }
+    };
+    completeGame.masteryMeters = {
+      3: {
+        xp: 40,
+        sources: {
+          "pet:tame:3": 7,
+          "pet:guard:3": 10
+        }
+      }
+    };
+    completeGame.discoveryPassCounts = { "village-pact:3:guardian": 1 };
+    progress = getAIStateDeckProgress(completeGame);
+    assertEquals(5, progress.earnedCount, "AI State Deck should count trade, rescue, pet, guard, and guardian proofs");
+    assertEquals(true, progress.complete, "AI State Deck should complete after every behavior proof is present");
+
+    updateAIStateDeck(completeGame);
+    assertEquals(true, /5\/5 AI states logged/.test(panel.innerHTML), "Complete AI State Deck should render full progress");
+    assertEquals(true, /All village AI behavior cards logged/.test(panel.innerHTML), "Complete AI State Deck should stop asking for a next card");
+    assertEquals(true, /Pet Pact/.test(panel.innerHTML) && /wild -&gt; scared -&gt; pet/.test(panel.innerHTML), "AI State Deck should include the taming hidden-behavior card");
+    assertEquals(true, /Guard Mode/.test(panel.innerHTML) && /follow -&gt; protect/.test(panel.innerHTML), "AI State Deck should include the pet guard behavior card");
+    assertEquals(true, /Guardian Pact/.test(panel.innerHTML) && /trust -&gt; guardian/.test(panel.innerHTML), "AI State Deck should include the long village arc card");
+    document.getElementById = oldGetElementById22aiDeck;
+    renderTestResult("engine-suite", "Curriculum: AI State Deck collects village behavior proofs", true);
+  } catch (err) {
+    document.getElementById = oldGetElementById22aiDeck;
+    renderTestResult("engine-suite", "Curriculum: AI State Deck collects village behavior proofs", false, err.message);
+  }
+
   // Test 22a2: Scientist Certificate unlock path is visible before it is earned.
   const oldGetElementById22cert = document.getElementById;
   const oldWindowGame22cert = window.Game;
