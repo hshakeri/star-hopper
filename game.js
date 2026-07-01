@@ -2264,6 +2264,41 @@ class StarHopperGame {
     };
   }
 
+  getFrontierRivalNextHandoff(result = null, proof = null) {
+    const challenge = typeof this.getFrontierChallenge === 'function' ? this.getFrontierChallenge() : null;
+    const contract = challenge && challenge.labContract ? challenge.labContract : null;
+    const command = contract && contract.command ? String(contract.command).trim() : "";
+    const firstCommand = command.split(/\n/).map(line => line.trim()).find(Boolean) || "";
+    const ladder = typeof this.getFrontierRivalLadderProgress === 'function'
+      ? this.getFrontierRivalLadderProgress()
+      : null;
+    const pilot = (result && result.entry && result.entry.pilot) || (proof && proof.pilot) || "classmate";
+    const title = ladder && ladder.complete
+      ? "Class board mastered"
+      : (ladder && ladder.title ? ladder.title : "Frontier Rival Ladder");
+    const remaining = ladder && Number.isFinite(Number(ladder.remaining)) ? Math.max(0, Math.floor(Number(ladder.remaining))) : 0;
+    const win = ladder && ladder.complete
+      ? "Defend the class lead"
+      : `${ladder && ladder.label ? ladder.label : "RIVAL LADDER"}${ladder && ladder.rewardXP ? ` +${ladder.rewardXP} XP` : ""}`;
+    return {
+      label: ladder && ladder.complete ? "RIVAL LADDER COMPLETE" : "NEXT RIVAL LAB",
+      title,
+      body: ladder && ladder.complete
+        ? `You have banked ${ladder.proofCount || 0} fair Frontier proofs. Keep sharing lines so classmates can chase your evidence.`
+        : `${remaining} proof${remaining === 1 ? "" : "s"} to ${ladder && ladder.label ? ladder.label : "the next rival milestone"}. Run a same-seed Frontier lab and compare one variable against ${pilot}.`,
+      learn: "Fair comparison: same seed + stars + time",
+      code: firstCommand || "Change one variable, then compare the run",
+      win,
+      actionLabel: "RUN FRONTIER",
+      firstCommand,
+      command,
+      proofCount: ladder ? ladder.proofCount : 0,
+      remaining,
+      routeTitle: contract && contract.title ? contract.title : (challenge && challenge.label ? challenge.label : "Frontier Challenge"),
+      canRoute: !!challenge
+    };
+  }
+
   grantFrontierRivalMilestone(pulse = null, proof = null) {
     this.discoveryPassCounts = this.discoveryPassCounts || {};
     const proofCount = this.getFrontierRivalProofCount();
@@ -2411,6 +2446,7 @@ class StarHopperGame {
       result.monitorText = `${result.monitorText} · ${rivalMilestone.label} +${rivalMilestone.rewardXP} XP`;
       result.body = `${result.body} ${rivalMilestone.title}: ${rivalMilestone.body}`;
     }
+    pulse.frontierRivalNext = this.getFrontierRivalNextHandoff(result, proof);
     const previewRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : afterRank;
     if (previewRank && typeof getResearchUnlockPreview === 'function') {
       pulse.nextLabUnlock = getResearchUnlockPreview(previewRank);

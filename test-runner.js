@@ -10623,11 +10623,18 @@ function runRetryRemixTests() {
   const oldGetElementByIdR11c = document.getElementById;
   const oldBubblePopR11c = ComicBubbles.pop;
   const oldParticleBurstR11c = Particles.spawnBurst;
+  const oldRunFrontierChallengeActionR11c = runFrontierChallengeAction;
   try {
     const shareLabels = [];
     let shareBursts = 0;
+    let frontierPulseClick = null;
+    let frontierPulseCalls = 0;
     ComicBubbles.pop = (x, y, text) => { shareLabels.push(text); };
     Particles.spawnBurst = () => { shareBursts++; };
+    runFrontierChallengeAction = (gameArg) => {
+      frontierPulseCalls++;
+      return !!gameArg;
+    };
     const g = new StarHopperGame();
     g.getTodayDateStr = () => "2026-06-30";
     g.planetClears = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 };
@@ -10710,7 +10717,20 @@ function runRetryRemixTests() {
     });
     assertEquals("beaten", beatenResult.state, "A faster same-star clear beats the imported rival");
     assertEquals(true, /RIVAL BEATEN: Grace/.test(beatenResult.label), "Beaten result should label the classmate win");
-    const pulsePanel = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };
+    const frontierPulseButton = {
+      dataset: { frontierRivalNext: "1" },
+      addEventListener(event, handler) {
+        if (event === "click") frontierPulseClick = handler;
+      }
+    };
+    const pulsePanel = {
+      classList: { add: () => {}, remove: () => {} },
+      innerHTML: "",
+      querySelectorAll(selector) {
+        if (selector === "[data-frontier-rival-next]" && /data-frontier-rival-next/.test(this.innerHTML)) return [frontierPulseButton];
+        return [];
+      }
+    };
     document.getElementById = (id) => id === "discovery-pulse" ? pulsePanel : null;
     const matchedResult = g.getFrontierRivalClearResult({
       frontierInfo: frontier,
@@ -10736,6 +10756,15 @@ function runRetryRemixTests() {
     assertEquals("Frontier Rival Beaten", g.discoveryPulse && g.discoveryPulse.title, "Rival proof should create a discovery pulse");
     assertEquals(true, /RIVAL PROOF \+10 XP/.test(pulsePanel.innerHTML), "Discovery pulse should render the scaled rival proof chip");
     assertEquals(true, /T3/.test(pulsePanel.innerHTML), "Discovery pulse should show the rival proof tier");
+    assertEquals("NEXT RIVAL LAB", g.discoveryPulse.frontierRivalNext && g.discoveryPulse.frontierRivalNext.label, "Rival proof pulse should carry the next rival lab handoff");
+    assertEquals(true, /discovery-frontier-rival-next/.test(pulsePanel.innerHTML), "Discovery pulse should render the next rival lab card");
+    assertEquals(true, /LEARN/.test(pulsePanel.innerHTML) && /same seed \+ stars \+ time/.test(pulsePanel.innerHTML), "Rival handoff should teach fair same-seed comparison");
+    assertEquals(true, /CODE/.test(pulsePanel.innerHTML) && !!g.discoveryPulse.frontierRivalNext.firstCommand && pulsePanel.innerHTML.includes(escapeHTML(g.discoveryPulse.frontierRivalNext.firstCommand)), "Rival handoff should show the next Frontier coding move");
+    assertEquals(true, /WIN/.test(pulsePanel.innerHTML) && /RIVAL LADDER/.test(pulsePanel.innerHTML), "Rival handoff should name the next ladder payoff");
+    assertEquals(true, /data-frontier-rival-next="1"/.test(pulsePanel.innerHTML), "Rival handoff should expose a direct Frontier route");
+    assertEquals(true, typeof frontierPulseClick === "function", "Rival handoff should bind a click handler");
+    assertEquals(true, frontierPulseClick(), "Rival handoff should launch the Frontier route");
+    assertEquals(1, frontierPulseCalls, "Rival handoff should call the Frontier route once");
     assertEquals(null, g.grantFrontierRivalProof(beatenResult), "Repeating the same rival proof should not farm XP");
     assertEquals(10, g.researchXP, "Repeated rival proof should not add Research XP");
     assertEquals(null, g.grantFrontierRivalProof(matchedResult), "A lower matched proof should not pay after the same rival was beaten");
@@ -10863,11 +10892,13 @@ function runRetryRemixTests() {
     document.getElementById = oldGetElementByIdR11c;
     ComicBubbles.pop = oldBubblePopR11c;
     Particles.spawnBurst = oldParticleBurstR11c;
+    runFrontierChallengeAction = oldRunFrontierChallengeActionR11c;
     renderTestResult(SUITE, "Frontier Records: local best and class board", true);
   } catch (err) {
     document.getElementById = oldGetElementByIdR11c;
     ComicBubbles.pop = oldBubblePopR11c;
     Particles.spawnBurst = oldParticleBurstR11c;
+    runFrontierChallengeAction = oldRunFrontierChallengeActionR11c;
     renderTestResult(SUITE, "Frontier Records: local best and class board", false, err.message);
   }
 

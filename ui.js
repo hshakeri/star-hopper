@@ -7113,6 +7113,16 @@ function updateDiscoveryPulse(game) {
   const frontierRivalMilestone = pulse.frontierRivalMilestone
     ? `<div class="discovery-hypothesis discovery-combo-boost">${escapeHTML(pulse.frontierRivalMilestone.label || "RIVAL LADDER")} +${escapeHTML(String(pulse.frontierRivalMilestone.rewardXP || 0))} XP · ${escapeHTML(String(pulse.frontierRivalMilestone.proofCount || 0))} proofs</div>`
     : "";
+  const frontierRivalNext = pulse.frontierRivalNext || null;
+  const frontierRivalNextLesson = frontierRivalNext
+    ? `<div class="discovery-frontier-rival-lesson"><span><b>LEARN</b>${escapeHTML(frontierRivalNext.learn || "Fair comparison")}</span><span><b>CODE</b>${escapeHTML(frontierRivalNext.code || frontierRivalNext.firstCommand || "Change one variable")}</span><span><b>WIN</b>${escapeHTML(frontierRivalNext.win || "Rival ladder proof")}</span></div>`
+    : "";
+  const frontierRivalNextRoute = frontierRivalNext && frontierRivalNext.canRoute
+    ? `<div class="discovery-frontier-rival-route">Next rival <code>${escapeHTML(frontierRivalNext.routeTitle || frontierRivalNext.title || "Frontier Challenge")}</code><button type="button" class="discovery-frontier-rival-btn" data-frontier-rival-next="1">${escapeHTML(frontierRivalNext.actionLabel || "RUN FRONTIER")}</button></div>`
+    : "";
+  const frontierRivalNextCard = frontierRivalNext
+    ? `<div class="discovery-hypothesis discovery-frontier-rival-next"><strong>${escapeHTML(frontierRivalNext.label || "NEXT RIVAL LAB")} · ${escapeHTML(frontierRivalNext.title || "Frontier Rival Ladder")}</strong><span>${escapeHTML(frontierRivalNext.body || "Run the next Frontier lab and compare evidence.")}</span>${frontierRivalNextLesson}${frontierRivalNextRoute}</div>`
+    : "";
   const villageTrustNext = pulse.villageTrust && pulse.villageTrust.nextPact
     ? ` · Next: ${escapeHTML(pulse.villageTrust.nextPact)}`
     : "";
@@ -7190,6 +7200,7 @@ function updateDiscoveryPulse(game) {
     ${aiStateRunProof}
     ${frontierRivalProof}
     ${frontierRivalMilestone}
+    ${frontierRivalNextCard}
     ${villageTrust}
     ${villagePact}
     ${villageCharterCard}
@@ -7328,6 +7339,10 @@ function attachDiscoveryPulseStageButtons(panel, game, pulse) {
   panel.querySelectorAll("[data-daily-signal-next]").forEach(button => {
     if (!button || typeof button.addEventListener !== "function" || typeof runDailySignalAction !== "function") return;
     button.addEventListener("click", () => runDailySignalAction(game));
+  });
+  panel.querySelectorAll("[data-frontier-rival-next]").forEach(button => {
+    if (!button || typeof button.addEventListener !== "function" || typeof runFrontierChallengeAction !== "function") return;
+    button.addEventListener("click", () => runFrontierChallengeAction(game));
   });
   const passportNextStamp = pulse && pulse.passportNextStamp ? pulse.passportNextStamp : null;
   panel.querySelectorAll("[data-passport-next-level]").forEach(button => {
