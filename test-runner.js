@@ -2969,6 +2969,7 @@ function runEngineTests() {
     game.canvas = { width: 720, height: 448 };
     const runCue = game.getScienceDeltaRunCue();
     assertEquals("EVIDENCE", runCue.label, "In-run evidence ticker should label itself");
+    assertEquals("CODE hopper.mass = 1.2", runCue.codeLine, "In-run evidence ticker should show the code line that caused the changed value");
     assertEquals(true, /Mass:/.test(runCue.valueLine), "In-run evidence ticker should name the changed science value");
     assertEquals(true, /Less mass/.test(runCue.reasonLine), "In-run evidence ticker should preserve the science cue");
     assertEquals("F/m=a", runCue.formulaChip, "In-run evidence ticker should name the science relation behind the changed value");
@@ -2988,9 +2989,11 @@ function runEngineTests() {
     const drawnDeltaCue = game.drawScienceDeltaRunCue(fakeDeltaCtx);
     assertEquals("EVIDENCE", drawnDeltaCue.label, "Drawing should return the in-run evidence cue");
     assertEquals(true, deltaLabels.includes("EVIDENCE"), "Drawing should write the evidence ticker label");
+    assertEquals(true, deltaLabels.includes("CODE hopper.mass = 1.2"), "Drawing should write the causal code line");
     assertEquals(true, deltaLabels.includes("F/m=a"), "Drawing should write the science relation chip");
     assertEquals(true, deltaLabels.some(text => /Mass:/.test(text)), "Drawing should write the changed science value");
     assertEquals(true, deltaLabels.includes("NEXT Agility 30+ reached"), "Drawing should write the next experiment title");
+    assertEquals(true, drawnDeltaCue.h > 68, "Evidence ticker should reserve compact space for code plus next experiment rows");
     game.lastScienceDelta.time = Date.now() - 19000;
     assertEquals(null, game.getScienceDeltaRunCue(), "In-run evidence ticker should expire instead of becoming permanent clutter");
 

@@ -8136,9 +8136,11 @@ class StarHopperGame {
         : (direction === "swap" ? "#fbbf24" : "#67e8f9"));
     const next = delta.nextExperiment || null;
     const formulaChip = this.getScienceDeltaFormulaChip(primary);
+    const codeLine = this.getScienceDeltaCodeLine(delta, primary);
     return {
       label: "EVIDENCE",
       title: delta.summary || "What changed",
+      codeLine,
       valueLine: `${primary.label || "Value"}: ${primary.value || "changed"}`,
       reasonLine: primary.cue || "",
       nextLine: next && next.title ? `NEXT ${next.title}` : "",
@@ -8164,13 +8166,36 @@ class StarHopperGame {
     return "code->evidence";
   }
 
+  getScienceDeltaCodeLine(delta, change) {
+    const lines = String((delta && delta.code) || "")
+      .split(/\n/)
+      .map(line => line.trim())
+      .filter(Boolean);
+    if (!lines.length) return "";
+    const label = String((change && change.label) || "").toLowerCase();
+    const patterns = [];
+    if (/mass/.test(label)) patterns.push(/mass/i);
+    if (/engine/.test(label)) patterns.push(/engine/i);
+    if (/jump/.test(label)) patterns.push(/jump/i);
+    if (/rocket|thrust/.test(label)) patterns.push(/rocket|thrust/i);
+    if (/gravity|agility/.test(label)) patterns.push(/gravity|antigrav|mass|engine|jump/i);
+    if (/friction/.test(label)) patterns.push(/friction|spikes/i);
+    if (/probability/.test(label)) patterns.push(/chance/i);
+    if (/event/.test(label)) patterns.push(/when|if/i);
+    const matched = patterns.length
+      ? lines.find(line => patterns.some(pattern => pattern.test(line)))
+      : "";
+    return `CODE ${matched || lines[0]}`;
+  }
+
   drawScienceDeltaRunCue(ctx) {
     const cue = this.getScienceDeltaRunCue();
     if (!ctx || !cue || !this.canvas) return null;
     const W = this.canvas.width || 720;
     const H = this.canvas.height || 448;
     const w = Math.max(178, Math.min(260, W - 24));
-    const h = cue.nextLine ? 68 : 56;
+    const hasCode = !!cue.codeLine;
+    const h = 56 + (hasCode ? 12 : 0) + (cue.nextLine ? 12 : 0);
     const x = 12;
     const y = Math.max(86, H - h - 18);
     const fade = cue.ageMs > 13000 ? Math.max(0.35, 1 - (cue.ageMs - 13000) / 5000) : 1;
@@ -8214,16 +8239,25 @@ class StarHopperGame {
     ctx.fillText(this.fitCardText(ctx, cue.formulaChip || "evidence", chipW - 8), chipX + chipW / 2, y + 10.5);
 
     ctx.textAlign = "left";
+    let textY = y + 26;
+    if (hasCode) {
+      ctx.fillStyle = "#93c5fd";
+      ctx.font = "bold 7px 'Share Tech Mono', monospace";
+      ctx.fillText(this.fitCardText(ctx, cue.codeLine, w - 20), x + 10, textY);
+      textY += 13;
+    }
     ctx.fillStyle = "#f8fafc";
     ctx.font = "bold 9px 'Share Tech Mono', monospace";
-    ctx.fillText(this.fitCardText(ctx, cue.valueLine, w - 20), x + 10, y + 26);
+    ctx.fillText(this.fitCardText(ctx, cue.valueLine, w - 20), x + 10, textY);
     ctx.fillStyle = "#bbf7d0";
     ctx.font = "7px 'Share Tech Mono', monospace";
-    ctx.fillText(this.fitCardText(ctx, cue.reasonLine || cue.title, w - 20), x + 10, y + 41);
+    textY += 15;
+    ctx.fillText(this.fitCardText(ctx, cue.reasonLine || cue.title, w - 20), x + 10, textY);
     if (cue.nextLine) {
       ctx.fillStyle = "#fde68a";
       ctx.font = "bold 7px 'Share Tech Mono', monospace";
-      ctx.fillText(this.fitCardText(ctx, cue.nextLine, w - 20), x + 10, y + 56);
+      textY += 15;
+      ctx.fillText(this.fitCardText(ctx, cue.nextLine, w - 20), x + 10, textY);
     }
     ctx.restore();
 
