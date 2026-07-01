@@ -2113,6 +2113,19 @@ function getSignalSourceScene(game = window.Game, contract = null) {
   return null;
 }
 
+function attachFutureLabProofScene(game, pulse, proofResult) {
+  if (!proofResult || typeof getSignalSourceScene !== 'function') return null;
+  const scene = getSignalSourceScene(game);
+  if (!scene) return null;
+  const payload = {
+    ...scene,
+    proofLabel: proofResult.label || ""
+  };
+  proofResult.futureLabScene = payload;
+  if (pulse) pulse.futureLabScene = payload;
+  return payload;
+}
+
 function appendSourceSceneToStoryBody(body, scene) {
   if (!scene) return body;
   return `${body} Scene: ${scene.speaker} - ${scene.title}. ${scene.lesson}`;
@@ -3529,6 +3542,7 @@ function awardSignalLabContractProof(game, code, pulse = null) {
       sourceKey,
       stagedMatch: proof.stagedMatch
     };
+    if (darkMatterPrep) attachFutureLabProofScene(game, pulse, pulse.signalLabProof);
     pulse.rankUp = pulse.rankUp || rankUp;
     pulse.rankTitle = pulse.rankTitle || (afterRank ? afterRank.title : null);
     pulse.rankPerk = pulse.rankPerk || (rankUp && afterRank ? afterRank.perk : null);
@@ -3667,6 +3681,7 @@ function awardAnomalyTraceProof(game, code, pulse = null) {
   if (pulse) {
     pulse.rewardXP = Math.max(0, (pulse.rewardXP || 0) + rewardXP);
     pulse.anomalyTraceProof = proofResult;
+    attachFutureLabProofScene(game, pulse, proofResult);
     pulse.rankUp = pulse.rankUp || rankUp;
     pulse.rankTitle = pulse.rankTitle || (afterRank ? afterRank.title : null);
     pulse.rankPerk = pulse.rankPerk || (rankUp && afterRank ? afterRank.perk : null);
@@ -3794,6 +3809,7 @@ function awardQuantumBranchProof(game, code, pulse = null) {
   if (pulse) {
     pulse.rewardXP = Math.max(0, (pulse.rewardXP || 0) + rewardXP);
     pulse.quantumBranchProof = proofResult;
+    attachFutureLabProofScene(game, pulse, proofResult);
     pulse.rankUp = pulse.rankUp || rankUp;
     pulse.rankTitle = pulse.rankTitle || (afterRank ? afterRank.title : null);
     pulse.rankPerk = pulse.rankPerk || (rankUp && afterRank ? afterRank.perk : null);
@@ -3927,6 +3943,7 @@ function awardQuantumChanceProof(game, code, pulse = null) {
   if (pulse) {
     pulse.rewardXP = Math.max(0, (pulse.rewardXP || 0) + rewardXP);
     pulse.quantumChanceProof = proofResult;
+    attachFutureLabProofScene(game, pulse, proofResult);
     pulse.rankUp = pulse.rankUp || rankUp;
     pulse.rankTitle = pulse.rankTitle || (afterRank ? afterRank.title : null);
     pulse.rankPerk = pulse.rankPerk || (rankUp && afterRank ? afterRank.perk : null);
@@ -4071,6 +4088,9 @@ function updateDiscoveryPulse(game) {
   const quantumChanceProof = pulse.quantumChanceProof
     ? `<div class="discovery-hypothesis discovery-signal-lab">${escapeHTML(pulse.quantumChanceProof.label)} +${escapeHTML(String(pulse.quantumChanceProof.rewardXP || 0))} XP</div>`
     : "";
+  const futureLabScene = pulse.futureLabScene
+    ? `<div class="discovery-hypothesis discovery-source-scene">${escapeHTML(pulse.futureLabScene.speaker || "VECTOR")} // ${escapeHTML(pulse.futureLabScene.title || "Source scene")} · ${escapeHTML(pulse.futureLabScene.lesson || "")}</div>`
+    : "";
   const drillProof = pulse.drillProof
     ? `<div class="discovery-hypothesis discovery-signal-lab">${escapeHTML(pulse.drillProof.label)} +${escapeHTML(String(pulse.drillProof.rewardXP || 0))} XP</div>`
     : "";
@@ -4125,6 +4145,7 @@ function updateDiscoveryPulse(game) {
     ${anomalyTraceProof}
     ${quantumBranchProof}
     ${quantumChanceProof}
+    ${futureLabScene}
     ${drillProof}
     ${villageTradeProof}
     ${petProof}

@@ -1939,6 +1939,8 @@ function runEngineTests() {
     assertEquals("DARK MATTER PREP", prep.missionBalloon && prep.missionBalloon.title, "Mission CRT should label prep evidence distinctly");
     assertEquals("DARK MATTER EVIDENCE: +7 Research XP", prep.missionBalloon && prep.missionBalloon.text, "Mission CRT should announce the prep proof reward");
     assertEquals(true, /DARK MATTER EVIDENCE \+7 XP/.test(panel.innerHTML), "Discovery pulse should render the Dark Matter evidence chip");
+    assertEquals("Quantum Gate wakes", prepOutcome.signalLabProof && prepOutcome.signalLabProof.futureLabScene && prepOutcome.signalLabProof.futureLabScene.title, "Prep proof should attach the next future-lab source scene");
+    assertEquals(true, /VECTOR \/\/ Quantum Gate wakes/.test(panel.innerHTML), "Discovery pulse should render the prep source-scene payoff");
     assertEquals(true, labels.includes("DARK MATTER EVIDENCE"), "Prep proof should pop a visible evidence cue");
     const prepXPAfterFirst = prep.researchXP;
     const prepMasteryAfterFirst = prep.getWorldMasteryProgress(0).xp;
@@ -2015,6 +2017,8 @@ function runEngineTests() {
     assertEquals(true, labels.includes("ANOMALY TRACED"), "Anomaly Trace proof pops a visible reward cue");
     assertEquals(true, bursts > 0, "Anomaly Trace proof spawns celebratory particles");
     assertEquals(true, /ANOMALY TRACED \+5 XP/.test(panel.innerHTML), "Discovery pulse renders the Anomaly Trace proof chip");
+    assertEquals("Hidden-force case file", outcome.anomalyTraceProof && outcome.anomalyTraceProof.futureLabScene && outcome.anomalyTraceProof.futureLabScene.title, "Anomaly Trace proof should attach the Dark Matter payoff scene");
+    assertEquals(true, /VECTOR \/\/ Hidden-force case file/.test(panel.innerHTML), "Discovery pulse renders the Dark Matter source-scene payoff");
     assertEquals("Hidden Force Trace", outcome.anomalyTraceProof.signalStoryUnlock && outcome.anomalyTraceProof.signalStoryUnlock.chapterTitle, "Anomaly Trace proof should decode the next Signal Story chapter");
     assertEquals("Hidden Force Trace", anomaly.lastSignalStoryUnlocks && anomaly.lastSignalStoryUnlocks[0] && anomaly.lastSignalStoryUnlocks[0].title, "Anomaly Trace story unlock should be remembered for the run");
 
@@ -2098,6 +2102,8 @@ function runEngineTests() {
     assertEquals(true, labels.includes("QUANTUM BRANCH"), "Quantum Branch proof pops a visible reward cue");
     assertEquals(true, bursts > 0, "Quantum Branch proof spawns celebratory particles");
     assertEquals(true, /QUANTUM BRANCH \+5 XP/.test(panel.innerHTML), "Discovery pulse renders the Quantum Branch proof chip");
+    assertEquals("Two paths detected", outcome.quantumBranchProof && outcome.quantumBranchProof.futureLabScene && outcome.quantumBranchProof.futureLabScene.title, "Quantum Branch proof should attach Hopper-Zero branch payoff");
+    assertEquals(true, /HOPPER-ZERO \/\/ Two paths detected/.test(panel.innerHTML), "Discovery pulse renders the Hopper-Zero branch scene");
     assertEquals(true, quantum.discoveredFormulaKinds.has("branch"), "Quantum Branch proof collects the Branch Lab formula card");
     assertEquals(1, quantum.formulaCardEffects.length, "Quantum Branch proof spawns one Branch Lab formula card effect");
     assertEquals("Branch Lab", quantum.formulaCardEffects[0].title, "Quantum Branch card effect names the branch concept");
@@ -2184,6 +2190,8 @@ function runEngineTests() {
     assertEquals(true, labels.includes("QUANTUM CHANCE"), "Quantum Chance proof pops a visible reward cue");
     assertEquals(true, bursts > 0, "Quantum Chance proof spawns celebratory particles");
     assertEquals(true, /QUANTUM CHANCE \+5 XP/.test(panel.innerHTML), "Discovery pulse renders the Quantum Chance proof chip");
+    assertEquals("The waiting probe answers", outcome.quantumChanceProof && outcome.quantumChanceProof.futureLabScene && outcome.quantumChanceProof.futureLabScene.title, "Quantum Chance proof should attach the probability payoff scene");
+    assertEquals(true, /probability is a pattern measured over many trials/.test(panel.innerHTML), "Discovery pulse renders the probability science payoff");
     assertEquals(true, quantum.discoveredFormulaKinds.has("probability"), "Quantum Chance proof collects the Probability Lab formula card");
     assertEquals(1, quantum.formulaCardEffects.length, "Quantum Chance proof spawns one Probability Lab formula card effect");
     assertEquals("Probability Lab", quantum.formulaCardEffects[0].title, "Quantum Chance card effect names the probability concept");

@@ -3526,6 +3526,11 @@ html {
   background: rgba(12, 74, 110, 0.38);
   color: #bae6fd;
 }
+.discovery-source-scene {
+  border-color: rgba(129, 140, 248, 0.56);
+  background: rgba(49, 46, 129, 0.44);
+  color: #ddd6fe;
+}
 .discovery-next-unlock {
   border: 1px solid rgba(250, 204, 21, 0.28);
   border-radius: 6px;
