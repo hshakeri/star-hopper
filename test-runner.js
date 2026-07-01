@@ -3371,6 +3371,8 @@ function runEngineTests() {
 
     const game = new StarHopperGame();
     game.player = { x: 100, y: 120, w: 24, h: 32 };
+    game.currentPlanet = PLANETS[0];
+    game.currentPlanetIndex = 0;
     game.coachPredictions = { [activeMission.id]: "lighter-longer" };
     const pulse = recordDiscoveryPulse(game, activeMission, "hopper.mass = 1.2", partial, 0);
     const firstXP = game.researchXP;
@@ -3416,16 +3418,47 @@ function runEngineTests() {
     assertEquals(false, !!secondPulse.hypothesisConfirmed, "Same mission should not pay the prediction bonus twice");
     assertEquals(1, game.confirmedHypotheses.size, "Confirmed hypothesis set should not grow on repeat mission progress");
     assertEquals(true, game.researchXP > firstXP, "Regular progress XP should still apply after the one-time bonus");
+    const repeatPredictionCue = game.getScienceDeltaRunCue();
+    assertEquals("PREDICT OK", repeatPredictionCue.predictionLine, "Evidence ticker should still show correct repeated predictions without another XP bonus");
     assertEquals(afterHypothesisBubbles22bb, bubbleLabels22bb.filter(label => /HYPOTHESIS/.test(label)).length, "Repeat mission progress should not spawn another hypothesis cue");
     assertEquals(afterHypothesisBursts22bb, particleColors22bb.filter(color => color === "#a7f3d0").length, "Repeat mission progress should not spawn another hypothesis burst");
 
     const wrong = new StarHopperGame();
     wrong.player = { x: 100, y: 120, w: 24, h: 32 };
+    wrong.currentPlanet = PLANETS[0];
+    wrong.currentPlanetIndex = 0;
     wrong.coachPredictions = { [activeMission.id]: "heavier" };
     const wrongPulse = recordDiscoveryPulse(wrong, activeMission, "hopper.mass = 1.2", partial, 0);
     assertEquals(false, !!wrongPulse.hypothesisConfirmed, "Wrong prediction should not award the hypothesis bonus");
     assertEquals(0, wrong.confirmedHypotheses.size, "Wrong prediction should not be marked confirmed");
     assertEquals(afterHypothesisBursts22bb, particleColors22bb.filter(color => color === "#a7f3d0").length, "Wrong prediction should not spawn hypothesis particles");
+    wrong.state = 'playing';
+    wrong.canvas = { width: 720, height: 448 };
+    wrong.lastScienceDelta = {
+      code: "hopper.mass = 1.2",
+      summary: "Mass changed",
+      time: Date.now(),
+      changes: [
+        { label: "Mass", value: "2.5 -> 1.2 (-1.3)", direction: "down", cue: "Less mass makes the same force accelerate more." }
+      ]
+    };
+    const wrongPredictionCue = wrong.getScienceDeltaRunCue();
+    assertEquals("PREDICT SURPRISE", wrongPredictionCue.predictionLine, "Evidence ticker should mark wrong predictions as useful surprise evidence");
+    assertEquals("#fca5a5", wrongPredictionCue.predictionColor, "Surprise prediction cue should use the compare/warning color without reward");
+    const wrongPredictionLabels = [];
+    const wrongPredictionCtx = {
+      save() {},
+      restore() {},
+      beginPath() {},
+      roundRect() {},
+      fill() {},
+      stroke() {},
+      fillRect() {},
+      fillText(text) { wrongPredictionLabels.push(text); },
+      measureText(text) { return { width: String(text || "").length * 5 }; }
+    };
+    wrong.drawScienceDeltaRunCue(wrongPredictionCtx);
+    assertEquals(true, wrongPredictionLabels.includes("PREDICT SURPRISE"), "Evidence ticker draw should write the surprise prediction verdict");
 
     document.getElementById = oldGetElementById22bb;
     ComicBubbles.pop = oldBubblePop22bb;

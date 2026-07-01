@@ -8470,14 +8470,44 @@ class StarHopperGame {
 
   getScienceDeltaPredictionCue(delta) {
     const pulse = this.discoveryPulse || null;
-    if (!pulse || !pulse.hypothesisConfirmed || !delta) return null;
-    const pulseCode = String(pulse.code || "").trim();
-    const deltaCode = String(delta.code || "").trim();
-    if (!pulseCode || !deltaCode || deltaCode.slice(0, pulseCode.length) !== pulseCode) return null;
-    const xp = Math.max(0, Math.floor(Number(pulse.hypothesisBonusXP) || 0));
+    if (!delta) return null;
+    if (pulse && pulse.hypothesisConfirmed) {
+      const pulseCode = String(pulse.code || "").trim();
+      const deltaCode = String(delta.code || "").trim();
+      if (pulseCode && deltaCode && deltaCode.slice(0, pulseCode.length) === pulseCode) {
+        const xp = Math.max(0, Math.floor(Number(pulse.hypothesisBonusXP) || 0));
+        return {
+          line: `PREDICT OK${xp > 0 ? ` +${xp} XP` : ""}`,
+          color: "#fef08a",
+          verdict: "confirmed",
+          rewardXP: xp
+        };
+      }
+    }
+
+    const mission = typeof getActivePlatformerMission === 'function' ? getActivePlatformerMission(this) : null;
+    const missionId = mission && mission.id ? mission.id : "";
+    const selectedId = missionId && this.coachPredictions ? this.coachPredictions[missionId] : null;
+    if (!selectedId) return null;
+    const fullMission = mission && mission.fullMission ? mission.fullMission : null;
+    const option = typeof getCoachPredictionOption === 'function'
+      ? getCoachPredictionOption(this, missionId)
+      : (fullMission && fullMission.prediction && Array.isArray(fullMission.prediction.options)
+        ? fullMission.prediction.options.find(item => item && item.id === selectedId)
+        : null);
+    if (option && option.correct) {
+      return {
+        line: "PREDICT OK",
+        color: "#fef08a",
+        verdict: "confirmed-no-reward",
+        selectedId
+      };
+    }
     return {
-      line: `PREDICT OK${xp > 0 ? ` +${xp} XP` : ""}`,
-      color: "#fef08a"
+      line: option ? "PREDICT SURPRISE" : "PREDICT CHECK",
+      color: option ? "#fca5a5" : "#93c5fd",
+      verdict: option ? "surprise" : "check",
+      selectedId
     };
   }
 
