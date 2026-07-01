@@ -3358,6 +3358,7 @@ function runEngineTests() {
     game.confirmedHypotheses = new Set();
     game.discoveryPassCounts = {};
     game.discoveryCombo = 2;
+    game.getEarthDayNightPhase = () => ({ t: 0.5, daylight: 1, isDay: true, sunX: 0.5, sunY: 0.34 });
     updateResearchProgress(game);
     assertEquals(true, /NEXT LAB QUEST/.test(els["research-rank-card"].innerHTML), "Rank card should render the lab quest");
     assertEquals(true, /Collect Mass Lab/.test(els["research-rank-card"].innerHTML), "Rendered quest should point to the next formula card");
@@ -6313,6 +6314,8 @@ function runCombatTests() {
       ]
     };
     g.player = new Player(220, 64);
+    g.villageTrust = { 0: { points: 3, badges: ["friend"], sources: { "village-trade:0:geary:engine_1": 3 } } };
+    g.activeAIStateRun = { cardId: "shelter-loop", levelIndex: 1, label: "RUN RESCUE" };
     const sentry = new NPC({ id: 'lookout', name: 'Lookout', profession: 'Guard', type: 'npc', x: 140, y: 60, color: '#cbd5e1', caveX: 108, caveY: 60 });
     const prowler = new Mob(150, 60, 'hog', '#9a6b4f', 1);
     prowler.speed = 0; prowler.behaviorTimer = 999;
@@ -6327,6 +6330,11 @@ function runCombatTests() {
     assertEquals(true, g.discoveredFormulaKinds.has("state"), "Village rescue collects the AI State Lab card");
     assertEquals(1, g.formulaCardEffects.length, "Village rescue spawns one AI State Lab card effect");
     assertEquals("AI State Lab", g.formulaCardEffects[0].title, "Village rescue card effect names the state-machine concept");
+    assertEquals(null, g.activeAIStateRun, "Completed rescue proof clears the active AI route");
+    assertEquals("AI PROOF LOGGED", g.discoveryPulse && g.discoveryPulse.aiStateRunProof && g.discoveryPulse.aiStateRunProof.label, "Active rescue proof adds an AI proof chip");
+    assertEquals("Shelter Loop", g.discoveryPulse && g.discoveryPulse.aiStateRunProof && g.discoveryPulse.aiStateRunProof.title, "AI proof chip names the completed state card");
+    assertEquals("2/5", g.discoveryPulse && g.discoveryPulse.aiStateRunProof && g.discoveryPulse.aiStateRunProof.progress, "AI proof chip shows updated deck progress");
+    assertEquals("Pet Pact", g.discoveryPulse && g.discoveryPulse.aiStateRunProof && g.discoveryPulse.aiStateRunProof.nextTitle, "AI proof chip points to the next behavior card");
     const homeGuard = new NPC({ id: 'home-guard', name: 'Home Guard', profession: 'Guard', type: 'npc', x: 250, y: 60, color: '#cbd5e1', homeX: 250, homeY: 60, caveX: 24, caveY: 60, hiddenInCave: true });
     homeGuard.x = homeGuard.caveX + 10;
     homeGuard.panicTimer = 0;
@@ -6486,6 +6494,25 @@ function runCombatTests() {
     assertEquals(82, loopNpc.x, "Normal cave release starts the villager at the cave mouth");
     assertEquals(7, loopRelease.researchXP, "Loop release grants the rescue XP once the villager returns");
 
+    const loopTurnBack = new StarHopperGame();
+    loopTurnBack.state = 'playing'; loopTurnBack.currentPlanetIndex = 1; loopTurnBack.currentPlanet = PLANETS[1];
+    loopTurnBack.player = new Player(0, 0);
+    loopTurnBack.researchXP = 0;
+    loopTurnBack.masteryMeters = {};
+    const turnBackNpc = new NPC({ id: 'turn-back', name: 'Turn Back', profession: 'Miner', type: 'npc', x: 108, y: 60, color: '#cbd5e1', homeX: 150, homeY: 60, caveX: 72, caveY: 60 });
+    turnBackNpc.panicTimer = 90;
+    turnBackNpc.rescuePending = true;
+    turnBackNpc.shelterReason = "nearby mob";
+    loopTurnBack.interactiveObjects = [turnBackNpc];
+    loopTurnBack.activeNPC = turnBackNpc;
+    loopTurnBack.mobs = [];
+    loopTurnBack.updateVillagerShelterStates();
+    assertEquals(false, turnBackNpc.hiddenInCave, "Mid-retreat villager stays visible when mob danger clears");
+    assertEquals(150, turnBackNpc.x, "Mid-retreat game-loop release returns the villager home");
+    assertEquals(null, turnBackNpc.shelterReason, "Mid-retreat game-loop release clears stale mob shelter reason");
+    assertEquals(null, loopTurnBack.activeNPC, "Mid-retreat game-loop release closes stale trade focus");
+    assertEquals(7, loopTurnBack.researchXP, "Mid-retreat game-loop release still records the rescue proof once");
+
     const directRelease = new StarHopperGame();
     directRelease.state = 'playing'; directRelease.currentPlanetIndex = 1; directRelease.currentPlanet = PLANETS[1];
     directRelease.player = new Player(0, 0);
@@ -6500,6 +6527,24 @@ function runCombatTests() {
     directNpc.update(directRelease);
     assertEquals(false, directNpc.hiddenInCave, "NPC update also releases a hidden villager when danger clears");
     assertEquals(0, directNpc.panicTimer, "NPC update clears stale panic once no mob is near the village");
+
+    const directTurnBack = new StarHopperGame();
+    directTurnBack.state = 'playing'; directTurnBack.currentPlanetIndex = 1; directTurnBack.currentPlanet = PLANETS[1];
+    directTurnBack.player = new Player(0, 0);
+    directTurnBack.researchXP = 0;
+    directTurnBack.masteryMeters = {};
+    const directTurnNpc = new NPC({ id: 'direct-turn', name: 'Direct Turn', profession: 'Miner', type: 'npc', x: 108, y: 60, color: '#cbd5e1', homeX: 150, homeY: 60, caveX: 72, caveY: 60 });
+    directTurnNpc.panicTimer = 90;
+    directTurnNpc.rescuePending = true;
+    directTurnNpc.shelterReason = "nearby mob";
+    directTurnBack.interactiveObjects = [directTurnNpc];
+    directTurnBack.activeNPC = directTurnNpc;
+    directTurnBack.mobs = [];
+    directTurnNpc.update(directTurnBack);
+    assertEquals(false, directTurnNpc.hiddenInCave, "NPC update keeps a mid-retreat villager visible once danger clears");
+    assertEquals(150, directTurnNpc.x, "NPC update returns a mid-retreat villager home");
+    assertEquals(null, directTurnNpc.shelterReason, "NPC update clears stale mid-retreat shelter reason");
+    assertEquals(null, directTurnBack.activeNPC, "NPC update closes stale mid-retreat trade focus");
 
     const nightGame = new StarHopperGame();
     nightGame.state = 'playing'; nightGame.currentPlanetIndex = 0; nightGame.currentPlanet = PLANETS[0];
@@ -6725,6 +6770,7 @@ function runCombatTests() {
 
   // C24: an NPC trade deducts gems, applies the cap reward, marks it purchased, and refuses
   // a trade the cadet can't afford.
+  const oldGetElementByIdC24 = document.getElementById;
   const oldBubblePopC24 = ComicBubbles.pop;
   const prevGameC24 = (typeof window !== 'undefined') ? window.Game : undefined;
   try {
@@ -6754,6 +6800,7 @@ function runCombatTests() {
     let marker = getVillageTradeMarker(g, npc);
     assertEquals("READY", marker && marker.label, "In-world trade marker should show ready trades before opening the modal");
     assertEquals("TRADE", marker && marker.detail, "Ready trade marker should name the trade action");
+    g.activeAIStateRun = { cardId: "trade-flow", levelIndex: 1, label: "MAKE TRADE" };
     executeNPCTrade('geary', 'engine_1');
     assertEquals(4, g.gemsWallet.emerald, "Trade deducts the cost from the wallet");
     assertEquals(3, g.upgradeCapBonuses.engine, "Cap reward applies the bonus");
@@ -6765,6 +6812,17 @@ function runCombatTests() {
     assertEquals(8, g.getWorldMasteryProgress(1).xp, "First village trade should add world mastery XP");
     assertEquals("Village Trade Proof", g.discoveryPulse && g.discoveryPulse.title, "Village trade should create a discovery pulse");
     assertEquals("TRADE PACT", g.discoveryPulse && g.discoveryPulse.villageTradeProof && g.discoveryPulse.villageTradeProof.label, "Cap trade should expose a trade proof chip");
+    assertEquals(null, g.activeAIStateRun, "Completed trade proof clears the active AI route");
+    assertEquals("AI PROOF LOGGED", g.discoveryPulse && g.discoveryPulse.aiStateRunProof && g.discoveryPulse.aiStateRunProof.label, "Active trade proof adds an AI proof chip");
+    assertEquals("Trade Flow", g.discoveryPulse && g.discoveryPulse.aiStateRunProof && g.discoveryPulse.aiStateRunProof.title, "AI proof chip names the completed trade card");
+    assertEquals("1/5", g.discoveryPulse && g.discoveryPulse.aiStateRunProof && g.discoveryPulse.aiStateRunProof.progress, "AI proof chip shows trade deck progress");
+    assertEquals("Shelter Loop", g.discoveryPulse && g.discoveryPulse.aiStateRunProof && g.discoveryPulse.aiStateRunProof.nextTitle, "AI proof chip points to the next AI card");
+    const pulsePanelC24 = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };
+    document.getElementById = (id) => id === "discovery-pulse" ? pulsePanelC24 : oldGetElementByIdC24.call(document, id);
+    updateDiscoveryPulse(g);
+    assertEquals(true, /AI PROOF LOGGED/.test(pulsePanelC24.innerHTML), "Discovery Pulse should render the AI proof chip");
+    assertEquals(true, /Trade Flow/.test(pulsePanelC24.innerHTML), "Rendered AI proof chip should name the completed card");
+    document.getElementById = oldGetElementByIdC24;
     assertEquals(3, g.getVillageTrustProgress(1).points, "First trade should add village trust");
     assertEquals("Trading Friend", g.getVillageTrustProgress(1).title, "First trade should reach the first village trust tier");
     assertEquals("TRUST UP", g.discoveryPulse && g.discoveryPulse.villageTrust && g.discoveryPulse.villageTrust.label, "Trade pulse should expose the village trust chip");
@@ -6790,10 +6848,12 @@ function runCombatTests() {
     assertEquals("DONE", marker && marker.label, "In-world trade marker should show when local trades are complete");
     npc.hiddenInCave = true;
     assertEquals(null, getVillageTradeMarker(g, npc), "Sheltered villagers should not advertise trade markers");
+    document.getElementById = oldGetElementByIdC24;
     window.Game = prevGameC24;
     ComicBubbles.pop = oldBubblePopC24;
     renderTestResult(SUITE, "Trade: deducts gems, applies cap, blocks over-spend", true);
   } catch (err) {
+    document.getElementById = oldGetElementByIdC24;
     window.Game = prevGameC24;
     ComicBubbles.pop = oldBubblePopC24;
     renderTestResult(SUITE, "Trade: deducts gems, applies cap, blocks over-spend", false, err.message);

@@ -479,6 +479,7 @@ class StarHopperGame {
         pulse.rankPerk = afterRank ? afterRank.perk : null;
       }
       this.attachFormulaCardUnlock(pulse, "state");
+      this.completeActiveAIStateRun("guardian-pact", pulse);
     }
 
     if (typeof ui_log_output === 'function') {
@@ -515,6 +516,40 @@ class StarHopperGame {
     }
     if (rankUp && pulse && typeof this.spawnResearchRankEffect === 'function') {
       pulse.rankEffect = this.spawnResearchRankEffect(pulse);
+    }
+    return result;
+  }
+
+  completeActiveAIStateRun(cardId, pulse = null) {
+    if (!cardId || !this.activeAIStateRun || this.activeAIStateRun.cardId !== cardId) return null;
+    if (typeof getAIStateDeckProgress !== 'function') return null;
+    const progress = getAIStateDeckProgress(this);
+    const card = progress && Array.isArray(progress.cards)
+      ? progress.cards.find(item => item && item.id === cardId)
+      : null;
+    if (!card || !card.earned) return null;
+    const next = progress.nextCard || null;
+    const result = {
+      label: "AI PROOF LOGGED",
+      cardId,
+      title: card.title || "AI state",
+      state: card.state || "",
+      concept: card.concept || "State machine",
+      progress: `${Math.max(0, Number(progress.earnedCount) || 0)}/${Math.max(0, Number(progress.total) || 0)}`,
+      nextTitle: next ? next.title : "Deck complete",
+      complete: !!progress.complete
+    };
+    this.activeAIStateRun = null;
+    this.lastAIStateRunProof = result;
+    if (pulse) pulse.aiStateRunProof = result;
+    if (typeof ui_log_output === 'function') {
+      ui_log_output(`AI proof logged: ${result.title} (${result.progress}). Next: ${result.nextTitle}.`, "success");
+    }
+    if (this.player && typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+      const px = (Number.isFinite(this.player.x) ? this.player.x : 0) + (this.player.w || 24) / 2;
+      const py = Number.isFinite(this.player.y) ? this.player.y : 0;
+      ComicBubbles.pop(px, py - 62, "AI PROOF!", "#facc15", 0.92);
+      ComicBubbles.pop(px, py - 43, result.complete ? "DECK COMPLETE" : `NEXT: ${String(result.nextTitle).toUpperCase()}`, "#7dd3fc", 0.66);
     }
     return result;
   }
@@ -764,6 +799,7 @@ class StarHopperGame {
       villageTrust: villageTrust && villageTrust.added > 0 ? villageTrust : null
     };
     this.attachFormulaCardUnlock(pulse, "state");
+    this.completeActiveAIStateRun("shelter-loop", pulse);
     this.discoveryPulse = pulse;
     this.discoveryLog = [pulse].concat(Array.isArray(this.discoveryLog) ? this.discoveryLog : []).slice(0, 8);
     if (typeof ui_log_output === 'function') {
@@ -893,7 +929,10 @@ class StarHopperGame {
         continue;
       }
       if ((obj.panicTimer || 0) > 0) obj.panicTimer = 0;
-      if (obj.hiddenInCave && (obj.panicTimer || 0) <= 0) {
+      if (!obj.hiddenInCave && obj.rescuePending) {
+        this.releaseNPCFromCave(obj, { returnHome: true });
+        touchNeedsSync = true;
+      } else if (obj.hiddenInCave && (obj.panicTimer || 0) <= 0) {
         this.releaseNPCFromCave(obj);
         touchNeedsSync = true;
       } else if (!obj.hiddenInCave && obj.shelterReason === "night" && !obj.rescuePending) {
@@ -5376,6 +5415,7 @@ class StarHopperGame {
       villageTrust: villageTrust && villageTrust.added > 0 ? villageTrust : null
     };
     this.attachFormulaCardUnlock(pulse, 'state');
+    this.completeActiveAIStateRun(action === 'guard' ? 'guard-mode' : 'pet-pact', pulse);
     this.discoveryPulse = pulse;
     this.discoveryLog = [pulse].concat(Array.isArray(this.discoveryLog) ? this.discoveryLog : []).slice(0, 8);
 
@@ -6083,6 +6123,7 @@ class StarHopperGame {
       },
       villageTrust: villageTrust && villageTrust.added > 0 ? villageTrust : null
     };
+    this.completeActiveAIStateRun("trade-flow", pulse);
     this.discoveryPulse = pulse;
     this.discoveryLog = [pulse].concat(Array.isArray(this.discoveryLog) ? this.discoveryLog : []).slice(0, 8);
 

@@ -2546,6 +2546,8 @@ class NPC extends InteractiveObject {
       if (typeof ComicBubbles !== 'undefined') {
         ComicBubbles.spawn(this.caveX + 16, this.caveY - 4, "Trading?", "rounded", this.color, -0.35, { maxLife: 80 });
       }
+    } else if (!goingHome && !this.hiddenInCave && this.rescuePending && typeof game.releaseNPCFromCave === 'function') {
+      game.releaseNPCFromCave(this, { returnHome: true });
     } else if (!goingHome && !this.hiddenInCave) {
       const dxHome = this.homeX - this.x;
       if (Math.abs(dxHome) > 1) this.x += Math.max(-1.1, Math.min(1.1, dxHome * 0.08));

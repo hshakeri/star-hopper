@@ -4631,6 +4631,9 @@ function updateDiscoveryPulse(game) {
   const petProof = pulse.petProof
     ? `<div class="discovery-hypothesis discovery-signal-lab">${escapeHTML(pulse.petProof.label)} +${escapeHTML(String(pulse.petProof.rewardXP || 0))} XP</div>`
     : "";
+  const aiStateRunProof = pulse.aiStateRunProof
+    ? `<div class="discovery-hypothesis discovery-ai-state">${escapeHTML(pulse.aiStateRunProof.label || "AI PROOF LOGGED")} · ${escapeHTML(pulse.aiStateRunProof.title || "AI state")} · ${escapeHTML(pulse.aiStateRunProof.progress || "")} · Next: ${escapeHTML(pulse.aiStateRunProof.nextTitle || "Deck complete")}</div>`
+    : "";
   const frontierRivalProof = pulse.frontierRivalProof
     ? `<div class="discovery-hypothesis discovery-signal-lab">${escapeHTML(pulse.frontierRivalProof.label || "RIVAL PROOF")} +${escapeHTML(String(pulse.frontierRivalProof.rewardXP || 0))} XP · T${escapeHTML(String(pulse.frontierRivalProof.tier || 1))} · ${escapeHTML(pulse.frontierRivalProof.pilot || "classmate")}</div>`
     : "";
@@ -4680,6 +4683,7 @@ function updateDiscoveryPulse(game) {
     ${drillProof}
     ${villageTradeProof}
     ${petProof}
+    ${aiStateRunProof}
     ${frontierRivalProof}
     ${frontierRivalMilestone}
     ${villageTrust}

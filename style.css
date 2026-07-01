@@ -3834,6 +3834,11 @@ html {
   background: rgba(12, 74, 110, 0.38);
   color: #bae6fd;
 }
+.discovery-ai-state {
+  border-color: rgba(251, 191, 36, 0.52);
+  background: rgba(69, 26, 3, 0.42);
+  color: #fde68a;
+}
 .discovery-source-scene {
   border-color: rgba(129, 140, 248, 0.56);
   background: rgba(49, 46, 129, 0.44);
