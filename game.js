@@ -7499,11 +7499,14 @@ class StarHopperGame {
     const deckLabel = `CARD ${deckCount}/${Math.max(1, deckTotal)}`;
     const nextCard = collection && collection.nextLocked ? collection.nextLocked : null;
     const nextLabel = nextCard && nextCard.title ? `NEXT ${nextCard.title}` : (deckCount >= deckTotal ? "DECK COMPLETE" : "");
+    const nextCommand = nextCard && nextCard.sampleCode ? String(nextCard.sampleCode).replace(/\s+/g, " ").trim() : "";
+    const nextCommandLabel = nextCommand ? `TRY ${nextCommand}` : "";
     pulse.formulaDeckProgress = {
       count: deckCount,
       total: deckTotal,
       label: deckLabel,
       nextTitle: nextCard && nextCard.title ? nextCard.title : "",
+      nextCommand,
       complete: deckCount >= deckTotal
     };
     const effect = {
@@ -7518,6 +7521,8 @@ class StarHopperGame {
       deckTotal,
       deckLabel,
       nextLabel,
+      nextCommand,
+      nextCommandLabel,
       color: "#facc15"
     };
     this.formulaCardEffects = (this.formulaCardEffects || []).slice(-2);
@@ -7884,7 +7889,7 @@ class StarHopperGame {
       const alpha = t < 0.12 ? t / 0.12 : (t > 0.72 ? Math.max(0, (1 - t) / 0.28) : 1);
       const cx = fx.x - this.cameraX;
       const cy = fx.y - Math.sin(Math.min(1, t) * Math.PI) * 8;
-      if (cx < -90 || cx > this.canvas.width + 90) continue;
+      if (cx < -110 || cx > this.canvas.width + 110) continue;
 
       ctx.save();
       ctx.globalAlpha = alpha;
@@ -7896,7 +7901,7 @@ class StarHopperGame {
       ctx.strokeStyle = fx.color || "#facc15";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.roundRect(-76, -32, 152, 66, 7);
+      ctx.roundRect(-84, -36, 168, 78, 7);
       ctx.fill();
       ctx.stroke();
       ctx.shadowBlur = 0;
@@ -7904,21 +7909,26 @@ class StarHopperGame {
       ctx.font = "bold 9px 'Share Tech Mono', monospace";
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
-      ctx.fillText("NEW FORMULA", -64, -21);
+      ctx.fillText("NEW FORMULA", -72, -25);
       ctx.fillStyle = "#67e8f9";
       ctx.textAlign = "right";
-      ctx.fillText(this.fitCardText(ctx, fx.deckLabel || "CARD", 60), 64, -21);
+      ctx.fillText(this.fitCardText(ctx, fx.deckLabel || "CARD", 64), 72, -25);
       ctx.fillStyle = "#f8fafc";
       ctx.font = "bold 10px 'Share Tech Mono', monospace";
       ctx.textAlign = "center";
-      ctx.fillText(this.fitCardText(ctx, fx.title, 126), 0, -2);
+      ctx.fillText(this.fitCardText(ctx, fx.title, 140), 0, -8);
       ctx.fillStyle = "#67e8f9";
       ctx.font = "8px 'Share Tech Mono', monospace";
-      ctx.fillText(this.fitCardText(ctx, fx.formula, 128), 0, 12);
+      ctx.fillText(this.fitCardText(ctx, fx.formula, 142), 0, 5);
       if (fx.nextLabel) {
         ctx.fillStyle = fx.nextLabel === "DECK COMPLETE" ? "#facc15" : "#bbf7d0";
         ctx.font = "bold 7px 'Share Tech Mono', monospace";
-        ctx.fillText(this.fitCardText(ctx, fx.nextLabel, 126), 0, 25);
+        ctx.fillText(this.fitCardText(ctx, fx.nextLabel, 138), 0, 19);
+      }
+      if (fx.nextCommandLabel) {
+        ctx.fillStyle = "#fef3c7";
+        ctx.font = "7px 'Share Tech Mono', monospace";
+        ctx.fillText(this.fitCardText(ctx, fx.nextCommandLabel, 142), 0, 32);
       }
       ctx.restore();
     }
