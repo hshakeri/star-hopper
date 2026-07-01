@@ -4515,6 +4515,12 @@ html {
   font-size: 0.56rem;
   font-weight: 900;
 }
+.discovery-hypothesis-mastery {
+  border-color: rgba(190, 242, 100, 0.58);
+  background: linear-gradient(90deg, rgba(22, 101, 52, 0.46), rgba(113, 63, 18, 0.32));
+  color: #ecfccb;
+  box-shadow: 0 0 12px rgba(190, 242, 100, 0.16);
+}
 .discovery-code-concept {
   display: grid;
   gap: 2px;

@@ -856,6 +856,101 @@ class StarHopperGame {
     return result;
   }
 
+  grantHypothesisDeckMastery(pulse = null, options = {}) {
+    if (typeof getHypothesisPortfolioProgress !== 'function') return null;
+    const progress = getHypothesisPortfolioProgress(this);
+    if (!progress || !progress.complete || !progress.total) return null;
+    this.discoveryPassCounts = this.discoveryPassCounts || {};
+    const sourceKey = "hypothesis-proof-mastery";
+    let masterySources = null;
+    if (typeof this.normalizeWorldMasteryMeter === 'function') {
+      const meter = this.normalizeWorldMasteryMeter(this.currentPlanetIndex);
+      masterySources = meter && meter.sources ? meter.sources : null;
+    }
+    if (this.discoveryPassCounts[sourceKey] || (masterySources && masterySources[sourceKey])) {
+      this.discoveryPassCounts[sourceKey] = 1;
+      return null;
+    }
+
+    const rewardXP = 10;
+    const masteryXP = 14;
+    const color = "#a7f3d0";
+    const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+    const mastery = typeof this.awardWorldMasteryXP === 'function'
+      ? this.awardWorldMasteryXP(masteryXP, "hypothesis proof mastery", { sourceKey, silent: true })
+      : { addedXP: 0, duplicate: false };
+    if (mastery && mastery.duplicate) {
+      this.discoveryPassCounts[sourceKey] = 1;
+      return null;
+    }
+
+    this.discoveryPassCounts[sourceKey] = 1;
+    const result = {
+      label: "HYPOTHESIS MASTERED",
+      title: "Hypothesis Proof Mastery",
+      rewardXP,
+      worldMasteryAddedXP: mastery && Number.isFinite(mastery.addedXP) ? mastery.addedXP : 0,
+      count: progress.done,
+      total: progress.total,
+      sourceKey
+    };
+
+    if (pulse) {
+      pulse.hypothesisDeckMastery = result;
+      pulse.rewardXP = Math.max(0, (pulse.rewardXP || 0) + rewardXP);
+      pulse.worldMasteryAddedXP = Math.max(0, (pulse.worldMasteryAddedXP || 0) + result.worldMasteryAddedXP);
+      pulse.nextLabUnlock = {
+        label: "HYPOTHESIS PROOFS COMPLETE",
+        title: "All predictions proven",
+        body: "Use the predict, code, compare habit in remixes, Daily Signals, and frontier runs.",
+        progress: 1
+      };
+    }
+
+    if (!options || !options.deferResearchXP) {
+      this.researchXP = Math.max(0, (this.researchXP || 0) + rewardXP);
+      const afterRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+      if (beforeRank && afterRank && afterRank.level > beforeRank.level && pulse) {
+        pulse.rankUp = true;
+        pulse.rankTitle = afterRank.title;
+        pulse.rankPerk = afterRank.perk;
+        if (typeof showBadgeToast === 'function') {
+          showBadgeToast({
+            icon: "HY",
+            label: `Research Rank: ${afterRank.title}`,
+            description: `Hypothesis Proof Mastery unlocked ${afterRank.perk.label}.`
+          });
+        }
+        if (typeof this.spawnResearchRankEffect === 'function') {
+          pulse.rankEffect = this.spawnResearchRankEffect(pulse);
+        }
+      }
+    }
+
+    if (typeof ui_log_output === 'function') {
+      const masteryText = result.worldMasteryAddedXP > 0 ? `, +${result.worldMasteryAddedXP} world mastery XP` : "";
+      ui_log_output(`Hypothesis Proofs mastered: +${rewardXP} Research XP${masteryText}.`, "success");
+    }
+    if (typeof this.showMissionBalloon === 'function') {
+      this.showMissionBalloon(`HYPOTHESIS MASTERED: +${rewardXP} Research XP`, {
+        title: "HYPOTHESIS PROOFS",
+        color,
+        timer: 260
+      });
+    }
+    if (this.player && typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+      const px = (Number.isFinite(this.player.x) ? this.player.x : 0) + (this.player.w || 24) / 2;
+      const py = Number.isFinite(this.player.y) ? this.player.y : 0;
+      ComicBubbles.pop(px, py - 70, "HYPOTHESIS DECK!", color, 1.0);
+      ComicBubbles.pop(px, py - 50, `${result.count}/${result.total} PROOFS`, "#fef08a", 0.74);
+      if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+        Particles.spawnBurst(px, py - 10, color, 18, 2.4, 2.2, "glow");
+        Particles.spawnBurst(px, py - 10, "#fef08a", 12, 1.8, 1.8, "glow");
+      }
+    }
+    return result;
+  }
+
   getSyntaxBridgeProofSourceKey() {
     return "syntax-bridge:first-alias";
   }

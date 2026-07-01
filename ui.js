@@ -5923,6 +5923,9 @@ function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems
     if (codeConcept && codeConcept.complete && typeof game.grantCodeConceptDeckMastery === 'function') {
       game.grantCodeConceptDeckMastery(pulse, { deferResearchXP: true });
     }
+    if (hypothesis && typeof game.grantHypothesisDeckMastery === 'function') {
+      game.grantHypothesisDeckMastery(pulse, { deferResearchXP: true });
+    }
     if (typeof game.awardWorldMasteryXP === 'function') {
       game.awardWorldMasteryXP(6 + newPasses * 3 + opened * 2 + (cardUnlocked ? 6 : 0), "science proof", {
         sourceKey: `concept:${missionId}:${pulse.kind}:${passed}:${opened}:${cardUnlocked ? "card" : "progress"}`,
@@ -6829,6 +6832,9 @@ function updateDiscoveryPulse(game) {
   const hypothesis = pulse.hypothesisConfirmed
     ? `<div class="discovery-hypothesis">HYPOTHESIS CONFIRMED +${escapeHTML(String(pulse.hypothesisBonusXP || 0))} XP</div>`
     : "";
+  const hypothesisDeckMastery = pulse.hypothesisDeckMastery
+    ? `<div class="discovery-hypothesis discovery-hypothesis-mastery">${escapeHTML(pulse.hypothesisDeckMastery.label || "HYPOTHESIS MASTERED")} +${escapeHTML(String(pulse.hypothesisDeckMastery.rewardXP || 0))} XP · ${escapeHTML(String(pulse.hypothesisDeckMastery.count || 0))}/${escapeHTML(String(pulse.hypothesisDeckMastery.total || 0))} proofs</div>`
+    : "";
   const lessonPhaseNextCommand = pulse.lessonPhaseAdvance && pulse.lessonPhaseAdvance.nextCommand
     ? String(pulse.lessonPhaseAdvance.nextCommand).trim()
     : "";
@@ -6978,6 +6984,7 @@ function updateDiscoveryPulse(game) {
     ${comboAmplifier}
     ${comboMilestone}
     ${hypothesis}
+    ${hypothesisDeckMastery}
     ${scienceCheckpoint}
     ${scienceProof}
     ${codeConcept}

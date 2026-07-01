@@ -4090,6 +4090,66 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: correct predictions earn hypothesis bonuses", false, err.message);
   }
 
+  // Test 22bb2: completing the Hypothesis Proof collection creates a one-time mastery payoff.
+  const oldGetElementById22bb2 = document.getElementById;
+  const oldBubblePop22bb2 = ComicBubbles.pop;
+  const oldParticleBurst22bb2 = Particles.spawnBurst;
+  try {
+    const proofMissions = getHypothesisPortfolioMissions();
+    const finalProof = proofMissions[proofMissions.length - 1];
+    const activeMission = PLANETS[finalProof.planetIndex].missions.find(mission => mission.id === finalProof.id);
+    const correctOption = activeMission.fullMission.prediction.options.find(option => option.correct);
+    const labels = [];
+    let bursts = 0;
+    const panel = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };
+    document.getElementById = (id) => id === "discovery-pulse" ? panel : null;
+    ComicBubbles.pop = (x, y, text) => { labels.push(text); };
+    Particles.spawnBurst = () => { bursts++; };
+
+    const game = new StarHopperGame();
+    game.currentPlanetIndex = finalProof.planetIndex;
+    game.currentPlanet = PLANETS[finalProof.planetIndex];
+    game.player = { x: 100, y: 120, w: 24, h: 32 };
+    game.discoveryPassCounts = {};
+    game.masteryMeters = {};
+    game.confirmedHypotheses = new Set(proofMissions.filter(mission => mission.id !== finalProof.id).map(mission => mission.id));
+    game.coachPredictions = { [finalProof.id]: correctOption.id };
+    const resultState = {
+      allPassed: false,
+      items: [{ id: "hypothesis-final-check", label: "Final prediction proof", passed: true, message: "Prediction evidence logged" }]
+    };
+    const pulse = recordDiscoveryPulse(game, activeMission, "compare evidence", resultState, 0);
+    assertEquals(true, !!pulse.hypothesisConfirmed, "Final correct prediction should still create the normal hypothesis confirmation");
+    assertEquals("HYPOTHESIS MASTERED", pulse.hypothesisDeckMastery && pulse.hypothesisDeckMastery.label, "Final hypothesis should create a collection mastery chip");
+    assertEquals(10, pulse.hypothesisDeckMastery && pulse.hypothesisDeckMastery.rewardXP, "Hypothesis Proof mastery should award Research XP");
+    assertEquals(proofMissions.length, pulse.hypothesisDeckMastery && pulse.hypothesisDeckMastery.count, "Hypothesis mastery should count all confirmed proofs");
+    assertEquals(proofMissions.length, pulse.hypothesisDeckMastery && pulse.hypothesisDeckMastery.total, "Hypothesis mastery should know the proof total");
+    assertEquals(1, game.discoveryPassCounts["hypothesis-proof-mastery"], "Hypothesis mastery should store a one-time source");
+    assertEquals(true, game.researchXP >= 16, "Hypothesis mastery should add Research XP to the final confirmation reward");
+    assertEquals(true, game.getWorldMasteryProgress(finalProof.planetIndex).xp >= 14, "Hypothesis mastery should feed world mastery");
+    assertEquals(true, labels.includes("HYPOTHESIS DECK!"), "Hypothesis mastery should pop a collection cue");
+    assertEquals(true, labels.includes(`${proofMissions.length}/${proofMissions.length} PROOFS`), "Hypothesis mastery cue should show full proof count");
+    assertEquals(true, bursts > 0, "Hypothesis mastery should spawn reward particles");
+    assertEquals(true, /HYPOTHESIS MASTERED \+10 XP/.test(panel.innerHTML), "Discovery Pulse should render the Hypothesis Proof mastery chip");
+    assertEquals(true, /HYPOTHESIS PROOFS COMPLETE/.test(panel.innerHTML), "Discovery Pulse should show the completed Hypothesis Proof unlock card");
+    const cadetRecord = getCadetIdentityPreview(game);
+    assertEquals(true, new RegExp(`Hypothesis Proofs mastered ${proofMissions.length}\\/${proofMissions.length}`).test(cadetRecord.body), "Cadet Record should celebrate completed Hypothesis Proofs");
+    assertEquals(null, cadetRecord.hypothesisAction, "Completed Hypothesis Proofs should not leave a stale route action");
+    const xpAfterFirst = game.researchXP;
+    assertEquals(null, game.grantHypothesisDeckMastery(pulse), "Repeating Hypothesis Proof mastery should be blocked");
+    assertEquals(xpAfterFirst, game.researchXP, "Repeated Hypothesis Proof mastery should not farm Research XP");
+
+    document.getElementById = oldGetElementById22bb2;
+    ComicBubbles.pop = oldBubblePop22bb2;
+    Particles.spawnBurst = oldParticleBurst22bb2;
+    renderTestResult("engine-suite", "Curriculum: Hypothesis Proof mastery rewards full collection", true);
+  } catch (err) {
+    document.getElementById = oldGetElementById22bb2;
+    ComicBubbles.pop = oldBubblePop22bb2;
+    Particles.spawnBurst = oldParticleBurst22bb2;
+    renderTestResult("engine-suite", "Curriculum: Hypothesis Proof mastery rewards full collection", false, err.message);
+  }
+
   // Test 22bc: Loop Engineer's Combo Amplifier pays only for chained NEW progress.
   const oldGetElementById22bc = document.getElementById;
   const oldWindowGame22bc = window.Game;
