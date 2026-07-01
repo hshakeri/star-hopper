@@ -1176,14 +1176,23 @@ function setSignalLabReflectionContext(game, proofStatus) {
   const contract = proofStatus.contract || {};
   const signal = proofStatus.signal || {};
   const darkMatterPrep = !!signal.darkMatterPrep;
+  const darkMatterEcho = !!signal.darkMatterEcho;
   const futureSourcePrep = !!signal.futureSourcePrep;
   const context = {
     kind: "signal-lab",
-    source: futureSourcePrep ? "Future Lab Source" : (darkMatterPrep ? "Dark Matter Prep" : (proofStatus.isFrontier ? "Frontier Signal Lab" : "Daily Signal Lab")),
+    source: futureSourcePrep
+      ? "Future Lab Source"
+      : (darkMatterPrep
+        ? "Dark Matter Prep"
+        : (darkMatterEcho ? "Dark Matter Echo" : (proofStatus.isFrontier ? "Frontier Signal Lab" : "Daily Signal Lab"))),
     title: proofStatus.title || contract.title || "Signal Lab proof",
     concept: contract.concept || signal.concept || "Replay physics",
     command: proofStatus.command || contract.command || "",
-    proofLabel: futureSourcePrep ? "SOURCE KEY TESTED" : (darkMatterPrep ? "DARK MATTER EVIDENCE" : (proofStatus.isFrontier ? "FRONTIER LAB TESTED" : "SIGNAL LAB TESTED")),
+    proofLabel: futureSourcePrep
+      ? "SOURCE KEY TESTED"
+      : (darkMatterPrep
+        ? "DARK MATTER EVIDENCE"
+        : (darkMatterEcho ? "DARK MATTER ECHO" : (proofStatus.isFrontier ? "FRONTIER LAB TESTED" : "SIGNAL LAB TESTED"))),
     proofSourceKey: proofStatus.sourceKey || ""
   };
   game.reflectionContext = context;
@@ -4080,7 +4089,9 @@ function getSignalLabProofCandidate(game, code) {
 
   const staged = game.lastStagedExperiment || null;
   const stagedMatch = !!(staged && staged.source === "signal-lab-contract" && String(staged.command || "").trim() === runCode);
-  const sourceId = signal.futureSourcePrep ? "future-source" : (signal.isFrontier ? "frontier" : "daily");
+  const sourceId = signal.futureSourcePrep
+    ? "future-source"
+    : (signal.darkMatterEcho ? "dark-matter-echo" : (signal.isFrontier ? "frontier" : "daily"));
   const identity = signal.shareCode || signal.dateStr || sourceId;
   const tier = signal.isFrontier ? `t${Math.max(1, Math.floor(Number(signal.tier) || 1))}` : "day";
   const planet = Number.isFinite(game.currentPlanetIndex) ? game.currentPlanetIndex : 0;
@@ -4138,16 +4149,25 @@ function awardSignalLabContractProof(game, code, pulse = null) {
   }
 
   const darkMatterPrep = !!(proof.signal && proof.signal.darkMatterPrep);
+  const darkMatterEcho = !!(proof.signal && proof.signal.darkMatterEcho);
   const futureSourcePrep = !!(proof.signal && proof.signal.futureSourcePrep);
-  const rewardXP = futureSourcePrep ? 8 : (darkMatterPrep ? 7 : (proof.isFrontier ? 6 : 4));
-  const masteryXP = futureSourcePrep ? 12 : (darkMatterPrep ? 10 : (proof.isFrontier ? 9 : 6));
-  const label = futureSourcePrep ? "SOURCE KEY TESTED" : (darkMatterPrep ? "DARK MATTER EVIDENCE" : (proof.isFrontier ? "FRONTIER LAB TESTED" : "SIGNAL LAB TESTED"));
-  const proofSource = futureSourcePrep ? "Future Lab Source" : (darkMatterPrep ? "Dark Matter Prep" : (proof.isFrontier ? "Frontier Challenge" : "Daily Signal"));
-  const color = futureSourcePrep ? "#facc15" : (darkMatterPrep ? "#818cf8" : (proof.isFrontier ? "#c4b5fd" : "#67e8f9"));
+  const rewardXP = futureSourcePrep ? 8 : (darkMatterPrep ? 7 : (darkMatterEcho ? 6 : (proof.isFrontier ? 6 : 4)));
+  const masteryXP = futureSourcePrep ? 12 : (darkMatterPrep ? 10 : (darkMatterEcho ? 9 : (proof.isFrontier ? 9 : 6)));
+  const label = futureSourcePrep
+    ? "SOURCE KEY TESTED"
+    : (darkMatterPrep
+      ? "DARK MATTER EVIDENCE"
+      : (darkMatterEcho ? "DARK MATTER ECHO" : (proof.isFrontier ? "FRONTIER LAB TESTED" : "SIGNAL LAB TESTED")));
+  const proofSource = futureSourcePrep
+    ? "Future Lab Source"
+    : (darkMatterPrep
+      ? "Dark Matter Prep"
+      : (darkMatterEcho ? "Dark Matter Echo" : (proof.isFrontier ? "Frontier Challenge" : "Daily Signal")));
+  const color = futureSourcePrep ? "#facc15" : ((darkMatterPrep || darkMatterEcho) ? "#818cf8" : (proof.isFrontier ? "#c4b5fd" : "#67e8f9"));
   const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(game.researchXP || 0) : null;
   const existingReward = !!(pulse && ((pulse.rewardXP || 0) > 0 || pulse.cardUnlocked || pulse.hypothesisConfirmed || (pulse.openedGems || 0) > 0));
   const mastery = typeof game.awardWorldMasteryXP === 'function'
-    ? game.awardWorldMasteryXP(masteryXP, futureSourcePrep ? "future source proof" : (darkMatterPrep ? "dark matter prep proof" : "signal lab proof"), { sourceKey, silent: true })
+    ? game.awardWorldMasteryXP(masteryXP, futureSourcePrep ? "future source proof" : (darkMatterPrep ? "dark matter prep proof" : (darkMatterEcho ? "dark matter echo proof" : "signal lab proof")), { sourceKey, silent: true })
     : { addedXP: 0, duplicate: false };
   if (mastery && mastery.duplicate) {
     game.discoveryPassCounts[sourceKey] = 1;
@@ -4181,7 +4201,7 @@ function awardSignalLabContractProof(game, code, pulse = null) {
       sourceKey,
       stagedMatch: proof.stagedMatch
     };
-    if (darkMatterPrep || futureSourcePrep) attachFutureLabProofScene(game, pulse, pulse.signalLabProof);
+    if (darkMatterEcho || darkMatterPrep || futureSourcePrep) attachFutureLabProofScene(game, pulse, pulse.signalLabProof);
     pulse.rankUp = pulse.rankUp || rankUp;
     pulse.rankTitle = pulse.rankTitle || (afterRank ? afterRank.title : null);
     pulse.rankPerk = pulse.rankPerk || (rankUp && afterRank ? afterRank.perk : null);
@@ -4195,7 +4215,7 @@ function awardSignalLabContractProof(game, code, pulse = null) {
     showBadgeToast({
       icon: "SL",
       label: `Research Rank: ${afterRank.title}`,
-      description: `${futureSourcePrep ? "Future source" : (darkMatterPrep ? "Dark Matter prep" : "Signal proof")} unlocked ${afterRank.perk.label}.`
+      description: `${futureSourcePrep ? "Future source" : (darkMatterPrep ? "Dark Matter prep" : (darkMatterEcho ? "Dark Matter echo" : "Signal proof"))} unlocked ${afterRank.perk.label}.`
     });
   }
   if (rankUp && pulse && typeof game.spawnResearchRankEffect === 'function') {
@@ -4207,7 +4227,7 @@ function awardSignalLabContractProof(game, code, pulse = null) {
   }
   if (typeof game.showMissionBalloon === 'function') {
     game.showMissionBalloon(`${label}: +${rewardXP} Research XP`, {
-      title: futureSourcePrep ? "SOURCE KEY" : (darkMatterPrep ? "DARK MATTER PREP" : "SIGNAL LAB"),
+      title: futureSourcePrep ? "SOURCE KEY" : (darkMatterPrep ? "DARK MATTER PREP" : (darkMatterEcho ? "DARK MATTER ECHO" : "SIGNAL LAB")),
       color,
       timer: 240
     });

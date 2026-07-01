@@ -7442,12 +7442,13 @@ class StarHopperGame {
     const py = baseY + height / 2;
     const title = String(pulse.title || "");
     const sourceKey = /Source Key Reflection/i.test(title) || /source\s*key/i.test(String(pulse.formula || ""));
-    const signal = !sourceKey && /Signal Reflection/i.test(title);
-    const repair = !sourceKey && !signal && /Repair Reflection/i.test(title);
-    const strongProof = signal || sourceKey || repair;
-    const label = sourceKey ? "SOURCE PROOF!" : (signal ? "SIGNAL PROOF!" : (repair ? "REPAIR PROOF!" : "PROOF SAVED!"));
-    const color = sourceKey ? "#fef08a" : (signal ? "#bef264" : (repair ? "#facc15" : "#a7f3d0"));
-    const monitorLabel = sourceKey ? "SOURCE PROOF" : (signal ? "SIGNAL PROOF" : (repair ? "REPAIR EXPLAINED" : "EXPLAIN SAVED"));
+    const darkMatter = !sourceKey && /Dark Matter Reflection/i.test(title);
+    const signal = !sourceKey && !darkMatter && /Signal Reflection/i.test(title);
+    const repair = !sourceKey && !darkMatter && !signal && /Repair Reflection/i.test(title);
+    const strongProof = signal || sourceKey || darkMatter || repair;
+    const label = sourceKey ? "SOURCE PROOF!" : (darkMatter ? "DARK PROOF!" : (signal ? "SIGNAL PROOF!" : (repair ? "REPAIR PROOF!" : "PROOF SAVED!")));
+    const color = sourceKey ? "#fef08a" : (darkMatter ? "#818cf8" : (signal ? "#bef264" : (repair ? "#facc15" : "#a7f3d0")));
+    const monitorLabel = sourceKey ? "SOURCE PROOF" : (darkMatter ? "DARK MATTER PROOF" : (signal ? "SIGNAL PROOF" : (repair ? "REPAIR EXPLAINED" : "EXPLAIN SAVED")));
     const rewardXP = Math.max(0, Math.floor(Number(pulse.rewardXP) || 0));
 
     if (typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
@@ -7470,6 +7471,7 @@ class StarHopperGame {
       label,
       color,
       signal,
+      darkMatter,
       sourceKey,
       rewardXP,
       x: px,

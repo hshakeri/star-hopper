@@ -453,16 +453,21 @@ function getNotebookReflectionSaveContext(game, missionId, missionTitle) {
     const key = getSignalReflectionEntryKey(context.proofSourceKey);
     const proofText = `${context.source || ""} ${context.proofLabel || ""}`;
     const sourceKeyProof = /future\s*lab\s*source|source\s*key/i.test(proofText);
-    const darkMatterPrep = !sourceKeyProof && /dark\s*matter/i.test(proofText);
-    const frontier = !sourceKeyProof && !darkMatterPrep && /frontier/i.test(proofText);
-    const rewardXP = sourceKeyProof ? 8 : (darkMatterPrep ? 7 : (frontier ? 6 : 5));
-    const rewardMasteryXP = sourceKeyProof ? 14 : (darkMatterPrep ? 12 : (frontier ? 10 : 9));
-    const rewardTitle = sourceKeyProof ? "Source Key Reflection Proof" : "Signal Reflection Proof";
-    const rewardFormula = sourceKeyProof ? "source key = hidden force + chance + evidence" : "claim = signal + evidence + why";
+    const darkMatterProof = !sourceKeyProof && /dark\s*matter/i.test(proofText);
+    const darkMatterEcho = darkMatterProof && /echo/i.test(proofText);
+    const frontier = !sourceKeyProof && !darkMatterProof && /frontier/i.test(proofText);
+    const rewardXP = sourceKeyProof ? 8 : (darkMatterProof ? 7 : (frontier ? 6 : 5));
+    const rewardMasteryXP = sourceKeyProof ? 14 : (darkMatterProof ? 12 : (frontier ? 10 : 9));
+    const rewardTitle = sourceKeyProof ? "Source Key Reflection Proof" : (darkMatterProof ? "Dark Matter Reflection Proof" : "Signal Reflection Proof");
+    const rewardFormula = sourceKeyProof
+      ? "source key = hidden force + chance + evidence"
+      : (darkMatterProof ? "hidden force = motion clue + replay evidence" : "claim = signal + evidence + why");
     const rewardCue = sourceKeyProof
       ? "Use this proof to explain how hidden-force and probability evidence tune the source key."
-      : (darkMatterPrep
-        ? "Use this proof to compare the hidden-force prototype against a real replay."
+      : (darkMatterProof
+        ? (darkMatterEcho
+          ? "Use this proof to explain how repeated Frontier evidence revealed the anomaly."
+          : "Use this proof to compare the hidden-force prototype against a real replay.")
         : (frontier
           ? "Use this proof to chase the next Frontier rival with evidence, not luck."
           : "Use this proof to compare the next Daily or Frontier signal."));

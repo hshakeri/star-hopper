@@ -2240,6 +2240,42 @@ function runEngineTests() {
     assertEquals(9, frontier.getWorldMasteryProgress(0).xp, "Frontier proof should grant stronger world mastery");
     assertEquals("FRONTIER LAB TESTED: +6 Research XP", frontier.missionBalloon && frontier.missionBalloon.text, "Mission CRT should announce the Frontier proof reward");
 
+    const echo = new StarHopperGame();
+    echo.currentPlanet = PLANETS[0];
+    echo.currentPlanetIndex = 0;
+    echo.player = { x: 80, y: 100, w: 24, h: 32 };
+    echo.masteryMeters = {};
+    echo.researchXP = 0;
+    echo.remixContext = 'daily';
+    echo.dailyInfo = {
+      isFrontier: true,
+      darkMatterEcho: true,
+      tier: 3,
+      shareCode: "FRONTIER-EARTH-3131",
+      concept: "Infer hidden forces from Frontier evidence",
+      labContract: {
+        title: "Dark Matter Echo: decode anomaly",
+        body: "Compare stars, time, and motion clues.",
+        concept: "Infer hidden forces from Frontier evidence",
+        command: "hopper.mass = 1.2"
+      }
+    };
+    echo.lastStagedExperiment = {
+      title: "Dark Matter Echo: decode anomaly",
+      source: "signal-lab-contract",
+      command: "hopper.mass = 1.2",
+      time: Date.now()
+    };
+    const echoOutcome = finishSuccessfulCodeRunDiscovery(echo, activeMission, "hopper.mass = 1.2", noProgress, 0, []);
+    assertEquals("DARK MATTER ECHO", echoOutcome.signalLabProof && echoOutcome.signalLabProof.label, "Dark Matter Echo proof should keep the first future-lab label");
+    assertEquals("Dark Matter Echo", echoOutcome.signalLabProof && echoOutcome.signalLabProof.source, "Echo proof should name the anomaly source");
+    assertEquals(6, echo.researchXP, "Echo proof should keep the Frontier-scale Research XP bonus");
+    assertEquals(9, echo.getWorldMasteryProgress(0).xp, "Echo proof should keep the Frontier-scale world mastery bonus");
+    assertEquals(true, /^signal-lab-proof:dark-matter-echo:frontier-earth-3131:/.test(echoOutcome.signalLabProof && echoOutcome.signalLabProof.sourceKey), "Echo proof source key should carry the echo route tag");
+    assertEquals("DARK MATTER ECHO", echo.missionBalloon && echo.missionBalloon.title, "Mission CRT should label Echo proof distinctly");
+    assertEquals("DARK MATTER ECHO: +6 Research XP", echo.missionBalloon && echo.missionBalloon.text, "Mission CRT should announce the Echo proof reward");
+    assertEquals(true, labels.includes("DARK MATTER ECHO"), "Echo proof should pop a visible anomaly cue");
+
     const prep = new StarHopperGame();
     prep.currentPlanet = PLANETS[0];
     prep.currentPlanetIndex = 0;
@@ -5273,6 +5309,13 @@ function runEngineTests() {
     });
     assertEquals("Dark Matter Prep", darkMatterReflection && darkMatterReflection.source, "Dark Matter prep explains as its own notebook source");
     assertEquals("DARK MATTER EVIDENCE", darkMatterReflection && darkMatterReflection.proofLabel, "Dark Matter prep explanation preserves the stronger proof label");
+    const echoReflection = setSignalLabReflectionContext(game, {
+      ...proofStatus,
+      signal: { darkMatterEcho: true },
+      isFrontier: true
+    });
+    assertEquals("Dark Matter Echo", echoReflection && echoReflection.source, "Dark Matter Echo explains as its own notebook source");
+    assertEquals("DARK MATTER ECHO", echoReflection && echoReflection.proofLabel, "Dark Matter Echo explanation preserves the anomaly proof label");
 
     list = makeEl();
     game.dailyInfo = {
@@ -9318,10 +9361,15 @@ function runExperimentLogTests() {
     const darkMatterEntryKey = `signal-reflection:${darkMatterProofKey}`;
     const darkMatterEntry = notebookEntries[darkMatterEntryKey];
     assertEquals(38, game.researchXP, "Dark Matter prep reflection should award +7 Research XP");
+    assertEquals("Dark Matter Reflection Proof", game.discoveryPulse.title, "Dark Matter prep reflection should create a named future-lab proof pulse");
     assertEquals(12, game.discoveryPulse.worldMasteryAddedXP, "Dark Matter prep reflection should add the strongest world mastery proof XP");
-    assertEquals("SIGNAL PROOF: +7 Research XP", game.missionBalloon && game.missionBalloon.text, "Dark Matter prep reflection should write the strongest CRT reward line");
+    assertEquals("DARK PROOF!", game.discoveryPulse.reflectionEffect && game.discoveryPulse.reflectionEffect.label, "Dark Matter prep reflection should use a distinct proof cue");
+    assertEquals(true, game.discoveryPulse.reflectionEffect && game.discoveryPulse.reflectionEffect.darkMatter, "Dark Matter reflection effect should expose its future-lab flag");
+    assertEquals("DARK MATTER PROOF: +7 Research XP", game.missionBalloon && game.missionBalloon.text, "Dark Matter prep reflection should write the strongest CRT reward line");
+    assertEquals(true, reflectionLabels.includes("DARK PROOF!"), "Dark Matter reflection should call the future-lab proof bubble");
     assertEquals("Hidden force evidence", darkMatterEntry.title, "Dark Matter prep notebook entry should use the replay focus title");
     assertEquals(7, darkMatterEntry.reflectionRewardXP, "Dark Matter prep notebook entry should remember its proof reward");
+    assertEquals("Dark Matter Reflection Proof", darkMatterEntry.reflectionRewardLabel, "Dark Matter prep notebook entry should label the future-lab proof");
     assertEquals(true, /signal lab: Dark Matter Prep/.test(darkMatterEntry.evidence), "Dark Matter prep entry should preserve contextual evidence");
     assertEquals(7, cloudSaves, "Saving a Dark Matter prep reflection should persist the new entry");
 
@@ -9330,6 +9378,7 @@ function runExperimentLogTests() {
     assertEquals(38, game.researchXP, "Re-saving the same Dark Matter prep reflection should not farm XP");
     assertEquals("The revised hidden-force explanation still uses the same proof.", notebookEntries[darkMatterEntryKey].answer, "Dark Matter prep re-save should update the answer");
     assertEquals(7, notebookEntries[darkMatterEntryKey].reflectionRewardXP, "Dark Matter prep re-save should preserve the original proof badge");
+    assertEquals("Dark Matter Reflection Proof", notebookEntries[darkMatterEntryKey].reflectionRewardLabel, "Dark Matter prep re-save should preserve the proof label");
     assertEquals(8, cloudSaves, "Dark Matter prep re-save should still persist the revised answer");
 
     const sourceProofKey = "signal-lab-proof:frontier:frontier-earth-5050:t5:0:future-source-key-source-rehearsal:abc999";
