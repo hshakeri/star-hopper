@@ -2861,6 +2861,55 @@ function runEngineTests() {
     activeRestage._events.click();
     assertEquals("hopper.mass = 1.0", inputEl22j.value, "Staged reminder restage should restore the staged command");
     assertEquals(true, inputEl22j.focused, "Staged reminder restage should focus the terminal");
+
+    const signalFocus = buildReplayLabContract(PLANETS[3], 3, {
+      targetOverrides: {},
+      constraint: { id: "glacies-friction-target", minFriction: 8 }
+    });
+    list = makeEl();
+    game.remixContext = 'daily';
+    game.dailyInfo = {
+      dateStr: "2026-06-30",
+      shareCode: "GLACIES-4242",
+      concept: signalFocus.concept,
+      labContract: signalFocus
+    };
+    inputEl22j.value = "";
+    inputEl22j.focused = false;
+    updateMissionList(game);
+    const signalLab = findByClass(list, "signal-lab-contract-card");
+    const signalLabText = flattenText(signalLab || list);
+    assertEquals(true, !!signalLab, "Daily/Frontier runs should pin the signal lab contract in the mission panel");
+    assertEquals(true, /DAILY SIGNAL LAB/.test(signalLabText), "Signal lab card should identify Daily Signal runs");
+    assertEquals(true, /Numeric friction target/.test(signalLabText), "Signal lab card should show the replay focus title");
+    assertEquals(true, /friction = 8/.test(signalLabText), "Signal lab card should show the sample command");
+    assertEquals(true, /Standard Gravity|Friction/.test(signalLabText), "Signal lab card should show the science concept");
+    const signalStageButton = findByClass(signalLab || list, "signal-lab-contract-stage-btn");
+    assertEquals("STAGE SIGNAL", signalStageButton && signalStageButton.textContent, "Signal lab card should expose a stage action");
+    signalStageButton._events.click();
+    assertEquals("friction = 8", inputEl22j.value, "Signal lab stage action should stage the replay contract command");
+    assertEquals(true, inputEl22j.focused, "Signal lab stage action should focus the terminal");
+    assertEquals("signal-lab-contract", game.lastStagedExperiment && game.lastStagedExperiment.source, "Signal lab staging should remember its source");
+
+    list = makeEl();
+    updateMissionList(game);
+    const signalStaged = findByClass(list, "staged-experiment-card");
+    const signalStagedText = flattenText(signalStaged || list);
+    assertEquals(true, /Signal Lab/.test(signalStagedText), "Signal lab staged command should name its source in the reminder");
+
+    list = makeEl();
+    game.dailyInfo = {
+      isFrontier: true,
+      tier: 4,
+      shareCode: "FRONTIER-ICE-4242",
+      concept: signalFocus.concept,
+      labContract: signalFocus
+    };
+    updateMissionList(game);
+    const frontierSignalLab = findByClass(list, "signal-lab-contract-card");
+    const frontierSignalText = flattenText(frontierSignalLab || list);
+    assertEquals(true, /FRONTIER LAB/.test(frontierSignalText), "Signal lab card should identify Frontier runs");
+    assertEquals(true, /T4/.test(frontierSignalText), "Frontier signal lab card should show the tier");
     assertEquals(true, !!scienceDelta, "Mission panel should show the latest science delta");
     assertEquals(true, /WHAT CHANGED/.test(scienceDeltaText), "Science delta card should identify itself");
     assertEquals(true, /Mass/.test(scienceDeltaText), "Science delta should list changed values");
@@ -2878,6 +2927,15 @@ function runEngineTests() {
     assertEquals(true, /OK Science proof/.test(text), "Contract should credit science proof");
 
     list = makeEl();
+    game.remixContext = 'first';
+    game.dailyInfo = null;
+    game.lastStagedExperiment = {
+      title: "Mass Lab",
+      kind: "mass",
+      source: "staged-reminder",
+      command: "hopper.mass = 1.0",
+      time: Date.now()
+    };
     game.lastScienceDelta = {
       code: "hopper.mass = 1.0",
       changes: [{ label: "Mass", value: "2.5 -> 1.0" }],

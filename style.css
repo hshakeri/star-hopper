@@ -4109,6 +4109,122 @@ html {
   line-height: 1.2;
 }
 
+.signal-lab-contract-card {
+  border: 1px solid rgba(103, 232, 249, 0.34);
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgba(12, 74, 110, 0.36), rgba(20, 83, 45, 0.22)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.026) 0 1px, transparent 1px 4px);
+  box-shadow: inset 0 0 14px rgba(103, 232, 249, 0.1);
+  display: grid;
+  gap: 5px;
+  padding: 7px 8px;
+}
+
+.signal-lab-contract-card.frontier {
+  border-color: rgba(196, 181, 253, 0.38);
+  background:
+    linear-gradient(180deg, rgba(76, 29, 149, 0.36), rgba(8, 47, 73, 0.3)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.026) 0 1px, transparent 1px 4px);
+}
+
+.signal-lab-contract-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  line-height: 1.2;
+}
+
+.signal-lab-contract-head span {
+  color: #67e8f9;
+  font-weight: 900;
+}
+
+.signal-lab-contract-card.frontier .signal-lab-contract-head span {
+  color: #c4b5fd;
+}
+
+.signal-lab-contract-head strong {
+  color: #bef264;
+  text-align: right;
+}
+
+.signal-lab-contract-body {
+  display: grid;
+  gap: 3px;
+}
+
+.signal-lab-contract-body strong {
+  color: #fef08a;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  line-height: 1.22;
+}
+
+.signal-lab-contract-body p {
+  margin: 0;
+  color: #e0f2fe;
+  font-size: 0.61rem;
+  line-height: 1.28;
+}
+
+.signal-lab-contract-body em {
+  color: #a7f3d0;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  font-style: normal;
+  line-height: 1.2;
+}
+
+.signal-lab-contract-card code {
+  display: block;
+  max-height: 58px;
+  overflow: hidden;
+  border: 1px solid rgba(103, 232, 249, 0.2);
+  border-radius: 4px;
+  background: rgba(2, 6, 23, 0.46);
+  color: #bbf7d0;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  line-height: 1.28;
+  padding: 4px 5px;
+  white-space: pre-wrap;
+}
+
+.signal-lab-contract-stage-btn {
+  justify-self: start;
+  border: 1px solid rgba(103, 232, 249, 0.48);
+  border-radius: 4px;
+  background: rgba(8, 47, 73, 0.72);
+  color: #ecfeff;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.53rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0;
+  padding: 5px 7px;
+}
+
+.signal-lab-contract-card.frontier .signal-lab-contract-stage-btn {
+  border-color: rgba(196, 181, 253, 0.48);
+  background: rgba(76, 29, 149, 0.52);
+  color: #ede9fe;
+}
+
+.signal-lab-contract-stage-btn:hover {
+  background: rgba(103, 232, 249, 0.86);
+  color: #082f49;
+}
+
+.signal-lab-contract-card.frontier .signal-lab-contract-stage-btn:hover {
+  background: rgba(196, 181, 253, 0.9);
+  color: #2e1065;
+}
+
 .lab-chain-target-card {
   border: 1px solid rgba(103, 232, 249, 0.34);
   border-radius: 6px;
@@ -6966,6 +7082,12 @@ body.readable-text-mode .signal-story-crt-body strong,
 body.readable-text-mode .signal-story-crt-body code,
 body.readable-text-mode .signal-story-crt-body p,
 body.readable-text-mode .signal-story-crt-body em,
+body.readable-text-mode .signal-lab-contract-head,
+body.readable-text-mode .signal-lab-contract-body strong,
+body.readable-text-mode .signal-lab-contract-body p,
+body.readable-text-mode .signal-lab-contract-body em,
+body.readable-text-mode .signal-lab-contract-card code,
+body.readable-text-mode .signal-lab-contract-stage-btn,
 body.readable-text-mode .science-delta-row,
 body.readable-text-mode .science-delta-row em,
 body.readable-text-mode .science-delta-next span,

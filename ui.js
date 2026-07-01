@@ -421,6 +421,7 @@ function updateMissionList(game) {
   appendMissionLabQuestionCard(listContainer, game);
   appendWorldMasteryCrtCard(listContainer, game);
   appendSignalStoryCrtCard(listContainer, game);
+  appendSignalLabContractCard(listContainer, game);
   appendMissionMentorSignal(listContainer, game);
   appendStagedExperimentCard(listContainer, game);
   appendScienceDeltaCard(listContainer, game);
@@ -645,6 +646,65 @@ function appendSignalStoryCrtCard(listContainer, game) {
   listContainer.appendChild(card);
 }
 
+function appendSignalLabContractCard(listContainer, game) {
+  if (!listContainer || !game || !game.dailyInfo || !game.dailyInfo.labContract) return;
+  if (game.remixContext !== 'daily') return;
+  const signal = game.dailyInfo;
+  const contract = signal.labContract;
+  const command = contract.command ? String(contract.command).trim() : "";
+  if (!contract.title && !contract.body && !command) return;
+  const isFrontier = !!signal.isFrontier;
+
+  const card = document.createElement("div");
+  card.className = `signal-lab-contract-card ${isFrontier ? "frontier" : "daily"}`;
+
+  const head = document.createElement("div");
+  head.className = "signal-lab-contract-head";
+  const label = document.createElement("span");
+  label.textContent = isFrontier ? "FRONTIER LAB" : "DAILY SIGNAL LAB";
+  const reward = document.createElement("strong");
+  reward.textContent = isFrontier
+    ? `T${signal.tier || 1} · ${signal.shareCode || "frontier"}`
+    : (signal.dateStr || signal.shareCode || "today");
+  head.appendChild(label);
+  head.appendChild(reward);
+  card.appendChild(head);
+
+  const body = document.createElement("div");
+  body.className = "signal-lab-contract-body";
+  const title = document.createElement("strong");
+  title.textContent = contract.title || "Replay lab focus";
+  const copy = document.createElement("p");
+  copy.textContent = contract.body || "Run one focused replay experiment and compare the evidence.";
+  const concept = document.createElement("em");
+  concept.textContent = contract.concept || signal.concept || "Physics remix";
+  body.appendChild(title);
+  body.appendChild(copy);
+  body.appendChild(concept);
+  card.appendChild(body);
+
+  if (command) {
+    const code = document.createElement("code");
+    code.textContent = command;
+    card.appendChild(code);
+
+    const stage = document.createElement("button");
+    stage.type = "button";
+    stage.className = "signal-lab-contract-stage-btn";
+    stage.textContent = "STAGE SIGNAL";
+    if (typeof stage.addEventListener === "function") {
+      stage.addEventListener("click", () => stageScienceDeltaCommand(command, {
+        title: contract.title || "Signal lab",
+        source: "signal-lab-contract",
+        color: isFrontier ? "#c4b5fd" : "#67e8f9"
+      }));
+    }
+    card.appendChild(stage);
+  }
+
+  listContainer.appendChild(card);
+}
+
 const MENTOR_SIGNAL_PROFILES = {
   mass: {
     role: "Machinist Geary",
@@ -840,6 +900,7 @@ function getStagedExperimentSourceLabel(source) {
     "lab-chain-target": "Lab chain",
     "formula-focus": "Formula Deck",
     "formula-target": "Formula target",
+    "signal-lab-contract": "Signal Lab",
     "staged-reminder": "Mission CRT"
   };
   return labels[source] || "Mission CRT";
