@@ -4946,6 +4946,82 @@ html {
   background: rgba(250, 204, 21, 0.82);
   color: #111827;
 }
+.discovery-hypothesis-next-card {
+  display: grid;
+  gap: 5px;
+  border-color: rgba(45, 212, 191, 0.52);
+  background: rgba(15, 118, 110, 0.34);
+  color: #ccfbf1;
+}
+.discovery-hypothesis-next-card strong {
+  color: #f0fdfa;
+}
+.discovery-hypothesis-next-card span {
+  color: #ccfbf1;
+  font-size: 0.54rem;
+}
+.discovery-hypothesis-lesson {
+  display: grid;
+  gap: 3px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.discovery-hypothesis-lesson span {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  border: 1px solid rgba(45, 212, 191, 0.24);
+  border-radius: 3px;
+  background: rgba(2, 6, 23, 0.4);
+  color: #ccfbf1;
+  font-family: var(--font-mono);
+  font-size: 0.48rem;
+  font-weight: 900;
+  line-height: 1.08;
+  padding: 3px 4px;
+  overflow-wrap: anywhere;
+}
+.discovery-hypothesis-lesson b {
+  color: #fef08a;
+  font-size: 0.44rem;
+  letter-spacing: 0;
+}
+.discovery-hypothesis-next {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  min-width: 0;
+  color: #f0fdfa;
+  font-family: var(--font-mono);
+  font-size: 0.54rem;
+  font-weight: 900;
+  line-height: 1.15;
+}
+.discovery-hypothesis-next code {
+  border: 1px solid rgba(45, 212, 191, 0.28);
+  border-radius: 3px;
+  background: rgba(2, 6, 23, 0.48);
+  color: #99f6e4;
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  padding: 2px 4px;
+}
+.discovery-hypothesis-next-btn {
+  border: 1px solid rgba(94, 234, 212, 0.44);
+  border-radius: 4px;
+  background: rgba(13, 148, 136, 0.74);
+  color: #f0fdfa;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  font-weight: 900;
+  line-height: 1.1;
+  padding: 4px 7px;
+}
+.discovery-hypothesis-next-btn:hover {
+  background: rgba(94, 234, 212, 0.86);
+  color: #042f2e;
+}
 .discovery-source-scene {
   border-color: rgba(129, 140, 248, 0.56);
   background: rgba(49, 46, 129, 0.44);
@@ -11644,6 +11720,10 @@ body.readable-text-mode .discovery-ai-state-lesson span,
 body.readable-text-mode .discovery-ai-state-next,
 body.readable-text-mode .discovery-ai-state-next code,
 body.readable-text-mode .discovery-ai-state-next-btn,
+body.readable-text-mode .discovery-hypothesis-lesson span,
+body.readable-text-mode .discovery-hypothesis-next,
+body.readable-text-mode .discovery-hypothesis-next code,
+body.readable-text-mode .discovery-hypothesis-next-btn,
 body.readable-text-mode .discovery-formula-stage-btn,
 body.readable-text-mode .discovery-chain-next span,
 body.readable-text-mode .discovery-chain-progress span,

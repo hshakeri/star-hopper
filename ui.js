@@ -3621,6 +3621,26 @@ function getCadetHypothesisAction(game = window.Game) {
   };
 }
 
+function buildHypothesisNextProofPulse(game = window.Game) {
+  if (!game || typeof getCadetHypothesisAction !== "function") return null;
+  const action = getCadetHypothesisAction(game);
+  if (!action || !action.missionId) return null;
+  const progress = action.progress || getHypothesisPortfolioProgress(game);
+  const cleanTitle = String(action.title || "Hypothesis proof").replace(/^(Predict|Prove)\s+/i, "");
+  return {
+    label: "NEXT HYPOTHESIS",
+    title: cleanTitle || "Hypothesis proof",
+    missionId: action.missionId,
+    levelIndex: Number.isFinite(Number(action.levelIndex)) ? Number(action.levelIndex) : null,
+    actionLabel: action.label || "RUN PREDICT",
+    body: action.body || "Choose a prediction, run one code change, and compare the evidence.",
+    progress: progress && progress.total ? `${progress.done}/${progress.total}` : "",
+    learn: "Predict before code",
+    code: "One tested tweak",
+    win: action.label || "RUN PREDICT"
+  };
+}
+
 function getCadetIdentityPreview(game = window.Game) {
   const callsign = game && typeof game.getCadetCallsign === "function" ? game.getCadetCallsign() : "Cadet";
   const rank = typeof getResearchRank === "function"
@@ -6005,6 +6025,9 @@ function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems
     pulse.cardUnlocked = cardUnlocked;
     pulse.hypothesisConfirmed = !!hypothesis;
     pulse.hypothesisBonusXP = hypothesis ? hypothesis.xp : 0;
+    if (pulse.hypothesisConfirmed) {
+      pulse.hypothesisNextProof = buildHypothesisNextProofPulse(game);
+    }
     const comboBonus = getDiscoveryComboBonus(game, game.discoveryCombo, beforeRank);
     pulse.comboBonusXP = comboBonus.base;
     pulse.comboAmplifierBonusXP = comboBonus.amplifier;
@@ -6942,6 +6965,16 @@ function updateDiscoveryPulse(game) {
   const hypothesisDeckMastery = pulse.hypothesisDeckMastery
     ? `<div class="discovery-hypothesis discovery-hypothesis-mastery">${escapeHTML(pulse.hypothesisDeckMastery.label || "HYPOTHESIS MASTERED")} +${escapeHTML(String(pulse.hypothesisDeckMastery.rewardXP || 0))} XP · ${escapeHTML(String(pulse.hypothesisDeckMastery.count || 0))}/${escapeHTML(String(pulse.hypothesisDeckMastery.total || 0))} proofs</div>`
     : "";
+  const hypothesisNextProof = pulse.hypothesisNextProof || null;
+  const hypothesisNextLesson = hypothesisNextProof
+    ? `<div class="discovery-hypothesis-lesson"><span><b>LEARN</b>${escapeHTML(hypothesisNextProof.learn || "Predict first")}</span><span><b>CODE</b>${escapeHTML(hypothesisNextProof.code || "One tweak")}</span><span><b>WIN</b>${escapeHTML(hypothesisNextProof.win || hypothesisNextProof.actionLabel || "RUN PREDICT")}</span></div>`
+    : "";
+  const hypothesisNextRoute = hypothesisNextProof && hypothesisNextProof.missionId
+    ? `<div class="discovery-hypothesis-next">Next proof <code>${escapeHTML(hypothesisNextProof.title || "Hypothesis proof")}</code><button type="button" class="discovery-hypothesis-next-btn" data-hypothesis-next-mission="${escapeHTML(hypothesisNextProof.missionId)}">${escapeHTML(hypothesisNextProof.actionLabel || "RUN PREDICT")}</button></div>`
+    : "";
+  const hypothesisNext = hypothesisNextProof
+    ? `<div class="discovery-hypothesis discovery-hypothesis-next-card"><strong>${escapeHTML(hypothesisNextProof.label || "NEXT HYPOTHESIS")} · ${escapeHTML(hypothesisNextProof.title || "Hypothesis proof")}</strong><span>${escapeHTML(hypothesisNextProof.progress || "")} proofs · ${escapeHTML(hypothesisNextProof.body || "Choose, test, compare.")}</span>${hypothesisNextLesson}${hypothesisNextRoute}</div>`
+    : "";
   const lessonPhaseNextCommand = pulse.lessonPhaseAdvance && pulse.lessonPhaseAdvance.nextCommand
     ? String(pulse.lessonPhaseAdvance.nextCommand).trim()
     : "";
@@ -7091,6 +7124,7 @@ function updateDiscoveryPulse(game) {
     ${comboAmplifier}
     ${comboMilestone}
     ${hypothesis}
+    ${hypothesisNext}
     ${hypothesisDeckMastery}
     ${scienceCheckpoint}
     ${scienceProof}
@@ -7127,11 +7161,11 @@ function updateDiscoveryPulse(game) {
 }
 
 function attachDiscoveryPulseStageButtons(panel, game, pulse) {
-  if (!panel || typeof panel.querySelectorAll !== "function" || typeof stageScienceDeltaCommand !== "function") return;
+  if (!panel || typeof panel.querySelectorAll !== "function") return;
   const chainHint = getDiscoveryChainHint(pulse, game);
   const chainContract = chainHint && chainHint.contract ? chainHint.contract : null;
   panel.querySelectorAll("[data-chain-next-command]").forEach(button => {
-    if (!button || typeof button.addEventListener !== "function") return;
+    if (!button || typeof button.addEventListener !== "function" || typeof stageScienceDeltaCommand !== "function") return;
     button.addEventListener("click", () => {
       const command = button.dataset && button.dataset.chainNextCommand
         ? button.dataset.chainNextCommand
@@ -7150,7 +7184,7 @@ function attachDiscoveryPulseStageButtons(panel, game, pulse) {
   });
   const phase = pulse && pulse.lessonPhaseAdvance ? pulse.lessonPhaseAdvance : null;
   panel.querySelectorAll("[data-phase-next-command]").forEach(button => {
-    if (!button || typeof button.addEventListener !== "function") return;
+    if (!button || typeof button.addEventListener !== "function" || typeof stageScienceDeltaCommand !== "function") return;
     button.addEventListener("click", () => {
       const command = button.dataset && button.dataset.phaseNextCommand
         ? button.dataset.phaseNextCommand
@@ -7169,7 +7203,7 @@ function attachDiscoveryPulseStageButtons(panel, game, pulse) {
   });
   const formulaProgress = pulse && pulse.formulaDeckProgress ? pulse.formulaDeckProgress : null;
   panel.querySelectorAll("[data-formula-next-command]").forEach(button => {
-    if (!button || typeof button.addEventListener !== "function") return;
+    if (!button || typeof button.addEventListener !== "function" || typeof stageScienceDeltaCommand !== "function") return;
     button.addEventListener("click", () => {
       const command = button.dataset && button.dataset.formulaNextCommand
         ? button.dataset.formulaNextCommand
@@ -7188,7 +7222,7 @@ function attachDiscoveryPulseStageButtons(panel, game, pulse) {
   });
   const scienceProof = pulse && pulse.scienceDeltaProof ? pulse.scienceDeltaProof : null;
   panel.querySelectorAll("[data-science-proof-command]").forEach(button => {
-    if (!button || typeof button.addEventListener !== "function") return;
+    if (!button || typeof button.addEventListener !== "function" || typeof stageScienceDeltaCommand !== "function") return;
     button.addEventListener("click", () => {
       const command = button.dataset && button.dataset.scienceProofCommand
         ? button.dataset.scienceProofCommand
@@ -7207,7 +7241,7 @@ function attachDiscoveryPulseStageButtons(panel, game, pulse) {
   });
   const codeConcept = pulse && pulse.codeConceptProof ? pulse.codeConceptProof : null;
   panel.querySelectorAll("[data-code-concept-next-command]").forEach(button => {
-    if (!button || typeof button.addEventListener !== "function") return;
+    if (!button || typeof button.addEventListener !== "function" || typeof stageScienceDeltaCommand !== "function") return;
     button.addEventListener("click", () => {
       const command = button.dataset && button.dataset.codeConceptNextCommand
         ? button.dataset.codeConceptNextCommand
@@ -7236,6 +7270,17 @@ function attachDiscoveryPulseStageButtons(panel, game, pulse) {
         : (aiStateProof && aiStateProof.nextCardId ? aiStateProof.nextCardId : "");
       if (!String(cardId || "").trim()) return false;
       return runAIStateDeckAction(cardId, game);
+    });
+  });
+  const hypothesisNextProof = pulse && pulse.hypothesisNextProof ? pulse.hypothesisNextProof : null;
+  panel.querySelectorAll("[data-hypothesis-next-mission]").forEach(button => {
+    if (!button || typeof button.addEventListener !== "function" || typeof runCadetHypothesisAction !== "function") return;
+    button.addEventListener("click", () => {
+      const missionId = button.dataset && button.dataset.hypothesisNextMission
+        ? button.dataset.hypothesisNextMission
+        : (hypothesisNextProof && hypothesisNextProof.missionId ? hypothesisNextProof.missionId : "");
+      if (!String(missionId || "").trim()) return false;
+      return runCadetHypothesisAction(missionId, game);
     });
   });
 }

@@ -3926,6 +3926,7 @@ function runEngineTests() {
   const oldGetElementById22bb = document.getElementById;
   const oldBubblePop22bb = ComicBubbles.pop;
   const oldParticleBurst22bb = Particles.spawnBurst;
+  const oldSwitchMainMode22bb = switchMainMode;
   try {
     const bubbleLabels22bb = [];
     const particleColors22bb = [];
@@ -3940,7 +3941,23 @@ function runEngineTests() {
         { id: "earth-emerald-gates", label: "Agility 30+ reached", passed: false, message: "Still locked" }
       ]
     };
-    const panel = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };
+    let hypothesisNextClick22bb = null;
+    const hypothesisNextButton22bb = {
+      dataset: { hypothesisNextMission: "moon-canyon-jump" },
+      addEventListener(event, handler) {
+        if (event === "click") hypothesisNextClick22bb = handler;
+      }
+    };
+    const panel = {
+      classList: { add: () => {}, remove: () => {} },
+      innerHTML: "",
+      querySelectorAll(selector) {
+        if (selector === "[data-hypothesis-next-mission]" && /data-hypothesis-next-mission/.test(this.innerHTML)) {
+          return [hypothesisNextButton22bb];
+        }
+        return [];
+      }
+    };
     document.getElementById = (id) => id === "discovery-pulse" ? panel : null;
 
     const game = new StarHopperGame();
@@ -3954,9 +3971,34 @@ function runEngineTests() {
     assertEquals(6, pulse.hypothesisBonusXP, "Hypothesis confirmation should award the bonus XP");
     assertEquals(true, game.confirmedHypotheses.has(activeMission.id), "Confirmed hypothesis should be stored by mission");
     assertEquals(true, /HYPOTHESIS CONFIRMED \+6 XP/.test(panel.innerHTML), "Discovery pulse should render the hypothesis chip");
+    assertEquals(true, !!pulse.hypothesisNextProof, "Confirmed hypothesis should carry the next proof handoff");
+    assertEquals("moon-canyon-jump", pulse.hypothesisNextProof.missionId, "Hypothesis proof handoff should target the next unconfirmed mission");
+    assertEquals("Luna Loop Springs", pulse.hypothesisNextProof.title, "Hypothesis proof handoff should name the next prediction proof");
+    assertEquals("RUN PREDICT", pulse.hypothesisNextProof.actionLabel, "Hypothesis proof handoff should preserve the next route label");
+    assertEquals(true, /NEXT HYPOTHESIS/.test(panel.innerHTML), "Discovery Pulse should render the next Hypothesis Proof handoff");
+    assertEquals(true, /discovery-hypothesis-lesson/.test(panel.innerHTML), "Discovery Pulse should render Hypothesis next-step lesson chips");
+    assertEquals(true, /LEARN/.test(panel.innerHTML) && /Predict before code/.test(panel.innerHTML), "Hypothesis handoff should teach the prediction step");
+    assertEquals(true, /CODE/.test(panel.innerHTML) && /One tested tweak/.test(panel.innerHTML), "Hypothesis handoff should teach the code step");
+    assertEquals(true, /WIN/.test(panel.innerHTML) && /RUN PREDICT/.test(panel.innerHTML), "Hypothesis handoff should show the route payoff");
+    assertEquals(true, /data-hypothesis-next-mission="moon-canyon-jump"/.test(panel.innerHTML), "Hypothesis handoff should render a direct next-proof route");
+    assertEquals(true, typeof hypothesisNextClick22bb === "function", "Hypothesis pulse route should bind a click handler");
     assertEquals(true, /LAB PERK UNLOCKED: Hypothesis Bonus/.test(panel.innerHTML), "Discovery pulse should render the lab-perk unlock chip");
     assertEquals(true, bubbleLabels22bb.some(label => /HYPOTHESIS/.test(label)), "Correct prediction should pop a hypothesis cue in the level");
     assertEquals(true, particleColors22bb.some(color => color === "#a7f3d0"), "Correct prediction should spawn a hypothesis burst");
+    const hypothesisRouteStarts22bb = [];
+    const hypothesisRouteModes22bb = [];
+    const oldStartLevel22bb = game.startLevel;
+    game.startLevel = (level) => {
+      hypothesisRouteStarts22bb.push(level);
+      game.currentPlanetIndex = level;
+    };
+    switchMainMode = (mode) => hypothesisRouteModes22bb.push(mode);
+    hypothesisNextClick22bb();
+    assertEquals(1, hypothesisRouteStarts22bb[0], "Hypothesis pulse route should launch the next proof world");
+    assertEquals("moon-canyon-jump", game.activeHypothesisMissionId, "Hypothesis pulse route should remember the next active proof");
+    assertEquals("terminal", hypothesisRouteModes22bb[0], "Hypothesis pulse route should return to the terminal");
+    game.startLevel = oldStartLevel22bb;
+    switchMainMode = oldSwitchMainMode22bb;
     game.state = 'playing';
     game.canvas = { width: 720, height: 448 };
     game.currentPlanetIndex = 1;
@@ -4082,11 +4124,13 @@ function runEngineTests() {
     document.getElementById = oldGetElementById22bb;
     ComicBubbles.pop = oldBubblePop22bb;
     Particles.spawnBurst = oldParticleBurst22bb;
+    switchMainMode = oldSwitchMainMode22bb;
     renderTestResult("engine-suite", "Curriculum: correct predictions earn hypothesis bonuses", true);
   } catch (err) {
     document.getElementById = oldGetElementById22bb;
     ComicBubbles.pop = oldBubblePop22bb;
     Particles.spawnBurst = oldParticleBurst22bb;
+    switchMainMode = oldSwitchMainMode22bb;
     renderTestResult("engine-suite", "Curriculum: correct predictions earn hypothesis bonuses", false, err.message);
   }
 
@@ -4120,6 +4164,7 @@ function runEngineTests() {
     };
     const pulse = recordDiscoveryPulse(game, activeMission, "compare evidence", resultState, 0);
     assertEquals(true, !!pulse.hypothesisConfirmed, "Final correct prediction should still create the normal hypothesis confirmation");
+    assertEquals(null, pulse.hypothesisNextProof || null, "Final hypothesis mastery should not render a stale next-proof handoff");
     assertEquals("HYPOTHESIS MASTERED", pulse.hypothesisDeckMastery && pulse.hypothesisDeckMastery.label, "Final hypothesis should create a collection mastery chip");
     assertEquals(10, pulse.hypothesisDeckMastery && pulse.hypothesisDeckMastery.rewardXP, "Hypothesis Proof mastery should award Research XP");
     assertEquals(proofMissions.length, pulse.hypothesisDeckMastery && pulse.hypothesisDeckMastery.count, "Hypothesis mastery should count all confirmed proofs");
