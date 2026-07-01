@@ -2288,6 +2288,18 @@ function getActiveLabQuest(game) {
     };
   }
 
+  if (anomalyAlreadyTraced && typeof hasClearedFullStarMap === 'function' && typeof hasFrontierStoryCredit === 'function' &&
+      hasClearedFullStarMap(game) && hasFrontierStoryCredit(game)) {
+    return {
+      kicker: "DARK MATTER PREP",
+      title: "Bank curve evidence",
+      body: "Run a Frontier remix and compare path curve, speed, and force changes. Dark Matter Lab will need evidence, not guesses.",
+      reward: "Reward: stronger hidden-force record",
+      action: "dark-matter-prep",
+      kind: "frontier"
+    };
+  }
+
   const daily = game && typeof game.getDailySignal === 'function' ? game.getDailySignal() : null;
   if (daily) {
     const focus = daily.labContract && daily.labContract.title
@@ -2473,6 +2485,15 @@ function getStartMissionRadarAction(game = window.Game, quest = null) {
       stageTitle: q.title || "Trace hidden force"
     };
   }
+  if (q && q.action === "dark-matter-prep") {
+    return {
+      action: "frontier",
+      label: "RUN PREP",
+      title: "Start a Frontier remix to bank hidden-force curve evidence.",
+      levelIndex: currentLevel,
+      kind: q.kind || "frontier"
+    };
+  }
   if (q && /^Reach\s+/i.test(q.title)) {
     return {
       action: "log",
@@ -2495,6 +2516,10 @@ function runStartMissionRadarAction() {
   const action = button && button.dataset ? button.dataset.action : "quest";
   if (action === "daily" && game && typeof game.startDailySignal === 'function') {
     game.startDailySignal();
+    return true;
+  }
+  if (action === "frontier" && game && typeof game.startFrontierChallenge === 'function') {
+    game.startFrontierChallenge();
     return true;
   }
   if (action === "log") {

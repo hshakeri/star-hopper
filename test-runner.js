@@ -2426,7 +2426,16 @@ function runEngineTests() {
     assertEquals("Source traced", els["start-story-preview-title"].textContent, "Complete traced story should show the source-traced payoff on start radar");
     assertEquals(true, /Bank curve evidence/.test(els["start-story-preview-body"].textContent), "Complete traced story should point into curve-evidence practice");
     assertEquals("12/12 decoded", els["start-story-preview-progress"].textContent, "Complete story should show all chapters decoded");
-    assertEquals("Clear today's signal", els["start-mission-radar-title"].textContent, "After trace proof, the radar should return to replay practice");
+    assertEquals("Bank curve evidence", els["start-mission-radar-title"].textContent, "After trace proof, the radar should surface the Dark Matter prep quest");
+    assertEquals(true, /path curve, speed, and force/.test(els["start-mission-radar-body"].textContent), "Prep quest should frame the next replay as evidence gathering");
+    assertEquals(true, /hidden-force record/.test(els["start-mission-radar-reward"].textContent), "Prep quest should name the hidden-force payoff");
+    assertEquals("RUN PREP", els["start-mission-radar-btn"].textContent, "Prep quest should expose a direct run action");
+    assertEquals("frontier", els["start-mission-radar-btn"].dataset.action, "Prep quest should start a Frontier evidence run");
+    let prepCalls = 0;
+    game.startFrontierChallenge = () => { prepCalls++; return true; };
+    window.Game = game;
+    assertEquals(true, runStartMissionRadarAction(), "Prep radar action should execute");
+    assertEquals(1, prepCalls, "Prep radar action should start the Frontier challenge");
 
     game.frontierRecords = {};
     game.discoveryPassCounts = {};
