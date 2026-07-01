@@ -1689,6 +1689,7 @@ function getStagedExperimentSourceLabel(source) {
     "lesson-lens": "Lesson Lens",
     "lesson-phase": "Lesson phase",
     "phase-reward": "Phase reward",
+    "cadet-lesson-path": "Cadet lesson",
     "mentor-signal": "Village mentor",
     "science-delta": "What Changed",
     "tested-result": "Tested result",
@@ -2887,6 +2888,46 @@ function getCadetLessonPathPortfolioText(game = window.Game) {
   return `Lesson Paths ${progress.earned}/${progress.total} · next ${nextTitle}`;
 }
 
+function getLessonPathMissionLevelIndex(mission) {
+  if (mission && Number.isFinite(Number(mission.planetId))) return Number(mission.planetId);
+  if (typeof PLANETS !== "undefined" && Array.isArray(PLANETS) && mission && mission.id) {
+    const index = PLANETS.findIndex(planet =>
+      planet && Array.isArray(planet.missions) && planet.missions.some(item => item && item.id === mission.id)
+    );
+    if (index >= 0) return index;
+  }
+  return 0;
+}
+
+function getLessonPathStageCommand(game, mission) {
+  if (!mission || !Array.isArray(mission.lessonPhases) || !mission.lessonPhases.length) return "";
+  const first = mission.lessonPhases.find(phase => phase && phase.command);
+  const missionLevel = getLessonPathMissionLevelIndex(mission);
+  const currentLevel = game && Number.isFinite(Number(game.currentPlanetIndex)) ? Number(game.currentPlanetIndex) : null;
+  if (currentLevel === missionLevel && typeof getMissionLessonPhaseRows === "function") {
+    const rows = getMissionLessonPhaseRows(game, mission);
+    const active = Array.isArray(rows) ? rows.find(row => row && row.status === "active" && row.command) : null;
+    if (active && active.command) return active.command;
+  }
+  return (first && first.command) || "";
+}
+
+function getCadetLessonPathAction(game = window.Game) {
+  const progress = getLessonPathPortfolioProgress(game);
+  const mission = progress && !progress.complete ? progress.next : null;
+  if (!mission) return null;
+  const levelIndex = getLessonPathMissionLevelIndex(mission);
+  const command = getLessonPathStageCommand(game, mission);
+  return {
+    missionId: mission.id || "",
+    levelIndex,
+    label: "RUN LESSON",
+    title: `Run ${mission.title || "next lesson path"}`,
+    stageTitle: mission.title || "Lesson path",
+    command
+  };
+}
+
 function getCadetDailyHabitPortfolioText(game = window.Game) {
   const streak = Math.max(0, Math.floor(Number(game && game.streakCount) || 0));
   if (streak <= 0) return "Daily Lab: start streak";
@@ -2940,12 +2981,14 @@ function getCadetIdentityPreview(game = window.Game) {
       }
     }
   }
+  const lessonPathAction = getCadetLessonPathAction(game);
   return {
     label: "CADET RECORD",
     title: `${callsign} // ${rank.title}`,
     body: `${Math.round(rank.xp || 0)} XP · ${dailyHabit} · ${labChain} · ${passport} · ${lessonPaths} · ${formulas} · ${transmissions} · ${futureLab} · ${aiStates} · ${trust}`,
     progress: Math.max(0, Math.min(1, Number(rank.progress) || 0)),
-    aiAction
+    aiAction,
+    lessonPathAction
   };
 }
 
@@ -3809,6 +3852,7 @@ function updateStartMissionRadar(game = window.Game) {
   const cadetBody = document.getElementById("start-cadet-identity-body");
   const cadetBar = document.getElementById("start-cadet-identity-bar");
   const cadetAIButton = document.getElementById("start-cadet-ai-btn");
+  const cadetLessonButton = document.getElementById("start-cadet-lesson-btn");
   const unlockLabel = document.getElementById("start-rank-preview-label");
   const unlockTitle = document.getElementById("start-rank-preview-title");
   const unlockBody = document.getElementById("start-rank-preview-body");
@@ -3853,6 +3897,23 @@ function updateStartMissionRadar(game = window.Game) {
     if (cadetAIButton.dataset) {
       cadetAIButton.dataset.state = visible ? aiAction.cardId : "";
       cadetAIButton.dataset.label = visible ? aiAction.label : "";
+    }
+  }
+  if (cadetLessonButton) {
+    const lessonAction = cadetPreview.lessonPathAction;
+    const visible = !!(lessonAction && lessonAction.missionId);
+    if (cadetLessonButton.classList && typeof cadetLessonButton.classList.toggle === "function") {
+      cadetLessonButton.classList.toggle("hidden", !visible);
+    } else if (cadetLessonButton.style) {
+      cadetLessonButton.style.display = visible ? "" : "none";
+    }
+    cadetLessonButton.textContent = visible ? lessonAction.label : "RUN LESSON";
+    cadetLessonButton.title = visible ? lessonAction.title : "";
+    if (cadetLessonButton.dataset) {
+      cadetLessonButton.dataset.mission = visible ? lessonAction.missionId : "";
+      cadetLessonButton.dataset.level = visible ? String(lessonAction.levelIndex) : "";
+      cadetLessonButton.dataset.command = visible ? (lessonAction.command || "") : "";
+      cadetLessonButton.dataset.stageTitle = visible ? (lessonAction.stageTitle || "") : "";
     }
   }
   if (unlockLabel) unlockLabel.textContent = unlockPreview.label;
@@ -3908,6 +3969,38 @@ function runStartCadetAIAction() {
   const cardId = button && button.dataset ? String(button.dataset.state || "").trim() : "";
   if (!cardId || typeof runAIStateDeckAction !== 'function') return false;
   return runAIStateDeckAction(cardId, game);
+}
+
+function runCadetLessonPathAction(missionId = null, game = window.Game || (typeof Game !== 'undefined' ? Game : null)) {
+  if (!game || typeof game.startLevel !== "function") return false;
+  const fallback = typeof getCadetIdentityPreview === "function"
+    ? (getCadetIdentityPreview(game).lessonPathAction || null)
+    : null;
+  const id = missionId || (fallback && fallback.missionId) || "";
+  const mission = (typeof PlatformerMissions !== "undefined" && Array.isArray(PlatformerMissions))
+    ? PlatformerMissions.find(item => item && item.id === id)
+    : null;
+  if (!mission) return false;
+  const levelIndex = getLessonPathMissionLevelIndex(mission);
+  const command = getLessonPathStageCommand(game, mission);
+  game.startLevel(levelIndex);
+  if (typeof switchMainMode === "function") switchMainMode("terminal");
+  if (command && typeof stageScienceDeltaCommand === "function") {
+    stageScienceDeltaCommand(command, {
+      title: mission.title || "Lesson path",
+      kind: "lesson-path",
+      source: "cadet-lesson-path",
+      game
+    });
+  }
+  return true;
+}
+
+function runStartCadetLessonPathAction() {
+  const game = window.Game || (typeof Game !== 'undefined' ? Game : null);
+  const button = document.getElementById("start-cadet-lesson-btn");
+  const missionId = button && button.dataset ? String(button.dataset.mission || "").trim() : "";
+  return runCadetLessonPathAction(missionId, game);
 }
 
 function runStartResumeTestAction() {
@@ -6176,8 +6269,8 @@ function stageScienceDeltaCommand(command, options = {}) {
   if (typeof input.setSelectionRange === 'function') {
     try { input.setSelectionRange(code.length, code.length); } catch (e) { /* noop */ }
   }
-  const liveGame = (typeof window !== 'undefined' && window.Game) ? window.Game : null;
   const meta = options && typeof options === 'object' ? options : {};
+  const liveGame = meta.game || ((typeof window !== 'undefined' && window.Game) ? window.Game : null);
   const stagedTitle = meta.title || "Code staged";
   if (liveGame) {
     liveGame.lastStagedExperiment = {

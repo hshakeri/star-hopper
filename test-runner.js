@@ -1211,6 +1211,7 @@ function runEngineTests() {
       getVillageTrustProgress: () => ({ title: "New Arrival", points: 0 })
     });
     assertEquals(true, /Lesson Paths mastered 3\/3/.test(pathSourceRecord.body), "Cadet Record should count lesson-path mastery from persisted world-mastery sources");
+    assertEquals(null, pathSourceRecord.lessonPathAction, "Completed lesson paths should not leave a stale Cadet Record route action");
     const afterPathXP = game.researchXP;
     const duplicatePath = grantLessonPathMastery(game, forgeMission, finalOutcome.lessonPhaseAdvance, getMissionLessonPhaseRows(game, forgeMission), finalOutcome.pulse);
     assertEquals(null, duplicatePath, "Lesson path capstone should not replay after its source key is stored");
@@ -3834,7 +3835,7 @@ function runEngineTests() {
         }
       }
     };
-    const cadetAIButton = {
+    const makeCadetButton = () => ({
       textContent: "",
       title: "",
       dataset: {},
@@ -3848,7 +3849,9 @@ function runEngineTests() {
           return cls === "hidden" ? !!this.hidden : false;
         }
       }
-    };
+    });
+    const cadetAIButton = makeCadetButton();
+    const cadetLessonButton = makeCadetButton();
     const startVillagePreviewCard = {
       classList: {
         classes: new Set(),
@@ -3870,6 +3873,7 @@ function runEngineTests() {
       "start-cadet-identity-body": { textContent: "" },
       "start-cadet-identity-bar": { style: { width: "" } },
       "start-cadet-ai-btn": cadetAIButton,
+      "start-cadet-lesson-btn": cadetLessonButton,
       "start-rank-preview-label": { textContent: "" },
       "start-rank-preview-title": { textContent: "" },
       "start-rank-preview-body": { textContent: "" },
@@ -3954,11 +3958,28 @@ function runEngineTests() {
     assertEquals(true, /RUN RESCUE/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include the next AI State Deck action");
     assertEquals(true, /Trading Friend · 3 trust/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include village trust identity");
     assertEquals("8%", els["start-cadet-identity-bar"].style.width, "Cadet record should show rank progress");
+    assertEquals(false, cadetLessonButton.classList.contains("hidden"), "Cadet record should show the next lesson-path route button");
+    assertEquals("RUN LESSON", cadetLessonButton.textContent, "Cadet lesson route should use a direct action label");
+    assertEquals("earth-gravity-wall", cadetLessonButton.dataset.mission, "Cadet lesson route should target the first unfinished lesson path");
+    assertEquals("0", cadetLessonButton.dataset.level, "Cadet lesson route should target the lesson planet");
+    assertEquals(true, /use_hopper\(\)/.test(cadetLessonButton.dataset.command), "Cadet lesson route should carry the first one-tweak command");
     assertEquals(false, cadetAIButton.classList.contains("hidden"), "Cadet record should show the next AI route button");
     assertEquals("RUN RESCUE", cadetAIButton.textContent, "Cadet record AI button should use the next route label");
     assertEquals("shelter-loop", cadetAIButton.dataset.state, "Cadet record AI button should target the next missing state");
     const cadetAIStarts = [];
     const cadetAIModes = [];
+    const cadetLessonStarts = [];
+    const cadetLessonModes = [];
+    game.startLevel = (level) => { cadetLessonStarts.push(level); };
+    switchMainMode = (mode) => { cadetLessonModes.push(mode); };
+    window.Game = game;
+    assertEquals(true, runStartCadetLessonPathAction(), "Cadet record lesson action should launch the next lesson path");
+    assertEquals(0, cadetLessonStarts[0], "Cadet record lesson action should launch Earth for the first lesson path");
+    assertEquals("terminal", cadetLessonModes[0], "Cadet record lesson action should return to the playable terminal");
+    assertEquals("use_hopper()\nantigravity = 4.9", els["console-input"].value, "Cadet record lesson action should stage the first phase command");
+    assertEquals("cadet-lesson-path", game.lastStagedExperiment && game.lastStagedExperiment.source, "Cadet lesson route should enter the shared staged-experiment loop");
+    assertEquals("Hopper Engineering Shakedown", game.lastStagedExperiment && game.lastStagedExperiment.title, "Cadet lesson route should name the lesson path");
+    assertEquals("Cadet lesson", getStagedExperimentSourceLabel(game.lastStagedExperiment.source), "Cadet lesson staged reminder should have a readable source label");
     game.startLevel = (level) => { cadetAIStarts.push(level); };
     game.toggleSurvival = () => { game.survivalMode = true; };
     switchMainMode = (mode) => { cadetAIModes.push(mode); };
@@ -4248,6 +4269,14 @@ function runEngineTests() {
     assertEquals("Clear today's signal", els["start-mission-radar-title"].textContent, "Without a decoded anomaly, complete progress should surface the daily practice loop");
     assertEquals("ACCEPT SIGNAL", els["start-mission-radar-btn"].textContent, "Daily quest should get a direct accept button");
     assertEquals("daily", els["start-mission-radar-btn"].dataset.action, "Daily quest button should use the daily action");
+    game.discoveryPassCounts = {
+      [getLessonPathMasterySourceKey("earth-gravity-wall")]: 1,
+      [getLessonPathMasterySourceKey("moon-canyon-jump")]: 1,
+      [getLessonPathMasterySourceKey("asteroid-forge-momentum")]: 1
+    };
+    updateStartMissionRadar(game);
+    assertEquals(true, /Lesson Paths mastered 3\/3/.test(els["start-cadet-identity-body"].textContent), "Cadet record should celebrate a completed lesson-path set");
+    assertEquals(true, cadetLessonButton.classList.contains("hidden"), "Cadet lesson route should hide once all lesson paths are mastered");
 
     let dailyCalls = 0;
     const startedLevels = [];
@@ -4439,6 +4468,8 @@ function runEngineTests() {
     assertEquals(true, /GET LOTION/.test(report.innerHTML), "Clear report cadet record should include the next AI behavior action");
     assertEquals(true, /clear-cadet-ai-btn/.test(report.innerHTML), "Clear report cadet record should expose a direct AI route button");
     assertEquals(true, /runClearCadetAIAction\('pet-pact'\)/.test(report.innerHTML), "Clear report AI button should target the next missing state");
+    assertEquals(true, /clear-cadet-lesson-btn/.test(report.innerHTML), "Clear report cadet record should expose a direct lesson-path route button");
+    assertEquals(true, /runClearCadetLessonPathAction\('earth-gravity-wall'\)/.test(report.innerHTML), "Clear report lesson button should target the next unfinished lesson path");
     assertEquals(true, /NEW MASTERY BADGE/.test(report.innerHTML), "Clear report should celebrate a first 3-star mastery");
     assertEquals(true, /\+25 Research XP/.test(report.innerHTML), "Clear report should show the mastery XP reward");
     assertEquals(true, /WORLD MASTERY/.test(report.innerHTML), "Clear report should include per-world mastery progress");
@@ -4551,6 +4582,15 @@ function runEngineTests() {
     assertEquals(3, clearAIStarts[0], "Clear report AI action should launch the lotion route world");
     assertEquals("pet-pact", game.activeAIStateRun && game.activeAIStateRun.cardId, "Clear report AI action should remember the active proof card");
     assertEquals("terminal", clearAIModes[0], "Clear report AI action should return to the playable terminal");
+    const clearLessonStarts = [];
+    const clearLessonModes = [];
+    game.startLevel = (level) => { clearLessonStarts.push(level); };
+    switchMainMode = (mode) => { clearLessonModes.push(mode); };
+    assertEquals(true, game.runClearCadetLessonPathAction("earth-gravity-wall"), "Clear report lesson action should launch the next lesson path");
+    assertEquals(0, clearLessonStarts[0], "Clear report lesson action should launch Earth for the first lesson path");
+    assertEquals("terminal", clearLessonModes[0], "Clear report lesson action should return to the terminal");
+    assertEquals("use_hopper()\nantigravity = 4.9", inputEl.value, "Clear report lesson action should stage the first lesson-path command");
+    assertEquals("cadet-lesson-path", game.lastStagedExperiment && game.lastStagedExperiment.source, "Clear report lesson action should enter the shared staged-experiment loop");
     assertEquals(true, new RegExp(`1\\/${DISCOVERY_RULES.length}`).test(report.innerHTML), "Clear report should include formula deck progress");
     assertEquals(true, /\+2 emerald/.test(report.innerHTML), "Clear report should include newly banked gems");
     assertEquals(true, /Collect Mass Lab/.test(report.innerHTML), "Clear report should include the next lab quest");

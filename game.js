@@ -4697,6 +4697,15 @@ class StarHopperGame {
     return runAIStateDeckAction(id, this);
   }
 
+  runClearCadetLessonPathAction(missionId = null) {
+    const fallback = typeof getCadetIdentityPreview === 'function'
+      ? (getCadetIdentityPreview(this).lessonPathAction || {}).missionId
+      : null;
+    const id = missionId || fallback;
+    if (!id || typeof runCadetLessonPathAction !== 'function') return false;
+    return runCadetLessonPathAction(id, this);
+  }
+
   getClearExplainMission() {
     if (typeof getActivePlatformerMission === 'function') {
       return getActivePlatformerMission(this);
@@ -7217,6 +7226,13 @@ class StarHopperGame {
     const cadetAIActionBlock = cadetAIAction && cadetAIActionId ? `
       <button type="button" class="clear-cadet-ai-btn" onclick="if (window.Game) window.Game.runClearCadetAIAction('${safe(cadetAIActionId)}')">${safe(cadetAIAction.label || "RUN AI STATE")}</button>
     ` : "";
+    const cadetLessonAction = cadetIdentity && cadetIdentity.lessonPathAction && cadetIdentity.lessonPathAction.missionId
+      ? cadetIdentity.lessonPathAction
+      : null;
+    const cadetLessonActionId = cadetLessonAction ? String(cadetLessonAction.missionId || "").replace(/[^a-z0-9_-]/gi, "") : "";
+    const cadetLessonActionBlock = cadetLessonAction && cadetLessonActionId ? `
+      <button type="button" class="clear-cadet-ai-btn clear-cadet-lesson-btn" onclick="if (window.Game) window.Game.runClearCadetLessonPathAction('${safe(cadetLessonActionId)}')">${safe(cadetLessonAction.label || "RUN LESSON")}</button>
+    ` : "";
     const cadetIdentityBlock = cadetIdentity ? `
       <div class="clear-cadet-record">
         <div class="clear-cadet-record-head">
@@ -7226,6 +7242,7 @@ class StarHopperGame {
         <div class="clear-cadet-record-bar" aria-label="${safe(`${cadetIdentityPct}% toward next research rank`)}"><span style="width: ${cadetIdentityPct}%"></span></div>
         <p>${safe(cadetIdentity.body)}</p>
         ${cadetAIActionBlock}
+        ${cadetLessonActionBlock}
       </div>
     ` : "";
     const starSummary = labStars || this.getClearLabStarSummary({ isDailyRun });
