@@ -9354,6 +9354,30 @@ function runCombatTests() {
     walkReturningVillagerHome(hiddenOff, hiddenNpc);
     assertEquals(150, hiddenNpc.x, "Survival-off walks a hidden villager back to the village home");
 
+    const midReturnOff = new StarHopperGame();
+    midReturnOff.state = 'playing'; midReturnOff.currentPlanetIndex = 1; midReturnOff.currentPlanet = PLANETS[1];
+    midReturnOff.player = new Player(0, 0);
+    midReturnOff.researchXP = 0;
+    midReturnOff.masteryMeters = {};
+    const midReturnNpc = new NPC({ id: 'mid-return-off', name: 'Mid Return Off', profession: 'Miner', type: 'npc', x: 104, y: 60, color: '#cbd5e1', homeX: 150, homeY: 60, caveX: 72, caveY: 60 });
+    midReturnNpc.returningFromCave = true;
+    midReturnNpc.returningFromCaveTimer = 120;
+    midReturnNpc.caveExitTimer = 80;
+    midReturnOff.interactiveObjects = [midReturnNpc];
+    midReturnOff.survivalMode = true;
+    midReturnOff.mobs = [new Mob(90, 60, 'hog', '#9a6b4f', 1)];
+    const midReturnSummary = midReturnOff.toggleSurvival();
+    assertEquals(false, midReturnNpc.hiddenInCave, "Survival-off keeps a cave-exiting villager visible");
+    assertEquals(true, !!midReturnNpc.returningFromCave, "Survival-off preserves an in-progress cave-exit walk");
+    assertEquals(104, midReturnNpc.x, "Survival-off does not snap a returning villager away from the visible path");
+    assertEquals(1, midReturnSummary && midReturnSummary.released, "Survival-off counts cave-exiting villagers as released");
+    midReturnOff.updateVillagerShelterStates();
+    assertEquals(true, !!midReturnNpc.returningFromCave, "Next shelter tick does not cancel the visible cave-exit walk");
+    midReturnNpc.update(midReturnOff);
+    assertEquals(true, midReturnNpc.x > 104 && midReturnNpc.x < 150, "Released cave-exiting villager keeps walking home after the next NPC tick");
+    walkReturningVillagerHome(midReturnOff, midReturnNpc);
+    assertEquals(150, midReturnNpc.x, "Survival-off cave-exiting villager finishes at the village home");
+
     const dangerHold = new StarHopperGame();
     dangerHold.state = 'playing'; dangerHold.currentPlanetIndex = 1; dangerHold.currentPlanet = PLANETS[1];
     dangerHold.player = new Player(0, 0);
@@ -9662,6 +9686,20 @@ function runCombatTests() {
     g.mobs = [new Mob(146, 60, 'hog', '#9a6b4f', 1)];
     g.updateVillagerShelterStates();
     assertEquals("nearby mob", partialNightNpc.shelterReason, "Mob danger overrides stale night shelter state");
+
+    const nightTurnBack = new NPC({ id: 'night-turn-back', name: 'Night Turn Back', profession: 'Miner', type: 'npc', x: 112, y: 60, color: '#cbd5e1', homeX: 150, homeY: 60, caveX: 72, caveY: 60 });
+    nightTurnBack.returningFromCave = true;
+    nightTurnBack.returningFromCaveTimer = 120;
+    g.interactiveObjects = [nightTurnBack];
+    g.mobs = [];
+    g.getEarthDayNightPhase = () => ({ t: 0, daylight: 0.1, isDay: false, sunX: 0.1, sunY: 0.2 });
+    const beforeNightTurnBackX = nightTurnBack.x;
+    g.updateVillagerShelterStates();
+    assertEquals(false, !!nightTurnBack.returningFromCave, "Night shelter cancels the cave-exit walk before routing back in");
+    assertEquals("night", nightTurnBack.shelterReason, "Night owns the shelter state when a returning villager turns back");
+    assertEquals(true, nightTurnBack.x < beforeNightTurnBackX, "Night turn-back starts moving the villager toward the cave");
+    for (let i = 0; i < 40 && !nightTurnBack.hiddenInCave; i++) g.updateVillagerShelterStates();
+    assertEquals(true, nightTurnBack.hiddenInCave, "Night turn-back parks the villager back in the cave");
 
     const loadGame = new StarHopperGame();
     loadGame.state = 'playing';

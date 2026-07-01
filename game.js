@@ -1274,7 +1274,7 @@ class StarHopperGame {
     for (const obj of this.interactiveObjects || []) {
       if (!(typeof NPC !== 'undefined' && obj instanceof NPC)) continue;
       villagers++;
-      const hadShelterState = !!(obj.hiddenInCave || obj.rescuePending || obj.shelterReason || (obj.panicTimer || 0) > 0);
+      const hadShelterState = !!(obj.hiddenInCave || obj.returningFromCave || obj.rescuePending || obj.shelterReason || (obj.panicTimer || 0) > 0);
       const shelter = typeof this.getVillagerShelterSignal === 'function'
         ? this.getVillagerShelterSignal(obj)
         : { active: keepSheltered, reason: keepSheltered ? "night" : null };
