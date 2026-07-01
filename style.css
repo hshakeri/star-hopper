@@ -1488,6 +1488,32 @@ body.resizing-panes * {
   margin-top: 1px;
 }
 
+.map-trust-meter {
+  display: block;
+  width: 72px;
+  height: 4px;
+  margin: 2px auto 1px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.82);
+  border: 1px solid rgba(125, 211, 252, 0.2);
+  overflow: hidden;
+}
+
+.map-trust-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #38bdf8, #34d399);
+}
+
+.map-trust-label {
+  display: block;
+  color: #7dd3fc;
+  font-size: 0.48rem;
+  line-height: 1.08;
+  margin-top: 1px;
+}
+
 .start-action-btn {
   margin-top: 10px;
   padding: 9px 26px;

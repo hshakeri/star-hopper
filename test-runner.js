@@ -3020,6 +3020,7 @@ function runEngineTests() {
     game.bestLabStars = { 0: 3, 1: 1 };
     game.masteryCleared = { 0: true };
     game.masteryMeters = { 0: { xp: 110, badges: ["scout", "engineer"], sources: {} } };
+    game.villageTrust = { 0: { points: 7, badges: ["friend", "ally"], sources: { "village-trade:0:geary:engine_1": 3, "village-rescue:0:geary": 4 } } };
     game.refreshGalaxyMapProgress();
 
     assertEquals(false, nodes[0].disabled, "Cleared Earth node should be selectable");
@@ -3030,7 +3031,10 @@ function runEngineTests() {
     assertEquals(true, /3 of 3 Lab Stars/.test(nodes[0]._meta.innerHTML), "Cleared node should show best lab stars");
     assertEquals(true, /World Engineer/.test(nodes[0]._meta.innerHTML), "Cleared node should show world mastery tier");
     assertEquals(true, /110 XP/.test(nodes[0]._meta.innerHTML), "Cleared node should show world mastery XP");
+    assertEquals(true, /Cave Ally/.test(nodes[0]._meta.innerHTML), "Cleared node should show village trust tier");
+    assertEquals(true, /7 trust/.test(nodes[0]._meta.innerHTML), "Cleared node should show village trust points");
     assertEquals(true, /Standard Gravity & Trajectories/.test(nodes[0].title), "Cleared node title should include the science concept");
+    assertEquals(true, /Cave Ally \(7 trust\)/.test(nodes[0].title), "Cleared node title should include village trust progress");
     assertEquals(false, nodes[1].disabled, "Moon should unlock after Earth clear");
     assertEquals(true, /Unlocked/.test(nodes[1]._meta.innerHTML), "Next planet should read as unlocked");
     assertEquals(true, /Low Gravity &amp; Jump Loops/.test(nodes[1]._meta.innerHTML), "Unlocked next node should preview its science concept");

@@ -1611,6 +1611,13 @@ class StarHopperGame {
     return `<span class="map-mastery-meter" aria-label="${progress.xp} world mastery XP"><span style="width: ${progress.pct}%"></span></span><span class="map-mastery-label">${progress.title} · ${progress.xp} XP · ${next}</span>`;
   }
 
+  renderMapVillageTrustMeter(index) {
+    if (typeof this.getVillageTrustProgress !== 'function') return "";
+    const progress = this.getVillageTrustProgress(index);
+    const next = progress.nextTier ? `Next ${progress.nextTier.label}` : "Max trust";
+    return `<span class="map-trust-meter" aria-label="${progress.points} village trust"><span style="width: ${progress.pct}%"></span></span><span class="map-trust-label">${progress.title} · ${progress.points} trust · ${next}</span>`;
+  }
+
   getPlanetMapConcept(index) {
     const planets = (typeof PLANETS !== 'undefined' && Array.isArray(PLANETS)) ? PLANETS : [];
     const planet = planets[index] || null;
@@ -1741,14 +1748,15 @@ class StarHopperGame {
           meta.innerHTML = `Locked · ${conceptChip}<span class="map-lock-hint">Recover previous shard</span>`;
         } else {
           const label = mastered ? "Mastered" : (clears > 0 ? `Clear ${clears}` : (index === 0 ? "Start" : "Unlocked"));
-          meta.innerHTML = `${label} · ${conceptChip}${this.renderMapStarMeter(index)}${this.renderMapMasteryMeter(index)}`;
+          meta.innerHTML = `${label} · ${conceptChip}${this.renderMapStarMeter(index)}${this.renderMapMasteryMeter(index)}${this.renderMapVillageTrustMeter(index)}`;
         }
       }
       const stars = this.getPlanetLabStarCount(index);
       const worldMastery = this.getWorldMasteryProgress(index);
+      const villageTrust = this.getVillageTrustProgress(index);
       const concept = this.getPlanetMapConcept(index);
       node.title = available
-        ? `${planets[index].name}: ${concept} · ${stars}/3 Lab Stars · ${worldMastery.title} (${worldMastery.xp} XP)${mastered ? " · Mastered" : (clears > 0 ? " · Mastery Remix ready" : "")}`
+        ? `${planets[index].name}: ${concept} · ${stars}/3 Lab Stars · ${worldMastery.title} (${worldMastery.xp} XP) · ${villageTrust.title} (${villageTrust.points} trust)${mastered ? " · Mastered" : (clears > 0 ? " · Mastery Remix ready" : "")}`
         : `${planets[index].name}: locked. Next concept: ${concept}. Recover the previous signal shard.`;
     });
     this.refreshFutureWorldTeasers();
