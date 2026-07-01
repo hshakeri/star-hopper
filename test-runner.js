@@ -8954,6 +8954,69 @@ function runCombatTests() {
     walkReturningVillagerHome(hiddenOff, hiddenNpc);
     assertEquals(150, hiddenNpc.x, "Survival-off walks a hidden villager back to the village home");
 
+    const rosterRelease = new StarHopperGame();
+    rosterRelease.state = 'playing'; rosterRelease.currentPlanetIndex = 1; rosterRelease.currentPlanet = PLANETS[1];
+    rosterRelease.currentVariant = {
+      map: [
+        [0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0],
+        [1,1,1,1,1,1,1,1]
+      ]
+    };
+    rosterRelease.canvas = { width: 720, height: 448 };
+    rosterRelease.player = new Player(64, 64);
+    rosterRelease.enemies = [];
+    rosterRelease.projectiles = [];
+    rosterRelease.spawnedBoxes = [];
+    rosterRelease.spawnedSprings = [];
+    rosterRelease.debris = [];
+    rosterRelease.meteors = [];
+    rosterRelease.researchXP = 0;
+    rosterRelease.masteryMeters = {};
+    const rosterNpcA = new NPC({ id: 'roster-a', name: 'Roster A', profession: 'Miner', type: 'npc', x: 82, y: 60, color: '#cbd5e1', homeX: 130, homeY: 60, caveX: 72, caveY: 60, hiddenInCave: true });
+    const rosterNpcB = new NPC({ id: 'roster-b', name: 'Roster B', profession: 'Guard', type: 'npc', x: 132, y: 60, color: '#a7f3d0', homeX: 180, homeY: 60, caveX: 122, caveY: 60, hiddenInCave: true });
+    [rosterNpcA, rosterNpcB].forEach(npc => {
+      npc.rescuePending = true;
+      npc.shelterReason = "nearby mob";
+    });
+    rosterRelease.interactiveObjects = [rosterNpcA, rosterNpcB];
+    rosterRelease.survivalMode = true;
+    rosterRelease.mobs = [new Mob(90, 60, 'hog', '#9a6b4f', 1)];
+    const rosterSummary = rosterRelease.toggleSurvival();
+    const releasedRoster = rosterRelease.interactiveObjects.filter(obj => obj instanceof NPC);
+    assertEquals(2, releasedRoster.length, "Survival-off keeps every villager object in the village roster");
+    assertEquals(2, rosterSummary && rosterSummary.released, "Survival-off daylight release reports every hidden villager");
+    assertEquals(true, releasedRoster.every(npc => !npc.hiddenInCave), "Survival-off daylight release makes all mob-hidden villagers visible");
+    assertEquals(true, releasedRoster.every(npc => !!npc.returningFromCave), "Survival-off daylight release sends all villagers walking back home");
+    rosterRelease.update();
+    assertEquals(2, rosterRelease.interactiveObjects.filter(obj => obj instanceof NPC).length, "Next full frame still keeps every released villager in the scene");
+    assertEquals(true, releasedRoster.every(npc => !npc.hiddenInCave), "Next full frame does not hide released villagers again when danger is gone");
+
+    const rosterNight = new StarHopperGame();
+    rosterNight.state = 'playing'; rosterNight.currentPlanetIndex = 0; rosterNight.currentPlanet = PLANETS[0];
+    rosterNight.player = new Player(0, 0);
+    rosterNight.getEarthDayNightPhase = () => ({ t: 0, daylight: 0.1, isDay: false, sunX: 0.1, sunY: 0.2 });
+    rosterNight.researchXP = 0;
+    rosterNight.masteryMeters = {};
+    const nightRosterNpcA = new NPC({ id: 'night-roster-a', name: 'Night Roster A', profession: 'Miner', type: 'npc', x: 120, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60 });
+    const nightRosterNpcB = new NPC({ id: 'night-roster-b', name: 'Night Roster B', profession: 'Guard', type: 'npc', x: 170, y: 60, color: '#a7f3d0', caveX: 122, caveY: 60 });
+    [nightRosterNpcA, nightRosterNpcB].forEach(npc => {
+      npc.rescuePending = true;
+      npc.shelterReason = "nearby mob";
+    });
+    rosterNight.interactiveObjects = [nightRosterNpcA, nightRosterNpcB];
+    rosterNight.survivalMode = true;
+    rosterNight.mobs = [new Mob(90, 60, 'hog', '#9a6b4f', 1)];
+    const nightRosterSummary = rosterNight.toggleSurvival();
+    const nightRoster = rosterNight.interactiveObjects.filter(obj => obj instanceof NPC);
+    assertEquals(2, nightRoster.length, "Survival-off night keeps every villager object in the village roster");
+    assertEquals(0, nightRosterSummary && nightRosterSummary.released, "Survival-off night reports no daylight villager release");
+    assertEquals(2, nightRosterSummary && nightRosterSummary.sheltered, "Survival-off night keeps every villager sheltered");
+    assertEquals(true, nightRoster.every(npc => npc.hiddenInCave), "Earth night sends all villagers into caves after Survival danger ends");
+    assertEquals(true, nightRoster.every(npc => npc.shelterReason === "night"), "Earth night owns the visible cave state after mobs clear");
+    assertEquals(true, nightRoster.every(npc => npc.rescueReason === "nearby mob"), "Earth night preserves each mob-rescue cause for daylight return");
+
     const fullFrameRelease = new StarHopperGame();
     fullFrameRelease.state = 'playing'; fullFrameRelease.currentPlanetIndex = 1; fullFrameRelease.currentPlanet = PLANETS[1];
     fullFrameRelease.currentVariant = {
