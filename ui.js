@@ -2702,6 +2702,16 @@ function getCadetPassportPortfolioText(game = window.Game) {
   return `Passport ${stamped.length}/${worlds.length} stamps · next ${nextName}`;
 }
 
+function getCadetDailyHabitPortfolioText(game = window.Game) {
+  const streak = Math.max(0, Math.floor(Number(game && game.streakCount) || 0));
+  if (streak <= 0) return "Daily Lab: start streak";
+  const focus = game && typeof game.getReturnStreakDailyFocus === "function"
+    ? game.getReturnStreakDailyFocus()
+    : null;
+  const focusTitle = focus && focus.title ? ` · ${focus.title}` : "";
+  return `Daily Streak d${streak}${focusTitle}`;
+}
+
 function getCadetIdentityPreview(game = window.Game) {
   const callsign = game && typeof game.getCadetCallsign === "function" ? game.getCadetCallsign() : "Cadet";
   const rank = typeof getResearchRank === "function"
@@ -2714,6 +2724,7 @@ function getCadetIdentityPreview(game = window.Game) {
   const story = typeof getSignalStoryProgress === "function" ? getSignalStoryProgress(game) : null;
   const transmissions = story ? `${story.unlocked.length}/${story.total} transmissions` : "0 transmissions";
   const labChain = getCadetLabChainPortfolioText(game);
+  const dailyHabit = getCadetDailyHabitPortfolioText(game);
   const passport = getCadetPassportPortfolioText(game);
   const futureLab = getCadetFutureLabPortfolioText(game);
   const village = game && typeof game.getVillageTrustProgress === "function" ? game.getVillageTrustProgress(game.currentPlanetIndex) : null;
@@ -2746,7 +2757,7 @@ function getCadetIdentityPreview(game = window.Game) {
   return {
     label: "CADET RECORD",
     title: `${callsign} // ${rank.title}`,
-    body: `${Math.round(rank.xp || 0)} XP · ${labChain} · ${passport} · ${formulas} · ${transmissions} · ${futureLab} · ${aiStates} · ${trust}`,
+    body: `${Math.round(rank.xp || 0)} XP · ${dailyHabit} · ${labChain} · ${passport} · ${formulas} · ${transmissions} · ${futureLab} · ${aiStates} · ${trust}`,
     progress: Math.max(0, Math.min(1, Number(rank.progress) || 0)),
     aiAction
   };

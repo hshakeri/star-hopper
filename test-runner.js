@@ -3663,6 +3663,8 @@ function runEngineTests() {
     game.confirmedHypotheses = new Set();
     game.discoveryPassCounts = {};
     game.discoveryCombo = 2;
+    game.streakCount = 3;
+    game.getReturnStreakDailyFocus = () => ({ title: "Mass remix proof" });
     game.getEarthDayNightPhase = () => ({ t: 0.5, daylight: 1, isDay: true, sunX: 0.5, sunY: 0.34 });
     updateResearchProgress(game);
     assertEquals(true, /NEXT LAB QUEST/.test(els["research-rank-card"].innerHTML), "Rank card should render the lab quest");
@@ -3673,6 +3675,7 @@ function runEngineTests() {
     assertEquals(true, /formula card/.test(els["start-mission-radar-reward"].textContent), "Start radar should show the quest reward");
     assertEquals("CADET RECORD", els["start-cadet-identity-label"].textContent, "Start radar should label the cadet record");
     assertEquals("🚀 Nova // Physics Tinkerer", els["start-cadet-identity-title"].textContent, "Start radar should name the active cadet and research rank");
+    assertEquals(true, /Daily Streak d3 · Mass remix proof/.test(els["start-cadet-identity-body"].textContent), "Cadet record should show the daily lab streak habit");
     assertEquals(true, /Lab Chain x2 -> TRIPLE TEST x3/.test(els["start-cadet-identity-body"].textContent), "Cadet record should show the active lab-chain milestone");
     assertEquals(true, /Passport 1\/6 stamps · next Moon/.test(els["start-cadet-identity-body"].textContent), "Cadet record should show Science Passport stamp progress");
     assertEquals(true, /1\/\d+ formulas/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include formula deck progress");
@@ -4076,6 +4079,8 @@ function runEngineTests() {
     game.planetClears = { 0: 1 };
     game.villageTrust = { 0: { points: 7, badges: ["friend", "ally"], sources: { "village-trade:0:geary:engine_1": 3, "village-rescue:0:geary": 4 } } };
     game.discoveryCombo = 2;
+    game.streakCount = 3;
+    game.getReturnStreakDailyFocus = () => ({ title: "Mass remix proof" });
     game.discoveryPulse = {
       code: "hopper.mass = 1.0",
       combo: 2,
@@ -4113,6 +4118,7 @@ function runEngineTests() {
     assertEquals(true, /3\/3 Lab Stars/.test(report.innerHTML), "Clear report should include the mastery star rating");
     assertEquals(true, /CADET RECORD/.test(report.innerHTML), "Clear report should include the named cadet record");
     assertEquals(true, /🚀 Nova \/\/ Physics Tinkerer/.test(report.innerHTML), "Clear report should show the cadet and research title");
+    assertEquals(true, /Daily Streak d3 · Mass remix proof/.test(report.innerHTML), "Clear report cadet record should show the daily lab streak habit");
     assertEquals(true, /Lab Chain x2 -&gt; TRIPLE TEST x3/.test(report.innerHTML), "Clear report cadet record should show the active lab-chain milestone");
     assertEquals(true, /Passport 1\/6 stamps · next Moon/.test(report.innerHTML), "Clear report cadet record should show Science Passport stamp progress");
     assertEquals(true, /1\/\d+ formulas/.test(report.innerHTML), "Clear report cadet record should show formula progress");
@@ -8456,6 +8462,8 @@ function runRetryRemixTests() {
     assertEquals(1, g.discoveryLog.length, "Daily streak reward enters the discovery log");
     assertEquals(true, /Rank Up: Variable Scout/.test(panel.innerHTML), "Discovery pulse should render the streak rank-up");
     assertEquals(true, /streak day 2/.test(panel.innerHTML), "Discovery pulse should use the custom streak progress label");
+    const streakCadetRecord = getCadetIdentityPreview(g);
+    assertEquals(true, /Daily Streak d2 · Mass remix proof/.test(streakCadetRecord.body), "Cadet Record should mirror the active daily lab streak and focus");
     assertEquals("+5 Research XP today", reward.textContent, "Start chip should show today's streak reward");
     g.lastReturnStreakReward = null;
     g.refreshStreakBanner();
