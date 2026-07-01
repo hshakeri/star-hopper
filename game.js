@@ -5755,6 +5755,7 @@ class StarHopperGame {
 
   // ---- MOB SURVIVAL ----------------------------------------------------------
   toggleSurvival() {
+    const wasSurvivalMode = this.survivalMode;
     this.survivalMode = !this.survivalMode;
     this.mobs = []; this.projectiles = [];
     this.survivalScore = 0; this.weaponLevel = 1; this.raveImmuneTimer = 0; this._raveMilestone = 0;
@@ -5774,7 +5775,10 @@ class StarHopperGame {
     } else {
       if (typeof SFX !== 'undefined' && SFX.stopSurvivalBGM) SFX.stopSurvivalBGM(this.currentPlanetIndex);
       if (typeof this.releaseVillagersFromCaves === 'function') {
-        shelterSync = this.releaseVillagersFromCaves();
+        shelterSync = this.releaseVillagersFromCaves({ survivalEnded: wasSurvivalMode });
+        if (shelterSync && !shelterSync.keepSheltered && typeof this.updateVillagerShelterStates === 'function') {
+          this.updateVillagerShelterStates();
+        }
         this.lastVillageShelterSync = shelterSync;
       }
       ui_log_output("Mob Survival off — back to engineering.", "info");
@@ -6276,12 +6280,17 @@ class StarHopperGame {
       }
     };
     addAnchor(npc.x + npc.w / 2, npc.y + npc.h / 2);
-    if (npc.hiddenInCave || npc.rescuePending || npc.shelterReason) {
-      const homeX = Number.isFinite(npc.homeX) ? npc.homeX : npc.x;
-      const homeY = Number.isFinite(npc.homeY) ? npc.homeY : npc.y;
-      addAnchor(homeX + npc.w / 2, homeY + npc.h / 2);
-    }
-    if (npc.hiddenInCave) addAnchor(npc.caveX + 16, npc.caveY + 18);
+    const homeX = Number.isFinite(npc.homeX) ? npc.homeX : npc.x;
+    const homeY = Number.isFinite(npc.homeY) ? npc.homeY : npc.y;
+    const homeCenterX = homeX + npc.w / 2;
+    const homeCenterY = homeY + npc.h / 2;
+    const caveX = Number.isFinite(npc.caveX) ? npc.caveX : homeX - 38;
+    const caveY = Number.isFinite(npc.caveY) ? npc.caveY : homeY;
+    const caveCenterX = caveX + 16;
+    const caveCenterY = caveY + 18;
+    addAnchor(homeCenterX, homeCenterY);
+    addAnchor(caveCenterX, caveCenterY);
+    addAnchor((homeCenterX + caveCenterX) / 2, (homeCenterY + caveCenterY) / 2);
     for (const m of this.mobs) {
       if (!m || m.pet) continue;
       const mx = m.x + m.w / 2;

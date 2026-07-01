@@ -8147,6 +8147,32 @@ function runCombatTests() {
     assertEquals(false, g.survivalMode, "Turning Survival off clears the wider warning state");
     assertEquals(false, earlyWarning.hiddenInCave, "Survival-off brings the early-warning villager back out");
 
+    const cavePathGame = new StarHopperGame();
+    cavePathGame.state = 'playing'; cavePathGame.currentPlanetIndex = 1; cavePathGame.currentPlanet = PLANETS[1];
+    cavePathGame.currentVariant = {
+      map: [
+        [0,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0],
+        [1,1,1,1,1,1,1,1,1,1]
+      ]
+    };
+    cavePathGame.player = new Player(0, 0);
+    cavePathGame.spawnedBoxes = [];
+    const pathNpc = new NPC({ id: 'path-watch', name: 'Path Watch', profession: 'Miner', type: 'npc', x: 300, y: 60, homeX: 300, homeY: 60, caveX: 120, caveY: 60, color: '#cbd5e1' });
+    const caveMouthMob = new Mob(128, 60, 'hog', '#9a6b4f', 1);
+    caveMouthMob.speed = 0; caveMouthMob.behaviorTimer = 999;
+    cavePathGame.interactiveObjects = [pathNpc];
+    cavePathGame.mobs = [caveMouthMob];
+    assertEquals(true, !!cavePathGame.getVillagerShelterSignal(pathNpc).threat, "A mob by the cave route counts as nearby village danger");
+    const beforePathRetreatX = pathNpc.x;
+    cavePathGame.updateVillagerShelterStates();
+    assertEquals(true, pathNpc.x < beforePathRetreatX, "Villager starts toward the cave when a mob blocks the cave route");
+    cavePathGame.mobs = [];
+    pathNpc.panicTimer = 0;
+    cavePathGame.updateVillagerShelterStates();
+    assertEquals(false, pathNpc.hiddenInCave, "Villager can come back out once the cave-route mob clears");
+
     const npc = new NPC({ id: 'caver', name: 'Caver', profession: 'Miner', type: 'npc', x: 100, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60 });
     const mob = new Mob(102, 60, 'hog', '#9a6b4f', 1);
     mob.speed = 0; mob.behaviorTimer = 999;
@@ -8246,6 +8272,25 @@ function runCombatTests() {
     assertEquals(null, g.grantVillageRescueReward(npc, "nearby mob"), "The same villager rescue cannot be farmed twice");
     assertEquals(7, g.researchXP, "Duplicate rescue credit does not add more Research XP");
     assertEquals(4, g.getVillageTrustProgress(1).points, "Duplicate rescue credit does not add more village trust");
+
+    const earthDayRelease = new StarHopperGame();
+    earthDayRelease.state = 'playing'; earthDayRelease.currentPlanetIndex = 0; earthDayRelease.currentPlanet = PLANETS[0];
+    earthDayRelease.player = new Player(0, 0);
+    earthDayRelease.researchXP = 0;
+    earthDayRelease.masteryMeters = {};
+    earthDayRelease.getEarthDayNightPhase = () => ({ t: 0.5, daylight: 1, isDay: true, sunX: 0.5, sunY: 0.34 });
+    const earthDayNpc = new NPC({ id: 'earth-day-release', name: 'Earth Day Release', profession: 'Miner', type: 'npc', x: 82, y: 60, homeX: 150, homeY: 60, caveX: 72, caveY: 60, hiddenInCave: true, color: '#cbd5e1' });
+    earthDayNpc.shelterReason = "night";
+    earthDayRelease.interactiveObjects = [earthDayNpc];
+    earthDayRelease.survivalMode = true;
+    earthDayRelease.mobs = [new Mob(90, 60, 'hog', '#9a6b4f', 1)];
+    const earthDaySummary = earthDayRelease.toggleSurvival();
+    assertEquals(false, earthDayRelease.survivalMode, "Earth daylight Survival-off turns the fight off");
+    assertEquals(false, earthDayNpc.hiddenInCave, "Earth daylight Survival-off keeps villagers visible instead of hiding them");
+    assertEquals(150, earthDayNpc.x, "Earth daylight Survival-off restores the villager to the village home");
+    assertEquals(1, earthDaySummary && earthDaySummary.released, "Earth daylight Survival-off reports the villager release");
+    assertEquals(0, earthDaySummary && earthDaySummary.sheltered, "Earth daylight Survival-off does not keep night shelter active");
+    assertEquals(true, earthDayRelease.canNPCTrade(earthDayNpc), "Earth daylight Survival-off restores trading");
 
     const midRetreat = new StarHopperGame();
     midRetreat.state = 'playing'; midRetreat.currentPlanetIndex = 1; midRetreat.currentPlanet = PLANETS[1];
