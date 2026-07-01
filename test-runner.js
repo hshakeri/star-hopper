@@ -3079,6 +3079,7 @@ function runEngineTests() {
     assertEquals(true, /hopper\.engine = 6/.test(nextCue.command), "Next experiment cue should keep the mission's target syntax");
     assertEquals(nextCue, game.lastScienceDelta.nextExperiment, "Next experiment cue should be pinned to the latest delta");
     assertEquals("ASSIGN", game.getCommandCodeSkillChip("hopper.mass = 1.2"), "Code-skill helper should identify assignments");
+    assertEquals("IF", game.getCommandCodeSkillChip("CODE if chance(100): player.say('path A')"), "Code-skill helper should ignore display prefixes before classification");
     assertEquals("LOOP", game.getCommandCodeSkillChip("repeat(3): spawn_block()"), "Code-skill helper should identify loops");
     assertEquals("IF", game.getCommandCodeSkillChip("if player.touching('ice'): friction = 8"), "Code-skill helper should identify conditionals");
     assertEquals("CALL", game.getCommandCodeSkillChip("use_hopper()"), "Code-skill helper should identify function calls");
@@ -3087,6 +3088,7 @@ function runEngineTests() {
     const runCue = game.getScienceDeltaRunCue();
     assertEquals("EVIDENCE", runCue.label, "In-run evidence ticker should label itself");
     assertEquals("CODE hopper.mass = 1.2", runCue.codeLine, "In-run evidence ticker should show the code line that caused the changed value");
+    assertEquals("ASSIGN", runCue.codeSkillChip, "In-run evidence ticker should name the coding construct behind the code line");
     assertEquals(true, /Mass:/.test(runCue.valueLine), "In-run evidence ticker should name the changed science value");
     assertEquals(true, /Less mass/.test(runCue.reasonLine), "In-run evidence ticker should preserve the science cue");
     assertEquals("F/m=a", runCue.formulaChip, "In-run evidence ticker should name the science relation behind the changed value");
@@ -3113,6 +3115,7 @@ function runEngineTests() {
     const drawnDeltaCue = game.drawScienceDeltaRunCue(fakeDeltaCtx);
     assertEquals("EVIDENCE", drawnDeltaCue.label, "Drawing should return the in-run evidence cue");
     assertEquals(true, deltaLabels.includes("EVIDENCE"), "Drawing should write the evidence ticker label");
+    assertEquals(true, deltaLabels.includes("ASSIGN"), "Drawing should write the evidence ticker coding construct chip");
     assertEquals(true, deltaLabels.includes("CODE hopper.mass = 1.2"), "Drawing should write the causal code line");
     assertEquals(true, deltaLabels.includes("F/m=a"), "Drawing should write the science relation chip");
     assertEquals(true, deltaLabels.includes("DELTA -1.3"), "Drawing should write the numeric delta chip");
@@ -3175,6 +3178,7 @@ function runEngineTests() {
     assertEquals(true, /Target chance 100/.test(chanceText), "Chance delta should show the target probability");
     assertEquals(true, /More trials reveal the pattern/.test(chanceText), "Chance delta should nudge repeated trials");
     const chanceRunCue = game.getScienceDeltaRunCue();
+    assertEquals("IF", chanceRunCue.codeSkillChip, "Probability evidence ticker should identify the conditional that produced the chance trial");
     assertEquals("", chanceRunCue.targetLine, "Probability-only experiments should not show an unrelated mission target line");
 
     const targetReadyLabels = [];

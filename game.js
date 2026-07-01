@@ -8034,7 +8034,7 @@ class StarHopperGame {
   }
 
   getCommandCodeSkillChip(commandLine = "") {
-    const line = String(commandLine || "").trim();
+    const line = String(commandLine || "").trim().replace(/^(CODE|TRY)\s+/i, "");
     if (!line) return "";
     if (/^(if|else\s+if)\b|\.touching\s*\(|\bwhen\b/i.test(line)) return "IF";
     if (/\brepeat\s*\(|\bfor\s*\(|\bwhile\s*\(|spawn_/i.test(line)) return "LOOP";
@@ -8660,6 +8660,7 @@ class StarHopperGame {
     const next = delta.nextExperiment || null;
     const formulaChip = this.getScienceDeltaFormulaChip(primary);
     const codeLine = this.getScienceDeltaCodeLine(delta, primary);
+    const codeSkillChip = this.getCommandCodeSkillChip(codeLine);
     const deltaChip = this.getScienceDeltaValueDelta(primary);
     const targetCue = this.getScienceDeltaTargetCue(delta);
     const predictionCue = this.getScienceDeltaPredictionCue(delta);
@@ -8667,6 +8668,7 @@ class StarHopperGame {
       label: "EVIDENCE",
       title: delta.summary || "What changed",
       codeLine,
+      codeSkillChip,
       predictionLine: predictionCue ? predictionCue.line : "",
       predictionColor: predictionCue ? predictionCue.color : "",
       valueLine: `${primary.label || "Value"}: ${primary.value || "changed"}`,
@@ -8898,9 +8900,26 @@ class StarHopperGame {
     ctx.textAlign = "left";
     let textY = y + 26;
     if (hasCode) {
+      const hasCodeSkill = !!cue.codeSkillChip;
+      const codeChipW = hasCodeSkill ? Math.max(34, Math.min(56, Math.ceil(12 + String(cue.codeSkillChip).length * 6))) : 0;
+      const codeTextX = hasCodeSkill ? x + 15 + codeChipW : x + 10;
+      if (hasCodeSkill) {
+        ctx.fillStyle = "rgba(14, 165, 233, 0.18)";
+        ctx.strokeStyle = "#67e8f9";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(x + 10, textY - 5, codeChipW, 9, 4);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#67e8f9";
+        ctx.font = "bold 5.8px 'Share Tech Mono', monospace";
+        ctx.textAlign = "center";
+        ctx.fillText(this.fitCardText(ctx, cue.codeSkillChip, codeChipW - 8), x + 10 + codeChipW / 2, textY - 0.5);
+        ctx.textAlign = "left";
+      }
       ctx.fillStyle = "#93c5fd";
       ctx.font = "bold 7px 'Share Tech Mono', monospace";
-      ctx.fillText(this.fitCardText(ctx, cue.codeLine, w - 20), x + 10, textY);
+      ctx.fillText(this.fitCardText(ctx, cue.codeLine, hasCodeSkill ? w - 25 - codeChipW : w - 20), codeTextX, textY);
       textY += 13;
     }
     if (hasPrediction) {
