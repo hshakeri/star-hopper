@@ -523,7 +523,7 @@ function appendLessonLensCard(listContainer, game) {
 
   const selectedPrediction = game.coachPredictions ? game.coachPredictions[activeMission.id] : null;
   const needsPrediction = !!(fullMission.prediction && !selectedPrediction);
-  const starterCode = buildNextExperimentCommand(fullMission);
+  const starterCode = buildNextExperimentCommand(fullMission, null, game);
   if (fullMission.prediction || starterCode) {
     const action = document.createElement("button");
     action.type = "button";
@@ -936,9 +936,9 @@ function getMissionMentorSignal(game) {
   const target = getActiveFormulaTarget(game, activeMission);
   let rule = target || null;
   if (!rule) {
-    const template = activeMission && activeMission.fullMission && activeMission.fullMission.scaffold
-      ? activeMission.fullMission.scaffold.template
-      : "";
+    const fullMission = activeMission && activeMission.fullMission ? activeMission.fullMission : null;
+    const scaffold = fullMission && fullMission.scaffold ? scaffoldWithActiveSlots(fullMission.scaffold, game, fullMission) : null;
+    const template = scaffold && scaffold.template ? scaffold.template : "";
     const missionRule = DISCOVERY_RULES
       .map(candidate => ({ candidate, index: patternIndexInText(candidate, template) }))
       .filter(item => item.index >= 0)
@@ -1170,7 +1170,7 @@ function getLabChainTarget(game) {
     body = fullMission.scaffold && (fullMission.scaffold.codeIdea || fullMission.scaffold.physicsIdea)
       ? (fullMission.scaffold.codeIdea || fullMission.scaffold.physicsIdea)
       : (fullMission.beginnerConcept || body);
-    command = typeof buildNextExperimentCommand === 'function' ? buildNextExperimentCommand(fullMission) : (fullMission.starterCode || "");
+    command = typeof buildNextExperimentCommand === 'function' ? buildNextExperimentCommand(fullMission, null, game) : (fullMission.starterCode || "");
   }
 
   if (!earned) {
@@ -2272,7 +2272,7 @@ function updateResearchProgress(game = window.Game) {
       deck.innerHTML = `
         <div class="formula-collection-head">
           <strong>Formula Cards ${collection.unlocked.length}/${collection.cards.length}</strong>
-          <span>${target ? `Next: ${escapeHTML(target.title)}` : "Deck complete"}</span>
+          <span>${target ? `Next: ${escapeHTML(target.title)}` : (collection.locked.length ? "Next formula appears after this step" : "Deck complete")}</span>
         </div>
         ${focusCard}
         ${collection.cards.map(card => `
@@ -2503,17 +2503,66 @@ function patternIndexInText(rule, text) {
   return m && Number.isFinite(m.index) ? m.index : -1;
 }
 
+function missionResultCheckPassed(game, fullMission, checkId) {
+  if (!game || !fullMission || !checkId || !Array.isArray(fullMission.resultChecks)) return false;
+  const check = fullMission.resultChecks.find(item => item && item.id === checkId);
+  if (!check || typeof check.check !== 'function') return false;
+  try {
+    return !!check.check(game, Compiler);
+  } catch (err) {
+    return false;
+  }
+}
+
+function getActiveScaffoldSlots(scaffold, game = null, fullMission = null) {
+  const slots = scaffold && Array.isArray(scaffold.slots) ? scaffold.slots : [];
+  if (!slots.length || !game || !fullMission) return slots.slice();
+  return slots.filter(slot => !slot.unlockAfterCheck || missionResultCheckPassed(game, fullMission, slot.unlockAfterCheck));
+}
+
+function scaffoldWithActiveSlots(scaffold, game = null, fullMission = null) {
+  if (!scaffold) return scaffold;
+  const activeSlots = getActiveScaffoldSlots(scaffold, game, fullMission);
+  if (!Array.isArray(scaffold.slots) || activeSlots.length === scaffold.slots.length) {
+    return scaffold;
+  }
+  const activeIds = new Set(activeSlots.map(slot => slot.id));
+  const lines = String(scaffold.template || "").split("\n").filter(line => {
+    const matches = Array.from(line.matchAll(/\{([^}]+)\}/g));
+    return !matches.length || matches.some(match => activeIds.has(match[1]));
+  });
+  return {
+    ...scaffold,
+    template: lines.join("\n"),
+    slots: activeSlots
+  };
+}
+
+function getHiddenScaffoldTemplate(scaffold, activeScaffold) {
+  if (!scaffold || !Array.isArray(scaffold.slots) || !activeScaffold || !Array.isArray(activeScaffold.slots)) return "";
+  const activeIds = new Set(activeScaffold.slots.map(slot => slot.id));
+  return String(scaffold.template || "").split("\n").filter(line => {
+    const matches = Array.from(line.matchAll(/\{([^}]+)\}/g));
+    return matches.length && matches.every(match => !activeIds.has(match[1]));
+  }).join("\n");
+}
+
 function getActiveFormulaTarget(game, activeMission = null) {
   const collection = getFormulaCollection(game);
   if (!collection.locked.length) return null;
   const mission = activeMission || (typeof getActivePlatformerMission === 'function' ? getActivePlatformerMission(game) : null);
-  const scaffold = mission && mission.fullMission && mission.fullMission.scaffold ? mission.fullMission.scaffold : null;
+  const fullMission = mission && mission.fullMission ? mission.fullMission : null;
+  const scaffold = fullMission && fullMission.scaffold ? scaffoldWithActiveSlots(fullMission.scaffold, game, fullMission) : null;
   const template = scaffold && scaffold.template ? scaffold.template : "";
+  const hiddenTemplate = fullMission && fullMission.scaffold && scaffold
+    ? getHiddenScaffoldTemplate(fullMission.scaffold, scaffold)
+    : "";
   const missionCards = collection.locked
     .map(card => ({ card, index: patternIndexInText(card, template) }))
     .filter(item => item.index >= 0)
     .sort((a, b) => a.index - b.index);
-  return missionCards.length ? missionCards[0].card : collection.nextLocked;
+  if (missionCards.length) return missionCards[0].card;
+  return collection.locked.find(card => patternIndexInText(card, hiddenTemplate) < 0) || null;
 }
 
 function renderFormulaFocusCard(collection, target) {
@@ -3013,12 +3062,13 @@ function updateFormulaTarget(game) {
   const target = getActiveFormulaTarget(game);
   if (!target) {
     panel.classList.remove("hidden");
+    const hasHiddenNext = collection.locked && collection.locked.length > 0;
     panel.innerHTML = `
       <div class="formula-target-head">
         <span>FORMULA DECK</span>
-        <strong>Complete</strong>
+        <strong>${hasHiddenNext ? `${collection.unlocked.length}/${collection.cards.length}` : "Complete"}</strong>
       </div>
-      <div class="formula-target-body">All formula cards collected. Keep experimenting for better ranks and mastery clears.</div>
+      <div class="formula-target-body">${hasHiddenNext ? "Finish the current mission step to reveal the next formula card." : "All formula cards collected. Keep experimenting for better ranks and mastery clears."}</div>
     `;
     return;
   }
@@ -4228,7 +4278,8 @@ function renderScaffoldEditor(game, mission) {
   const container = document.getElementById("mission-scaffold");
   if (!container) return;
   const fullMission = mission && mission.fullMission;
-  const scaffold = fullMission ? fullMission.scaffold : null;
+  const rootScaffold = fullMission ? fullMission.scaffold : null;
+  const scaffold = rootScaffold ? scaffoldWithActiveSlots(rootScaffold, game, fullMission) : null;
   if (!scaffold) { container.innerHTML = ""; return; }
   container.innerHTML = "";
 
@@ -4281,6 +4332,7 @@ function renderScaffoldEditor(game, mission) {
     game.coachSlot = { missionId: mission.id, index: 0, setupDone: false, advancing: false };
   }
   const state = game.coachSlot;
+  if (state.index > slots.length) state.index = slots.length;
 
   const makeDots = () => {
     const dots = document.createElement("div");
@@ -4388,7 +4440,7 @@ function renderScaffoldEditor(game, mission) {
       state.setupDone = true;
     }
     runCoachCode(game, code);
-    state.index += 1;
+    if (isSlotAlreadySet(game, varName, Number(slot.value), slot)) state.index += 1;
     updatePedagogicalGuide(game);
   });
   const editBtn = document.createElement("button");
@@ -4738,14 +4790,30 @@ function buildScienceDelta(game, before, after, code) {
   };
 }
 
-function buildNextExperimentCommand(fullMission, failed = null) {
+function buildNextExperimentCommand(fullMission, failed = null, game = null) {
   if (!fullMission) return "";
-  const scaffold = fullMission.scaffold || null;
+  const scaffold = fullMission.scaffold ? scaffoldWithActiveSlots(fullMission.scaffold, game, fullMission) : null;
   if (scaffold && scaffold.template) {
     const setupLines = coachSetupLines(scaffold);
     const failedText = `${failed && failed.id ? failed.id : ""} ${failed && failed.label ? failed.label : ""} ${failed && failed.message ? failed.message : ""}`;
     if (/activate|active|use_hopper|use_rover/i.test(failedText) && setupLines.length) {
       return setupLines.join("\n");
+    }
+    if (failed && failed.id && Array.isArray(scaffold.slots)) {
+      const slot = scaffold.slots.find(item => item && item.resultCheckId === failed.id);
+      if (slot) {
+        const assignment = coachAssignment(scaffold, slot, slot.correctValue !== undefined ? slot.correctValue : slot.value);
+        if (setupLines.length && scaffold.slots.indexOf(slot) === 0) return `${setupLines.join("\n")}\n${assignment}`;
+        return assignment;
+      }
+    }
+    if (game && Array.isArray(scaffold.slots)) {
+      const nextSlot = scaffold.slots.find(slot => slot && slot.resultCheckId && !missionResultCheckPassed(game, fullMission, slot.resultCheckId));
+      if (nextSlot) {
+        const assignment = coachAssignment(scaffold, nextSlot, nextSlot.correctValue !== undefined ? nextSlot.correctValue : nextSlot.value);
+        if (setupLines.length && scaffold.slots.indexOf(nextSlot) === 0) return `${setupLines.join("\n")}\n${assignment}`;
+        return assignment;
+      }
     }
     const values = typeof getCorrectedScaffoldValues === 'function' ? getCorrectedScaffoldValues(scaffold) : {};
     return buildScaffoldCode(scaffold, values);
@@ -4821,7 +4889,7 @@ function buildNextExperimentCue(game, resultState = null, activeMission = null) 
       kind: "check",
       title: failed.label || "Fix the next check",
       body: failed.message || "Tune one value, run it, and watch what changes.",
-      command: buildNextExperimentCommand(fullMission, failed)
+      command: buildNextExperimentCommand(fullMission, failed, game)
     };
   }
 
@@ -4834,7 +4902,7 @@ function buildNextExperimentCue(game, resultState = null, activeMission = null) 
       kind: "gems",
       title: `Unlock ${locked} mission gem${locked === 1 ? "" : "s"}`,
       body: gate && gate.label ? gate.label : "Run one focused code tweak, then collect the samples.",
-      command: buildNextExperimentCommand(fullMission)
+      command: buildNextExperimentCommand(fullMission, null, game)
     };
   }
 
@@ -4847,7 +4915,7 @@ function buildNextExperimentCue(game, resultState = null, activeMission = null) 
       kind: "requirements",
       title: "Finish the active requirement",
       body,
-      command: buildNextExperimentCommand(fullMission)
+      command: buildNextExperimentCommand(fullMission, null, game)
     };
   }
 

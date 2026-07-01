@@ -432,8 +432,8 @@ const PlatformerMissions = [
       mode: "fill-values",
       template: "use_hopper()\nhopper.mass = {mass}\nelasticity = {elasticity}",
       slots: [
-        { id: "mass", label: "mass override", value: "4.0", dir: ">=", hint: "First tweak: make Hopper heavy so one collision has more momentum." },
-        { id: "elasticity", label: "elasticity", value: "1.0", hint: "Second tweak: after the shove works, make later collisions bounce cleanly." }
+        { id: "mass", label: "mass override", value: "4.0", dir: ">=", resultCheckId: "asteroid-mass-check", hint: "First tweak: make Hopper heavy so one collision has more momentum." },
+        { id: "elasticity", label: "elasticity", value: "1.0", dir: ">=", resultCheckId: "asteroid-elasticity-check", unlockAfterCheck: "asteroid-mass-check", lockedHint: "First prove the mass shove; then the bounce control appears.", hint: "Second tweak: after the shove works, make later collisions bounce cleanly." }
       ],
       explain: "Mass gives the first simple win: bigger momentum for a stronger shove. Elasticity comes next as the bounce-control variable.",
       parentPrompt: "What changed after mass was set, before elasticity was added?",

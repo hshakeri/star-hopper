@@ -846,6 +846,44 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Objectives: Forge gates introduce mass before elasticity", false, err.message);
   }
 
+  // Test 17c1: Forge coaching keeps the second variable hidden until the mass shove
+  // is proven, so the first success is one obvious code tweak.
+  try {
+    Compiler.reset();
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[5];
+    game.currentPlanetIndex = 5;
+    game.player = { charType: 'hopper', jumpPower: 10, rocketPower: 40, mass: 2.5, spikes: false };
+    game.hopperMass = 2.5;
+    const forgeMission = PlatformerMissions.find(mission => mission.id === "asteroid-forge-momentum");
+    const activeMission = { id: "asteroid-forge-momentum", fullMission: forgeMission };
+
+    const phaseOne = scaffoldWithActiveSlots(forgeMission.scaffold, game, forgeMission);
+    assertEquals(1, phaseOne.slots.length, "Forge phase one should expose only one scaffold slot");
+    assertEquals("mass", phaseOne.slots[0].id, "Forge phase one should expose mass first");
+    assertEquals(false, /elasticity/.test(phaseOne.template), "Forge phase one scaffold should not include elasticity");
+    assertEquals("use_hopper()\nhopper.mass = 4.0", buildNextExperimentCommand(forgeMission, null, game), "Forge first stage command should be mass-only");
+    const phaseOneState = evaluateMissionResultChecks(game, forgeMission);
+    const phaseOneCue = buildNextExperimentCue(game, phaseOneState, activeMission);
+    assertEquals(false, /elasticity/.test(phaseOneCue.command), "Forge next cue should not stage elasticity before mass passes");
+
+    game.discoveredFormulaKinds = new Set(DISCOVERY_RULES.map(rule => rule.kind).filter(kind => kind !== "elasticity"));
+    assertEquals(null, getActiveFormulaTarget(game, activeMission), "Hidden Forge elasticity should not become the active formula target early");
+
+    game.player.mass = 4.0;
+    game.hopperMass = 4.0;
+    const phaseTwo = scaffoldWithActiveSlots(forgeMission.scaffold, game, forgeMission);
+    assertEquals(2, phaseTwo.slots.length, "Forge phase two reveals the bounce slot after mass passes");
+    assertEquals("elasticity", phaseTwo.slots[1].id, "Forge phase two exposes elasticity second");
+    assertEquals("elasticity = 1.0", buildNextExperimentCommand(forgeMission, null, game), "Forge second stage command should be elasticity-only");
+    const phaseTwoState = evaluateMissionResultChecks(game, forgeMission);
+    const phaseTwoCue = buildNextExperimentCue(game, phaseTwoState, activeMission);
+    assertEquals("elasticity = 1.0", phaseTwoCue.command, "Forge next cue should stage elasticity after the mass proof");
+    renderTestResult("engine-suite", "Curriculum: Forge coach phases mass before elasticity", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Curriculum: Forge coach phases mass before elasticity", false, err.message);
+  }
+
   // Test 17c2: Earth no-jump replay locks gems unless Agility is met with stock jump_power.
   try {
     Compiler.reset();
