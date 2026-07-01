@@ -1604,6 +1604,13 @@ const SIGNAL_STORY_CHAPTERS = [
     body: "A Frontier record bends the restored map toward Dark Matter Lab and Quantum Gate. The next science is reading an invisible force from the way a path curves."
   },
   {
+    id: "anomaly-trace",
+    title: "Hidden Force Trace",
+    concept: "Prototype invisible-force rules",
+    unlock: (game) => hasClearedFullStarMap(game) && hasFrontierStoryCredit(game) && hasAnomalyTraceStoryCredit(game),
+    body: "The Mag-Net prototype proves the cadet can test an invisible field with one focused event rule before Dark Matter Lab opens."
+  },
+  {
     id: "mastery-remix",
     title: "Remix Key",
     concept: "Evidence survives a new layout",
@@ -1667,6 +1674,11 @@ const SIGNAL_STORY_CONTRACTS = {
     body: "Run a restored-world remix and bank a stars/time record so Vector can triangulate the hidden-force anomaly.",
     reward: "Reward: Dark Matter Echo"
   },
+  "anomaly-trace": {
+    title: "Run Trace hidden force",
+    body: "Stage the Mag-Net touch-event prototype and run the exact hidden-force command.",
+    reward: "Reward: Hidden Force Trace"
+  },
   "mastery-remix": {
     title: "Earn one 3-star mastery",
     body: "Replay a cleared world with tasks, samples, and science proof all complete.",
@@ -1708,6 +1720,17 @@ function hasFrontierStoryCredit(game) {
     }
   }
   return !!(game.frontierRecords && Object.keys(game.frontierRecords).length > 0);
+}
+
+function hasAnomalyTraceStoryCredit(game) {
+  if (!game) return false;
+  const hasTraceSource = (sources) => !!(sources && typeof sources === 'object' && Object.keys(sources)
+    .some(source => String(source).indexOf("anomaly-trace-proof:") === 0 && Number(sources[source]) > 0));
+  if (hasTraceSource(game.discoveryPassCounts)) return true;
+  if (game.masteryMeters && typeof game.masteryMeters === 'object') {
+    return Object.values(game.masteryMeters).some(meter => hasTraceSource(meter && meter.sources));
+  }
+  return false;
 }
 
 function hasVillageRescueStoryCredit(game) {
@@ -2233,8 +2256,9 @@ function getActiveLabQuest(game) {
     };
   }
 
+  const anomalyAlreadyTraced = typeof hasAnomalyTraceStoryCredit === 'function' && hasAnomalyTraceStoryCredit(game);
   if (typeof hasClearedFullStarMap === 'function' && typeof hasFrontierStoryCredit === 'function' &&
-      hasClearedFullStarMap(game) && hasFrontierStoryCredit(game)) {
+      hasClearedFullStarMap(game) && hasFrontierStoryCredit(game) && !anomalyAlreadyTraced) {
     return {
       kicker: "NEXT LAB QUEST",
       title: "Trace hidden force",
@@ -2909,6 +2933,9 @@ function getAnomalyTraceProofCandidate(game, code) {
 function awardAnomalyTraceProof(game, code, pulse = null) {
   const proof = getAnomalyTraceProofCandidate(game, code);
   if (!proof) return null;
+  const storyBeforeIds = typeof game.getUnlockedSignalStoryIds === 'function'
+    ? game.getUnlockedSignalStoryIds()
+    : null;
   game.discoveryPassCounts = game.discoveryPassCounts || {};
   if (game.discoveryPassCounts[proof.sourceKey]) return null;
 
@@ -2958,6 +2985,14 @@ function awardAnomalyTraceProof(game, code, pulse = null) {
     worldMasteryAddedXP: mastery && Number.isFinite(mastery.addedXP) ? mastery.addedXP : 0,
     sourceKey: proof.sourceKey
   };
+  if (storyBeforeIds && typeof game.getNewSignalStoryChapters === 'function') {
+    const storyUnlocks = game.getNewSignalStoryChapters(storyBeforeIds);
+    const traceChapter = storyUnlocks.find(chapter => chapter && chapter.id === "anomaly-trace") || null;
+    if (traceChapter && typeof game.spawnSignalStoryUnlockEffect === 'function') {
+      game.lastSignalStoryUnlocks = storyUnlocks;
+      proofResult.signalStoryUnlock = game.spawnSignalStoryUnlockEffect(traceChapter);
+    }
+  }
   if (pulse) {
     pulse.rewardXP = Math.max(0, (pulse.rewardXP || 0) + rewardXP);
     pulse.anomalyTraceProof = proofResult;

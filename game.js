@@ -1526,17 +1526,27 @@ class StarHopperGame {
     const frontierDecoded = typeof hasFrontierStoryCredit === 'function'
       ? hasFrontierStoryCredit(this)
       : !!(this.frontierRecords && Object.keys(this.frontierRecords).length > 0);
+    const anomalyTraced = typeof hasAnomalyTraceStoryCredit === 'function'
+      ? hasAnomalyTraceStoryCredit(this)
+      : false;
     const concept = id === "quantum-gate"
       ? "Branching & probability"
       : "Infer hidden forces";
     const chip = `<span class="map-concept-chip">${safe(concept)}</span>`;
 
     if (id === "quantum-gate") {
-      if (frontierDecoded) {
+      if (anomalyTraced) {
         return {
           className: "anomaly-decoded",
-          metaHTML: `GATE TRACE · ${chip}<span class="map-lock-hint">Next: Dark Matter Lab</span>`,
-          title: "Quantum Gate: signal source traced. Concept: branching and probability. Decode Dark Matter Lab first."
+          metaHTML: `FORCE TRACED · ${chip}<span class="map-lock-hint">Next: Dark Matter Lab</span>`,
+          title: "Quantum Gate: hidden-force trace logged. Decode Dark Matter Lab before branching into probability."
+        };
+      }
+      if (frontierDecoded) {
+        return {
+          className: "anomaly-waiting",
+          metaHTML: `TRACE NEEDED · ${chip}<span class="map-lock-hint">Run Trace hidden force</span>`,
+          title: "Quantum Gate: echo decoded, but the hidden-force trace must be tested before the source opens."
         };
       }
       if (storyComplete) {
@@ -1553,11 +1563,18 @@ class StarHopperGame {
       };
     }
 
+    if (anomalyTraced) {
+      return {
+        className: "anomaly-decoded",
+        metaHTML: `SOURCE TRACED · ${chip}<span class="map-lock-hint">Future lab: curve clues</span>`,
+        title: "Dark Matter Lab: hidden-force trace logged with a Mag-Net prototype. Future lab under construction."
+      };
+    }
     if (frontierDecoded) {
       return {
         className: "anomaly-decoded",
-        metaHTML: `ECHO DECODED · ${chip}<span class="map-lock-hint">Future lab: curve clues</span>`,
-        title: "Dark Matter Lab: Echo decoded. Concept: infer hidden forces from curved motion. Future lab under construction."
+        metaHTML: `ECHO DECODED · ${chip}<span class="map-lock-hint">Next: Trace hidden force</span>`,
+        title: "Dark Matter Lab: Echo decoded. Run the Mag-Net trace prototype to prove hidden-force inference."
       };
     }
     if (storyComplete) {
