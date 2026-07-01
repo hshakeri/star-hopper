@@ -7584,6 +7584,10 @@ function runEngineTests() {
     assertEquals(true, /OK Mission tasks/.test(text), "Contract should credit completed mission tasks");
     assertEquals(true, /NEXT Mission gems/.test(text), "Contract should show missing gem star");
     assertEquals(true, /OK Science proof/.test(text), "Contract should credit science proof");
+    assertEquals(true, /NEXT STAR TARGET/.test(text), "Contract should spotlight the next missing Lab Star");
+    assertEquals(true, /Collect mission gems/.test(text), "Contract target should name the missing gem action");
+    assertEquals(true, /Read gate -> tune code -> collect/.test(text), "Contract target should show the next code loop");
+    assertEquals(true, /3\/3 Lab Stars/.test(text), "Contract target should show the next star payoff");
 
     list = makeEl();
     game.remixContext = 'first';

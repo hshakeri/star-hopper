@@ -2776,6 +2776,31 @@ function appendLabStarContract(listContainer, game) {
     goals.appendChild(goal);
   });
   contract.appendChild(goals);
+
+  const target = typeof game.getClearLabStarTarget === "function"
+    ? game.getClearLabStarTarget(summary)
+    : null;
+  if (target) {
+    const targetCard = document.createElement("div");
+    const targetId = String(target.id || "star").replace(/[^a-z0-9_-]+/gi, "-").toLowerCase();
+    targetCard.className = `lab-star-contract-target ${targetId}`;
+
+    const targetLabel = document.createElement("span");
+    targetLabel.textContent = target.label || "NEXT STAR TARGET";
+
+    const targetTitle = document.createElement("strong");
+    targetTitle.textContent = target.title || target.missingLabel || "Finish missing star";
+
+    const targetAction = document.createElement("em");
+    const action = target.action || "Try -> compare -> improve";
+    targetAction.textContent = target.reward ? `${action} - ${target.reward}` : action;
+
+    targetCard.appendChild(targetLabel);
+    targetCard.appendChild(targetTitle);
+    targetCard.appendChild(targetAction);
+    contract.appendChild(targetCard);
+  }
+
   listContainer.appendChild(contract);
 }
 

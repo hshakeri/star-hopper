@@ -8210,6 +8210,53 @@ html {
   background: rgba(34, 197, 94, 0.1);
 }
 
+.lab-star-contract-target {
+  border: 1px solid rgba(125, 211, 252, 0.28);
+  border-radius: 5px;
+  background: rgba(8, 47, 73, 0.32);
+  box-shadow: inset 0 0 10px rgba(14, 165, 233, 0.08);
+  margin-top: 6px;
+  padding: 5px 6px;
+}
+
+.lab-star-contract-target span,
+.lab-star-contract-target em {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.53rem;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.25;
+}
+
+.lab-star-contract-target span {
+  color: #7dd3fc;
+}
+
+.lab-star-contract-target strong {
+  display: block;
+  color: #ecfeff;
+  font-size: 0.64rem;
+  line-height: 1.18;
+  margin-top: 2px;
+}
+
+.lab-star-contract-target em {
+  color: #fde68a;
+  margin-top: 2px;
+}
+
+.lab-star-contract-target.gems {
+  border-color: rgba(52, 211, 153, 0.34);
+  background: rgba(6, 78, 59, 0.28);
+}
+
+.lab-star-contract-target.science {
+  border-color: rgba(196, 181, 253, 0.34);
+  background: rgba(46, 16, 101, 0.24);
+}
+
 .mission-coach-panel {
   border-color: rgba(56, 189, 248, 0.26);
   background: rgba(56, 189, 248, 0.035);
