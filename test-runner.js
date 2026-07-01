@@ -3294,6 +3294,14 @@ function runEngineTests() {
     assertEquals("VECTOR", cue.scene && cue.scene.speaker, "Dark Matter prep cue should carry the Vector source scene");
     assertEquals("Hidden-force case file", cue.scene && cue.scene.title, "Dark Matter prep cue should name the hidden-force story payoff");
     assertEquals(true, /unseen force/.test(cue.scene.lesson), "Dark Matter prep cue should include the science takeaway");
+    assertEquals("VECTOR", cue.transmission && cue.transmission.speaker, "Dark Matter prep cue should speak through Vector");
+    assertEquals(true, /curve evidence/.test(cue.transmission && cue.transmission.line), "Dark Matter prep transmission should point at the active evidence move");
+    assertEquals("3/6 seeds", cue.transmission && cue.transmission.proofCount, "Dark Matter prep transmission should carry proof ladder context");
+    g.getRunTimeSeconds = () => 20;
+    const rotatedCue = g.getFutureLabRunCue();
+    assertEquals(1, rotatedCue.transmission && rotatedCue.transmission.variantIndex, "Future-lab transmissions should rotate during a longer active run");
+    assertEquals(true, /one variable|Same route/.test(rotatedCue.transmission && rotatedCue.transmission.line), "Rotated Dark Matter line should stay tied to one-variable evidence");
+    g.getRunTimeSeconds = StarHopperGame.prototype.getRunTimeSeconds.bind(g);
 
     g.dailyInfo = null;
     g.discoveryPassCounts = {};
@@ -3305,6 +3313,7 @@ function runEngineTests() {
     assertEquals("hidden-force-trace", cue.progress.nextId, "Anomaly trace cue should point at the hidden-force proof");
     assertEquals("TRACE BRIEF", cue.scene && cue.scene.label, "Anomaly trace cue should use a trace briefing scene");
     assertEquals(true, /touch event/.test(cue.scene.lesson), "Anomaly trace cue should connect event code to hidden-force evidence");
+    assertEquals(true, /magnet|field/i.test(cue.transmission && cue.transmission.line), "Anomaly transmission should name the visible detector clue");
 
     g.discoveryPassCounts = {
       "anomaly-trace-proof:4:trace-hidden-force:test": 1,
@@ -3320,6 +3329,7 @@ function runEngineTests() {
     assertEquals(true, /Branch Lab card/.test(cue.progress.nextReward), "Quantum branch cue should preview the formula-card payoff");
     assertEquals("Quantum Gate wakes", cue.scene && cue.scene.title, "Quantum branch cue should carry the gate-wakes scene");
     assertEquals(true, /condition/.test(cue.scene.lesson), "Quantum branch cue should include the conditional coding payoff");
+    assertEquals(true, /branch|condition/.test(cue.transmission && cue.transmission.line), "Quantum branch transmission should reinforce conditional branching");
 
     g.discoveryPassCounts = {
       ...g.discoveryPassCounts,
@@ -3334,6 +3344,8 @@ function runEngineTests() {
     assertEquals("quantum-chance", cue.progress.nextId, "Quantum chance cue should point at the probability seed");
     assertEquals("HOPPER-ZERO", cue.scene && cue.scene.speaker, "Quantum chance cue should carry the Hopper-Zero scene");
     assertEquals(true, /probability|chance/.test(cue.scene.lesson), "Quantum chance cue should include the probability takeaway");
+    assertEquals("HOPPER-ZERO", cue.transmission && cue.transmission.speaker, "Quantum chance transmission should use Hopper-Zero's voice");
+    assertEquals(true, /chance|trials|pattern/.test(cue.transmission && cue.transmission.line), "Quantum chance transmission should teach repeated trials");
 
     g.discoveryPassCounts = {
       ...g.discoveryPassCounts,
@@ -3351,6 +3363,7 @@ function runEngineTests() {
     assertEquals("HOPPER-ZERO", cue.scene && cue.scene.speaker, "Source rehearsal cue should carry the Hopper-Zero source scene");
     assertEquals("The source key hums", cue.scene && cue.scene.title, "Source rehearsal cue should name the source-key payoff");
     assertEquals(true, /hidden forces plus probability/.test(cue.scene.lesson), "Source rehearsal cue should combine hidden-force and probability ideas");
+    assertEquals(true, /Hidden-force clues|force evidence/.test(cue.transmission && cue.transmission.line), "Source rehearsal transmission should connect force and probability evidence");
 
     g.state = 'start';
     assertEquals(null, g.getFutureLabRunCue(), "Future-lab cue should stay out of the start screen");

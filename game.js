@@ -7777,12 +7777,73 @@ class StarHopperGame {
     return fallback[key] || null;
   }
 
+  getFutureLabRunTransmission(cue) {
+    if (!cue) return null;
+    const label = cue.label ? String(cue.label) : "";
+    const speaker = cue.scene && cue.scene.speaker
+      ? cue.scene.speaker
+      : (cue.mode === "chance" ? "HOPPER-ZERO" : "VECTOR");
+    const stageKey = cue.progress && cue.progress.nextId ? cue.progress.nextId : label.toLowerCase();
+    const variantsByStage = {
+      "hidden-force-trace": [
+        "Touch the magnet, watch motion bend, then name the unseen field.",
+        "The event rule is your detector: contact first, force clue second.",
+        "A field you cannot see still leaves a motion trail."
+      ],
+      "dark-matter-evidence": [
+        "Do not guess the force; trap it with curve evidence.",
+        "Same route, one variable, compare the bend.",
+        "If motion bends without a visible push, log the hidden pull."
+      ],
+      "quantum-branch": [
+        "A branch is a decision, not magic; prove which condition opens it.",
+        "Set the state, run the if rule, then watch which path answers.",
+        "One condition can split the same world into two testable routes."
+      ],
+      "quantum-chance": [
+        "One chance call is a clue; repeated trials reveal the pattern.",
+        "Random does not mean unknowable; count the wins and compare the rate.",
+        "The source needs a measured pattern, not one lucky branch."
+      ],
+      "future-source-key": [
+        "Hidden-force clues and probability now point at the same source.",
+        "The key holds when force evidence and chance evidence agree.",
+        "Run the rehearsal like a scientist: compare, explain, then lock the source."
+      ]
+    };
+    const variants = variantsByStage[stageKey] || [
+      "One fresh run, one clear variable, one stronger proof."
+    ];
+    const elapsed = typeof this.getRunTimeSeconds === 'function' ? this.getRunTimeSeconds() : 0;
+    const bucket = Math.max(0, Math.floor((Number(elapsed) || 0) / 18));
+    const index = variants.length ? bucket % variants.length : 0;
+    const proofCount = cue.progress && Number.isFinite(cue.progress.done) && Number.isFinite(cue.progress.total)
+      ? `${cue.progress.done}/${cue.progress.total} seeds`
+      : "active proof";
+    return {
+      label: "CASE TRANSMISSION",
+      speaker,
+      line: variants[index] || variants[0],
+      proofCount,
+      variantIndex: index,
+      variantTotal: variants.length
+    };
+  }
+
+  withFutureLabTransmission(cue) {
+    if (!cue) return null;
+    return {
+      ...cue,
+      transmission: this.getFutureLabRunTransmission(cue)
+    };
+  }
+
   getFutureLabRunCue() {
     if (this.state !== 'playing') return null;
     const staged = this.lastStagedExperiment || null;
     const source = staged && staged.source ? String(staged.source) : "";
     if (this.dailyInfo && this.dailyInfo.isFrontier && this.dailyInfo.futureSourcePrep) {
-      return {
+      return this.withFutureLabTransmission({
         label: "SOURCE KEY",
         title: "Source rehearsal",
         body: "Compare hidden-force clues with branch and chance evidence.",
@@ -7791,10 +7852,10 @@ class StarHopperGame {
         mode: "chance",
         progress: this.getFutureLabRunProgress("future-source-key"),
         scene: this.getFutureLabRunScene("future-source")
-      };
+      });
     }
     if (this.dailyInfo && this.dailyInfo.isFrontier && this.dailyInfo.darkMatterPrep) {
-      return {
+      return this.withFutureLabTransmission({
         label: "DARK MATTER PREP",
         title: "Curve evidence",
         body: "Compare path curve, speed, and force to infer an unseen pull.",
@@ -7803,10 +7864,10 @@ class StarHopperGame {
         mode: "curve",
         progress: this.getFutureLabRunProgress("dark-matter-evidence"),
         scene: this.getFutureLabRunScene("dark-matter-evidence")
-      };
+      });
     }
     if (source === "start-anomaly-trace") {
-      return {
+      return this.withFutureLabTransmission({
         label: "ANOMALY TRACE",
         title: "Invisible field test",
         body: "Use the magnet event rule as a prototype for hidden forces.",
@@ -7815,10 +7876,10 @@ class StarHopperGame {
         mode: "field",
         progress: this.getFutureLabRunProgress("hidden-force-trace"),
         scene: this.getFutureLabRunScene("anomaly-trace")
-      };
+      });
     }
     if (source === "start-quantum-branch") {
-      return {
+      return this.withFutureLabTransmission({
         label: "QUANTUM PREP",
         title: "Branch condition",
         body: "One game state chooses one code path.",
@@ -7827,10 +7888,10 @@ class StarHopperGame {
         mode: "branch",
         progress: this.getFutureLabRunProgress("quantum-branch"),
         scene: this.getFutureLabRunScene("quantum-branch")
-      };
+      });
     }
     if (source === "start-quantum-chance") {
-      return {
+      return this.withFutureLabTransmission({
         label: "QUANTUM CHANCE",
         title: "Probability seed",
         body: "Repeat chance trials and compare the observed rate.",
@@ -7839,7 +7900,7 @@ class StarHopperGame {
         mode: "chance",
         progress: this.getFutureLabRunProgress("quantum-chance"),
         scene: this.getFutureLabRunScene("quantum-chance")
-      };
+      });
     }
     return null;
   }
@@ -7850,9 +7911,9 @@ class StarHopperGame {
     const W = this.canvas.width || 720;
     const H = this.canvas.height || 448;
     const x = Math.max(14, W - 238);
-    const y = Math.max(124, H - 148);
+    const y = Math.max(110, H - 166);
     const w = 218;
-    const h = 122;
+    const h = 140;
     const t = this.reducedMotion ? 0 : Date.now() / 700;
     const pulse = this.reducedMotion ? 0.5 : 0.5 + 0.5 * Math.sin(t);
     const color = cue.color || "#67e8f9";
@@ -7897,11 +7958,19 @@ class StarHopperGame {
       ctx.fillText(this.fitCardText(ctx, cue.scene.lesson || "", w - 20), x + 10, y + 90);
     }
 
+    if (cue.transmission) {
+      ctx.globalAlpha = 0.92;
+      ctx.fillStyle = "#fde68a";
+      ctx.font = "bold 7px 'Share Tech Mono', monospace";
+      const transmissionLine = `${cue.transmission.speaker || "VECTOR"}: ${cue.transmission.line || ""}`;
+      ctx.fillText(this.fitCardText(ctx, transmissionLine, w - 20), x + 10, y + 105);
+    }
+
     if (cue.progress) {
       ctx.globalAlpha = 0.92;
       ctx.fillStyle = "#e0f2fe";
       ctx.font = "bold 7px 'Share Tech Mono', monospace";
-      ctx.fillText(this.fitCardText(ctx, cue.progress.progressLine, w - 20), x + 10, y + 104);
+      ctx.fillText(this.fitCardText(ctx, cue.progress.progressLine, w - 20), x + 10, y + 119);
       const pips = Array.isArray(cue.progress.statuses) ? cue.progress.statuses : [];
       const pipY = y + h - 13;
       for (let i = 0; i < pips.length; i++) {
