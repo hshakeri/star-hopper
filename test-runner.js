@@ -166,7 +166,50 @@ function runCompilerTests() {
     renderTestResult("compiler-suite", "KidCode: player.tank is readable/writable + autocompletes", false, err.message);
   }
 
-  // Test 6b: chance(percent) gives KidCode a bounded probability branch.
+  // Test 6b: Mission Coach Code Bridge aliases are executable, not just display syntax.
+  try {
+    Compiler.reset();
+    let said = "";
+    const mockGame = makeScaffoldMockGame(0);
+    mockGame.player.charType = 'star';
+    mockGame.player.mass = 1;
+    mockGame.player.say = (msg) => { said = msg; };
+    const res = Compiler.runCommand([
+      "useHopper()",
+      "hopper.jumpPower = 18",
+      "hopper.rocketPower = 75",
+      "spawnBlock()"
+    ].join("\n"), mockGame);
+    assertEquals(true, res.success, "Bridge-style commands should run");
+    assertEquals("hopper", mockGame.player.charType, "useHopper alias activates Hopper");
+    assertEquals(18, mockGame.player.jumpPower, "hopper.jumpPower writes canonical jump_power");
+    assertEquals(75, mockGame.player.rocketPower, "hopper.rocketPower writes canonical rocket_power");
+    assertEquals(1, mockGame.spawnedBoxes.length, "spawnBlock alias maps to the box helper");
+    assertEquals(1, Compiler.lastRunStats.functionCalls.use_hopper, "Alias calls are recorded under canonical names");
+    assertEquals(1, Compiler.lastRunStats.functionCalls.spawn_box, "Block alias keeps canonical spawn stats");
+
+    const repeat = Compiler.runCommand("repeat 2: spawnSpring()", mockGame);
+    assertEquals(true, repeat.success, "Bridge-style loop helper should run");
+    assertEquals(2, mockGame.spawnedSprings.length, "spawnSpring alias spawns springs");
+    assertEquals(2, Compiler.lastRunStats.functionCalls.spawn_spring, "Looped alias spawns keep canonical stats");
+    assertEquals(2, Compiler.lastRunStats.repeatSpawnTypes.spring, "Repeat spawn stats still recognize springs");
+
+    const branch = Compiler.runCommand("if hopper.jumpPower >= 18: player.say('bridge')", mockGame);
+    assertEquals(true, branch.success, "Bridge-style variable aliases should read in expressions");
+    assertEquals("bridge", said, "Expression read from hopper.jumpPower should trigger branch");
+
+    Compiler.reset();
+    const eventRes = Compiler.runCommand("when hopper.rocketOn: bounceUp()", mockGame);
+    assertEquals(true, eventRes.success, "Bridge-style event alias should register");
+    assertEquals("hopper.rocket_on", Compiler.activeRules[0] && Compiler.activeRules[0].target, "Event alias normalizes to the existing rocket trigger");
+    assertEquals(true, Compiler.autocomplete.choices.includes("spawnSpring()"), "Bridge helper is offered in autocomplete");
+    assertEquals(true, Compiler.autocomplete.choices.includes("hopper.jumpPower"), "Bridge variable is offered in autocomplete");
+    renderTestResult("compiler-suite", "KidCode: Code Bridge aliases execute + autocomplete", true);
+  } catch (err) {
+    renderTestResult("compiler-suite", "KidCode: Code Bridge aliases execute + autocomplete", false, err.message);
+  }
+
+  // Test 6c: chance(percent) gives KidCode a bounded probability branch.
   try {
     Compiler.reset();
     let sayMsg = "";

@@ -570,7 +570,8 @@ class KidCodeInterpreter {
       }
 
       case 'call': {
-        const fnName = expr.name;
+        const rawFnName = expr.name;
+        const fnName = normalizeKidCodeFunctionName(rawFnName);
         const resolvedArgs = expr.args.map(a => this.evalExpr(a, locals));
         
         const resolvedKwargs = {};
@@ -601,8 +602,8 @@ class KidCodeInterpreter {
           }
         } else {
           // Check spelling
-          const suggestion = getSpellingSuggestion(fnName, Object.keys(runtimeContext.functions));
-          throw new KidCodeError(`I don't know the command: "${fnName}()"`, suggestion);
+          const suggestion = getSpellingSuggestion(rawFnName, getKidCodeFunctionSuggestionList());
+          throw new KidCodeError(`I don't know the command: "${rawFnName}()"`, suggestion);
         }
       }
 
@@ -637,19 +638,21 @@ class KidCodeInterpreter {
   }
 
   getVariable(name) {
-    if (name in runtimeContext.variables) {
-      return runtimeContext.variables[name].get(this.game);
+    const resolvedName = normalizeKidCodeIdentifier(name);
+    if (resolvedName in runtimeContext.variables) {
+      return runtimeContext.variables[resolvedName].get(this.game);
     }
     // Check spelling
-    const suggestion = getSpellingSuggestion(name, Object.keys(runtimeContext.variables));
+    const suggestion = getSpellingSuggestion(name, getKidCodeVariableSuggestionList());
     throw new KidCodeError(`I do not know the variable name: "${name}"`, suggestion);
   }
 
   setVariable(name, value) {
-    if (name in runtimeContext.variables) {
-      runtimeContext.variables[name].set(this.game, value);
+    const resolvedName = normalizeKidCodeIdentifier(name);
+    if (resolvedName in runtimeContext.variables) {
+      runtimeContext.variables[resolvedName].set(this.game, value);
     } else {
-      const suggestion = getSpellingSuggestion(name, Object.keys(runtimeContext.variables));
+      const suggestion = getSpellingSuggestion(name, getKidCodeVariableSuggestionList());
       throw new KidCodeError(`I do not know the variable name: "${name}"`, suggestion);
     }
   }
@@ -698,6 +701,55 @@ function getSpellingSuggestion(input, list) {
     return `Did you mean "${best}"?`;
   }
   return "";
+}
+
+// The Mission Coach's Code Bridge shows a Python/JavaScript syntax ladder. These aliases
+// let the safest bridge-style camelCase snippets run in KidCode too, without adding a
+// second language parser or changing the canonical curriculum vocabulary.
+const KIDCODE_IDENTIFIER_ALIASES = {
+  jumpPower: "jump_power",
+  "player.jumpPower": "player.jump_power",
+  "hopper.jumpPower": "hopper.jump_power",
+  rocketPower: "hopper.rocket_power",
+  "player.rocketPower": "hopper.rocket_power",
+  "hopper.rocketPower": "hopper.rocket_power",
+  "hopper.rocketOn": "hopper.rocket_on"
+};
+
+const KIDCODE_FUNCTION_ALIASES = {
+  spawnGem: "spawn_gem",
+  spawnCoin: "spawn_coin",
+  spawnBox: "spawn_box",
+  spawnBlock: "spawn_box",
+  spawnSpring: "spawn_spring",
+  invertGravity: "invert_gravity",
+  raveMode: "rave_mode",
+  survivalMode: "survival_mode",
+  meteorShower: "meteor_shower",
+  equipBlaster: "equip_blaster",
+  shrinkEnemies: "shrink_enemies",
+  bounceUp: "bounce_up",
+  useHopper: "use_hopper",
+  useRover: "use_rover",
+  playMusic: "play_music"
+};
+
+function normalizeKidCodeIdentifier(name) {
+  const key = String(name || "");
+  return KIDCODE_IDENTIFIER_ALIASES[key] || key;
+}
+
+function normalizeKidCodeFunctionName(name) {
+  const key = String(name || "");
+  return KIDCODE_FUNCTION_ALIASES[key] || key;
+}
+
+function getKidCodeVariableSuggestionList() {
+  return Object.keys(runtimeContext.variables).concat(Object.keys(KIDCODE_IDENTIFIER_ALIASES));
+}
+
+function getKidCodeFunctionSuggestionList() {
+  return Object.keys(runtimeContext.functions).concat(Object.keys(KIDCODE_FUNCTION_ALIASES));
 }
 
 // ----------------------------------------------------
@@ -1074,10 +1126,11 @@ class AutocompleteEngine {
       "player.jump_power", "player.mass", "player.say()", "player.touching()",
       "player.fuel", "player.tank", "player.speed",
       "star.mass",
-      "hopper.engine", "hopper.jump_power", "hopper.mass", "hopper.rocket_power", "hopper.spikes", "hopper.pole",
-      "spawn()", "spawn_gem()", "spawn_box()", "spawn_spring()",
+      "hopper.engine", "hopper.jump_power", "hopper.jumpPower", "hopper.mass", "hopper.rocket_power", "hopper.rocketPower", "hopper.spikes", "hopper.pole",
+      "spawn()", "spawn_gem()", "spawnGem()", "spawn_box()", "spawnBox()", "spawnBlock()", "spawn_spring()", "spawnSpring()",
       "invert_gravity()", "rave_mode()", "survival_mode()", "meteor_shower()", "equip_blaster()", "shrink_enemies()", "bounce_up()", "chance(50)", "reset()",
-      "use_hopper()", "use_rover()",
+      "invertGravity()", "raveMode()", "survivalMode()", "meteorShower()", "equipBlaster()", "shrinkEnemies()", "bounceUp()",
+      "use_hopper()", "useHopper()", "use_rover()", "useRover()",
       "play_music()", "music",
       "elasticity", "asteroid.mass", "enemy.speed", "enemy.friendly"
     ];
@@ -1196,10 +1249,14 @@ class CompilerSingleton {
   }
 
   registerEventHook(whenNode) {
+    const normalizedNode = {
+      ...whenNode,
+      target: normalizeKidCodeIdentifier(whenNode.target)
+    };
     // Check if rule already exists (avoid duplicates)
-    const exists = this.activeRules.some(r => r.target === whenNode.target && JSON.stringify(r.eventArgs) === JSON.stringify(whenNode.eventArgs));
+    const exists = this.activeRules.some(r => r.target === normalizedNode.target && JSON.stringify(r.eventArgs) === JSON.stringify(normalizedNode.eventArgs));
     if (!exists) {
-      this.activeRules.push(whenNode);
+      this.activeRules.push(normalizedNode);
     }
   }
 
