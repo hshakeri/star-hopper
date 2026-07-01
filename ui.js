@@ -2747,6 +2747,9 @@ function awardSignalLabContractProof(game, code, pulse = null) {
       description: `Signal proof unlocked ${afterRank.perk.label}.`
     });
   }
+  if (rankUp && typeof game.spawnResearchRankEffect === 'function') {
+    pulse.rankEffect = game.spawnResearchRankEffect(pulse);
+  }
   if (typeof ui_log_output === 'function') {
     const masteryText = mastery && mastery.addedXP > 0 ? `, +${mastery.addedXP} world mastery XP` : "";
     ui_log_output(`${label}: +${rewardXP} Research XP${masteryText}.`, "success");

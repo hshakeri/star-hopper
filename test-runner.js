@@ -1576,7 +1576,7 @@ function runEngineTests() {
     game.currentPlanetIndex = 0;
     game.player = { x: 80, y: 100, w: 24, h: 32 };
     game.masteryMeters = {};
-    game.researchXP = 0;
+    game.researchXP = 16;
     game.remixContext = 'daily';
     game.dailyInfo = {
       dateStr: "2026-06-30",
@@ -1600,7 +1600,10 @@ function runEngineTests() {
     assertEquals(true, !!outcome.signalLabProof, "Exact staged Daily Signal command should award a lab proof");
     assertEquals("SIGNAL LAB TESTED", outcome.signalLabProof.label, "Daily proof should use the signal-lab label");
     assertEquals(4, outcome.signalLabProof.rewardXP, "Daily proof should grant the focused Research XP bonus");
-    assertEquals(4, game.researchXP, "Signal proof should pay even when no mission checklist item changed");
+    assertEquals(20, game.researchXP, "Signal proof should pay even when no mission checklist item changed");
+    assertEquals(true, !!game.discoveryPulse.rankUp, "Signal proof should flag a rank-up when it crosses a threshold");
+    assertEquals("LAB RANK UP!", game.discoveryPulse.rankEffect && game.discoveryPulse.rankEffect.label, "Signal proof rank-up should create an in-level lab-rank cue");
+    assertEquals(true, labels.includes("LAB RANK UP!"), "Signal proof rank-up should pop a visible lab-rank cue");
     assertEquals(6, game.getWorldMasteryProgress(0).xp, "Daily proof should feed world mastery");
     assertEquals(1, game.discoveryPassCounts[outcome.signalLabProof.sourceKey], "Signal proof should persist its one-time source key");
     assertEquals(1, game.discoveryCombo, "A standalone signal proof should start the lab chain");
@@ -5377,13 +5380,13 @@ function runRetryRemixTests() {
     }[id] || null);
 
     const g = new StarHopperGame();
-    g.researchXP = 10;
+    g.researchXP = 16;
     g.player = { x: 90, y: 110, w: 24, h: 32 };
     g.getTodayDateStr = () => "2026-06-10";
     g.updateReturnStreak();
     assertEquals("2026-06-10", g.lastPlayedDate, "First local day should be recorded");
     assertEquals(1, g.streakCount, "First local day starts the streak");
-    assertEquals(10, g.researchXP, "First-ever play should not grant free Research XP");
+    assertEquals(16, g.researchXP, "First-ever play should not grant free Research XP");
     assertEquals(null, g.lastReturnStreakReward, "No reward pulse is created on the first-ever day");
     assertEquals("Daily lab habit", reward.textContent, "Start chip should show habit copy without a reward");
     g.updateReturnStreak();
@@ -5394,16 +5397,18 @@ function runRetryRemixTests() {
     g.updateReturnStreak();
     assertEquals("2026-06-11", g.lastPlayedDate, "Next local day should be recorded");
     assertEquals(2, g.streakCount, "Consecutive local day increments the streak");
-    assertEquals(15, g.researchXP, "Day 2 streak should grant +5 Research XP");
+    assertEquals(21, g.researchXP, "Day 2 streak should grant +5 Research XP");
     assertEquals(5, g.lastReturnStreakReward.rewardXP, "Reward pulse should expose the XP amount");
     assertEquals("Daily Lab Streak", g.discoveryPulse.title, "Daily streak reward should create a discovery pulse");
     assertEquals(2, g.discoveryPulse.streakCount, "Daily streak reward should expose the streak count");
     assertEquals("DAY 2 STREAK!", g.discoveryPulse.streakEffect && g.discoveryPulse.streakEffect.label, "Daily streak reward should pop an in-level streak cue");
+    assertEquals("LAB RANK UP!", g.discoveryPulse.rankEffect && g.discoveryPulse.rankEffect.label, "Daily streak rank-up should create an in-level lab-rank cue");
     assertEquals("DAILY STREAK: +5 Research XP", g.missionBalloon && g.missionBalloon.text, "Daily streak reward should write a Daily Lab CRT reward line");
     assertEquals(true, streakLabels.includes("DAY 2 STREAK!"), "Daily streak reward should call the streak bubble");
+    assertEquals(true, streakLabels.includes("LAB RANK UP!"), "Daily streak rank-up should pop a visible lab-rank cue");
     assertEquals(true, streakBursts > 0, "Daily streak reward should spawn celebration particles");
     assertEquals(1, g.discoveryLog.length, "Daily streak reward enters the discovery log");
-    assertEquals(true, /\+5 Research XP/.test(panel.innerHTML), "Discovery pulse should render the streak XP");
+    assertEquals(true, /Rank Up: Variable Scout/.test(panel.innerHTML), "Discovery pulse should render the streak rank-up");
     assertEquals(true, /streak day 2/.test(panel.innerHTML), "Discovery pulse should use the custom streak progress label");
     assertEquals("+5 Research XP today", reward.textContent, "Start chip should show today's streak reward");
     assertEquals(10, g.getReturnStreakRewardXP(99), "Daily streak XP should stay capped");
@@ -6151,7 +6156,7 @@ function runExperimentLogTests() {
     const game = new StarHopperGame();
     game.currentPlanet = PLANETS[0];
     game.currentPlanetIndex = 0;
-    game.researchXP = 10;
+    game.researchXP = 16;
     game.masteryMeters = {};
     game.discoveryLog = [];
     game.player = { x: 80, y: 100, w: 24, h: 32 };
@@ -6168,10 +6173,12 @@ function runExperimentLogTests() {
 
     saveNotebookReflection();
     const entry = notebookEntries["earth-gravity-wall"];
-    assertEquals(14, game.researchXP, "First saved reflection should award +4 Research XP");
+    assertEquals(20, game.researchXP, "First saved reflection should award +4 Research XP");
     assertEquals("Reflection Proof", game.discoveryPulse.title, "Reflection save should create a discovery pulse");
     assertEquals(8, game.discoveryPulse.worldMasteryAddedXP, "Reflection save should add world mastery proof XP");
     assertEquals("PROOF SAVED!", game.discoveryPulse.reflectionEffect && game.discoveryPulse.reflectionEffect.label, "Reflection save should pop an in-level proof cue");
+    assertEquals("LAB RANK UP!", game.discoveryPulse.rankEffect && game.discoveryPulse.rankEffect.label, "Reflection proof rank-up should create an in-level lab-rank cue");
+    assertEquals(true, reflectionLabels.includes("LAB RANK UP!"), "Reflection proof rank-up should pop a visible lab-rank cue");
     assertEquals("EXPLAIN SAVED: +4 Research XP", game.missionBalloon && game.missionBalloon.text, "Reflection save should write a Science Notebook CRT reward line");
     assertEquals(true, reflectionLabels.includes("PROOF SAVED!"), "Reflection save should call the proof bubble");
     assertEquals(4, entry.reflectionRewardXP, "Notebook entry should remember the reflection reward");
@@ -6187,7 +6194,7 @@ function runExperimentLogTests() {
 
     response.value = "A revised explanation still uses evidence.";
     saveNotebookReflection();
-    assertEquals(14, game.researchXP, "Re-saving the same mission reflection should not farm XP");
+    assertEquals(20, game.researchXP, "Re-saving the same mission reflection should not farm XP");
     assertEquals("A revised explanation still uses evidence.", notebookEntries["earth-gravity-wall"].answer, "Re-save should still update the answer");
     assertEquals(4, notebookEntries["earth-gravity-wall"].reflectionRewardXP, "Re-save should preserve the original proof badge");
     assertEquals("Raise engine", notebookEntries["earth-gravity-wall"].nextExperiment.title, "Re-save should preserve the next-test handoff");
@@ -6208,7 +6215,7 @@ function runExperimentLogTests() {
     saveNotebookReflection();
     const signalEntryKey = `signal-reflection:${signalProofKey}`;
     const signalEntry = notebookEntries[signalEntryKey];
-    assertEquals(18, game.researchXP, "Signal Lab reflection should award its own +4 Research XP");
+    assertEquals(24, game.researchXP, "Signal Lab reflection should award its own +4 Research XP");
     assertEquals("Signal Reflection Proof", game.discoveryPulse.title, "Signal Lab reflection should create a specific discovery pulse");
     assertEquals("SIGNAL PROOF!", game.discoveryPulse.reflectionEffect && game.discoveryPulse.reflectionEffect.label, "Signal Lab reflection should use the stronger proof cue");
     assertEquals("SIGNAL PROOF: +4 Research XP", game.missionBalloon && game.missionBalloon.text, "Signal Lab reflection should write a signal-specific CRT reward line");
@@ -6222,7 +6229,7 @@ function runExperimentLogTests() {
 
     response.value = "A revised Daily Signal explanation still should not farm XP.";
     saveNotebookReflection();
-    assertEquals(18, game.researchXP, "Re-saving the same Signal Lab reflection should not farm XP");
+    assertEquals(24, game.researchXP, "Re-saving the same Signal Lab reflection should not farm XP");
     assertEquals("A revised Daily Signal explanation still should not farm XP.", notebookEntries[signalEntryKey].answer, "Signal Lab re-save should update the answer");
     assertEquals(4, notebookEntries[signalEntryKey].reflectionRewardXP, "Signal Lab re-save should preserve the original proof badge");
     assertEquals(4, cloudSaves, "Signal Lab re-save should still persist the revised answer");

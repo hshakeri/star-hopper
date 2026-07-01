@@ -287,6 +287,9 @@ class StarHopperGame {
     if (typeof Particles !== 'undefined') {
       Particles.spawnBurst((Number.isFinite(npc.x) ? npc.x : 0) + (npc.w || 28) / 2, (Number.isFinite(npc.y) ? npc.y : 0) + (npc.h || 36) / 2, npc.color || "#4ade80", 10, 2.0, 2.2, "glow");
     }
+    if (rankUp && typeof this.spawnResearchRankEffect === 'function') {
+      pulse.rankEffect = this.spawnResearchRankEffect(pulse);
+    }
     if (typeof updateDiscoveryPulse === 'function') updateDiscoveryPulse(this);
     if (typeof updateResearchProgress === 'function') updateResearchProgress(this);
     if (typeof saveLocalProgress === 'function' && typeof window !== 'undefined' && window.Game === this) saveLocalProgress();
@@ -1214,6 +1217,9 @@ class StarHopperGame {
         label: `Research Rank: ${afterRank.title}`,
         description: `Daily lab streak unlocked ${afterRank.perk.label}.`
       });
+    }
+    if (rankUp && typeof this.spawnResearchRankEffect === 'function') {
+      pulse.rankEffect = this.spawnResearchRankEffect(pulse);
     }
     if (typeof updateDiscoveryPulse === 'function') updateDiscoveryPulse(this);
     if (typeof updateResearchProgress === 'function') updateResearchProgress(this);
@@ -2952,6 +2958,9 @@ class StarHopperGame {
     this.discoveryLog = [pulse].concat(Array.isArray(this.discoveryLog) ? this.discoveryLog : []).slice(0, 8);
     if (typeof ui_log_output === 'function') {
       ui_log_output(`🏅 Mastery clear: +${xp} Research XP${rankUp && afterRank ? ` — ${afterRank.title}` : ""}.`, "success");
+    }
+    if (rankUp && typeof this.spawnResearchRankEffect === 'function') {
+      pulse.rankEffect = this.spawnResearchRankEffect(pulse);
     }
     if (typeof updateDiscoveryPulse === 'function') updateDiscoveryPulse(this);
     if (typeof updateResearchProgress === 'function') updateResearchProgress(this);

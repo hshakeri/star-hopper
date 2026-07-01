@@ -359,6 +359,9 @@ function awardNotebookReflectionReward(game, missionId, missionTitle, alreadyRew
       description: `Lab Perk: ${afterRank.perk.label} (${Math.round(game.researchXP || 0)} XP)`
     });
   }
+  if (rankUp && typeof game.spawnResearchRankEffect === 'function') {
+    pulse.rankEffect = game.spawnResearchRankEffect(pulse);
+  }
   if (typeof updateDiscoveryPulse === 'function') updateDiscoveryPulse(game);
   if (typeof updateResearchProgress === 'function') updateResearchProgress(game);
   return pulse;
