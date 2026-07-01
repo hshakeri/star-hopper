@@ -1513,6 +1513,81 @@ class StarHopperGame {
     return `<span class="map-concept-chip">${safe(this.getPlanetMapConcept(index))}</span>`;
   }
 
+  getFutureWorldTeaserState(teaserId) {
+    const id = String(teaserId || "");
+    const safe = (typeof escapeHTML === 'function')
+      ? escapeHTML
+      : (value) => String(value || "").replace(/[&<>"']/g, ch => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[ch]));
+    const storyComplete = typeof hasClearedFullStarMap === 'function'
+      ? hasClearedFullStarMap(this)
+      : (this.planetClears && [0, 1, 2, 3, 4, 5].every(index => Number(this.planetClears[index] || this.planetClears[String(index)] || 0) > 0));
+    const frontierDecoded = typeof hasFrontierStoryCredit === 'function'
+      ? hasFrontierStoryCredit(this)
+      : !!(this.frontierRecords && Object.keys(this.frontierRecords).length > 0);
+    const concept = id === "quantum-gate"
+      ? "Branching & probability"
+      : "Infer hidden forces";
+    const chip = `<span class="map-concept-chip">${safe(concept)}</span>`;
+
+    if (id === "quantum-gate") {
+      if (frontierDecoded) {
+        return {
+          className: "anomaly-decoded",
+          metaHTML: `GATE TRACE · ${chip}<span class="map-lock-hint">Next: Dark Matter Lab</span>`,
+          title: "Quantum Gate: signal source traced. Concept: branching and probability. Decode Dark Matter Lab first."
+        };
+      }
+      if (storyComplete) {
+        return {
+          className: "anomaly-waiting",
+          metaHTML: `SOURCE LOCKED · ${chip}<span class="map-lock-hint">Decode Dark Matter Echo first</span>`,
+          title: "Quantum Gate: source locked. Clear a Frontier Challenge to triangulate the Dark Matter Echo first."
+        };
+      }
+      return {
+        className: "",
+        metaHTML: `Signal source · ${chip}`,
+        title: "Quantum Gate - source of the signal. Concept: branching and probability."
+      };
+    }
+
+    if (frontierDecoded) {
+      return {
+        className: "anomaly-decoded",
+        metaHTML: `ECHO DECODED · ${chip}<span class="map-lock-hint">Future lab: curve clues</span>`,
+        title: "Dark Matter Lab: Echo decoded. Concept: infer hidden forces from curved motion. Future lab under construction."
+      };
+    }
+    if (storyComplete) {
+      return {
+        className: "anomaly-next",
+        metaHTML: `ANOMALY · ${chip}<span class="map-lock-hint">Clear one Frontier Challenge</span>`,
+        title: "Dark Matter Lab: hidden-force anomaly detected. Clear one Frontier Challenge to decode the echo."
+      };
+    }
+    return {
+      className: "",
+      metaHTML: `Transmission incoming · ${chip}`,
+      title: "Dark Matter Lab - something invisible is bending the signal. Concept: inferring hidden forces from motion."
+    };
+  }
+
+  refreshFutureWorldTeasers() {
+    if (typeof document === 'undefined') return;
+    const teasers = Array.from(document.querySelectorAll('.planet-node.teaser[data-teaser]') || []);
+    teasers.forEach((node) => {
+      const state = this.getFutureWorldTeaserState(node.getAttribute('data-teaser'));
+      const meta = node.querySelector('.mission-meta');
+      node.classList.remove('anomaly-next', 'anomaly-waiting', 'anomaly-decoded');
+      if (state.className) node.classList.add(state.className);
+      node.disabled = true;
+      if (meta) meta.innerHTML = state.metaHTML;
+      node.title = state.title;
+    });
+  }
+
   refreshGalaxyMapProgress() {
     if (typeof document === 'undefined') return;
     const planets = (typeof PLANETS !== 'undefined' && Array.isArray(PLANETS)) ? PLANETS : [];
@@ -1545,6 +1620,7 @@ class StarHopperGame {
         ? `${planets[index].name}: ${concept} · ${stars}/3 Lab Stars · ${worldMastery.title} (${worldMastery.xp} XP)${mastered ? " · Mastered" : (clears > 0 ? " · Mastery Remix ready" : "")}`
         : `${planets[index].name}: locked. Next concept: ${concept}. Recover the previous signal shard.`;
     });
+    this.refreshFutureWorldTeasers();
   }
 
   // Animate a planet node from locked → available on the start-screen galaxy map.

@@ -2821,8 +2821,25 @@ function runEngineTests() {
         _meta: meta
       };
     };
+    const makeTeaser = (id) => {
+      const meta = { textContent: "", innerHTML: "" };
+      return {
+        teaser: id,
+        disabled: true,
+        title: "",
+        classList: makeClassList(["planet-node", "teaser"]),
+        getAttribute: (name) => name === "data-teaser" ? id : null,
+        querySelector: (selector) => selector === ".mission-meta" ? meta : null,
+        _meta: meta
+      };
+    };
     const nodes = [0, 1, 2].map(makeNode);
-    document.querySelectorAll = (selector) => selector === ".planet-node[data-level]" ? nodes : [];
+    const teasers = [makeTeaser("dark-matter"), makeTeaser("quantum-gate")];
+    document.querySelectorAll = (selector) => {
+      if (selector === ".planet-node[data-level]") return nodes;
+      if (selector === ".planet-node.teaser[data-teaser]") return teasers;
+      return [];
+    };
 
     const game = new StarHopperGame();
     game.currentPlanetIndex = 0;
@@ -2850,6 +2867,36 @@ function runEngineTests() {
     assertEquals(true, /High Gravity &amp; Rocket Force/.test(nodes[2]._meta.innerHTML), "Locked node should preview the upcoming science concept");
     assertEquals(true, /Recover previous shard/.test(nodes[2]._meta.innerHTML), "Locked node should explain how to unlock");
     assertEquals(true, /Next concept: High Gravity & Rocket Force/.test(nodes[2].title), "Locked node title should name the coming concept");
+    assertEquals(true, /Transmission incoming/.test(teasers[0]._meta.innerHTML), "Future Dark Matter node should start as an incoming transmission");
+    assertEquals(false, teasers[0].classList.contains("anomaly-next"), "Future Dark Matter node should not pulse as the next anomaly before the star-map is restored");
+
+    game.planetClears = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 };
+    game.frontierRecords = {};
+    game.refreshGalaxyMapProgress();
+    assertEquals(true, teasers[0].classList.contains("anomaly-next"), "Restored star-map should mark Dark Matter as the active anomaly");
+    assertEquals(true, /ANOMALY/.test(teasers[0]._meta.innerHTML), "Active anomaly node should label the map hook");
+    assertEquals(true, /Infer hidden forces/.test(teasers[0]._meta.innerHTML), "Active anomaly should preview the hidden-force concept");
+    assertEquals(true, /Clear one Frontier Challenge/.test(teasers[0]._meta.innerHTML), "Active anomaly should name the retention action");
+    assertEquals(true, /hidden-force anomaly detected/.test(teasers[0].title), "Active anomaly title should explain the next story step");
+    assertEquals(true, teasers[1].classList.contains("anomaly-waiting"), "Quantum Gate should wait behind the Dark Matter Echo");
+    assertEquals(true, /Decode Dark Matter Echo first/.test(teasers[1]._meta.innerHTML), "Quantum Gate teaser should explain its lock");
+
+    game.frontierRecords = {
+      "2026-06-30": {
+        dateStr: "2026-06-30",
+        shareCode: "FRONTIER-EARTH-1234",
+        tier: 1,
+        planetIndex: 0,
+        stars: 2,
+        bestTime: 42.2
+      }
+    };
+    game.refreshGalaxyMapProgress();
+    assertEquals(true, teasers[0].classList.contains("anomaly-decoded"), "Frontier evidence should mark the Dark Matter echo decoded on the map");
+    assertEquals(true, /ECHO DECODED/.test(teasers[0]._meta.innerHTML), "Decoded anomaly should show the new map state");
+    assertEquals(true, /curve clues/.test(teasers[0]._meta.innerHTML), "Decoded anomaly should preview the future hidden-force lab play");
+    assertEquals(true, teasers[1].classList.contains("anomaly-decoded"), "Quantum Gate should show that the source trace advanced after Frontier evidence");
+    assertEquals(true, /GATE TRACE/.test(teasers[1]._meta.innerHTML), "Quantum Gate should switch from waiting to traced");
     document.querySelectorAll = oldQuerySelectorAll22g;
     renderTestResult("engine-suite", "Curriculum: galaxy map surfaces lab-star mastery", true);
   } catch (err) {
