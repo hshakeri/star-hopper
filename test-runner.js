@@ -8099,6 +8099,42 @@ function runExperimentLogTests() {
     assertEquals(7, notebookEntries[darkMatterEntryKey].reflectionRewardXP, "Dark Matter prep re-save should preserve the original proof badge");
     assertEquals(8, cloudSaves, "Dark Matter prep re-save should still persist the revised answer");
 
+    const sourceProofKey = "signal-lab-proof:frontier:frontier-earth-5050:t5:0:future-source-key-source-rehearsal:abc999";
+    game.reflectionContext = {
+      kind: "signal-lab",
+      source: "Future Lab Source",
+      title: "Future Source Key: source rehearsal",
+      concept: "Combine hidden-force inference with probability evidence",
+      command: "hopper.mass = 1.2",
+      proofLabel: "SOURCE KEY TESTED",
+      proofSourceKey: sourceProofKey
+    };
+    question.dataset.evidenceStarter = buildReflectionEvidenceStarter(game, PLANETS[0].missions.find(mission => mission.id === "earth-gravity-wall"));
+    response.value = "The source-key proof connects hidden-force clues with chance evidence.";
+    saveNotebookReflection();
+    const sourceEntryKey = `signal-reflection:${sourceProofKey}`;
+    const sourceEntry = notebookEntries[sourceEntryKey];
+    assertEquals(46, game.researchXP, "Source Key reflection should award the capstone +8 Research XP");
+    assertEquals("Source Key Reflection Proof", game.discoveryPulse.title, "Source Key reflection should create a named capstone proof pulse");
+    assertEquals(14, game.discoveryPulse.worldMasteryAddedXP, "Source Key reflection should add capstone world mastery proof XP");
+    assertEquals("SOURCE PROOF!", game.discoveryPulse.reflectionEffect && game.discoveryPulse.reflectionEffect.label, "Source Key reflection should use a source-specific proof cue");
+    assertEquals(true, game.discoveryPulse.reflectionEffect && game.discoveryPulse.reflectionEffect.sourceKey, "Source Key reflection effect should expose its source-key flag");
+    assertEquals("SOURCE PROOF: +8 Research XP", game.missionBalloon && game.missionBalloon.text, "Source Key reflection should write a source-specific CRT reward line");
+    assertEquals(true, reflectionLabels.includes("SOURCE PROOF!"), "Source Key reflection should call the source proof bubble");
+    assertEquals("Future Source Key: source rehearsal", sourceEntry.title, "Source Key notebook entry should use the source rehearsal title");
+    assertEquals(8, sourceEntry.reflectionRewardXP, "Source Key notebook entry should remember its proof reward");
+    assertEquals("Source Key Reflection Proof", sourceEntry.reflectionRewardLabel, "Source Key notebook entry should label the capstone proof");
+    assertEquals(true, /signal lab: Future Lab Source/.test(sourceEntry.evidence), "Source Key entry should preserve source-lab evidence");
+    assertEquals(true, /proof: SOURCE KEY TESTED/.test(sourceEntry.evidence), "Source Key entry should preserve the source-key proof label");
+    assertEquals(9, cloudSaves, "Saving a Source Key reflection should persist the new entry");
+
+    response.value = "The revised source-key explanation still should not farm XP.";
+    saveNotebookReflection();
+    assertEquals(46, game.researchXP, "Re-saving the same Source Key reflection should not farm XP");
+    assertEquals("The revised source-key explanation still should not farm XP.", notebookEntries[sourceEntryKey].answer, "Source Key re-save should update the answer");
+    assertEquals(8, notebookEntries[sourceEntryKey].reflectionRewardXP, "Source Key re-save should preserve the original proof badge");
+    assertEquals(10, cloudSaves, "Source Key re-save should still persist the revised answer");
+
     document.getElementById = oldGetElementByIdE6;
     Object.keys(notebookEntries).forEach(key => delete notebookEntries[key]);
     Object.assign(notebookEntries, oldNotebookEntriesE6);

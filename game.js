@@ -6846,21 +6846,25 @@ class StarHopperGame {
     const height = Number.isFinite(this.player.h) ? this.player.h : 32;
     const px = baseX + width / 2;
     const py = baseY + height / 2;
-    const signal = /Signal Reflection/i.test(pulse.title || "");
-    const label = signal ? "SIGNAL PROOF!" : "PROOF SAVED!";
-    const color = signal ? "#bef264" : "#a7f3d0";
+    const title = String(pulse.title || "");
+    const sourceKey = /Source Key Reflection/i.test(title) || /source\s*key/i.test(String(pulse.formula || ""));
+    const signal = !sourceKey && /Signal Reflection/i.test(title);
+    const strongProof = signal || sourceKey;
+    const label = sourceKey ? "SOURCE PROOF!" : (signal ? "SIGNAL PROOF!" : "PROOF SAVED!");
+    const color = sourceKey ? "#fef08a" : (signal ? "#bef264" : "#a7f3d0");
+    const monitorLabel = sourceKey ? "SOURCE PROOF" : (signal ? "SIGNAL PROOF" : "EXPLAIN SAVED");
     const rewardXP = Math.max(0, Math.floor(Number(pulse.rewardXP) || 0));
 
     if (typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
-      ComicBubbles.pop(px, baseY - 56, label, color, signal ? 1.05 : 0.96);
+      ComicBubbles.pop(px, baseY - 56, label, color, strongProof ? 1.05 : 0.96);
       ComicBubbles.pop(px, baseY - 38, "EXPLAINED", "#67e8f9", 0.78);
     }
     if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
-      Particles.spawnBurst(px, py - 8, color, signal ? 14 : 10, 2.2, 2.0, "glow");
-      Particles.spawnBurst(px, py - 8, "#67e8f9", signal ? 8 : 5, 1.7, 1.6, "glow");
+      Particles.spawnBurst(px, py - 8, color, strongProof ? 14 : 10, 2.2, 2.0, "glow");
+      Particles.spawnBurst(px, py - 8, "#67e8f9", strongProof ? 8 : 5, 1.7, 1.6, "glow");
     }
     if (typeof this.showMissionBalloon === 'function') {
-      this.showMissionBalloon(`${signal ? "SIGNAL PROOF" : "EXPLAIN SAVED"}: +${rewardXP} Research XP`, {
+      this.showMissionBalloon(`${monitorLabel}: +${rewardXP} Research XP`, {
         title: "SCIENCE NOTEBOOK",
         color,
         timer: 240
@@ -6871,6 +6875,7 @@ class StarHopperGame {
       label,
       color,
       signal,
+      sourceKey,
       rewardXP,
       x: px,
       y: py
