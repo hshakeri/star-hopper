@@ -11053,6 +11053,7 @@ function runRetryRemixTests() {
     const focus = { textContent: "" };
     const code = { textContent: "", title: "", style: {} };
     const action = { textContent: "", title: "", dataset: {}, style: {} };
+    const ladder = { innerHTML: "", style: {} };
     const input = {
       value: "",
       focused: false,
@@ -11070,6 +11071,7 @@ function runRetryRemixTests() {
       "return-streak-focus": focus,
       "return-streak-code": code,
       "return-streak-action": action,
+      "return-streak-ladder": ladder,
       "console-input": input
     }[id] || null);
 
@@ -11113,6 +11115,10 @@ function runRetryRemixTests() {
     assertEquals(true, /Mass remix proof/.test(action.title), "Streak action title should name the learning focus");
     assertEquals(true, /hopper\.mass = 1\.5/.test(action.title), "Streak action title should expose the first sample command");
     assertEquals("inline-flex", action.style.display, "Streak action should be visible while the streak chip is visible");
+    assertEquals("inline-flex", ladder.style.display, "Daily Lab ladder should be visible with the streak chip");
+    assertEquals(true, /D2/.test(ladder.innerHTML) && /\+5 XP/.test(ladder.innerHTML) && /Spring chain proof/.test(ladder.innerHTML), "First-day ladder should preview tomorrow's Daily Lab step");
+    assertEquals(true, /D3/.test(ladder.innerHTML) && /\+6 XP/.test(ladder.innerHTML) && /Elasticity follow-up/.test(ladder.innerHTML), "First-day ladder should preview the second upcoming Daily Lab step");
+    assertEquals(false, /TODAY/.test(ladder.innerHTML), "First-ever streak ladder should avoid implying today's free XP was earned");
     g.updateReturnStreak();
     assertEquals(1, saveCalls, "Same-day streak refresh should not save or farm rewards");
 
@@ -11145,6 +11151,9 @@ function runRetryRemixTests() {
     assertEquals(true, /WIN/.test(panel.innerHTML) && /Proof \+ Lab Stars/.test(panel.innerHTML), "Daily Signal handoff should show the payoff");
     assertEquals(true, /data-daily-signal-next="1"/.test(panel.innerHTML), "Daily Signal handoff should expose a direct route button");
     assertEquals(true, typeof dailyPulseClick === "function", "Daily Signal handoff should bind a click handler");
+    assertEquals(true, /TODAY/.test(ladder.innerHTML) && /earned/.test(ladder.innerHTML), "Reward-day ladder should mark today's streak step as earned");
+    assertEquals(true, /\+5 XP/.test(ladder.innerHTML) && /Mass remix proof/.test(ladder.innerHTML), "Reward-day ladder should name the earned Daily Lab focus");
+    assertEquals(true, /D3/.test(ladder.innerHTML) && /Elasticity follow-up/.test(ladder.innerHTML), "Reward-day ladder should still preview the next Daily Lab step");
     let pulseDailyCalls = 0;
     g.startDailySignal = () => { pulseDailyCalls++; g.dailyInfo = g.getDailySignal(); return true; };
     window.Game = g;
@@ -11163,6 +11172,8 @@ function runRetryRemixTests() {
     assertEquals("Tomorrow's lab: +6 Research XP · Elasticity follow-up", reward.textContent, "Start chip should show tomorrow's focus after today's pulse is gone");
     assertEquals(true, /2026-06-12/.test(reward.title), "Next forecast should advance to the next local date");
     assertEquals(true, rewardClasses.has("up-next"), "Next forecast should return to the up-next visual state");
+    assertEquals(true, /D3/.test(ladder.innerHTML) && /\+6 XP/.test(ladder.innerHTML) && /Elasticity follow-up/.test(ladder.innerHTML), "Post-pulse ladder should advance to the next reward day");
+    assertEquals(false, /TODAY/.test(ladder.innerHTML), "Post-pulse ladder should stop showing today's earned step after the pulse is gone");
     let dailyCalls = 0;
     g.startDailySignal = () => { dailyCalls++; g.dailyInfo = g.getDailySignal(); return true; };
     window.Game = g;
@@ -11180,6 +11191,8 @@ function runRetryRemixTests() {
     assertEquals("", code.textContent, "Streak sample command should clear when the streak chip is hidden");
     assertEquals("none", code.style.display, "Streak sample command should hide when the streak chip is hidden");
     assertEquals("none", action.style.display, "Streak action should hide when the streak chip is hidden");
+    assertEquals("", ladder.innerHTML, "Daily Lab ladder should clear when the streak chip is hidden");
+    assertEquals("none", ladder.style.display, "Daily Lab ladder should hide when the streak chip is hidden");
     assertEquals(10, g.getReturnStreakRewardXP(99), "Daily streak XP should stay capped");
     const afterRewardXP = g.researchXP;
     g.updateReturnStreak();

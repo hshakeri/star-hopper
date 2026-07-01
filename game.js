@@ -2782,10 +2782,15 @@ class StarHopperGame {
   }
 
   getTomorrowDateStr(dateStr = this.getTodayDateStr()) {
+    return this.getDateStrOffset(dateStr, 1);
+  }
+
+  getDateStrOffset(dateStr = this.getTodayDateStr(), offsetDays = 0) {
     const match = String(dateStr || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const offset = Math.floor(Number(offsetDays) || 0);
     const base = match
-      ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]) + 1)
-      : new Date(Date.now() + 86400000);
+      ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]) + offset)
+      : new Date(Date.now() + offset * 86400000);
     const y = base.getFullYear();
     const m = String(base.getMonth() + 1).padStart(2, '0');
     const d = String(base.getDate()).padStart(2, '0');
@@ -2830,7 +2835,13 @@ class StarHopperGame {
   }
 
   getReturnStreakDailyFocus() {
-    const daily = typeof this.getDailySignal === 'function' ? this.getDailySignal() : null;
+    return this.getReturnStreakFocusForDate(this.getTodayDateStr(), 0);
+  }
+
+  getReturnStreakFocusForDate(dateStr = this.getTodayDateStr(), offsetDays = 0) {
+    const daily = offsetDays === 0 && typeof this.getDailySignal === 'function'
+      ? this.getDailySignal()
+      : (typeof this.getDailySignalForDate === 'function' ? this.getDailySignalForDate(dateStr) : null);
     const contract = daily && daily.labContract ? daily.labContract : null;
     const title = (contract && contract.title) || (daily && daily.concept) || (daily && daily.planetName) || "Daily Signal";
     const command = contract && contract.command ? String(contract.command).trim() : "";
@@ -2841,6 +2852,33 @@ class StarHopperGame {
       firstCommand,
       label: `Focus: ${title}`
     };
+  }
+
+  getReturnStreakLadder(count = 3) {
+    const total = Math.max(1, Math.min(4, Math.floor(Number(count) || 3)));
+    const current = Math.max(1, Math.floor(Number(this.streakCount) || 1));
+    const includeToday = !!this.lastReturnStreakReward;
+    const today = this.getTodayDateStr();
+    return Array.from({ length: total }, (_, index) => {
+      const offset = includeToday ? index : index + 1;
+      const streak = Math.max(1, current + offset);
+      const dateStr = this.getDateStrOffset(today, offset);
+      const focus = this.getReturnStreakFocusForDate(dateStr, offset);
+      const earnedToday = includeToday && offset === 0;
+      const rewardXP = earnedToday && this.lastReturnStreakReward
+        ? this.lastReturnStreakReward.rewardXP
+        : this.getReturnStreakRewardXP(streak);
+      return {
+        index,
+        dateStr,
+        streak,
+        rewardXP,
+        focusTitle: focus.title || "Daily Signal",
+        firstCommand: focus.firstCommand || "",
+        state: earnedToday ? "earned" : "up-next",
+        label: earnedToday ? "TODAY" : `D${streak}`
+      };
+    });
   }
 
   grantReturnStreakReward(previousDate, today) {
@@ -2937,8 +2975,12 @@ class StarHopperGame {
     const focusEl = document.getElementById('return-streak-focus');
     const codeEl = document.getElementById('return-streak-code');
     const actionEl = document.getElementById('return-streak-action');
+    const ladderEl = document.getElementById('return-streak-ladder');
     if (this.streakCount > 0) {
       const focus = this.getReturnStreakDailyFocus();
+      const safe = (typeof escapeHTML === 'function')
+        ? escapeHTML
+        : (value) => String(value == null ? "" : value);
       if (countEl) countEl.textContent = this.streakCount;
       if (rewardEl) {
         const next = this.getNextReturnStreakPreview();
@@ -2971,6 +3013,20 @@ class StarHopperGame {
         }
         if (actionEl.style) actionEl.style.display = "inline-flex";
       }
+      if (ladderEl) {
+        const ladder = this.getReturnStreakLadder(3);
+        ladderEl.innerHTML = ladder.map(item => {
+          const title = `${item.dateStr}: streak day ${item.streak}, +${item.rewardXP} XP${item.focusTitle ? `, ${item.focusTitle}` : ""}`;
+          return `
+            <span class="streak-ladder-step ${safe(item.state)}" title="${safe(title)}">
+              <b>${safe(item.label)}</b>
+              <em>+${safe(item.rewardXP)} XP</em>
+              <small>${safe(item.focusTitle || "Daily Signal")}</small>
+            </span>
+          `;
+        }).join("");
+        if (ladderEl.style) ladderEl.style.display = ladder.length ? "inline-flex" : "none";
+      }
       banner.style.display = 'flex';
     } else {
       if (rewardEl) {
@@ -2992,6 +3048,10 @@ class StarHopperGame {
           actionEl.dataset.command = "";
         }
         if (actionEl.style) actionEl.style.display = "none";
+      }
+      if (ladderEl) {
+        ladderEl.innerHTML = "";
+        if (ladderEl.style) ladderEl.style.display = "none";
       }
       banner.style.display = 'none';
     }

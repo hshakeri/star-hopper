@@ -4226,6 +4226,61 @@ body.resizing-panes * {
   border-color: rgba(253, 224, 71, 0.72);
   transform: translateY(-1px);
 }
+.return-streak-banner .streak-ladder {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 4px;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.return-streak-banner .streak-ladder::-webkit-scrollbar { display: none; }
+.return-streak-banner .streak-ladder-step {
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-areas:
+    "day xp"
+    "focus focus";
+  gap: 1px 4px;
+  min-width: 78px;
+  max-width: 112px;
+  border: 1px solid rgba(125, 211, 252, 0.24);
+  border-radius: 8px;
+  background: rgba(8, 47, 73, 0.34);
+  color: #e0f2fe;
+  font-family: var(--font-mono);
+  font-size: 0.48rem;
+  line-height: 1.05;
+  padding: 3px 5px;
+}
+.return-streak-banner .streak-ladder-step b {
+  grid-area: day;
+  color: #fde047;
+  font-weight: 900;
+}
+.return-streak-banner .streak-ladder-step em {
+  grid-area: xp;
+  color: #a7f3d0;
+  font-style: normal;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.return-streak-banner .streak-ladder-step small {
+  grid-area: focus;
+  color: #bae6fd;
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.return-streak-banner .streak-ladder-step.earned {
+  border-color: rgba(253, 224, 71, 0.5);
+  background: rgba(113, 63, 18, 0.42);
+}
+.return-streak-banner .streak-ladder-step.up-next {
+  border-color: rgba(45, 212, 191, 0.34);
+}
 
 @keyframes streak-pop {
   0% { transform: scale(0.8) translateY(8px); opacity: 0; }
