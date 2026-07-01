@@ -8119,6 +8119,91 @@ class StarHopperGame {
     return this.lastRunObjectiveCompassCue;
   }
 
+  getScienceDeltaRunCue(nowMs) {
+    if (this.state !== 'playing') return null;
+    const delta = this.lastScienceDelta;
+    if (!delta || !Array.isArray(delta.changes) || !delta.changes.length) return null;
+    const now = Number.isFinite(nowMs) ? nowMs : Date.now();
+    const time = Number.isFinite(delta.time) ? delta.time : now;
+    const ageMs = Math.max(0, now - time);
+    const ttlMs = 18000;
+    if (ageMs > ttlMs) return null;
+    const primary = delta.changes.find(change => change && /Agility|Thrust|Mass|Felt gravity|Probability/.test(change.label || "")) || delta.changes[0];
+    if (!primary) return null;
+    const direction = primary.direction || "same";
+    const color = direction === "up" ? "#a7f3d0"
+      : (direction === "down" ? "#fca5a5"
+        : (direction === "swap" ? "#fbbf24" : "#67e8f9"));
+    const next = delta.nextExperiment || null;
+    return {
+      label: "EVIDENCE",
+      title: delta.summary || "What changed",
+      valueLine: `${primary.label || "Value"}: ${primary.value || "changed"}`,
+      reasonLine: primary.cue || "",
+      nextLine: next && next.title ? `NEXT ${next.title}` : "",
+      direction,
+      color,
+      ageMs,
+      ttlMs
+    };
+  }
+
+  drawScienceDeltaRunCue(ctx) {
+    const cue = this.getScienceDeltaRunCue();
+    if (!ctx || !cue || !this.canvas) return null;
+    const W = this.canvas.width || 720;
+    const H = this.canvas.height || 448;
+    const w = Math.max(178, Math.min(260, W - 24));
+    const h = cue.nextLine ? 68 : 56;
+    const x = 12;
+    const y = Math.max(86, H - h - 18);
+    const fade = cue.ageMs > 13000 ? Math.max(0.35, 1 - (cue.ageMs - 13000) / 5000) : 1;
+    const color = cue.color || "#67e8f9";
+
+    ctx.save();
+    ctx.globalAlpha = 0.86 * fade;
+    ctx.fillStyle = "rgba(2, 6, 23, 0.7)";
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.2;
+    ctx.shadowBlur = 7 * fade;
+    ctx.shadowColor = color;
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, 8);
+    ctx.fill();
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    ctx.globalAlpha = 0.18 * fade;
+    ctx.fillStyle = color;
+    for (let lineY = y + 7; lineY < y + h - 5; lineY += 6) ctx.fillRect(x + 8, lineY, w - 16, 1);
+
+    ctx.globalAlpha = 0.95 * fade;
+    ctx.font = "bold 7px 'Share Tech Mono', monospace";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = color;
+    ctx.fillText(cue.label, x + 10, y + 10);
+    ctx.textAlign = "right";
+    ctx.fillText(this.fitCardText(ctx, cue.direction.toUpperCase(), 44), x + w - 10, y + 10);
+
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#f8fafc";
+    ctx.font = "bold 9px 'Share Tech Mono', monospace";
+    ctx.fillText(this.fitCardText(ctx, cue.valueLine, w - 20), x + 10, y + 26);
+    ctx.fillStyle = "#bbf7d0";
+    ctx.font = "7px 'Share Tech Mono', monospace";
+    ctx.fillText(this.fitCardText(ctx, cue.reasonLine || cue.title, w - 20), x + 10, y + 41);
+    if (cue.nextLine) {
+      ctx.fillStyle = "#fde68a";
+      ctx.font = "bold 7px 'Share Tech Mono', monospace";
+      ctx.fillText(this.fitCardText(ctx, cue.nextLine, w - 20), x + 10, y + 56);
+    }
+    ctx.restore();
+
+    this.lastScienceDeltaRunCue = { ...cue, x, y, w, h };
+    return this.lastScienceDeltaRunCue;
+  }
+
   getFutureLabRunProgress(preferredStageId = null) {
     if (typeof getFutureLabRoadmapStages !== 'function') return null;
     let stages = null;
@@ -8727,6 +8812,7 @@ class StarHopperGame {
     this.drawDrillHUD(this.ctx);
     this.drawLabChainRunCue(this.ctx);
     this.drawRunObjectiveCompass(this.ctx);
+    this.drawScienceDeltaRunCue(this.ctx);
 
     // 9f. Meteor-shower "take shelter" warning banner (screen-space).
     this.drawMeteorBanner(this.ctx);

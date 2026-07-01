@@ -2965,6 +2965,32 @@ function runEngineTests() {
     assertEquals(true, /use_hopper\(\)/.test(nextCue.command), "Next experiment cue should include runnable scaffold code");
     assertEquals(true, /hopper\.engine = 6/.test(nextCue.command), "Next experiment cue should keep the mission's target syntax");
     assertEquals(nextCue, game.lastScienceDelta.nextExperiment, "Next experiment cue should be pinned to the latest delta");
+    game.state = 'playing';
+    game.canvas = { width: 720, height: 448 };
+    const runCue = game.getScienceDeltaRunCue();
+    assertEquals("EVIDENCE", runCue.label, "In-run evidence ticker should label itself");
+    assertEquals(true, /Mass:/.test(runCue.valueLine), "In-run evidence ticker should name the changed science value");
+    assertEquals(true, /Less mass/.test(runCue.reasonLine), "In-run evidence ticker should preserve the science cue");
+    assertEquals("NEXT Agility 30+ reached", runCue.nextLine, "In-run evidence ticker should show the next experiment title");
+    const deltaLabels = [];
+    const fakeDeltaCtx = {
+      save() {},
+      restore() {},
+      beginPath() {},
+      roundRect() {},
+      fill() {},
+      stroke() {},
+      fillRect() {},
+      fillText(text) { deltaLabels.push(text); },
+      measureText(text) { return { width: String(text || "").length * 5 }; }
+    };
+    const drawnDeltaCue = game.drawScienceDeltaRunCue(fakeDeltaCtx);
+    assertEquals("EVIDENCE", drawnDeltaCue.label, "Drawing should return the in-run evidence cue");
+    assertEquals(true, deltaLabels.includes("EVIDENCE"), "Drawing should write the evidence ticker label");
+    assertEquals(true, deltaLabels.some(text => /Mass:/.test(text)), "Drawing should write the changed science value");
+    assertEquals(true, deltaLabels.includes("NEXT Agility 30+ reached"), "Drawing should write the next experiment title");
+    game.lastScienceDelta.time = Date.now() - 19000;
+    assertEquals(null, game.getScienceDeltaRunCue(), "In-run evidence ticker should expire instead of becoming permanent clutter");
 
     const chanceBefore = captureScienceDeltaSnapshot(game);
     const chanceRes = Compiler.runCommand("if chance(100): player.say('path A')", game);
