@@ -5285,6 +5285,7 @@ function runEngineTests() {
     assertEquals(true, /Lesson Paths 0\/3 · next Hopper Engineering Shakedown/.test(els["start-cadet-identity-body"].textContent), "Cadet record should show persistent lesson-path progress");
     assertEquals(true, /1\/\d+ formulas/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include formula deck progress");
     assertEquals(true, /Code Concepts 1\/5 · next Loop/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include Code Concept Deck progress");
+    assertEquals(true, /Hypothesis Proofs 0\/6 · next Hopper Engineering Shakedown/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include hypothesis proof progress");
     assertEquals(true, /1\/12 transmissions/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include story transmission progress");
     assertEquals(true, /1\/5 AI states/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include AI State Deck progress");
     assertEquals(true, /next Shelter Loop/.test(els["start-cadet-identity-body"].textContent), "Cadet record should name the next AI State Deck card");
@@ -5830,6 +5831,7 @@ function runEngineTests() {
     assertEquals(true, /Passport 1\/6 stamps · next Moon/.test(report.innerHTML), "Clear report cadet record should show Science Passport stamp progress");
     assertEquals(true, /Lesson Paths 0\/3 · next Hopper Engineering Shakedown/.test(report.innerHTML), "Clear report cadet record should show lesson-path portfolio progress");
     assertEquals(true, /1\/\d+ formulas/.test(report.innerHTML), "Clear report cadet record should show formula progress");
+    assertEquals(true, /Hypothesis Proofs 0\/6 · next Hopper Engineering Shakedown/.test(report.innerHTML), "Clear report cadet record should show hypothesis proof progress");
     assertEquals(true, /Future Lab: Source Key complete/.test(report.innerHTML), "Clear report cadet record should show the completed Future Lab source-key portfolio state");
     assertEquals(true, /2\/5 AI states/.test(report.innerHTML), "Clear report cadet record should show AI State Deck progress");
     assertEquals(true, /next Pet Pact/.test(report.innerHTML), "Clear report cadet record should name the next AI behavior card");

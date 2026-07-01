@@ -3450,6 +3450,46 @@ function getCadetDailyHabitPortfolioText(game = window.Game) {
   return `Daily Streak d${streak}${focusTitle}`;
 }
 
+function getHypothesisPortfolioProgress(game = window.Game) {
+  const missions = [];
+  if (typeof PLANETS !== "undefined" && Array.isArray(PLANETS)) {
+    PLANETS.forEach((planet, planetIndex) => {
+      const list = planet && Array.isArray(planet.missions) ? planet.missions : [];
+      list.forEach((mission) => {
+        const full = mission && mission.fullMission ? mission.fullMission : mission;
+        if (!full || !full.id || !full.prediction) return;
+        missions.push({
+          id: full.id,
+          title: full.title || full.name || "Prediction proof",
+          planetIndex
+        });
+      });
+    });
+  }
+  const confirmed = typeof getConfirmedHypothesisSet === "function"
+    ? getConfirmedHypothesisSet(game)
+    : new Set();
+  const done = missions.filter(mission => confirmed.has(mission.id)).length;
+  const currentIndex = Number.isFinite(Number(game && game.currentPlanetIndex)) ? Number(game.currentPlanetIndex) : 0;
+  const next = missions.find(mission => mission.planetIndex === currentIndex && !confirmed.has(mission.id))
+    || missions.find(mission => !confirmed.has(mission.id))
+    || null;
+  return {
+    done,
+    total: missions.length,
+    next,
+    complete: missions.length > 0 && done >= missions.length
+  };
+}
+
+function getCadetHypothesisPortfolioText(game = window.Game) {
+  const progress = getHypothesisPortfolioProgress(game);
+  if (!progress.total) return "Hypothesis Proofs pending";
+  if (progress.complete) return `Hypothesis Proofs mastered ${progress.done}/${progress.total}`;
+  const nextTitle = progress.next && progress.next.title ? progress.next.title : "next prediction";
+  return `Hypothesis Proofs ${progress.done}/${progress.total} · next ${nextTitle}`;
+}
+
 function getCadetIdentityPreview(game = window.Game) {
   const callsign = game && typeof game.getCadetCallsign === "function" ? game.getCadetCallsign() : "Cadet";
   const rank = typeof getResearchRank === "function"
@@ -3466,6 +3506,7 @@ function getCadetIdentityPreview(game = window.Game) {
   const passport = getCadetPassportPortfolioText(game);
   const lessonPaths = getCadetLessonPathPortfolioText(game);
   const codeConcepts = getCadetCodeConceptPortfolioText(game);
+  const hypotheses = getCadetHypothesisPortfolioText(game);
   const futureLab = getCadetFutureLabPortfolioText(game);
   const village = game && typeof game.getVillageTrustProgress === "function" ? game.getVillageTrustProgress(game.currentPlanetIndex) : null;
   const trust = village ? `${village.title} · ${village.points} trust` : "Village trust pending";
@@ -3498,7 +3539,7 @@ function getCadetIdentityPreview(game = window.Game) {
   return {
     label: "CADET RECORD",
     title: `${callsign} // ${rank.title}`,
-    body: `${Math.round(rank.xp || 0)} XP · ${dailyHabit} · ${labChain} · ${passport} · ${lessonPaths} · ${formulas} · ${codeConcepts} · ${transmissions} · ${futureLab} · ${aiStates} · ${trust}`,
+    body: `${Math.round(rank.xp || 0)} XP · ${dailyHabit} · ${labChain} · ${passport} · ${lessonPaths} · ${formulas} · ${codeConcepts} · ${hypotheses} · ${transmissions} · ${futureLab} · ${aiStates} · ${trust}`,
     progress: Math.max(0, Math.min(1, Number(rank.progress) || 0)),
     aiAction,
     lessonPathAction
