@@ -6535,11 +6535,13 @@ function runRetryRemixTests() {
     const banner = { style: {} };
     const count = { textContent: "" };
     const reward = { textContent: "" };
+    const action = { textContent: "", title: "", dataset: {}, style: {} };
     document.getElementById = (id) => ({
       "discovery-pulse": panel,
       "return-streak-banner": banner,
       "return-streak-count": count,
-      "return-streak-reward": reward
+      "return-streak-reward": reward,
+      "return-streak-action": action
     }[id] || null);
 
     const g = new StarHopperGame();
@@ -6552,6 +6554,9 @@ function runRetryRemixTests() {
     assertEquals(16, g.researchXP, "First-ever play should not grant free Research XP");
     assertEquals(null, g.lastReturnStreakReward, "No reward pulse is created on the first-ever day");
     assertEquals("Next daily experiment: +5 Research XP", reward.textContent, "Start chip should preview the next daily lab reward");
+    assertEquals("DAILY", action.textContent, "Start chip should expose a direct Daily Signal action");
+    assertEquals("daily", action.dataset.action, "Streak action should tag the Daily Signal route");
+    assertEquals("inline-flex", action.style.display, "Streak action should be visible while the streak chip is visible");
     g.updateReturnStreak();
     assertEquals(1, saveCalls, "Same-day streak refresh should not save or farm rewards");
 
@@ -6577,6 +6582,12 @@ function runRetryRemixTests() {
     g.lastReturnStreakReward = null;
     g.refreshStreakBanner();
     assertEquals("Next daily experiment: +6 Research XP", reward.textContent, "Start chip should show the next consecutive reward after today's pulse is gone");
+    let dailyCalls = 0;
+    assertEquals(true, runReturnStreakAction({ startDailySignal: () => { dailyCalls++; } }), "Streak action should launch the Daily Signal");
+    assertEquals(1, dailyCalls, "Streak action should call the Daily Signal starter once");
+    g.streakCount = 0;
+    g.refreshStreakBanner();
+    assertEquals("none", action.style.display, "Streak action should hide when the streak chip is hidden");
     assertEquals(10, g.getReturnStreakRewardXP(99), "Daily streak XP should stay capped");
     const afterRewardXP = g.researchXP;
     g.updateReturnStreak();

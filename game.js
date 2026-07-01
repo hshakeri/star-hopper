@@ -1823,6 +1823,7 @@ class StarHopperGame {
     if (!banner) return;
     const countEl = document.getElementById('return-streak-count');
     const rewardEl = document.getElementById('return-streak-reward');
+    const actionEl = document.getElementById('return-streak-action');
     if (this.streakCount > 0) {
       if (countEl) countEl.textContent = this.streakCount;
       if (rewardEl) {
@@ -1831,9 +1832,16 @@ class StarHopperGame {
           ? `+${this.lastReturnStreakReward.rewardXP} Research XP today`
           : next.label;
       }
+      if (actionEl) {
+        actionEl.textContent = "DAILY";
+        actionEl.title = "Start today's Daily Signal";
+        if (actionEl.dataset) actionEl.dataset.action = "daily";
+        if (actionEl.style) actionEl.style.display = "inline-flex";
+      }
       banner.style.display = 'flex';
     } else {
       if (rewardEl) rewardEl.textContent = "";
+      if (actionEl && actionEl.style) actionEl.style.display = "none";
       banner.style.display = 'none';
     }
   }

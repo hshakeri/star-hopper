@@ -2969,6 +2969,14 @@ function runStartMissionRadarAction() {
   return false;
 }
 
+function runReturnStreakAction(game = window.Game || (typeof Game !== 'undefined' ? Game : null)) {
+  if (game && typeof game.startDailySignal === 'function') {
+    game.startDailySignal();
+    return true;
+  }
+  return false;
+}
+
 function updateFormulaTarget(game) {
   const panel = document.getElementById("formula-target");
   if (!panel) return;

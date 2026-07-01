@@ -3102,10 +3102,11 @@ body.resizing-panes * {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-wrap: wrap;
   justify-content: center;
   margin-top: 10px;
   padding: 6px 12px;
-  max-width: 360px;
+  max-width: min(440px, calc(100vw - 24px));
   background: linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(239, 68, 68, 0.06));
   border: 1px solid rgba(249, 115, 22, 0.3);
   border-radius: 999px;
@@ -3123,7 +3124,26 @@ body.resizing-panes * {
   color: #bef264;
   font-family: var(--font-mono);
   font-size: 0.64rem;
-  white-space: nowrap;
+  line-height: 1.25;
+}
+.return-streak-banner .streak-action {
+  border: 1px solid rgba(253, 224, 71, 0.45);
+  border-radius: 999px;
+  background: rgba(253, 224, 71, 0.14);
+  color: #fef08a;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-weight: 900;
+  line-height: 1;
+  padding: 5px 8px;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+.return-streak-banner .streak-action:hover,
+.return-streak-banner .streak-action:focus-visible {
+  background: rgba(253, 224, 71, 0.22);
+  border-color: rgba(253, 224, 71, 0.72);
+  transform: translateY(-1px);
 }
 
 @keyframes streak-pop {
