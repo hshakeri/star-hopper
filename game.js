@@ -3932,13 +3932,16 @@ class StarHopperGame {
     const activeMission = this.getClearExplainMission();
     const fullMission = activeMission && activeMission.fullMission ? activeMission.fullMission : null;
     const reflection = fullMission && Array.isArray(fullMission.reflection) ? fullMission.reflection : [];
-    const question = reflection[0] || "Explain what changed, what evidence you saw, and why the physics behaved that way.";
+    const lessonPhase = typeof getNotebookLessonPhaseReflection === 'function'
+      ? getNotebookLessonPhaseReflection(this, activeMission)
+      : null;
+    const question = (lessonPhase && lessonPhase.question) || reflection[0] || "Explain what changed, what evidence you saw, and why the physics behaved that way.";
     const evidence = typeof buildReflectionEvidenceStarter === 'function'
       ? buildReflectionEvidenceStarter(this, activeMission)
       : "Evidence starter - describe the code you tried, what changed, and why the physics behaved that way.";
     return {
-      kicker: "EXPLAIN THE EVIDENCE",
-      title: "Finish the lab loop",
+      kicker: lessonPhase ? "EXPLAIN THE PHASE" : "EXPLAIN THE EVIDENCE",
+      title: lessonPhase ? `Explain ${lessonPhase.title}` : "Finish the lab loop",
       question,
       evidence,
       cta: "WRITE EXPLANATION"

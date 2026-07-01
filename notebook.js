@@ -185,9 +185,46 @@ function getNotebookReflectionContextEvidence(game) {
   return out;
 }
 
+function getNotebookLessonPhaseReflection(game, activeMission = null) {
+  const phase = game && game.lastLessonPhaseAdvance;
+  if (!phase || !phase.sourceKey) return null;
+  const missionId = activeMission && activeMission.id
+    ? activeMission.id
+    : (activeMission && activeMission.fullMission && activeMission.fullMission.id ? activeMission.fullMission.id : "");
+  if (missionId && phase.missionId && phase.missionId !== missionId) return null;
+  if (missionId && !phase.missionId && !String(phase.sourceKey).startsWith(`${missionId}:`)) return null;
+  const title = compactNotebookEvidenceValue(phase.title || "Lesson phase", 44);
+  const formula = compactNotebookEvidenceValue(phase.formula || "", 44);
+  const payoff = compactNotebookEvidenceValue(phase.payoff || "", 48);
+  const question = formula
+    ? `What evidence showed that ${formula} worked during ${title}?${payoff ? ` Explain the result: ${payoff}.` : ""}`
+    : `What evidence showed that ${title} worked?${payoff ? ` Explain the result: ${payoff}.` : ""}`;
+  return {
+    title,
+    formula,
+    payoff,
+    command: compactNotebookEvidenceValue(phase.command || "", 60),
+    nextTitle: compactNotebookEvidenceValue(phase.nextTitle || "", 44),
+    question
+  };
+}
+
+function getNotebookLessonPhaseEvidence(game, activeMission = null) {
+  const phase = getNotebookLessonPhaseReflection(game, activeMission);
+  if (!phase) return [];
+  const out = [];
+  if (phase.title) out.push(`phase: ${phase.title}`);
+  if (phase.formula) out.push(`formula: ${phase.formula}`);
+  if (phase.command) out.push(`phase code: ${phase.command}`);
+  if (phase.payoff) out.push(`phase result: ${phase.payoff}`);
+  if (phase.nextTitle) out.push(`next phase: ${phase.nextTitle}`);
+  return out;
+}
+
 function buildReflectionEvidenceStarter(game, activeMission = null) {
   const missionId = activeMission && activeMission.id ? activeMission.id : null;
   const parts = getNotebookReflectionContextEvidence(game);
+  parts.push(...getNotebookLessonPhaseEvidence(game, activeMission));
   const code = missionId && game && game.lastCoachCodeByMission
     ? game.lastCoachCodeByMission[missionId]
     : "";

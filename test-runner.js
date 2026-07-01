@@ -937,6 +937,14 @@ function runEngineTests() {
     assertEquals(true, bursts >= 2, "Phase completion should spawn visual particles");
     assertEquals(true, /PHASE DONE/.test(panel.innerHTML), "Discovery Pulse should render the phase chip");
     assertEquals(true, /Next: 2 Bounce control/.test(panel.innerHTML), "Discovery Pulse phase chip should preview the next phase");
+    const explainPrompt = game.getClearExplainPrompt();
+    assertEquals("EXPLAIN THE PHASE", explainPrompt.kicker, "Clear report should switch to phase-specific explanation after a phase proof");
+    assertEquals("Explain 1 Momentum shove", explainPrompt.title, "Clear report should name the completed lesson phase");
+    assertEquals(true, /p = m \* v/.test(explainPrompt.question), "Clear explanation should ask about the completed phase formula");
+    assertEquals(true, /phase: 1 Momentum shove/.test(explainPrompt.evidence), "Notebook starter should name the completed lesson phase");
+    assertEquals(true, /phase code: hopper\.mass = 4\.0/.test(explainPrompt.evidence), "Notebook starter should preserve the one obvious phase tweak");
+    assertEquals(true, /phase result: First Forge gem opens/.test(explainPrompt.evidence), "Notebook starter should name the phase payoff");
+    assertEquals(true, /next phase: 2 Bounce control/.test(explainPrompt.evidence), "Notebook starter should preview the second variable only after the first proof");
 
     const repeat = finishSuccessfulCodeRunDiscovery(game, activeMission, "hopper.mass = 4.0", massState, 0, []);
     assertEquals(null, repeat.lessonPhaseAdvance, "Repeating the same completed phase should not replay the phase cue");

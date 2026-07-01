@@ -558,8 +558,11 @@ function recordLessonPhaseAdvance(game, activeMission, resultState, pulse = null
   const next = rows.find(row => row.status === "active" && row.id !== completed.id) || null;
   const result = {
     label: "PHASE DONE",
+    missionId,
+    phaseId: completed.id || completed.checkId || String(completed.index),
     title: completed.label || "Lesson phase",
     nextTitle: next ? (next.label || "Next phase") : null,
+    command: completed.command || "",
     formula: completed.formula || "",
     payoff: completed.payoff || "",
     sourceKey
