@@ -1352,7 +1352,17 @@ function getAIStateDeckAction(game = window.Game, cardId = null) {
 function runAIStateDeckAction(cardId = null, game = window.Game) {
   const action = getAIStateDeckAction(game, cardId);
   if (!action || !game || typeof game.startLevel !== 'function') return false;
-  game.startLevel(Number.isFinite(Number(action.levelIndex)) ? Number(action.levelIndex) : 0);
+  const levelIndex = Number.isFinite(Number(action.levelIndex)) ? Number(action.levelIndex) : 0;
+  game.activeAIStateRun = {
+    cardId: action.cardId,
+    levelIndex,
+    label: action.label || "RUN STATE",
+    title: action.title || "AI state proof",
+    body: action.body || "",
+    enableSurvival: !!action.enableSurvival,
+    startedAt: Date.now()
+  };
+  game.startLevel(levelIndex);
   if (action.enableSurvival && typeof game.toggleSurvival === 'function' && !game.survivalMode) {
     game.toggleSurvival();
   }

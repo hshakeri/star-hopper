@@ -1586,6 +1586,7 @@ function runEngineTests() {
     assertEquals(1, rescueStarts[0], "Rescue action should prefer a non-Earth village to avoid night blocking the proof");
     assertEquals(true, rescueGame.survivalMode, "Rescue action should enable Survival so mobs can trigger cave shelter");
     assertEquals("terminal", rescueModes[0], "AI State Deck action should return to the playable terminal");
+    assertEquals("shelter-loop", rescueGame.activeAIStateRun && rescueGame.activeAIStateRun.cardId, "AI State Deck route should remember the active in-run proof");
 
     const petPrep = new StarHopperGame();
     petPrep.unlockedTools = new Set();
@@ -4488,6 +4489,38 @@ function runEngineTests() {
     assertEquals(true, /hopper\.mass = 1\.0/.test(stagedText), "Staged experiment card should preserve the staged command");
     const stagedRestageButton = findByClass(staged || list, "staged-experiment-stage-btn");
     assertEquals("RESTAGE", stagedRestageButton && stagedRestageButton.textContent, "Staged experiment card should expose a restage action");
+
+    const aiRunGame = new StarHopperGame();
+    aiRunGame.currentPlanet = PLANETS[1];
+    aiRunGame.currentPlanetIndex = 1;
+    aiRunGame.player = new Player(0, 0);
+    aiRunGame.completedMissions = new Set();
+    aiRunGame.requiredCollectiblesTotal = 0;
+    aiRunGame.requiredCollectiblesCollected = 0;
+    aiRunGame.discoveryPassCounts = {};
+    aiRunGame.villageTrust = { 0: { points: 3, badges: ["friend"], sources: { "village-trade:0:geary:engine_1": 3 } } };
+    aiRunGame.activeAIStateRun = { cardId: "shelter-loop", levelIndex: 1, label: "RUN RESCUE" };
+    list = makeEl();
+    updateMissionList(aiRunGame);
+    const aiRunCard = findByClass(list, "ai-state-run-crt-card");
+    const aiRunText = flattenText(aiRunCard || list);
+    assertEquals(true, !!aiRunCard, "Mission panel should show the active AI State Deck proof route");
+    assertEquals(true, /AI PROOF RUN/.test(aiRunText), "AI proof card should identify itself");
+    assertEquals(true, /Shelter Loop · RUN RESCUE/.test(aiRunText), "AI proof card should name the active state and action");
+    assertEquals(true, /state = patrol -&gt; cave -&gt; trade/.test(aiRunText), "AI proof card should show the state formula");
+    assertEquals(true, /Let danger trigger cave shelter/.test(aiRunText), "AI proof card should preserve the route instruction");
+    assertEquals(true, /State machine proof · 4 states left/.test(aiRunText), "AI proof card should show collection pressure");
+    aiRunGame.villageTrust = {
+      0: {
+        points: 7,
+        badges: ["friend", "ally"],
+        sources: { "village-trade:0:geary:engine_1": 3, "village-rescue:0:geary": 4 }
+      }
+    };
+    list = makeEl();
+    updateMissionList(aiRunGame);
+    assertEquals(null, findByClass(list, "ai-state-run-crt-card"), "AI proof card should hide once that proof is logged");
+    assertEquals(null, aiRunGame.activeAIStateRun, "Completed active AI proof should clear stale route state");
 
     list = makeEl();
     game.mobs = [];

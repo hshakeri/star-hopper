@@ -422,6 +422,7 @@ function updateMissionList(game) {
   appendWorldMasteryCrtCard(listContainer, game);
   appendVillageTrustCrtCard(listContainer, game);
   appendVillageQuestChainCrtCard(listContainer, game);
+  appendAIStateRunContractCard(listContainer, game);
   appendVillageStateCrtCard(listContainer, game);
   appendVillageRequestCrtCard(listContainer, game);
   appendSignalStoryCrtCard(listContainer, game);
@@ -890,6 +891,54 @@ function appendVillageQuestChainCrtCard(listContainer, game) {
     </div>
   `;
   listContainer.appendChild(card);
+}
+
+function getActiveAIStateRunContract(game) {
+  if (!game || !game.activeAIStateRun || typeof getAIStateDeckProgress !== 'function' || typeof getAIStateDeckAction !== 'function') return null;
+  const route = game.activeAIStateRun;
+  const progress = getAIStateDeckProgress(game);
+  const card = progress && Array.isArray(progress.cards)
+    ? progress.cards.find(item => item && item.id === route.cardId)
+    : null;
+  if (!card || card.earned) {
+    game.activeAIStateRun = null;
+    return null;
+  }
+  const action = getAIStateDeckAction(game, card.id);
+  if (!action) {
+    game.activeAIStateRun = null;
+    return null;
+  }
+  const actionLevel = Number(action.levelIndex);
+  const currentLevel = Number(game.currentPlanetIndex);
+  if (Number.isFinite(actionLevel) && Number.isFinite(currentLevel) && actionLevel !== currentLevel) {
+    game.activeAIStateRun = null;
+    return null;
+  }
+  return { route, progress, card, action };
+}
+
+function appendAIStateRunContractCard(listContainer, game) {
+  if (!listContainer || !game) return;
+  const contract = getActiveAIStateRunContract(game);
+  if (!contract) return;
+  const { progress, card, action } = contract;
+  const remaining = Math.max(0, Number(progress.total || 0) - Number(progress.earnedCount || 0));
+  const cardEl = document.createElement("div");
+  cardEl.className = "ai-state-run-crt-card";
+  cardEl.innerHTML = `
+    <div class="ai-state-run-crt-head">
+      <span>AI PROOF RUN</span>
+      <strong>${escapeHTML(String(progress.earnedCount))}/${escapeHTML(String(progress.total))} logged</strong>
+    </div>
+    <div class="ai-state-run-crt-body">
+      <strong>${escapeHTML(card.title)} · ${escapeHTML(action.label || "RUN STATE")}</strong>
+      <code>${escapeHTML(`state = ${card.state}`)}</code>
+      <p>${escapeHTML(action.body || card.next || "Complete the visible behavior proof, then check the deck.")}</p>
+      <em>${escapeHTML(`${card.concept || "State machine"} proof · ${remaining} state${remaining === 1 ? "" : "s"} left`)}</em>
+    </div>
+  `;
+  listContainer.appendChild(cardEl);
 }
 
 function getVillageStateCrtPreview(game) {
