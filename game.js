@@ -1669,17 +1669,37 @@ class StarHopperGame {
     const anomalyTraced = typeof hasAnomalyTraceStoryCredit === 'function'
       ? hasAnomalyTraceStoryCredit(this)
       : false;
+    const darkMatterEvidence = typeof hasDarkMatterPrepEvidenceCredit === 'function'
+      ? hasDarkMatterPrepEvidenceCredit(this)
+      : false;
+    const quantumSeeded = typeof hasQuantumBranchProofCredit === 'function'
+      ? hasQuantumBranchProofCredit(this)
+      : false;
     const concept = id === "quantum-gate"
       ? "Branching & probability"
       : "Infer hidden forces";
     const chip = `<span class="map-concept-chip">${safe(concept)}</span>`;
 
     if (id === "quantum-gate") {
+      if (quantumSeeded) {
+        return {
+          className: "anomaly-decoded",
+          metaHTML: `BRANCH SEED · ${chip}<span class="map-lock-hint">Future lab: probability paths</span>`,
+          title: "Quantum Gate: branch proof logged. The source lab has a conditional seed for probability paths."
+        };
+      }
+      if (darkMatterEvidence) {
+        return {
+          className: "anomaly-next",
+          metaHTML: `QUANTUM PREP · ${chip}<span class="map-lock-hint">Test a branch condition</span>`,
+          title: "Quantum Gate: hidden-force evidence banked. Test one conditional branch to seed the probability lab."
+        };
+      }
       if (anomalyTraced) {
         return {
           className: "anomaly-decoded",
-          metaHTML: `FORCE TRACED · ${chip}<span class="map-lock-hint">Next: Dark Matter Lab</span>`,
-          title: "Quantum Gate: hidden-force trace logged. Decode Dark Matter Lab before branching into probability."
+          metaHTML: `FORCE TRACED · ${chip}<span class="map-lock-hint">Next: bank curve evidence</span>`,
+          title: "Quantum Gate: hidden-force trace logged. Bank Dark Matter evidence before branching into probability."
         };
       }
       if (frontierDecoded) {

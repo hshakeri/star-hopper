@@ -1783,6 +1783,91 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: Anomaly Trace rewards completed proofs", false, err.message);
   }
 
+  // Test 22b5: the staged Quantum prep branch pays off only when its exact command runs.
+  const oldGetElementById22b5 = document.getElementById;
+  const oldBubblePop22b5 = ComicBubbles.pop;
+  const oldParticleBurst22b5 = Particles.spawnBurst;
+  try {
+    const labels = [];
+    let bursts = 0;
+    const panel = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };
+    document.getElementById = (id) => id === "discovery-pulse" ? panel : null;
+    ComicBubbles.pop = (x, y, text) => { labels.push(text); };
+    Particles.spawnBurst = () => { bursts++; };
+
+    const activeMission = PLANETS[0].missions.find(mission => mission.id === "earth-gravity-wall");
+    const noProgress = {
+      allPassed: false,
+      items: [
+        { id: "earth-hopper-active", label: "Hopper activated", passed: false, message: "Need Hopper" },
+        { id: "earth-emerald-gates", label: "Agility 30+ reached", passed: false, message: "Need more agility" }
+      ]
+    };
+    const command = "player.fuel = 40\nif player.fuel < 50: player.say('branch A')";
+
+    const quantum = new StarHopperGame();
+    quantum.currentPlanet = PLANETS[0];
+    quantum.currentPlanetIndex = 0;
+    quantum.player = { x: 80, y: 100, w: 24, h: 32 };
+    quantum.masteryMeters = {};
+    quantum.researchXP = 0;
+    quantum.planetClears = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 };
+    quantum.frontierRecords = {
+      "2026-06-30": {
+        dateStr: "2026-06-30",
+        shareCode: "FRONTIER-EARTH-1234",
+        tier: 1,
+        planetIndex: 0,
+        stars: 2,
+        bestTime: 42.2
+      }
+    };
+    quantum.discoveryPassCounts = {
+      "anomaly-trace-proof:4:trace-hidden-force:test": 1,
+      "signal-lab-proof:frontier:frontier-earth-1234:t1:0:dark-matter-prep-curve-evidence:test": 1
+    };
+    quantum.lastStagedExperiment = {
+      title: "Test a branch condition",
+      source: "start-quantum-branch",
+      command,
+      time: Date.now()
+    };
+
+    const outcome = finishSuccessfulCodeRunDiscovery(quantum, activeMission, command, noProgress, 0, []);
+    assertEquals("QUANTUM BRANCH", outcome.quantumBranchProof && outcome.quantumBranchProof.label, "Exact staged Quantum Branch command should award proof");
+    assertEquals(5, quantum.researchXP, "Quantum Branch proof grants focused Research XP");
+    assertEquals(8, quantum.getWorldMasteryProgress(0).xp, "Quantum Branch proof feeds world mastery");
+    assertEquals(1, quantum.discoveryPassCounts[outcome.quantumBranchProof.sourceKey], "Quantum Branch proof stores a one-time source key");
+    assertEquals(1, quantum.discoveryCombo, "A standalone Quantum Branch proof starts the lab chain");
+    assertEquals("QUANTUM PREP", quantum.missionBalloon && quantum.missionBalloon.title, "Mission CRT labels the Quantum Branch reward");
+    assertEquals("QUANTUM BRANCH: +5 Research XP", quantum.missionBalloon && quantum.missionBalloon.text, "Mission CRT announces the Quantum Branch reward");
+    assertEquals(true, labels.includes("QUANTUM BRANCH"), "Quantum Branch proof pops a visible reward cue");
+    assertEquals(true, bursts > 0, "Quantum Branch proof spawns celebratory particles");
+    assertEquals(true, /QUANTUM BRANCH \+5 XP/.test(panel.innerHTML), "Discovery pulse renders the Quantum Branch proof chip");
+    assertEquals(true, quantum.discoveredFormulaKinds.has("branch"), "Quantum Branch proof collects the Branch Lab formula card");
+    assertEquals(1, quantum.formulaCardEffects.length, "Quantum Branch proof spawns one Branch Lab formula card effect");
+    assertEquals("Branch Lab", quantum.formulaCardEffects[0].title, "Quantum Branch card effect names the branch concept");
+    assertEquals("if condition -> branch", quantum.formulaCardEffects[0].formula, "Quantum Branch card effect shows the branch formula");
+
+    const xpAfterFirst = quantum.researchXP;
+    const masteryAfterFirst = quantum.getWorldMasteryProgress(0).xp;
+    const repeat = finishSuccessfulCodeRunDiscovery(quantum, activeMission, command, noProgress, 0, []);
+    assertEquals(null, repeat.quantumBranchProof, "Repeating the same Quantum Branch proof should not award again");
+    assertEquals(xpAfterFirst, quantum.researchXP, "Repeated Quantum Branch proofs should not farm Research XP");
+    assertEquals(masteryAfterFirst, quantum.getWorldMasteryProgress(0).xp, "Repeated Quantum Branch proofs should not farm world mastery");
+    assertEquals(1, quantum.discoveryCombo, "Repeated Quantum Branch proofs should not extend the chain");
+
+    document.getElementById = oldGetElementById22b5;
+    ComicBubbles.pop = oldBubblePop22b5;
+    Particles.spawnBurst = oldParticleBurst22b5;
+    renderTestResult("engine-suite", "Curriculum: Quantum Branch rewards completed proofs", true);
+  } catch (err) {
+    document.getElementById = oldGetElementById22b5;
+    ComicBubbles.pop = oldBubblePop22b5;
+    Particles.spawnBurst = oldParticleBurst22b5;
+    renderTestResult("engine-suite", "Curriculum: Quantum Branch rewards completed proofs", false, err.message);
+  }
+
   // Test 22ba: successful KidCode runs summarize the live science delta.
   const oldGetElementById22ba = document.getElementById;
   const oldBubblePop22ba = ComicBubbles.pop;
@@ -2022,8 +2107,8 @@ function runEngineTests() {
     updateResearchProgress({
       researchXP: 60,
       discoveryLog: [
-        { kind: "mass", title: "Mass Lab", formula: "a = F / m", insight: "Less mass makes acceleration bigger.", rewardXP: 12 },
-        { kind: "loop", title: "Loop Lab", formula: "repeat n = command x n", insight: "Loops build patterns quickly.", rewardXP: 9 }
+        { kind: "mass", title: "Mass Lab", formula: "a = F / m", insight: "Less mass makes acceleration bigger.", rewardXP: 12, cardUnlocked: true },
+        { kind: "loop", title: "Loop Lab", formula: "repeat n = command x n", insight: "Loops build patterns quickly.", rewardXP: 9, cardUnlocked: true }
       ]
     });
     assertEquals(true, /Physics Tinkerer/.test(els["research-rank-card"].innerHTML), "Rank card should show the current title");
@@ -2219,6 +2304,32 @@ function runEngineTests() {
     assertEquals(true, /DARK MATTER PREP/.test(els["signal-story-panel"].innerHTML), "Complete story panel should show the future-lab prep loop");
     assertEquals(true, /Bank curve evidence/.test(els["signal-story-panel"].innerHTML), "Complete story loop should name the next hidden-force evidence target");
     assertEquals(true, /Daily Signal, Frontier run, or mastery remix/.test(els["signal-story-panel"].innerHTML), "Complete story loop should point to replay practice");
+
+    const quantumPrepComplete = {
+      ...complete,
+      discoveryPassCounts: {
+        ...complete.discoveryPassCounts,
+        "signal-lab-proof:frontier:frontier-earth-1234:t1:0:dark-matter-prep-curve-evidence:test": 1
+      }
+    };
+    storyContract = getSignalStoryContract(quantumPrepComplete);
+    assertEquals("QUANTUM PREP", storyContract.kicker, "Dark Matter evidence should hand the complete story into Quantum prep");
+    assertEquals("Test a branch condition", storyContract.title, "Quantum prep should ask for one branch prototype");
+    updateSignalStoryPanel(quantumPrepComplete);
+    assertEquals(true, /QUANTUM PREP/.test(els["signal-story-panel"].innerHTML), "Story panel should show the Quantum prep loop after Dark Matter evidence");
+    assertEquals(true, /Quantum Gate will build probability from branches/.test(els["signal-story-panel"].innerHTML), "Quantum prep should connect branches to probability");
+
+    const quantumSeededComplete = {
+      ...quantumPrepComplete,
+      discoveryPassCounts: {
+        ...quantumPrepComplete.discoveryPassCounts,
+        "quantum-branch-proof:0:test-a-branch-condition:test": 1
+      }
+    };
+    storyContract = getSignalStoryContract(quantumSeededComplete);
+    assertEquals("QUANTUM SEED", storyContract.kicker, "Quantum branch proof should mark the future source seed as logged");
+    updateSignalStoryPanel(quantumSeededComplete);
+    assertEquals(true, /QUANTUM SEED/.test(els["signal-story-panel"].innerHTML), "Story panel should show the logged Quantum seed");
 
     document.getElementById = oldGetElementById22cb;
     ComicBubbles.pop = oldBubblePop22cb;
@@ -2491,6 +2602,40 @@ function runEngineTests() {
     assertEquals(true, runStartMissionRadarAction(), "Prep radar action should execute");
     assertEquals(1, prepCalls, "Prep radar action should start the Frontier challenge");
     assertEquals("dark-matter-prep", prepOptions && prepOptions.source, "Prep radar action should pass the Dark Matter prep source");
+
+    game.discoveryPassCounts = {
+      "anomaly-trace-proof:4:trace-hidden-force:test": 1,
+      "signal-lab-proof:frontier:frontier-earth-1234:t1:0:dark-matter-prep-curve-evidence:test": 1
+    };
+    updateStartMissionRadar(game);
+    assertEquals("QUANTUM PREP", els["start-story-preview-label"].textContent, "Banked Dark Matter evidence should turn the story preview toward Quantum prep");
+    assertEquals("Branch source warming", els["start-story-preview-title"].textContent, "Quantum prep should show a source-warming story title");
+    assertEquals(true, /Test a branch condition/.test(els["start-story-preview-body"].textContent), "Quantum prep story should name the branch prototype");
+    assertEquals("12/12 decoded", els["start-story-preview-progress"].textContent, "Quantum prep should keep the decoded story count complete");
+    assertEquals("Test a branch condition", els["start-mission-radar-title"].textContent, "After Dark Matter evidence, the radar should surface Quantum Branch prep");
+    assertEquals(true, /if rule/.test(els["start-mission-radar-body"].textContent), "Quantum prep should frame the next code action as a conditional");
+    assertEquals(true, /Branch Lab card/.test(els["start-mission-radar-reward"].textContent), "Quantum prep should name the Branch Lab payoff");
+    assertEquals("TEST BRANCH", els["start-mission-radar-btn"].textContent, "Quantum prep should expose a direct branch action");
+    assertEquals("quantum", els["start-mission-radar-btn"].dataset.action, "Quantum prep button should use the quantum action");
+    assertEquals("0", els["start-mission-radar-btn"].dataset.level, "Quantum prep should launch the Earth prototype lab");
+    assertEquals(true, /if player\.fuel < 50/.test(els["start-mission-radar-btn"].dataset.command), "Quantum prep should stage a conditional command");
+    const quantumStarted = [];
+    game.startLevel = (level) => { quantumStarted.push(level); };
+    window.Game = game;
+    assertEquals(true, runStartMissionRadarAction(), "Quantum radar action should execute");
+    assertEquals(0, quantumStarted[0], "Quantum radar action should launch Earth");
+    assertEquals(els["start-mission-radar-btn"].dataset.command, els["console-input"].value, "Quantum radar action should stage the branch command");
+    assertEquals("start-quantum-branch", game.lastStagedExperiment && game.lastStagedExperiment.source, "Quantum staging should remember the start-radar source");
+
+    game.discoveryPassCounts = {
+      "anomaly-trace-proof:4:trace-hidden-force:test": 1,
+      "signal-lab-proof:frontier:frontier-earth-1234:t1:0:dark-matter-prep-curve-evidence:test": 1,
+      "quantum-branch-proof:0:test-a-branch-condition:test": 1
+    };
+    updateStartMissionRadar(game);
+    assertEquals("QUANTUM SEED", els["start-story-preview-label"].textContent, "Branch proof should mark the Quantum seed as logged");
+    assertEquals("Branch seed logged", els["start-story-preview-title"].textContent, "Branch proof should show the seed payoff on the story preview");
+    assertEquals("Clear today's signal", els["start-mission-radar-title"].textContent, "After the Quantum seed, complete progress should return to daily practice");
 
     game.frontierRecords = {};
     game.discoveryPassCounts = {};
@@ -3098,6 +3243,23 @@ function runEngineTests() {
     assertEquals(true, /curve clues/.test(teasers[0]._meta.innerHTML), "Traced anomaly should preview the future hidden-force lab play");
     assertEquals(true, teasers[1].classList.contains("anomaly-decoded"), "Quantum Gate should show that the source trace advanced after the proof");
     assertEquals(true, /FORCE TRACED/.test(teasers[1]._meta.innerHTML), "Quantum Gate should switch from waiting to traced");
+    game.discoveryPassCounts = {
+      "anomaly-trace-proof:4:trace-hidden-force:test": 1,
+      "signal-lab-proof:frontier:frontier-earth-1234:t1:0:dark-matter-prep-curve-evidence:test": 1
+    };
+    game.refreshGalaxyMapProgress();
+    assertEquals(true, teasers[1].classList.contains("anomaly-next"), "Dark Matter evidence should make Quantum Gate the active prep teaser");
+    assertEquals(true, /QUANTUM PREP/.test(teasers[1]._meta.innerHTML), "Quantum Gate should label its prep state");
+    assertEquals(true, /Test a branch condition/.test(teasers[1]._meta.innerHTML), "Quantum Gate prep should name the branch action");
+    game.discoveryPassCounts = {
+      "anomaly-trace-proof:4:trace-hidden-force:test": 1,
+      "signal-lab-proof:frontier:frontier-earth-1234:t1:0:dark-matter-prep-curve-evidence:test": 1,
+      "quantum-branch-proof:0:test-a-branch-condition:test": 1
+    };
+    game.refreshGalaxyMapProgress();
+    assertEquals(true, teasers[1].classList.contains("anomaly-decoded"), "Quantum proof should switch Quantum Gate to a logged seed state");
+    assertEquals(true, /BRANCH SEED/.test(teasers[1]._meta.innerHTML), "Quantum Gate should label the logged branch seed");
+    assertEquals(true, /probability paths/.test(teasers[1]._meta.innerHTML), "Quantum Gate seed should preview probability paths");
     document.querySelectorAll = oldQuerySelectorAll22g;
     renderTestResult("engine-suite", "Curriculum: galaxy map surfaces lab-star mastery", true);
   } catch (err) {

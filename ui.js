@@ -1790,6 +1790,30 @@ function hasAnomalyTraceStoryCredit(game) {
   return false;
 }
 
+function hasDarkMatterPrepEvidenceCredit(game) {
+  if (!game) return false;
+  const hasPrepSource = (sources) => !!(sources && typeof sources === 'object' && Object.keys(sources)
+    .some(source => String(source).indexOf("signal-lab-proof:") === 0 &&
+      String(source).indexOf("dark-matter-prep") >= 0 &&
+      Number(sources[source]) > 0));
+  if (hasPrepSource(game.discoveryPassCounts)) return true;
+  if (game.masteryMeters && typeof game.masteryMeters === 'object') {
+    return Object.values(game.masteryMeters).some(meter => hasPrepSource(meter && meter.sources));
+  }
+  return false;
+}
+
+function hasQuantumBranchProofCredit(game) {
+  if (!game) return false;
+  const hasBranchSource = (sources) => !!(sources && typeof sources === 'object' && Object.keys(sources)
+    .some(source => String(source).indexOf("quantum-branch-proof:") === 0 && Number(sources[source]) > 0));
+  if (hasBranchSource(game.discoveryPassCounts)) return true;
+  if (game.masteryMeters && typeof game.masteryMeters === 'object') {
+    return Object.values(game.masteryMeters).some(meter => hasBranchSource(meter && meter.sources));
+  }
+  return false;
+}
+
 function hasVillageRescueStoryCredit(game) {
   if (!game || !game.masteryMeters) return false;
   return Object.values(game.masteryMeters).some(meter =>
@@ -1826,6 +1850,22 @@ function getSignalStoryContract(game = window.Game, story = null) {
   const next = progress.nextChapter;
   if (!next) {
     if (hasAnomalyTraceStoryCredit(game)) {
+      if (hasDarkMatterPrepEvidenceCredit(game)) {
+        if (hasQuantumBranchProofCredit(game)) {
+          return {
+            kicker: "QUANTUM SEED",
+            title: "Branch seed logged",
+            body: "The Quantum Gate source has one working condition proof. Keep banking Daily and Frontier evidence until the source lab opens.",
+            reward: "Reward: stronger source record"
+          };
+        }
+        return {
+          kicker: "QUANTUM PREP",
+          title: "Test a branch condition",
+          body: "Stage a simple if rule: one game state chooses one code path. Quantum Gate will build probability from branches.",
+          reward: "Reward: Quantum Branch Seed"
+        };
+      }
       return {
         kicker: "DARK MATTER PREP",
         title: "Bank curve evidence",
@@ -1872,6 +1912,22 @@ function getStartSignalStoryPreview(game = window.Game) {
       label: "DARK MATTER PREP",
       title: "Source traced",
       body: `${contract.title}. ${contract.body}`,
+      progress: `${story.total}/${story.total} decoded`
+    };
+  }
+  if (contract && contract.kicker === "QUANTUM PREP") {
+    return {
+      label: "QUANTUM PREP",
+      title: "Branch source warming",
+      body: `${contract.title}. ${contract.body}`,
+      progress: `${story.total}/${story.total} decoded`
+    };
+  }
+  if (contract && contract.kicker === "QUANTUM SEED") {
+    return {
+      label: "QUANTUM SEED",
+      title: "Branch seed logged",
+      body: contract.body,
       progress: `${story.total}/${story.total} decoded`
     };
   }
@@ -2169,6 +2225,18 @@ const DISCOVERY_RULES = [
     sampleCode: "repeat 3 { spawn_spring() }"
   },
   {
+    kind: "branch",
+    pattern: /\bif\s+[^:\n]+:/i,
+    title: "Branch Lab",
+    formula: "if condition -> branch",
+    insight: "A conditional lets code choose a path from the current game state instead of always doing the same thing.",
+    cue: "Change one value, then run an if rule and watch which path fires.",
+    axis: "Conditions choose paths",
+    move: "Write one if rule",
+    payoff: "Prep Quantum Gate",
+    sampleCode: "if player.fuel < 50: player.say('branch A')"
+  },
+  {
     kind: "friction",
     pattern: /\bfriction\s*=/i,
     title: "Friction Lab",
@@ -2223,6 +2291,7 @@ function getPulseFormulaKind(pulse) {
   if (pulse.formulaCardKind && DISCOVERY_RULES.some(rule => rule.kind === pulse.formulaCardKind)) {
     return pulse.formulaCardKind;
   }
+  if (!pulse.cardUnlocked) return null;
   if (pulse.kind && pulse.kind !== "mission" && DISCOVERY_RULES.some(rule => rule.kind === pulse.kind)) {
     return pulse.kind;
   }
@@ -2355,6 +2424,50 @@ function getActiveLabQuest(game) {
     };
   }
 
+  const anomalyAlreadyTraced = typeof hasAnomalyTraceStoryCredit === 'function' && hasAnomalyTraceStoryCredit(game);
+  const darkMatterEvidenceReady = typeof hasDarkMatterPrepEvidenceCredit === 'function' && hasDarkMatterPrepEvidenceCredit(game);
+  const quantumBranchSeeded = typeof hasQuantumBranchProofCredit === 'function' && hasQuantumBranchProofCredit(game);
+  if (typeof hasClearedFullStarMap === 'function' && typeof hasFrontierStoryCredit === 'function' &&
+      hasClearedFullStarMap(game) && hasFrontierStoryCredit(game) && !anomalyAlreadyTraced) {
+    return {
+      kicker: "NEXT LAB QUEST",
+      title: "Trace hidden force",
+      body: "Dark Matter Echo is decoded. Use Mag-Net as a prototype: a touch event reveals how an unseen field bends motion.",
+      reward: "Reward: Dark Matter prep + Frontier practice",
+      action: "anomaly",
+      levelIndex: 4,
+      kind: "anomaly",
+      command: "use_hopper()\nwhen player.touching('magnet'): hopper.pole = 'south'"
+    };
+  }
+
+  if (anomalyAlreadyTraced && typeof hasClearedFullStarMap === 'function' && typeof hasFrontierStoryCredit === 'function' &&
+      hasClearedFullStarMap(game) && hasFrontierStoryCredit(game) && !darkMatterEvidenceReady) {
+    return {
+      kicker: "DARK MATTER PREP",
+      title: "Bank curve evidence",
+      body: "Run a Frontier remix and compare path curve, speed, and force changes. Dark Matter Lab will need evidence, not guesses.",
+      reward: "Reward: stronger hidden-force record",
+      action: "dark-matter-prep",
+      kind: "dark-matter-prep"
+    };
+  }
+
+  if (anomalyAlreadyTraced && darkMatterEvidenceReady && !quantumBranchSeeded &&
+      typeof hasClearedFullStarMap === 'function' && typeof hasFrontierStoryCredit === 'function' &&
+      hasClearedFullStarMap(game) && hasFrontierStoryCredit(game)) {
+    return {
+      kicker: "QUANTUM PREP",
+      title: "Test a branch condition",
+      body: "Quantum Gate needs one branch proof. Set fuel low, then let an if rule choose the warning path.",
+      reward: "Reward: Quantum Branch Seed + Branch Lab card",
+      action: "quantum",
+      levelIndex: 0,
+      kind: "quantum-branch",
+      command: "player.fuel = 40\nif player.fuel < 50: player.say('branch A')"
+    };
+  }
+
   const target = getActiveFormulaTarget(game, mission);
   if (target) {
     return {
@@ -2372,33 +2485,6 @@ function getActiveLabQuest(game) {
       title: `Reach ${rank.nextTitle}`,
       body: `${Math.round(rank.remaining)} Research XP until ${rank.nextPerk.label}.`,
       reward: `Reward: Lab Perk - ${rank.nextPerk.label}`
-    };
-  }
-
-  const anomalyAlreadyTraced = typeof hasAnomalyTraceStoryCredit === 'function' && hasAnomalyTraceStoryCredit(game);
-  if (typeof hasClearedFullStarMap === 'function' && typeof hasFrontierStoryCredit === 'function' &&
-      hasClearedFullStarMap(game) && hasFrontierStoryCredit(game) && !anomalyAlreadyTraced) {
-    return {
-      kicker: "NEXT LAB QUEST",
-      title: "Trace hidden force",
-      body: "Dark Matter Echo is decoded. Use Mag-Net as a prototype: a touch event reveals how an unseen field bends motion.",
-      reward: "Reward: Dark Matter prep + Frontier practice",
-      action: "anomaly",
-      levelIndex: 4,
-      kind: "anomaly",
-      command: "use_hopper()\nwhen player.touching('magnet'): hopper.pole = 'south'"
-    };
-  }
-
-  if (anomalyAlreadyTraced && typeof hasClearedFullStarMap === 'function' && typeof hasFrontierStoryCredit === 'function' &&
-      hasClearedFullStarMap(game) && hasFrontierStoryCredit(game)) {
-    return {
-      kicker: "DARK MATTER PREP",
-      title: "Bank curve evidence",
-      body: "Run a Frontier remix and compare path curve, speed, and force changes. Dark Matter Lab will need evidence, not guesses.",
-      reward: "Reward: stronger hidden-force record",
-      action: "dark-matter-prep",
-      kind: "dark-matter-prep"
     };
   }
 
@@ -2605,6 +2691,17 @@ function getStartMissionRadarAction(game = window.Game, quest = null) {
       kind: q.kind || "frontier"
     };
   }
+  if (q && q.action === "quantum") {
+    return {
+      action: "quantum",
+      label: "TEST BRANCH",
+      title: "Stage the conditional branch prototype and launch Earth.",
+      levelIndex: Number.isFinite(Number(q.levelIndex)) ? Number(q.levelIndex) : 0,
+      command: q.command || "",
+      kind: q.kind || "quantum-branch",
+      stageTitle: q.title || "Test a branch condition"
+    };
+  }
   if (q && /^Reach\s+/i.test(q.title)) {
     return {
       action: "log",
@@ -2652,6 +2749,23 @@ function runStartMissionRadarAction() {
     const level = button && button.dataset ? Number(button.dataset.level) : 4;
     if (game && typeof game.startLevel === 'function') {
       game.startLevel(Number.isFinite(level) ? level : 4);
+      return true;
+    }
+    return !!staged;
+  }
+  if (action === "quantum") {
+    const command = button && button.dataset ? String(button.dataset.command || "").trim() : "";
+    const staged = command && typeof stageScienceDeltaCommand === 'function'
+      ? stageScienceDeltaCommand(command, {
+        title: button.dataset.stageTitle || "Test a branch condition",
+        kind: button.dataset.kind || "quantum-branch",
+        source: "start-quantum-branch",
+        color: "#22d3ee"
+      })
+      : false;
+    const level = button && button.dataset ? Number(button.dataset.level) : 0;
+    if (game && typeof game.startLevel === 'function') {
+      game.startLevel(Number.isFinite(level) ? level : 0);
       return true;
     }
     return !!staged;
@@ -3199,6 +3313,134 @@ function awardAnomalyTraceProof(game, code, pulse = null) {
   return pulse ? pulse.anomalyTraceProof : proofResult;
 }
 
+function getQuantumBranchProofCandidate(game, code) {
+  if (!game) return null;
+  const staged = game.lastStagedExperiment || null;
+  const runCode = String(code || "").trim();
+  const stagedCode = String(staged && staged.command || "").trim();
+  if (!runCode || !stagedCode || runCode !== stagedCode) return null;
+  if (!staged || staged.source !== "start-quantum-branch") return null;
+  const planet = Number.isFinite(game.currentPlanetIndex) ? game.currentPlanetIndex : 0;
+  return {
+    command: runCode,
+    title: staged.title || "Test a branch condition",
+    sourceKey: [
+      "quantum-branch-proof",
+      planet,
+      normalizeSignalLabProofPart(staged.title || "branch-condition"),
+      hashSignalLabCommand(runCode)
+    ].join(":"),
+    planet
+  };
+}
+
+function awardQuantumBranchProof(game, code, pulse = null) {
+  const proof = getQuantumBranchProofCandidate(game, code);
+  if (!proof) return null;
+  game.discoveryPassCounts = game.discoveryPassCounts || {};
+  if (game.discoveryPassCounts[proof.sourceKey]) return null;
+
+  let masterySources = null;
+  if (typeof game.normalizeWorldMasteryMeter === 'function') {
+    const meter = game.normalizeWorldMasteryMeter(game.currentPlanetIndex);
+    masterySources = meter && meter.sources ? meter.sources : null;
+  }
+  if (masterySources && masterySources[proof.sourceKey]) {
+    game.discoveryPassCounts[proof.sourceKey] = 1;
+    return null;
+  }
+
+  const rewardXP = 5;
+  const masteryXP = 8;
+  const label = "QUANTUM BRANCH";
+  const color = "#22d3ee";
+  const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(game.researchXP || 0) : null;
+  const existingReward = !!(pulse && ((pulse.rewardXP || 0) > 0 || pulse.cardUnlocked || pulse.hypothesisConfirmed || (pulse.openedGems || 0) > 0));
+  const mastery = typeof game.awardWorldMasteryXP === 'function'
+    ? game.awardWorldMasteryXP(masteryXP, "quantum branch proof", { sourceKey: proof.sourceKey, silent: true })
+    : { addedXP: 0, duplicate: false };
+  if (mastery && mastery.duplicate) {
+    game.discoveryPassCounts[proof.sourceKey] = 1;
+    return null;
+  }
+
+  game.discoveryPassCounts[proof.sourceKey] = 1;
+  game.researchXP = Math.max(0, (game.researchXP || 0) + rewardXP);
+  if (pulse && !existingReward) {
+    game.discoveryCombo = Math.min(99, (game.discoveryCombo || 0) + 1);
+    pulse.combo = game.discoveryCombo;
+    if (pulse.combo === 1 && typeof game.spawnDiscoveryComboPrimerEffect === 'function') {
+      pulse.comboPrimer = game.spawnDiscoveryComboPrimerEffect(pulse);
+    } else if (pulse.combo > 1 && typeof game.spawnDiscoveryComboEffect === 'function') {
+      pulse.quantumComboEffect = game.spawnDiscoveryComboEffect(pulse);
+    }
+  }
+
+  const afterRank = (typeof getResearchRank === 'function') ? getResearchRank(game.researchXP || 0) : null;
+  const rankUp = !!(beforeRank && afterRank && afterRank.level > beforeRank.level);
+  const proofResult = {
+    label,
+    title: proof.title,
+    source: "Quantum Gate",
+    rewardXP,
+    worldMasteryAddedXP: mastery && Number.isFinite(mastery.addedXP) ? mastery.addedXP : 0,
+    sourceKey: proof.sourceKey
+  };
+  if (pulse) {
+    pulse.rewardXP = Math.max(0, (pulse.rewardXP || 0) + rewardXP);
+    pulse.quantumBranchProof = proofResult;
+    pulse.rankUp = pulse.rankUp || rankUp;
+    pulse.rankTitle = pulse.rankTitle || (afterRank ? afterRank.title : null);
+    pulse.rankPerk = pulse.rankPerk || (rankUp && afterRank ? afterRank.perk : null);
+    if (typeof game.attachFormulaCardUnlock === 'function') {
+      game.attachFormulaCardUnlock(pulse, "branch");
+    } else if (typeof unlockFormulaKind === 'function') {
+      pulse.cardUnlocked = !!unlockFormulaKind(game, "branch");
+      pulse.formulaCardKind = "branch";
+    }
+    game.discoveryPulse = pulse;
+    if (Array.isArray(game.discoveryLog) && game.discoveryLog[0] !== pulse) {
+      game.discoveryLog = [pulse].concat(game.discoveryLog).slice(0, 8);
+    }
+  }
+
+  if (rankUp && afterRank && typeof showBadgeToast === 'function') {
+    showBadgeToast({
+      icon: "QG",
+      label: `Research Rank: ${afterRank.title}`,
+      description: `Quantum branch proof unlocked ${afterRank.perk.label}.`
+    });
+  }
+  if (rankUp && pulse && typeof game.spawnResearchRankEffect === 'function') {
+    pulse.rankEffect = game.spawnResearchRankEffect(pulse);
+  }
+  if (typeof ui_log_output === 'function') {
+    const masteryText = mastery && mastery.addedXP > 0 ? `, +${mastery.addedXP} world mastery XP` : "";
+    ui_log_output(`${label}: +${rewardXP} Research XP${masteryText}.`, "success");
+  }
+  if (typeof game.showMissionBalloon === 'function') {
+    game.showMissionBalloon(`${label}: +${rewardXP} Research XP`, {
+      title: "QUANTUM PREP",
+      color,
+      timer: 250
+    });
+  }
+  if (game.player && typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+    const px = (Number.isFinite(game.player.x) ? game.player.x : 0) + (game.player.w || 24) / 2;
+    const py = Number.isFinite(game.player.y) ? game.player.y : 0;
+    ComicBubbles.pop(px, py - 52, label, color, 1.0);
+    if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+      Particles.spawnBurst(px, py - 10, color, 12, 2.2, 2.0, "glow");
+      Particles.spawnBurst(px, py - 10, "#fef08a", 6, 1.6, 1.5, "glow");
+    }
+  }
+  if (typeof updateDiscoveryPulse === 'function') updateDiscoveryPulse(game);
+  if (typeof updateResearchProgress === 'function') updateResearchProgress(game);
+  if (typeof game.checkLabStarProgress === 'function') game.checkLabStarProgress("science");
+  if (typeof saveLocalProgress === 'function' && typeof window !== 'undefined' && window.Game === game) saveLocalProgress();
+  return pulse ? pulse.quantumBranchProof : proofResult;
+}
+
 function finishSuccessfulCodeRunDiscovery(game, activeMission, code, resultState, lockedBefore = 0, lockedBeforeList = []) {
   if (!game || !activeMission || !activeMission.fullMission || !resultState) return { opened: 0, pulse: null };
   const lockedAfter = typeof game.getLockedRequiredCollectibleCount === 'function' ? game.getLockedRequiredCollectibleCount() : lockedBefore;
@@ -3214,7 +3456,8 @@ function finishSuccessfulCodeRunDiscovery(game, activeMission, code, resultState
   const pulse = recordDiscoveryPulse(game, activeMission, code, resultState, opened);
   const signalLabProof = awardSignalLabContractProof(game, code, pulse);
   const anomalyTraceProof = awardAnomalyTraceProof(game, code, pulse);
-  return { opened, pulse, signalLabProof, anomalyTraceProof, lockedAfter };
+  const quantumBranchProof = awardQuantumBranchProof(game, code, pulse);
+  return { opened, pulse, signalLabProof, anomalyTraceProof, quantumBranchProof, lockedAfter };
 }
 
 function getDiscoveryChainHint(pulse) {
@@ -3269,6 +3512,9 @@ function updateDiscoveryPulse(game) {
   const anomalyTraceProof = pulse.anomalyTraceProof
     ? `<div class="discovery-hypothesis discovery-signal-lab">${escapeHTML(pulse.anomalyTraceProof.label)} +${escapeHTML(String(pulse.anomalyTraceProof.rewardXP || 0))} XP</div>`
     : "";
+  const quantumBranchProof = pulse.quantumBranchProof
+    ? `<div class="discovery-hypothesis discovery-signal-lab">${escapeHTML(pulse.quantumBranchProof.label)} +${escapeHTML(String(pulse.quantumBranchProof.rewardXP || 0))} XP</div>`
+    : "";
   const drillProof = pulse.drillProof
     ? `<div class="discovery-hypothesis discovery-signal-lab">${escapeHTML(pulse.drillProof.label)} +${escapeHTML(String(pulse.drillProof.rewardXP || 0))} XP</div>`
     : "";
@@ -3306,6 +3552,7 @@ function updateDiscoveryPulse(game) {
     ${hypothesis}
     ${signalLabProof}
     ${anomalyTraceProof}
+    ${quantumBranchProof}
     ${drillProof}
     ${villageTradeProof}
     ${petProof}
