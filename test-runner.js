@@ -5328,6 +5328,25 @@ function runRetryRemixTests() {
     });
     assertEquals("behind", behindResult.state, "A slower same-star clear remains behind the imported rival");
     assertEquals(true, /Grace still leads/.test(behindResult.body), "Behind result should name the remaining class target");
+    const chaseContract = g.getClearReplayContract({
+      labStars: {
+        stars: 3,
+        maxStars: 3,
+        checks: [
+          { id: "missions", label: "Mission tasks", earned: true },
+          { id: "gems", label: "Mission gems", earned: true },
+          { id: "science", label: "Science proof", earned: true }
+        ]
+      },
+      clearTime: { elapsed: 36.0, best: 36.0, isNewBest: true },
+      isDailyRun: true,
+      isFrontierRun: true,
+      frontierRivalResult: behindResult
+    });
+    assertEquals("FRONTIER RIVAL CONTRACT", chaseContract.kicker, "Behind Frontier clears should become a rival-specific replay contract");
+    assertEquals("Catch Grace", chaseContract.title, "Rival replay contract should name the classmate target");
+    assertEquals("CHASE RIVAL", chaseContract.cta, "Rival replay contract should expose a direct chase action");
+    assertEquals(true, /under 35\.0s/.test(chaseContract.reward), "Rival replay contract should preserve the target time");
     const beatenResult = g.getFrontierRivalClearResult({
       frontierInfo: frontier,
       labStars: { stars: 3 },

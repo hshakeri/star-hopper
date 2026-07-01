@@ -2666,7 +2666,7 @@ class StarHopperGame {
     return summary;
   }
 
-  getClearReplayContract({ labStars = null, clearTime = null, isDailyRun = false, isFrontierRun = false, nextIndex = null } = {}) {
+  getClearReplayContract({ labStars = null, clearTime = null, isDailyRun = false, isFrontierRun = false, nextIndex = null, frontierRivalResult = null } = {}) {
     const starSummary = labStars || this.getClearLabStarSummary({ isDailyRun, isFrontierRun });
     const missingStar = starSummary && Array.isArray(starSummary.checks)
       ? starSummary.checks.find(check => !check.earned)
@@ -2697,6 +2697,19 @@ class StarHopperGame {
         reward: `Reward: ${Math.min((starSummary.stars || 0) + 1, starSummary.maxStars || 3)}/${starSummary.maxStars || 3} Lab Stars`,
         action: "replay",
         cta: "RETRY FOR STAR"
+      };
+    }
+
+    if (isFrontierRun && frontierRivalResult && frontierRivalResult.state === "behind" && frontierRivalResult.entry) {
+      const rival = frontierRivalResult.entry;
+      const timeText = Number.isFinite(rival.bestTime) ? ` under ${rival.bestTime.toFixed(1)}s` : "";
+      return {
+        kicker: "FRONTIER RIVAL CONTRACT",
+        title: `Catch ${rival.pilot || "classmate"}`,
+        body: `${frontierRivalResult.body} Replay this seeded lesson, change one variable, and compare the telemetry.`,
+        reward: `Target: ${rival.stars || 0}/3 Lab Stars${timeText}`,
+        action: "frontier",
+        cta: "CHASE RIVAL"
       };
     }
 
@@ -5031,7 +5044,7 @@ class StarHopperGame {
         <button type="button" class="clear-frontier-copy-btn" onclick="if (window.Game) window.Game.copyFrontierShareCode()">${safe(rivalResult.state === "beaten" ? "COPY WIN LINE" : "COPY MATCH LINE")}</button>
       </div>
     ` : "";
-    const replayContract = this.getClearReplayContract({ labStars: starSummary, clearTime: timeSummary, isDailyRun, isFrontierRun, nextIndex });
+    const replayContract = this.getClearReplayContract({ labStars: starSummary, clearTime: timeSummary, isDailyRun, isFrontierRun, nextIndex, frontierRivalResult: rivalResult });
     this.lastClearReplayContract = replayContract;
     const replayContractBlock = replayContract ? `
       <div class="clear-lab-contract">
