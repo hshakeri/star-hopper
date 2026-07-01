@@ -855,8 +855,14 @@ function runEngineTests() {
     let rows = getMissionLessonPhaseRows(game, earthMission);
     assertEquals("complete", rows[0].status, "Earth gravity phase completes after antigravity proof");
     assertEquals("active", rows[1].status, "Earth mass phase activates after gravity proof");
+    assertEquals("PAYOFF", rows[0].cueLabel, "Completed Earth phase should switch from formula to payoff");
+    assertEquals("Low Emerald routes feel reachable", rows[0].detail, "Completed Earth phase should explain the earned gameplay payoff");
+    assertEquals("UNLOCKED: 2 Light mass", rows[0].unlockLabel, "Completed Earth phase should point to the newly unlocked next tweak");
     assertEquals("hopper.mass = 1.2", rows[1].command, "Earth second phase reveals mass");
     assertEquals("hopper.mass = 1.2", buildNextExperimentCommand(earthMission, null, game), "Earth second stage command should be mass only");
+    const phaseHTMLAfterGravity = renderMissionLessonPhaseLadder(game, earthMission);
+    assertEquals(true, /PAYOFF/.test(phaseHTMLAfterGravity), "Earth ladder should visibly label completed phase payoff");
+    assertEquals(true, /UNLOCKED: 2 Light mass/.test(phaseHTMLAfterGravity), "Earth ladder should visibly point to the next unlocked phase");
 
     game.hopperMass = 1.2;
     game.player.mass = 1.2;
@@ -954,9 +960,13 @@ function runEngineTests() {
     const phaseRowsTwo = getMissionLessonPhaseRows(game, forgeMission);
     assertEquals("complete", phaseRowsTwo[0].status, "Forge phase ladder marks mass complete after proof");
     assertEquals("active", phaseRowsTwo[1].status, "Forge phase ladder activates bounce after mass proof");
+    assertEquals("PAYOFF", phaseRowsTwo[0].cueLabel, "Completed Forge phase should switch from science formula to payoff");
+    assertEquals("First Forge gem opens", phaseRowsTwo[0].detail, "Completed Forge phase should name the earned route payoff");
+    assertEquals("UNLOCKED: 2 Bounce control", phaseRowsTwo[0].unlockLabel, "Completed Forge phase should point to the unlocked bounce phase");
     assertEquals("elasticity = 1.0", phaseRowsTwo[1].command, "Unlocked Forge phase reveals the elasticity command");
     const phaseHTMLAfter = renderMissionLessonPhaseLadder(game, forgeMission);
     assertEquals(true, /DONE/.test(phaseHTMLAfter) && /NOW/.test(phaseHTMLAfter), "Forge phase ladder should show complete and active states after mass");
+    assertEquals(true, /PAYOFF/.test(phaseHTMLAfter) && /UNLOCKED: 2 Bounce control/.test(phaseHTMLAfter), "Forge ladder should show the completed payoff and next unlock");
     assertEquals(true, /elasticity = 1\.0/.test(phaseHTMLAfter), "Forge phase ladder should reveal elasticity after mass proof");
     assertEquals(false, /data-lesson-phase-stage="0"/.test(phaseHTMLAfter), "Completed Forge mass phase should stop exposing the stage action");
     assertEquals(true, /data-lesson-phase-stage="1"/.test(phaseHTMLAfter), "Active Forge bounce phase should expose a stage button");
@@ -1041,8 +1051,12 @@ function runEngineTests() {
     const phaseRowsTwo = getMissionLessonPhaseRows(game, moonMission);
     assertEquals("complete", phaseRowsTwo[0].status, "Moon phase ladder marks jump math complete after proof");
     assertEquals("active", phaseRowsTwo[1].status, "Moon phase ladder activates the spring loop after jump math");
+    assertEquals("PAYOFF", phaseRowsTwo[0].cueLabel, "Completed Moon phase should switch from formula to payoff");
+    assertEquals("Moon hops reach higher", phaseRowsTwo[0].detail, "Completed Moon phase should explain the earned route payoff");
+    assertEquals("UNLOCKED: 2 Spring loop", phaseRowsTwo[0].unlockLabel, "Completed Moon phase should point to the unlocked loop phase");
     assertEquals("repeat 3: spawn_spring()", phaseRowsTwo[1].command, "Unlocked Moon phase reveals the repeat-loop command");
     const phaseHTMLAfter = renderMissionLessonPhaseLadder(game, moonMission);
+    assertEquals(true, /PAYOFF/.test(phaseHTMLAfter) && /UNLOCKED: 2 Spring loop/.test(phaseHTMLAfter), "Moon ladder should show the completed payoff and next unlock");
     assertEquals(false, /data-lesson-phase-stage="0"/.test(phaseHTMLAfter), "Completed Moon jump phase should stop exposing the stage action");
     assertEquals(true, /data-lesson-phase-stage="1"/.test(phaseHTMLAfter), "Active Moon loop phase should expose a stage button");
 

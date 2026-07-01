@@ -4364,8 +4364,21 @@ html {
   line-height: 1.15;
 }
 
+.lesson-phase-detail {
+  display: grid;
+  gap: 1px;
+}
+
+.lesson-phase-detail b {
+  color: #fef08a;
+  font-size: 0.47rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
 .lesson-phase-step em,
-.lesson-phase-step code {
+.lesson-phase-step code,
+.lesson-phase-unlock {
   font-style: normal;
   font-size: 0.53rem;
   line-height: 1.18;
@@ -4374,6 +4387,12 @@ html {
 
 .lesson-phase-step em { color: #cbd5e1; }
 .lesson-phase-step code { color: #bbf7d0; }
+.lesson-phase-unlock {
+  border-left: 2px solid rgba(134, 239, 172, 0.7);
+  color: #bbf7d0;
+  font-weight: 800;
+  padding-left: 5px;
+}
 
 .lesson-phase-stage-btn {
   justify-self: start;

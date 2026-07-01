@@ -508,7 +508,7 @@ function appendHTML(parent, html) {
 function getMissionLessonPhaseRows(game, fullMission) {
   const phases = fullMission && Array.isArray(fullMission.lessonPhases) ? fullMission.lessonPhases : [];
   if (!phases.length) return [];
-  return phases.map((phase, index) => {
+  const rows = phases.map((phase, index) => {
     const locked = !!(phase.unlockAfterCheck && !missionResultCheckPassed(game, fullMission, phase.unlockAfterCheck));
     const complete = !locked && !!(phase.checkId && missionResultCheckPassed(game, fullMission, phase.checkId));
     const status = locked ? "locked" : (complete ? "complete" : "active");
@@ -517,10 +517,24 @@ function getMissionLessonPhaseRows(game, fullMission) {
       index,
       status,
       statusLabel: status === "complete" ? "DONE" : (status === "locked" ? "LOCKED" : "NOW"),
+      cueLabel: status === "complete" ? "PAYOFF" : (status === "locked" ? "LOCKED" : "SCIENCE"),
       detail: status === "locked"
         ? (phase.lockedHint || "Finish the previous phase to reveal this code.")
-        : (phase.formula || phase.payoff || ""),
+        : (status === "complete" ? (phase.payoff || phase.formula || "") : (phase.formula || phase.payoff || "")),
       command: status === "locked" ? "" : (phase.command || "")
+    };
+  });
+  const lastCompleteIndex = rows.reduce((best, row) => row.status === "complete" ? row.index : best, -1);
+  const pathComplete = rows.length > 0 && rows.every(row => row.status === "complete");
+  return rows.map(row => {
+    const nextActive = row.index === lastCompleteIndex
+      ? rows.find(item => item.index > row.index && item.status === "active")
+      : null;
+    return {
+      ...row,
+      unlockLabel: nextActive
+        ? `UNLOCKED: ${nextActive.label || `Phase ${nextActive.index + 1}`}`
+        : (pathComplete && row.index === lastCompleteIndex ? "PATH COMPLETE" : "")
     };
   });
 }
@@ -539,7 +553,8 @@ function renderMissionLessonPhaseLadder(game, fullMission, label = "LESSON PATH"
           <div class="lesson-phase-step ${escapeHTML(row.status)}">
             <span>${escapeHTML(row.statusLabel)}</span>
             <strong>${escapeHTML(row.label || `Phase ${row.index + 1}`)}</strong>
-            <em>${escapeHTML(row.detail || "")}</em>
+            <div class="lesson-phase-detail"><b>${escapeHTML(row.cueLabel || "SCIENCE")}</b><em>${escapeHTML(row.detail || "")}</em></div>
+            ${row.unlockLabel ? `<div class="lesson-phase-unlock">${escapeHTML(row.unlockLabel)}</div>` : ""}
             ${row.command ? `<code>${escapeHTML(row.command)}</code>` : ""}
             ${row.status === "active" && row.command ? `<button type="button" class="lesson-phase-stage-btn" data-lesson-phase-stage="${escapeHTML(String(row.index))}">STAGE</button>` : ""}
           </div>
