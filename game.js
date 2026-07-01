@@ -302,7 +302,7 @@ class StarHopperGame {
     if (!npc || npc.collected) return false;
     const shelter = signal || this.getVillagerShelterSignal(npc);
     if (shelter && shelter.active) return false;
-    if (npc.hiddenInCave || npc.rescuePending || npc.shelterReason || (npc.panicTimer || 0) > 0) return false;
+    if (npc.hiddenInCave || npc.returningFromCave || npc.rescuePending || npc.shelterReason || (npc.panicTimer || 0) > 0) return false;
     return true;
   }
 
@@ -1039,12 +1039,14 @@ class StarHopperGame {
         continue;
       }
       if (hadShelterState) {
-        this.releaseNPCFromCave(obj, { returnHome: true });
+        this.releaseNPCFromCave(obj, { returnHome: true, exitAtCave: !!obj.hiddenInCave });
         released++;
       } else {
         obj.hiddenInCave = false;
         obj.rescuePending = false;
         obj.shelterReason = null;
+        obj.returningFromCave = false;
+        obj.returningFromCaveTimer = 0;
         obj.proximity = false;
         if (Number.isFinite(obj.homeX)) obj.x = obj.homeX;
         if (Number.isFinite(obj.homeY)) obj.y = obj.homeY;
@@ -1087,16 +1089,22 @@ class StarHopperGame {
 
   releaseNPCFromCave(npc, options = {}) {
     if (!npc) return;
+    const wasHidden = !!npc.hiddenInCave;
     const rescuePending = !!npc.rescuePending;
+    const exitAtCave = !!(options.exitAtCave && wasHidden && Number.isFinite(npc.caveX));
     npc.hiddenInCave = false;
-    if (options.returnHome && Number.isFinite(npc.homeX)) npc.x = npc.homeX;
+    if (exitAtCave) npc.x = npc.caveX + 10;
+    else if (options.returnHome && Number.isFinite(npc.homeX)) npc.x = npc.homeX;
     else if (Number.isFinite(npc.caveX)) npc.x = npc.caveX + 10;
-    if (Number.isFinite(npc.homeY)) npc.y = npc.homeY;
+    if (exitAtCave && Number.isFinite(npc.caveY)) npc.y = npc.caveY;
+    else if (Number.isFinite(npc.homeY)) npc.y = npc.homeY;
     if (rescuePending) this.grantVillageRescueReward(npc, npc.shelterReason || "danger");
     npc.rescuePending = false;
     npc.shelterReason = null;
     npc.panicTimer = 0;
     npc.caveCooldown = 0;
+    npc.returningFromCave = !!exitAtCave;
+    npc.returningFromCaveTimer = exitAtCave ? 180 : 0;
     npc.proximity = false;
     if (this.activeNPC === npc) this.activeNPC = null;
   }
@@ -1153,7 +1161,7 @@ class StarHopperGame {
         this.releaseNPCFromCave(obj, { returnHome: true });
         touchNeedsSync = true;
       } else if (obj.hiddenInCave && (obj.panicTimer || 0) <= 0) {
-        this.releaseNPCFromCave(obj, { returnHome: true });
+        this.releaseNPCFromCave(obj, { returnHome: true, exitAtCave: true });
         touchNeedsSync = true;
       } else if (!obj.hiddenInCave && obj.shelterReason === "night" && !obj.rescuePending) {
         obj.shelterReason = null;

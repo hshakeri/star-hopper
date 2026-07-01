@@ -2538,7 +2538,7 @@ class NPC extends InteractiveObject {
       this.stepTowardCave(2.2);
     } else if (!goingHome && this.hiddenInCave) {
       if (typeof game.releaseNPCFromCave === 'function') {
-        game.releaseNPCFromCave(this, { returnHome: true });
+        game.releaseNPCFromCave(this, { returnHome: true, exitAtCave: true });
       } else {
         this.hiddenInCave = false;
         if (Number.isFinite(this.homeX)) this.x = this.homeX;
@@ -2562,6 +2562,22 @@ class NPC extends InteractiveObject {
       const dxHome = this.homeX - this.x;
       if (Math.abs(dxHome) > 1) this.x += Math.max(-1.1, Math.min(1.1, dxHome * 0.08));
       else this.x = this.homeX;
+      if (Number.isFinite(this.homeY)) {
+        const dyHome = this.homeY - this.y;
+        if (Math.abs(dyHome) > 1) this.y += Math.max(-1.1, Math.min(1.1, dyHome * 0.08));
+        else this.y = this.homeY;
+      }
+      if (this.returningFromCave) {
+        if (this.returningFromCaveTimer > 0) this.returningFromCaveTimer--;
+        const homeDx = Number.isFinite(this.homeX) ? Math.abs(this.homeX - this.x) : 0;
+        const homeDy = Number.isFinite(this.homeY) ? Math.abs(this.homeY - this.y) : 0;
+        if ((homeDx <= 2 && homeDy <= 2) || this.returningFromCaveTimer <= 0) {
+          if (Number.isFinite(this.homeX)) this.x = this.homeX;
+          if (Number.isFinite(this.homeY)) this.y = this.homeY;
+          this.returningFromCave = false;
+          this.returningFromCaveTimer = 0;
+        }
+      }
       if (this.shelterReason === "night" && !this.rescuePending) this.shelterReason = null;
     }
 
@@ -2574,7 +2590,9 @@ class NPC extends InteractiveObject {
     const caveDist = Math.sqrt(caveDx * caveDx + caveDy * caveDy);
     
     const wasProx = this.proximity;
-    this.proximity = goingHome ? false : (this.hiddenInCave ? (caveDist < 58) : (dist < 48 || caveDist < 52));
+    this.proximity = goingHome || this.returningFromCave
+      ? false
+      : (this.hiddenInCave ? (caveDist < 58) : (dist < 48 || caveDist < 52));
     if (this.proximity && game && typeof game.canNPCTrade === 'function' && !game.canNPCTrade(this, shelter)) {
       this.proximity = false;
       if (game.activeNPC === this) game.activeNPC = null;
