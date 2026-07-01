@@ -726,6 +726,31 @@ function getPassportCodeCue(mission) {
   return "Run one focused experiment";
 }
 
+function getSciencePassportAction(game = window.Game) {
+  const worlds = getPassportWorlds();
+  if (!worlds.length) return null;
+  const currentIndex = game && Number.isFinite(Number(game.currentPlanetIndex)) ? Number(game.currentPlanetIndex) : 0;
+  const nextWorld = worlds.find(({ index }) => !isPassportWorldStamped(game, index));
+  const target = nextWorld || worlds.find(({ index }) => index === currentIndex) || worlds[0];
+  const complete = !nextWorld;
+  return {
+    label: complete ? "CHASE MASTERY" : "RUN NEXT STAMP",
+    levelIndex: target.index,
+    title: complete ? `Replay ${target.planet.name}` : `Run ${target.planet.name}`,
+    complete
+  };
+}
+
+function runSciencePassportAction(levelIndex = null, game = window.Game) {
+  const action = Number.isFinite(Number(levelIndex))
+    ? { levelIndex: Number(levelIndex) }
+    : getSciencePassportAction(game);
+  if (!action || !game || typeof game.startLevel !== 'function') return false;
+  game.startLevel(action.levelIndex);
+  if (typeof switchMainMode === 'function') switchMainMode('terminal');
+  return true;
+}
+
 function updateSciencePassport(game = window.Game) {
   const panel = document.getElementById("science-passport-panel");
   if (!panel) return;
@@ -743,6 +768,7 @@ function updateSciencePassport(game = window.Game) {
   const summary = nextWorld
     ? `Next stamp: ${nextWorld.planet.name} - ${nextConcept}`
     : "Passport complete - chase mastery remixes, Daily Signals, and Frontier records.";
+  const action = getSciencePassportAction(game);
 
   panel.innerHTML = `
     <div class="science-passport-head">
@@ -750,7 +776,10 @@ function updateSciencePassport(game = window.Game) {
         <span>CADET SCIENCE PASSPORT</span>
         <strong>${stamped.length}/${worlds.length} planet stamps</strong>
       </div>
-      <em>${escapeHTML(summary)}</em>
+      <div class="science-passport-next">
+        <em>${escapeHTML(summary)}</em>
+        ${action ? `<button type="button" class="science-passport-run-btn" data-level="${escapeHTML(String(action.levelIndex))}" onclick="runSciencePassportAction(${escapeHTML(String(action.levelIndex))})">${escapeHTML(action.label)}</button>` : ""}
+      </div>
     </div>
     <div class="science-passport-grid">
       ${worlds.map(({ planet, index }) => {

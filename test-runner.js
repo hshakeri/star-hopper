@@ -1458,6 +1458,8 @@ function runEngineTests() {
 
   // Test 22a1: Science Passport turns cleared worlds into lesson stamps with the next concept visible.
   const oldGetElementById22passport = document.getElementById;
+  const oldWindowGame22passport = window.Game;
+  const oldSwitchMainMode22passport = switchMainMode;
   try {
     const panel = { innerHTML: "" };
     document.getElementById = (id) => id === "science-passport-panel" ? panel : null;
@@ -1484,9 +1486,26 @@ function runEngineTests() {
     assertEquals(true, /NOW/.test(panel.innerHTML), "Current uncleared world should be marked as the active passport target");
     assertEquals(true, /Mass resists acceleration/.test(panel.innerHTML), "Passport should show the next science concept");
     assertEquals(true, /Activate and tune Hopper/.test(panel.innerHTML), "Passport should show a concrete code cue for the next stamp");
+    assertEquals(true, /RUN NEXT STAMP/.test(panel.innerHTML), "Passport should expose a direct launch action");
+    assertEquals(true, /data-level="2"/.test(panel.innerHTML), "Passport launch action should target the next unstamped world");
+    assertEquals(true, /runSciencePassportAction\(2\)/.test(panel.innerHTML), "Passport launch action should call the run helper");
+    const action = getSciencePassportAction(game);
+    assertEquals("RUN NEXT STAMP", action.label, "Passport action should name the next stamp loop");
+    assertEquals(2, action.levelIndex, "Passport action should target Jupiter after Earth and Moon stamps");
+    const startedLevels22passport = [];
+    const modeSwitches22passport = [];
+    window.Game = { startLevel: (level) => { startedLevels22passport.push(level); } };
+    switchMainMode = (mode) => { modeSwitches22passport.push(mode); };
+    assertEquals(true, runSciencePassportAction(2), "Passport action helper should launch the target world");
+    assertEquals(2, startedLevels22passport[0], "Passport action helper should call startLevel with the target world");
+    assertEquals("terminal", modeSwitches22passport[0], "Passport action should return the UI to the playable terminal");
+    window.Game = oldWindowGame22passport;
+    switchMainMode = oldSwitchMainMode22passport;
     document.getElementById = oldGetElementById22passport;
     renderTestResult("engine-suite", "Curriculum: Science Passport shows planet lesson stamps", true);
   } catch (err) {
+    window.Game = oldWindowGame22passport;
+    switchMainMode = oldSwitchMainMode22passport;
     document.getElementById = oldGetElementById22passport;
     renderTestResult("engine-suite", "Curriculum: Science Passport shows planet lesson stamps", false, err.message);
   }
