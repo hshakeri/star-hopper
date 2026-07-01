@@ -2243,6 +2243,9 @@ function runEngineTests() {
     assertEquals("Collect Loop", clearQueue[0] && clearQueue[0].title, "Clear objective queue should name the next Code Concept");
     assertEquals("STAGE IDEA", clearQueue[0] && clearQueue[0].cta, "Clear objective queue should expose the Code Concept stage action");
     assertEquals("code-concept", clearQueue[0] && clearQueue[0].action, "Clear objective queue should preserve Code Concept action metadata");
+    assertEquals("repeat 3 { spawn_block() }", clearQueue[0] && clearQueue[0].command, "Clear objective Code Concept should preserve the sample command");
+    assertEquals("code-concept", clearQueue[0] && clearQueue[0].progress && clearQueue[0].progress.mode, "Clear objective Code Concept should carry progress metadata");
+    assertEquals("1/4 ideas", clearQueue[0] && clearQueue[0].progress && clearQueue[0].progress.label, "Clear objective Code Concept should preserve deck progress");
     clearQueueGame.lastClearObjectiveQueue = clearQueue;
     clearQueueGame.lastClearCodeConceptTarget = target;
     window.Game = clearQueueGame;
@@ -5706,6 +5709,11 @@ function runEngineTests() {
     assertEquals(true, /#3 SIGNAL DECODED/.test(report.innerHTML), "Objective queue should keep story momentum visible");
     assertEquals(true, /#4 LAB CHAIN x2/.test(report.innerHTML), "Objective queue should preserve the active lab chain after a clear");
     assertEquals(true, /Compare a lighter Hopper/.test(report.innerHTML), "Lab-chain objective should name the next one-variable tweak");
+    assertEquals(true, /clear-objective-item clear-lab-chain/.test(report.innerHTML), "Lab-chain clear objective should get a distinct collectible style");
+    assertEquals(true, /clear-objective-code/.test(report.innerHTML), "Clear objective queue should render command chips for stageable items");
+    assertEquals(true, /hopper\.mass = 0\.8/.test(report.innerHTML), "Lab-chain clear objective should show the next staged command");
+    assertEquals(true, /clear-objective-progress lab-chain/.test(report.innerHTML), "Lab-chain clear objective should render milestone pips");
+    assertEquals(true, /2\/3 to TRIPLE TEST/.test(report.innerHTML), "Lab-chain clear objective should show next combo milestone progress");
     assertEquals(true, /clear-objective-action-btn/.test(report.innerHTML), "Lab-chain objective should expose a direct staging button");
     assertEquals(true, /STAGE CHAIN/.test(report.innerHTML), "Lab-chain objective should label the staging action");
     assertEquals(true, /#5 AI STATE DECK/.test(report.innerHTML), "Objective queue should still include the next AI-state collection target");
@@ -5726,6 +5734,8 @@ function runEngineTests() {
     assertEquals("story", game.lastClearObjectiveQueue[2].action, "Story objective should preserve its action type");
     assertEquals("Compare a lighter Hopper", game.lastClearObjectiveQueue[3].title, "Objective queue data should preserve the lab-chain target");
     assertEquals("lab-chain", game.lastClearObjectiveQueue[3].action, "Lab-chain objective should preserve its action type");
+    assertEquals("hopper.mass = 0.8", game.lastClearObjectiveQueue[3].command, "Lab-chain objective data should preserve the next command");
+    assertEquals("lab-chain", game.lastClearObjectiveQueue[3].progress && game.lastClearObjectiveQueue[3].progress.mode, "Lab-chain objective data should preserve progress metadata");
     assertEquals("Pet Pact", game.lastClearObjectiveQueue[4].title, "Objective queue data should preserve the AI-state card target");
     assertEquals("ai-state", game.lastClearObjectiveQueue[4].action, "AI objective should preserve its action type");
     assertEquals("pet-pact", game.lastClearObjectiveQueue[4].cardId, "AI objective should preserve the deck card route");

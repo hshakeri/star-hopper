@@ -4644,6 +4644,10 @@ class StarHopperGame {
         cta: item.cta || "",
         action: item.action || null,
         cardId: item.cardId || null,
+        command: item.command || "",
+        kind: item.kind || "",
+        source: item.source || "",
+        progress: item.progress && typeof item.progress === "object" ? item.progress : null,
         preserveReflectionContext: !!item.preserveReflectionContext
       });
     };
@@ -4684,13 +4688,20 @@ class StarHopperGame {
     }
 
     if (labChainTarget) {
+      const progress = typeof getLabChainProgressMeta === 'function'
+        ? getLabChainProgressMeta(this, labChainTarget)
+        : null;
       add({
         label: labChainTarget.label || "LAB CHAIN",
         title: labChainTarget.title || "Make one fresh change",
         body: labChainTarget.body || "Change one variable, run it, and compare the new result.",
         reward: labChainTarget.reward || "Next new progress keeps the chain alive",
         cta: labChainTarget.command ? "STAGE CHAIN" : "RUN NEXT",
-        action: labChainTarget.command ? "lab-chain" : null
+        action: labChainTarget.command ? "lab-chain" : null,
+        command: labChainTarget.command || "",
+        kind: labChainTarget.kind || "lab-chain",
+        source: "clear-lab-chain",
+        progress
       });
     }
 
@@ -4701,7 +4712,16 @@ class StarHopperGame {
         body: `${codeConceptTarget.body || "Practice the next coding idea."} Try ${codeConceptTarget.command}.`,
         reward: codeConceptTarget.reward || "Reward: code concept card",
         cta: "STAGE IDEA",
-        action: "code-concept"
+        action: "code-concept",
+        command: codeConceptTarget.command,
+        kind: codeConceptTarget.concept || "code-concept",
+        source: "clear-code-concept",
+        progress: {
+          mode: "code-concept",
+          value: codeConceptTarget.count,
+          total: codeConceptTarget.total,
+          label: `${codeConceptTarget.count}/${codeConceptTarget.total} ideas`
+        }
       });
     }
 
@@ -7460,6 +7480,36 @@ class StarHopperGame {
     const safe = (typeof escapeHTML === 'function')
       ? escapeHTML
       : (value) => String(value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
+    const compactClearCommand = (command) => {
+      const raw = String(command || "").trim();
+      if (!raw) return "";
+      return typeof compactStartObjectiveCommand === 'function'
+        ? compactStartObjectiveCommand(raw)
+        : raw.replace(/\s+/g, " ");
+    };
+    const clearObjectiveClass = (item) => {
+      const raw = `${item && (item.source || item.action || item.kind) ? (item.source || item.action || item.kind) : "objective"}`.replace(/[^a-z0-9_-]+/gi, "-").toLowerCase();
+      return raw ? ` ${raw}` : "";
+    };
+    const renderClearObjectiveProgress = (item) => {
+      const progress = item && item.progress && typeof item.progress === "object" ? item.progress : null;
+      if (!progress) return "";
+      const rawTotal = Math.max(1, Math.floor(Number(progress.total || progress.target) || 1));
+      const total = Math.max(1, Math.min(6, rawTotal));
+      const rawValue = Math.max(0, Math.floor(Number(progress.value) || 0));
+      const value = Math.max(0, Math.min(total, rawTotal > total ? Math.round((rawValue / rawTotal) * total) : rawValue));
+      const mode = String(progress.mode || item.source || item.kind || "progress").replace(/[^a-z0-9_-]+/gi, "-").toLowerCase();
+      const label = progress.label || `${rawValue}/${rawTotal}`;
+      const pips = Array.from({ length: total }, (_, index) =>
+        `<i class="clear-objective-progress-pip${index < value ? " filled" : (index === value ? " next" : "")}" aria-hidden="true"></i>`
+      ).join("");
+      return `
+        <div class="clear-objective-progress ${safe(mode)}" aria-label="${safe(label)}">
+          <span>${safe(label)}</span>
+          <div>${pips}</div>
+        </div>
+      `;
+    };
 
     const rows = (typeof AttemptLog !== 'undefined' && AttemptLog.byPlanet)
       ? (AttemptLog.byPlanet[this.currentPlanetIndex] || [])
@@ -7625,10 +7675,12 @@ class StarHopperGame {
           <strong>${safe(objectiveQueue[0].cta || "ONE MORE RUN")}</strong>
         </div>
         ${objectiveQueue.map(item => `
-          <div class="clear-objective-item">
+          <div class="clear-objective-item${clearObjectiveClass(item)}">
             <span>#${item.priority} ${safe(item.label)}</span>
             <strong>${safe(item.title)}</strong>
             <p>${safe(item.body)}</p>
+            ${item.command ? `<code class="clear-objective-code">${safe(compactClearCommand(item.command))}</code>` : ""}
+            ${renderClearObjectiveProgress(item)}
             ${(item.reward || item.cta) ? `<em>${safe(`${item.reward || "Reward ready"}${item.cta ? ` · ${item.cta}` : ""}`)}</em>` : ""}
             ${item.action ? `<button type="button" class="clear-objective-action-btn" onclick="if (window.Game) window.Game.runClearObjectiveQueueAction(${item.priority})">${safe(item.cta || "RUN")}</button>` : ""}
           </div>
