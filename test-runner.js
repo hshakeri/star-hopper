@@ -2315,6 +2315,10 @@ function runEngineTests() {
       "start-world-preview-title": { textContent: "" },
       "start-world-preview-body": { textContent: "" },
       "start-world-preview-bar": { style: { width: "" } },
+      "start-village-preview-label": { textContent: "" },
+      "start-village-preview-title": { textContent: "" },
+      "start-village-preview-body": { textContent: "" },
+      "start-village-preview-bar": { style: { width: "" } },
       "start-proof-preview-label": { textContent: "" },
       "start-proof-preview-title": { textContent: "" },
       "start-proof-preview-body": { textContent: "" },
@@ -2357,6 +2361,7 @@ function runEngineTests() {
     game.discoveredFormulaKinds = new Set(["antigravity"]);
     game.planetClears = { 0: 1 };
     game.masteryMeters = { 0: { xp: 80, badges: ["scout"], sources: { "lab-star:0": 20 } } };
+    game.villageTrust = { 0: { points: 3, badges: ["friend"], sources: { "village-trade:0:geary:engine_1": 3 } } };
     game.requiredCollectiblesTotal = 2;
     game.requiredCollectiblesCollected = 0;
     game.confirmedHypotheses = new Set();
@@ -2376,6 +2381,11 @@ function runEngineTests() {
     assertEquals("Signal Scout · 80 XP", els["start-world-preview-title"].textContent, "Start radar should show current world mastery tier and XP");
     assertEquals(true, /30 XP to World Engineer/.test(els["start-world-preview-body"].textContent), "Start radar should show next world mastery gap");
     assertEquals("44%", els["start-world-preview-bar"].style.width, "Start radar should show world mastery progress");
+    assertEquals("VILLAGE TRUST", els["start-village-preview-label"].textContent, "Start radar should label village trust preview");
+    assertEquals("Trading Friend · 3 trust", els["start-village-preview-title"].textContent, "Start radar should show village trust tier and points");
+    assertEquals(true, /4 trust to Cave Ally/.test(els["start-village-preview-body"].textContent), "Start radar should show the next village trust gap");
+    assertEquals(true, /trade, rescue, or let a pet guard/.test(els["start-village-preview-body"].textContent), "Start radar should name relationship actions");
+    assertEquals("25%", els["start-village-preview-bar"].style.width, "Start radar should show village trust progress");
     assertEquals("3-STAR PROOF", els["start-proof-preview-label"].textContent, "Start radar should label the lab-star proof preview");
     assertEquals("0/3 Lab Stars ready", els["start-proof-preview-title"].textContent, "Start radar should show current lab-star readiness");
     assertEquals(true, /finish mission tasks/.test(els["start-proof-preview-body"].textContent), "Start radar should name the first missing lab-star goal");

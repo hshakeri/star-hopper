@@ -1909,6 +1909,34 @@ function getStartWorldMasteryPreview(game = window.Game) {
   };
 }
 
+function getStartVillageTrustPreview(game = window.Game) {
+  if (!game || typeof game.getVillageTrustProgress !== "function") {
+    return {
+      label: "VILLAGE TRUST",
+      title: "Village link loading",
+      body: "Trades, rescues, and pet guards build relationship progress.",
+      progress: 0
+    };
+  }
+  const index = Number.isFinite(Number(game.currentPlanetIndex)) ? Number(game.currentPlanetIndex) : 0;
+  const progress = game.getVillageTrustProgress(index);
+  const points = Math.max(0, Math.floor(Number(progress && progress.points) || 0));
+  const title = progress && progress.title ? progress.title : "New Arrival";
+  const planet = game.currentPlanet && game.currentPlanet.name ? game.currentPlanet.name : "this world";
+  const next = progress && progress.nextTier ? progress.nextTier : null;
+  let action = "make a first village trade";
+  if (points > 0 && next) action = "trade, rescue, or let a pet guard";
+  const body = next
+    ? `${Math.max(0, Math.floor(Number(next.points) || 0) - points)} trust to ${next.label} on ${planet}. Next: ${action}.`
+    : `${planet} trusts this cadet. Keep trades, rescues, and pet guards alive as relationship evidence.`;
+  return {
+    label: "VILLAGE TRUST",
+    title: `${title} · ${points} trust`,
+    body,
+    progress: Math.max(0, Math.min(1, ((progress && Number(progress.pct)) || 0) / 100))
+  };
+}
+
 function getStartLabStarProofPreview(game = window.Game) {
   if (!game || typeof game.getClearLabStarSummary !== "function") {
     return {
@@ -2443,6 +2471,7 @@ function updateStartMissionRadar(game = window.Game) {
   const unlockPreview = getResearchUnlockPreview(rank);
   const storyPreview = getStartSignalStoryPreview(game);
   const worldPreview = getStartWorldMasteryPreview(game);
+  const villagePreview = getStartVillageTrustPreview(game);
   const proofPreview = getStartLabStarProofPreview(game);
   const action = getStartMissionRadarAction(game, quest);
   const kicker = panel.querySelector ? panel.querySelector(".start-mission-radar-head span") : null;
@@ -2459,6 +2488,10 @@ function updateStartMissionRadar(game = window.Game) {
   const worldTitle = document.getElementById("start-world-preview-title");
   const worldBody = document.getElementById("start-world-preview-body");
   const worldBar = document.getElementById("start-world-preview-bar");
+  const villageLabel = document.getElementById("start-village-preview-label");
+  const villageTitle = document.getElementById("start-village-preview-title");
+  const villageBody = document.getElementById("start-village-preview-body");
+  const villageBar = document.getElementById("start-village-preview-bar");
   const proofLabel = document.getElementById("start-proof-preview-label");
   const proofTitle = document.getElementById("start-proof-preview-title");
   const proofBody = document.getElementById("start-proof-preview-body");
@@ -2482,6 +2515,10 @@ function updateStartMissionRadar(game = window.Game) {
   if (worldTitle) worldTitle.textContent = worldPreview.title;
   if (worldBody) worldBody.textContent = worldPreview.body;
   if (worldBar && worldBar.style) worldBar.style.width = `${Math.round(worldPreview.progress * 100)}%`;
+  if (villageLabel) villageLabel.textContent = villagePreview.label;
+  if (villageTitle) villageTitle.textContent = villagePreview.title;
+  if (villageBody) villageBody.textContent = villagePreview.body;
+  if (villageBar && villageBar.style) villageBar.style.width = `${Math.round(villagePreview.progress * 100)}%`;
   if (proofLabel) proofLabel.textContent = proofPreview.label;
   if (proofTitle) proofTitle.textContent = proofPreview.title;
   if (proofBody) proofBody.textContent = proofPreview.body;
