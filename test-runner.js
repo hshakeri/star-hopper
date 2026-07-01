@@ -4041,6 +4041,77 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: science checkpoint reaches objective compass", false, err.message);
   }
 
+  // Test 22bc4: Code Concept deck progress reaches the active in-world compass as pips.
+  const oldGetAttemptLogNextQuestion22bc4 = getAttemptLogNextQuestion;
+  const oldGetLabChainTarget22bc4 = getLabChainTarget;
+  const oldBuildNextExperimentCue22bc4 = buildNextExperimentCue;
+  try {
+    getAttemptLogNextQuestion = () => null;
+    getLabChainTarget = () => null;
+    buildNextExperimentCue = () => null;
+    const game = new StarHopperGame();
+    game.state = 'playing';
+    game.canvas = { width: 360, height: 220 };
+    game.player = { x: 120, y: 128, w: 24, h: 32 };
+    game.cameraX = 0;
+    game.reducedMotion = true;
+    game.currentPlanet = { name: "Code Concept Lab", missions: [] };
+    game.currentPlanetIndex = 0;
+    game.completedMissions = new Set();
+    game.discoveryPassCounts = {};
+    game.codeConcepts = new Set(["ASSIGN"]);
+
+    const queue = getRunObjectiveQueue(game);
+    assertEquals("CODE CONCEPT", queue[0] && queue[0].label, "Run queue should promote the next Code Concept when no science target is ahead");
+    assertEquals("LOOP", queue[0] && queue[0].kind, "Run queue should preserve the next Code Concept key");
+    assertEquals(1, queue[0] && queue[0].progress && queue[0].progress.value, "Run queue keeps raw Code Concept count for the CRT cartridge");
+    assertEquals(4, queue[0] && queue[0].progress && queue[0].progress.target, "Run queue keeps raw Code Concept total for the CRT cartridge");
+
+    const cue = game.getRunObjectiveCompassCue();
+    assertEquals("CODE CONCEPT", cue && cue.label, "Objective compass should show the Code Concept label");
+    assertEquals("STAGE IDEA", cue && cue.cta, "Objective compass should show the Code Concept action");
+    assertEquals("code-concept-target", cue && cue.source, "Objective compass should preserve Code Concept source metadata");
+    assertEquals("repeat 3 { spawn_block() }", cue && cue.commandLine, "Objective compass should show the runnable Code Concept sample");
+    assertEquals("LOOP", cue && cue.codeSkillChip, "Objective compass should identify the programming construct");
+    assertEquals(0.25, cue && cue.progress && cue.progress.value, "Objective compass should normalize 1/4 Code Concept progress");
+    assertEquals(0.5, cue && cue.progress && cue.progress.target, "Objective compass should mark the next 2/4 Code Concept target");
+    assertEquals(1, cue && cue.conceptProgress && cue.conceptProgress.current, "Objective compass should carry Code Concept pip current count");
+    assertEquals(2, cue && cue.conceptProgress && cue.conceptProgress.next, "Objective compass should carry Code Concept next pip");
+    assertEquals(4, cue && cue.conceptProgress && cue.conceptProgress.total, "Objective compass should carry Code Concept pip total");
+
+    const pipRects = [];
+    const labels = [];
+    const fakeCtx = {
+      save() {},
+      restore() {},
+      beginPath() {},
+      roundRect(x, y, w, h) { if (h === 6) pipRects.push({ x, y, w, h }); },
+      fill() {},
+      stroke() {},
+      fillRect() {},
+      moveTo() {},
+      lineTo() {},
+      fillText(text) { labels.push(text); },
+      measureText(text) { return { width: String(text || "").length * 6 }; }
+    };
+    const drawn = game.drawRunObjectiveCompass(fakeCtx);
+    assertEquals("CODE CONCEPT", drawn && drawn.label, "Compass draw should return the Code Concept cue");
+    assertEquals(true, labels.includes("LOOP"), "Compass draw should write the Code Concept chip");
+    assertEquals(true, labels.some(text => /repeat 3/.test(text)), "Compass draw should write the Code Concept command");
+    assertEquals(true, labels.some(text => /^1\/4/.test(text)), "Compass draw should write the Code Concept pip label");
+    assertEquals(true, pipRects.length >= 4, "Compass draw should render one compact pip per Code Concept card");
+
+    getAttemptLogNextQuestion = oldGetAttemptLogNextQuestion22bc4;
+    getLabChainTarget = oldGetLabChainTarget22bc4;
+    buildNextExperimentCue = oldBuildNextExperimentCue22bc4;
+    renderTestResult("engine-suite", "Curriculum: Code Concept progress reaches objective compass", true);
+  } catch (err) {
+    getAttemptLogNextQuestion = oldGetAttemptLogNextQuestion22bc4;
+    getLabChainTarget = oldGetLabChainTarget22bc4;
+    buildNextExperimentCue = oldBuildNextExperimentCue22bc4;
+    renderTestResult("engine-suite", "Curriculum: Code Concept progress reaches objective compass", false, err.message);
+  }
+
   // Test 22c: Research rank and discovery deck render a readable learning collection.
   const oldGetElementById22c = document.getElementById;
   const oldWindowGame22c = window.Game;

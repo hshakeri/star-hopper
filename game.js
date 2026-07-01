@@ -8514,12 +8514,42 @@ class StarHopperGame {
     const rewardChip = this.getObjectiveRewardChip(item.reward || "");
     const reasonLine = commandLine && itemBody && itemBody !== commandLine ? itemBody : "";
     const progressInfo = item.progress && typeof item.progress === "object" ? item.progress : null;
-    const progressValue = progressInfo && Number.isFinite(Number(progressInfo.value))
-      ? Math.max(0, Math.min(1, Number(progressInfo.value)))
+    const rawProgressValue = progressInfo && Number.isFinite(Number(progressInfo.value))
+      ? Number(progressInfo.value)
       : null;
-    const progressTarget = progressInfo && Number.isFinite(Number(progressInfo.target))
-      ? Math.max(0, Math.min(1, Number(progressInfo.target)))
+    const rawProgressTarget = progressInfo && Number.isFinite(Number(progressInfo.target))
+      ? Number(progressInfo.target)
       : null;
+    const rawProgressTotal = progressInfo && Number.isFinite(Number(progressInfo.total))
+      ? Number(progressInfo.total)
+      : null;
+    const isDeckProgress = !!(progressInfo && (
+      item.source === "code-concept-target" ||
+      progressInfo.mode === "code-concept" ||
+      rawProgressTotal > 1 ||
+      rawProgressTarget > 1
+    ));
+    let progressValue = null;
+    let progressTarget = null;
+    let conceptProgress = null;
+    if (progressInfo && isDeckProgress && rawProgressValue !== null) {
+      const total = Math.max(1, Math.floor(rawProgressTotal || rawProgressTarget || 4));
+      const current = Math.max(0, Math.min(total, Math.floor(rawProgressValue)));
+      const next = Math.max(current, Math.min(total, Math.floor(Number(progressInfo.next) || current + 1)));
+      progressValue = current / total;
+      progressTarget = next / total;
+      conceptProgress = {
+        current,
+        next,
+        total,
+        label: progressInfo.label ? String(progressInfo.label) : `${current}/${total} ideas`
+      };
+    } else if (rawProgressValue !== null) {
+      progressValue = Math.max(0, Math.min(1, rawProgressValue));
+      progressTarget = rawProgressTarget !== null
+        ? Math.max(0, Math.min(1, rawProgressTarget))
+        : progressValue;
+    }
     return {
       key: `${item.label || "NEXT"}:${item.title || "Next objective"}:${commandLine || item.body || item.reward || ""}:${item.source || "run-objective-queue"}`,
       priority: item.priority || 1,
@@ -8541,6 +8571,7 @@ class StarHopperGame {
         target: progressTarget !== null ? progressTarget : progressValue,
         label: progressInfo && progressInfo.label ? String(progressInfo.label) : ""
       } : null,
+      conceptProgress,
       disabled: !!item.disabled,
       queueCount: queue.length,
       trail,
@@ -8566,6 +8597,7 @@ class StarHopperGame {
     const hasReward = !!cue.rewardChip;
     const hasTrail = !!(cue.trail && cue.trail.length);
     const hasProgress = !!(cue.progress && Number.isFinite(Number(cue.progress.value)));
+    const hasConceptProgress = !!(cue.conceptProgress && Number.isFinite(Number(cue.conceptProgress.total)) && cue.conceptProgress.total > 1);
     const h = 48 + (hasReason ? 12 : 0) + (hasReward ? 12 : 0) + (hasProgress ? 12 : 0) + (hasTrail ? 12 : 0);
     const x = Math.max(12, Math.min(W - w - 12, px - w / 2));
     const y = Math.max(64, Math.min(H - h - 16, py - 62));
@@ -8684,27 +8716,55 @@ class StarHopperGame {
 
     if (hasProgress) {
       const railY = y + 50 + (hasReason ? 12 : 0) + (hasReward ? 12 : 0);
-      const railX = x + 9;
-      const railW = w - 18;
-      const railH = 5;
-      const targetX = railX + railW * Math.max(0, Math.min(1, Number(cue.progress.target)));
-      ctx.globalAlpha = cue.disabled ? 0.36 : 0.62;
-      ctx.fillStyle = "rgba(15, 23, 42, 0.88)";
-      ctx.beginPath();
-      ctx.roundRect(railX, railY - 3, railW, railH, 3);
-      ctx.fill();
-      ctx.globalAlpha = cue.disabled ? 0.52 : 0.95;
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.roundRect(railX, railY - 3, railW * Math.max(0, Math.min(1, Number(cue.progress.value))), railH, 3);
-      ctx.fill();
-      ctx.globalAlpha = cue.disabled ? 0.5 : 0.94;
-      ctx.strokeStyle = "#fef08a";
-      ctx.lineWidth = 1.1;
-      ctx.beginPath();
-      ctx.moveTo(targetX, railY - 5);
-      ctx.lineTo(targetX, railY + 4);
-      ctx.stroke();
+      if (hasConceptProgress) {
+        const total = Math.max(1, Math.floor(Number(cue.conceptProgress.total) || 1));
+        const current = Math.max(0, Math.min(total, Math.floor(Number(cue.conceptProgress.current) || 0)));
+        const next = Math.max(current, Math.min(total, Math.floor(Number(cue.conceptProgress.next) || current + 1)));
+        const labelText = String(cue.conceptProgress.label || `${current}/${total} ideas`).toUpperCase();
+        ctx.globalAlpha = cue.disabled ? 0.66 : 0.94;
+        ctx.fillStyle = cue.disabled ? "#cbd5e1" : "#bfdbfe";
+        ctx.font = "bold 6.2px 'Share Tech Mono', monospace";
+        ctx.fillText(this.fitCardText(ctx, labelText, 52), x + 9, railY);
+        const pipsX = x + 66;
+        const pipsW = Math.max(42, w - 75);
+        const gap = 3;
+        const pipW = Math.max(7, (pipsW - gap * (total - 1)) / total);
+        for (let i = 0; i < total; i++) {
+          const pipX = pipsX + i * (pipW + gap);
+          ctx.globalAlpha = cue.disabled ? 0.34 : 0.9;
+          ctx.fillStyle = i < current
+            ? color
+            : (i === next - 1 ? "#fef08a" : "rgba(15, 23, 42, 0.86)");
+          ctx.strokeStyle = i === next - 1 ? "#fef08a" : "rgba(147, 197, 253, 0.28)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.roundRect(pipX, railY - 4, pipW, 6, 2);
+          ctx.fill();
+          ctx.stroke();
+        }
+      } else {
+        const railX = x + 9;
+        const railW = w - 18;
+        const railH = 5;
+        const targetX = railX + railW * Math.max(0, Math.min(1, Number(cue.progress.target)));
+        ctx.globalAlpha = cue.disabled ? 0.36 : 0.62;
+        ctx.fillStyle = "rgba(15, 23, 42, 0.88)";
+        ctx.beginPath();
+        ctx.roundRect(railX, railY - 3, railW, railH, 3);
+        ctx.fill();
+        ctx.globalAlpha = cue.disabled ? 0.52 : 0.95;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.roundRect(railX, railY - 3, railW * Math.max(0, Math.min(1, Number(cue.progress.value))), railH, 3);
+        ctx.fill();
+        ctx.globalAlpha = cue.disabled ? 0.5 : 0.94;
+        ctx.strokeStyle = "#fef08a";
+        ctx.lineWidth = 1.1;
+        ctx.beginPath();
+        ctx.moveTo(targetX, railY - 5);
+        ctx.lineTo(targetX, railY + 4);
+        ctx.stroke();
+      }
     }
 
     if (hasTrail) {
