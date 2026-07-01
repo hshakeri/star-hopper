@@ -8138,12 +8138,16 @@ class StarHopperGame {
     const formulaChip = this.getScienceDeltaFormulaChip(primary);
     const codeLine = this.getScienceDeltaCodeLine(delta, primary);
     const deltaChip = this.getScienceDeltaValueDelta(primary);
+    const targetCue = this.getScienceDeltaTargetCue(delta);
     return {
       label: "EVIDENCE",
       title: delta.summary || "What changed",
       codeLine,
       valueLine: `${primary.label || "Value"}: ${primary.value || "changed"}`,
       reasonLine: primary.cue || "",
+      targetLine: targetCue ? targetCue.line : "",
+      targetProgress: targetCue ? targetCue.progress : null,
+      targetReady: targetCue ? targetCue.ready : false,
       nextLine: next && next.title ? `NEXT ${next.title}` : "",
       direction,
       formulaChip,
@@ -8178,6 +8182,33 @@ class StarHopperGame {
     return `${n > 0 ? "+" : "-"}${magnitude}`;
   }
 
+  formatScienceDeltaTargetNumber(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return "?";
+    return Math.abs(n) >= 10 ? String(Math.round(n)) : n.toFixed(1);
+  }
+
+  getScienceDeltaTargetCue(delta) {
+    const stat = typeof this.getMissionStat === 'function' ? this.getMissionStat() : null;
+    const value = stat ? Number(stat.value) : NaN;
+    const target = stat ? Number(stat.target) : NaN;
+    const label = stat && stat.label ? String(stat.label) : "";
+    if (!label || !Number.isFinite(value) || !Number.isFinite(target) || target <= 0) return null;
+    const changes = delta && Array.isArray(delta.changes) ? delta.changes : [];
+    const changedStat = changes.some(change => String((change && change.label) || "").toLowerCase() === label.toLowerCase());
+    const nextText = delta && delta.nextExperiment
+      ? `${delta.nextExperiment.title || ""} ${delta.nextExperiment.body || ""}`
+      : "";
+    if (!changedStat && !new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i").test(nextText)) return null;
+    const progress = Math.max(0, Math.min(1, value / target));
+    const gap = Math.max(0, target - value);
+    const ready = gap <= 0.05;
+    const line = ready
+      ? `TARGET ${label} ${this.formatScienceDeltaTargetNumber(value)}/${this.formatScienceDeltaTargetNumber(target)} READY`
+      : `TARGET ${label} ${this.formatScienceDeltaTargetNumber(value)}/${this.formatScienceDeltaTargetNumber(target)} GAP ${this.formatScienceDeltaTargetNumber(gap)}`;
+    return { line, progress, ready };
+  }
+
   getScienceDeltaCodeLine(delta, change) {
     const lines = String((delta && delta.code) || "")
       .split(/\n/)
@@ -8207,7 +8238,8 @@ class StarHopperGame {
     const H = this.canvas.height || 448;
     const w = Math.max(178, Math.min(260, W - 24));
     const hasCode = !!cue.codeLine;
-    const h = 56 + (hasCode ? 12 : 0) + (cue.nextLine ? 12 : 0);
+    const hasTarget = !!cue.targetLine;
+    const h = 56 + (hasCode ? 12 : 0) + (hasTarget ? 12 : 0) + (cue.nextLine ? 12 : 0);
     const x = 12;
     const y = Math.max(86, H - h - 18);
     const fade = cue.ageMs > 13000 ? Math.max(0.35, 1 - (cue.ageMs - 13000) / 5000) : 1;
@@ -8277,6 +8309,25 @@ class StarHopperGame {
     ctx.fillStyle = "#f8fafc";
     ctx.font = "bold 9px 'Share Tech Mono', monospace";
     ctx.fillText(this.fitCardText(ctx, cue.valueLine, w - 20), x + 10, textY);
+    if (hasTarget) {
+      textY += 14;
+      ctx.fillStyle = cue.targetReady ? "#86efac" : "#c4b5fd";
+      ctx.font = "bold 7px 'Share Tech Mono', monospace";
+      const barW = Math.max(54, Math.min(112, w - 148));
+      const barX = x + w - barW - 10;
+      let targetTextW = w - 20;
+      if (barW > 0 && barX > x + 86) {
+        ctx.globalAlpha = 0.35 * fade;
+        ctx.fillStyle = "rgba(148, 163, 184, 0.72)";
+        ctx.fillRect(barX, textY + 5, barW, 3);
+        ctx.fillStyle = cue.targetReady ? "#86efac" : "#c4b5fd";
+        ctx.fillRect(barX, textY + 5, Math.max(2, barW * Math.max(0, Math.min(1, Number(cue.targetProgress) || 0))), 3);
+        ctx.globalAlpha = 0.95 * fade;
+        targetTextW = Math.max(72, barX - x - 14);
+      }
+      ctx.fillStyle = cue.targetReady ? "#86efac" : "#c4b5fd";
+      ctx.fillText(this.fitCardText(ctx, cue.targetLine, targetTextW), x + 10, textY);
+    }
     ctx.fillStyle = "#bbf7d0";
     ctx.font = "7px 'Share Tech Mono', monospace";
     textY += 15;

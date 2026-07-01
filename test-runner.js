@@ -2974,6 +2974,8 @@ function runEngineTests() {
     assertEquals(true, /Less mass/.test(runCue.reasonLine), "In-run evidence ticker should preserve the science cue");
     assertEquals("F/m=a", runCue.formulaChip, "In-run evidence ticker should name the science relation behind the changed value");
     assertEquals("-1.3", runCue.deltaChip, "In-run evidence ticker should expose the numeric size of the changed value");
+    assertEquals(true, /TARGET Agility/.test(runCue.targetLine), "In-run evidence ticker should show progress toward the active mission target");
+    assertEquals(true, Number(runCue.targetProgress) > 0, "In-run evidence ticker should expose target progress for the mini meter");
     assertEquals("NEXT Agility 30+ reached", runCue.nextLine, "In-run evidence ticker should show the next experiment title");
     const deltaLabels = [];
     const fakeDeltaCtx = {
@@ -2993,6 +2995,7 @@ function runEngineTests() {
     assertEquals(true, deltaLabels.includes("CODE hopper.mass = 1.2"), "Drawing should write the causal code line");
     assertEquals(true, deltaLabels.includes("F/m=a"), "Drawing should write the science relation chip");
     assertEquals(true, deltaLabels.includes("DELTA -1.3"), "Drawing should write the numeric delta chip");
+    assertEquals(true, deltaLabels.some(text => /TARGET Agility/.test(text)), "Drawing should write the active target line");
     assertEquals(true, deltaLabels.some(text => /Mass:/.test(text)), "Drawing should write the changed science value");
     assertEquals(true, deltaLabels.includes("NEXT Agility 30+ reached"), "Drawing should write the next experiment title");
     assertEquals(true, drawnDeltaCue.h > 68, "Evidence ticker should reserve compact space for code plus next experiment rows");
@@ -3012,6 +3015,8 @@ function runEngineTests() {
     assertEquals(true, /1\/1 passed \(100%\)/.test(chanceText), "Chance delta should show observed pass rate");
     assertEquals(true, /Target chance 100/.test(chanceText), "Chance delta should show the target probability");
     assertEquals(true, /More trials reveal the pattern/.test(chanceText), "Chance delta should nudge repeated trials");
+    const chanceRunCue = game.getScienceDeltaRunCue();
+    assertEquals("", chanceRunCue.targetLine, "Probability-only experiments should not show an unrelated mission target line");
 
     const inputEl = {
       value: "",
