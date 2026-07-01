@@ -6342,6 +6342,19 @@ function runEngineTests() {
     assertEquals(true, /3\/3 Lab Stars/.test(contract.reward), "Missing-star contract should name the next star reward");
     assertEquals("replay", contract.action, "Missing-star contract should replay the current world");
     assertEquals("RETRY FOR STAR", contract.cta, "Missing-star contract should have an action label");
+    const starTarget = game.getClearLabStarTarget({
+      stars: 2,
+      maxStars: 3,
+      checks: [
+        { id: "missions", label: "Mission tasks", earned: true },
+        { id: "gems", label: "Mission gems", earned: true },
+        { id: "science", label: "Science proof", earned: false }
+      ]
+    });
+    assertEquals("NEXT STAR TARGET", starTarget.label, "Missing Lab Star should produce a focused target card");
+    assertEquals("Leave science proof", starTarget.title, "Science target should name the proof action");
+    assertEquals("Predict -> code -> explain", starTarget.action, "Science target should teach the proof loop");
+    assertEquals("3/3 Lab Stars", starTarget.reward, "Science target should show the next star payoff");
 
     game.discoveredFormulaKinds = new Set(["antigravity"]);
     contract = game.getClearReplayContract({
@@ -6443,6 +6456,10 @@ function runEngineTests() {
           ]
         }
       });
+      assertEquals(true, /clear-star-target science/.test(repairReport.innerHTML), "Clear report should render a distinct missing-science target card");
+      assertEquals(true, /NEXT STAR TARGET/.test(repairReport.innerHTML), "Clear report should label the missing-star target");
+      assertEquals(true, /Leave science proof/.test(repairReport.innerHTML), "Missing-star target should name the proof action");
+      assertEquals(true, /Predict -&gt; code -&gt; explain/.test(repairReport.innerHTML), "Missing-star target should show the proof loop");
       assertEquals(true, /EXPLAIN REPAIR PROOF/.test(repairReport.innerHTML), "Clear report should label active repair-proof explanations");
       assertEquals(true, /Reward: Repair Reflection Proof/.test(repairReport.innerHTML), "Clear report should name the repair reflection payoff");
       assertEquals(true, /WRITE REPAIR PROOF/.test(repairReport.innerHTML), "Clear report should expose a repair-proof notebook action");

@@ -5685,6 +5685,46 @@ class StarHopperGame {
     };
   }
 
+  getClearLabStarTarget(labStars = null) {
+    const summary = labStars || this.getClearLabStarSummary();
+    const checks = summary && Array.isArray(summary.checks) ? summary.checks : [];
+    const missing = checks.find(check => check && !check.earned);
+    if (!missing) return null;
+    const maxStars = Math.max(1, Math.floor(Number(summary.maxStars) || checks.length || 3));
+    const currentStars = Math.max(0, Math.floor(Number(summary.stars) || 0));
+    const nextStars = Math.min(maxStars, currentStars + 1);
+    const copy = {
+      missions: {
+        title: "Finish mission task",
+        body: "Complete the active coding requirement before entering the portal.",
+        action: "Code -> requirement -> portal"
+      },
+      gems: {
+        title: "Collect mission gems",
+        body: "Use the requirement monitor to unlock and bank every mission sample.",
+        action: "Read gate -> tune code -> collect"
+      },
+      science: {
+        title: "Leave science proof",
+        body: "Make a prediction, run one focused code tweak, then explain the evidence.",
+        action: "Predict -> code -> explain"
+      }
+    }[missing.id] || {
+      title: missing.label || "Finish missing star",
+      body: "Replay one focused step and compare what changed.",
+      action: "Try -> compare -> improve"
+    };
+    return {
+      id: missing.id || "star",
+      label: "NEXT STAR TARGET",
+      title: copy.title,
+      body: copy.body,
+      action: copy.action,
+      reward: `${nextStars}/${maxStars} Lab Stars`,
+      missingLabel: missing.label || copy.title
+    };
+  }
+
   recordClearLabStars({ isDailyRun = false, isFrontierRun = false } = {}) {
     const summary = this.getClearLabStarSummary({ isDailyRun, isFrontierRun });
     this.bestLabStars = this.bestLabStars || {};
@@ -8360,6 +8400,20 @@ class StarHopperGame {
     const starChecklist = starSummary.checks.map(check =>
       `<span class="${check.earned ? "earned" : ""}">${safe(`${check.earned ? "OK" : "NEXT"} ${check.label}`)}</span>`
     ).join("");
+    const starTarget = this.getClearLabStarTarget(starSummary);
+    const starTargetClass = starTarget
+      ? String(starTarget.id || "star").replace(/[^a-z0-9_-]+/gi, "-").toLowerCase()
+      : "";
+    const starTargetBlock = starTarget ? `
+      <div class="clear-star-target ${safe(starTargetClass)}">
+        <div class="clear-star-target-head">
+          <span>${safe(starTarget.label)}</span>
+          <strong>${safe(starTarget.reward)}</strong>
+        </div>
+        <p><b>${safe(starTarget.title)}</b> ${safe(starTarget.body)}</p>
+        <em>${safe(starTarget.action)}</em>
+      </div>
+    ` : "";
     const bestText = starSummary.isNewBest
       ? "NEW BEST"
       : (starSummary.best > starSummary.stars ? `BEST ${starSummary.best}/${starSummary.maxStars}` : "BEST MATCHED");
@@ -8452,6 +8506,7 @@ class StarHopperGame {
       </div>
       ${cadetIdentityBlock}
       <div class="clear-lab-star-list">${starChecklist}</div>
+      ${starTargetBlock}
       ${masteryRibbon}
       ${passportStampBlock}
       ${worldMasteryBlock}
