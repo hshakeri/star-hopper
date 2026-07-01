@@ -8192,6 +8192,7 @@ class StarHopperGame {
       reasonLine: primary.cue || "",
       targetLine: targetCue ? targetCue.line : "",
       targetNextLine: targetCue ? targetCue.nextLine : "",
+      targetNeedLine: targetCue ? targetCue.needLine : "",
       targetProgressBefore: targetCue ? targetCue.progressBefore : null,
       targetProgress: targetCue ? targetCue.progress : null,
       targetReady: targetCue ? targetCue.ready : false,
@@ -8236,8 +8237,8 @@ class StarHopperGame {
     return Math.abs(n) >= 10 ? String(Math.round(n)) : n.toFixed(1);
   }
 
-  getScienceDeltaNextTargetLine(progress, ready) {
-    if (ready) return "";
+  getScienceDeltaNextTargetCue(progress, value, target, ready) {
+    if (ready) return { line: "", needLine: "" };
     const p = Math.max(0, Math.min(1, Number(progress) || 0));
     const steps = [
       { threshold: 0.5, line: "NEXT 50% TARGET" },
@@ -8246,7 +8247,10 @@ class StarHopperGame {
       { threshold: 1, line: "NEXT READY" }
     ];
     const next = steps.find(step => p < step.threshold - 0.001) || steps[steps.length - 1];
-    return next.line;
+    const checkpointValue = Number.isFinite(Number(target)) ? Number(target) * next.threshold : NaN;
+    const gap = Math.max(0, checkpointValue - (Number(value) || 0));
+    const needLine = gap > 0.05 ? `+${this.formatScienceDeltaTargetNumber(gap)}` : "";
+    return { line: next.line, needLine };
   }
 
   getScienceDeltaTargetCue(delta) {
@@ -8273,7 +8277,8 @@ class StarHopperGame {
     const line = ready
       ? `TARGET ${label} ${this.formatScienceDeltaTargetNumber(value)}/${this.formatScienceDeltaTargetNumber(target)} READY`
       : `TARGET ${label} ${this.formatScienceDeltaTargetNumber(value)}/${this.formatScienceDeltaTargetNumber(target)} GAP ${this.formatScienceDeltaTargetNumber(gap)}`;
-    return { line, nextLine: this.getScienceDeltaNextTargetLine(progress, ready), progress, progressBefore, ready };
+    const nextTarget = this.getScienceDeltaNextTargetCue(progress, value, target, ready);
+    return { line, nextLine: nextTarget.line, needLine: nextTarget.needLine, progress, progressBefore, ready };
   }
 
   getScienceDeltaCodeLine(delta, change) {
@@ -8383,7 +8388,9 @@ class StarHopperGame {
       const barW = Math.max(54, Math.min(112, w - 148));
       const barX = x + w - barW - 10;
       let targetTextW = w - 20;
-      const nextChipText = cue.targetNextLine ? String(cue.targetNextLine).replace(/\s+TARGET$/, "") : "";
+      const nextChipText = cue.targetNextLine
+        ? `${String(cue.targetNextLine).replace(/\s+TARGET$/, "")}${cue.targetNeedLine ? ` ${cue.targetNeedLine}` : ""}`
+        : "";
       if (barW > 0 && barX > x + 86) {
         ctx.globalAlpha = 0.35 * fade;
         ctx.fillStyle = "rgba(148, 163, 184, 0.72)";
