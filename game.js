@@ -7987,8 +7987,19 @@ class StarHopperGame {
     if (!nextExperiment) return null;
     const title = String(nextExperiment.title || "Try one more test").trim();
     const command = String(nextExperiment.command || "").trim();
-    const lines = command.split(/\n+/).map(line => line.trim()).filter(Boolean);
     const cueText = `${title} ${nextExperiment.body || ""}`.toLowerCase();
+    const commandLine = this.getSalientCommandLine(command, cueText);
+    return {
+      nextLabel: title ? `NEXT ${title}` : "NEXT TEST",
+      nextCommandLabel: commandLine ? `TRY ${commandLine}` : "",
+      nextColor: "#a7f3d0"
+    };
+  }
+
+  getSalientCommandLine(command, cueText = "") {
+    const lines = String(command || "").split(/\n+/).map(line => line.trim()).filter(Boolean);
+    if (!lines.length) return "";
+    const text = String(cueText || "").toLowerCase();
     const assignmentLines = lines.filter(line => /=/.test(line));
     const matchers = [
       { cue: /jump[_ -]?power|\bjump\b|height/, line: /jump_power/i },
@@ -7999,15 +8010,10 @@ class StarHopperGame {
       { cue: /chance|probability|trial/, line: /chance|repeat/i }
     ];
     const lineMatchers = matchers
-      .filter(matcher => matcher.cue.test(cueText))
+      .filter(matcher => matcher.cue.test(text))
       .map(matcher => matcher.line);
     const matchedLines = assignmentLines.filter(line => lineMatchers.some(pattern => pattern.test(line)));
-    const commandLine = matchedLines[matchedLines.length - 1] || assignmentLines[assignmentLines.length - 1] || lines[0] || "";
-    return {
-      nextLabel: title ? `NEXT ${title}` : "NEXT TEST",
-      nextCommandLabel: commandLine ? `TRY ${commandLine}` : "",
-      nextColor: "#a7f3d0"
-    };
+    return matchedLines[matchedLines.length - 1] || assignmentLines[assignmentLines.length - 1] || lines[0] || "";
   }
 
   syncScienceBreadcrumbNextExperiment(delta, nextExperiment = null) {
@@ -8350,11 +8356,9 @@ class StarHopperGame {
       color: next && next.color ? next.color : "#94a3b8",
       disabled: !!(next && next.disabled)
     }));
-    const commandLine = String(item.command || "")
-      .split(/\n/)
-      .map(line => line.trim())
-      .find(Boolean) || "";
     const itemBody = String(item.body || "").trim();
+    const commandContext = `${item.title || ""} ${itemBody} ${item.reward || ""}`;
+    const commandLine = this.getSalientCommandLine(item.command || "", commandContext);
     const reasonLine = commandLine && itemBody && itemBody !== commandLine ? itemBody : "";
     const progressInfo = item.progress && typeof item.progress === "object" ? item.progress : null;
     const progressValue = progressInfo && Number.isFinite(Number(progressInfo.value))

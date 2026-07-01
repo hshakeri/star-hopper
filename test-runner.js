@@ -3658,7 +3658,7 @@ function runEngineTests() {
       title: "Mass Lab",
       kind: "mass",
       source: "mentor-signal",
-      command: "hopper.mass = 1.0",
+      command: "use_hopper()\nhopper.mass = 1.0",
       time: Date.now()
     };
 
@@ -3666,7 +3666,7 @@ function runEngineTests() {
     assertEquals("READY TO TEST", cue.label, "Objective compass should mirror the top run-queue label");
     assertEquals("RESTAGE", cue.cta, "Objective compass should mirror the top run-queue action");
     assertEquals("Mass Lab", cue.title, "Objective compass should name the queued experiment");
-    assertEquals("hopper.mass = 1.0", cue.commandLine, "Objective compass should show the first runnable command");
+    assertEquals("hopper.mass = 1.0", cue.commandLine, "Objective compass should show the salient assignment, not setup boilerplate");
     assertEquals(true, /compare what changed/.test(cue.reasonLine), "Objective compass should preserve the science reason behind the command");
     assertEquals("mentor-signal", cue.source, "Objective compass should preserve queue source metadata");
     assertEquals(true, /READY TO TEST:Mass Lab/.test(cue.key), "Objective compass should expose a stable key for transition feedback");
@@ -3692,7 +3692,7 @@ function runEngineTests() {
     assertEquals("READY TO TEST", drawn.label, "Drawing should return the visible objective cue");
     assertEquals(true, labels.some(text => /READY TO TEST/.test(text)), "Compass draw should write the ranked objective label");
     assertEquals(true, labels.includes("Mass Lab"), "Compass draw should write the experiment title");
-    assertEquals(true, labels.includes("hopper.mass = 1.0"), "Compass draw should write the command line");
+    assertEquals(true, labels.includes("hopper.mass = 1.0"), "Compass draw should write the salient command line");
     assertEquals(true, labels.some(text => /^Press Enter/.test(text)), "Compass draw should write the science reason line");
     assertEquals(true, labels.some(text => /NEXT #2 PREDICT/.test(text)), "Compass draw should show the next queued objective trail");
     assertEquals("READY TO TEST", game.lastRunObjectiveCompassCue && game.lastRunObjectiveCompassCue.label, "Drawing should cache the visible objective cue");
@@ -3746,12 +3746,13 @@ function runEngineTests() {
     assertEquals("NEXT CHECKPOINT", cue && cue.label, "Objective compass should show checkpoint label when it is the top queue item");
     assertEquals("STAGE CHECKPOINT", cue && cue.cta, "Objective compass should show checkpoint action");
     assertEquals("science-checkpoint", cue && cue.source, "Objective compass should preserve checkpoint source metadata");
-    assertEquals("use_hopper()", cue && cue.commandLine, "Objective compass should show the first runnable checkpoint command");
+    assertEquals("hopper.engine = 6", cue && cue.commandLine, "Objective compass should show the salient checkpoint assignment");
     assertEquals(true, /Need \+3\.0 to 50% TARGET/.test(cue && cue.reasonLine), "Objective compass should show the checkpoint gap as the reason line");
     assertEquals(0.4, cue && cue.progress && cue.progress.value, "Objective compass should carry checkpoint progress for a visual rail");
     assertEquals(0.5, cue && cue.progress && cue.progress.target, "Objective compass should carry checkpoint target marker");
 
     const railOps = [];
+    const checkpointLabels = [];
     const fakeCtx = {
       save() {},
       restore() {},
@@ -3762,11 +3763,12 @@ function runEngineTests() {
       fillRect() {},
       moveTo(x, y) { railOps.push({ type: "moveTo", x, y }); },
       lineTo(x, y) { railOps.push({ type: "lineTo", x, y }); },
-      fillText() {},
+      fillText(text) { checkpointLabels.push(text); },
       measureText(text) { return { width: String(text || "").length * 6 }; }
     };
     const drawn = game.drawRunObjectiveCompass(fakeCtx);
     assertEquals("NEXT CHECKPOINT", drawn && drawn.label, "Compass draw should return the checkpoint cue");
+    assertEquals(true, checkpointLabels.includes("hopper.engine = 6"), "Compass draw should write the salient checkpoint command");
     assertEquals(0.4, drawn && drawn.progress && drawn.progress.value, "Compass draw should preserve checkpoint progress");
     assertEquals(true, drawn && drawn.h > 60, "Compass draw should reserve compact space for the checkpoint rail");
     assertEquals(true, railOps.some(op => op.type === "moveTo"), "Compass draw should paint the checkpoint target marker");
