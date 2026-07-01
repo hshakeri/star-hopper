@@ -4136,6 +4136,7 @@ function runEngineTests() {
 
   // Test 22i: The start-screen galaxy map shows saved lab stars and unlocked planets.
   const oldQuerySelectorAll22g = document.querySelectorAll;
+  const oldSwitchMainMode22g = switchMainMode;
   try {
     const makeClassList = (initial = []) => {
       const set = new Set(initial);
@@ -4224,6 +4225,22 @@ function runEngineTests() {
     assertEquals(true, /Shelter Loop/.test(nodes[1]._meta.innerHTML), "AI state badge should name the missing behavior card");
     assertEquals(true, /RUN RESCUE/.test(nodes[1]._meta.innerHTML), "AI state badge should mirror the Log action label");
     assertEquals(true, /AI State: Shelter Loop \(RUN RESCUE\)/.test(nodes[1].title), "Next AI state target should be available in the map tooltip");
+    const routedStarts22g = [];
+    const routedModes22g = [];
+    const originalStartLevel22g = game.startLevel;
+    const originalToggleSurvival22g = game.toggleSurvival;
+    game.survivalMode = false;
+    game.startLevel = (level) => routedStarts22g.push(level);
+    game.toggleSurvival = () => { game.survivalMode = true; };
+    switchMainMode = (mode) => routedModes22g.push(mode);
+    assertEquals(true, game.startMapPlanet(1), "Clicking the AI NEXT map world should use the AI State Deck route");
+    assertEquals(1, routedStarts22g[0], "AI NEXT map route should launch the target village world");
+    assertEquals(true, game.survivalMode, "AI NEXT rescue route should enable Survival from the map");
+    assertEquals("terminal", routedModes22g[0], "AI NEXT map route should return to the playable terminal");
+    game.startLevel = originalStartLevel22g;
+    game.toggleSurvival = originalToggleSurvival22g;
+    game.survivalMode = false;
+    switchMainMode = oldSwitchMainMode22g;
 
     game.planetClears = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 };
     game.frontierRecords = {};
@@ -4288,9 +4305,11 @@ function runEngineTests() {
     assertEquals(true, /PROBABILITY SEED/.test(teasers[1]._meta.innerHTML), "Quantum Gate should label the logged probability seed");
     assertEquals(true, /chance paths/.test(teasers[1]._meta.innerHTML), "Quantum Gate seed should preview chance paths");
     document.querySelectorAll = oldQuerySelectorAll22g;
+    switchMainMode = oldSwitchMainMode22g;
     renderTestResult("engine-suite", "Curriculum: galaxy map surfaces lab-star mastery", true);
   } catch (err) {
     document.querySelectorAll = oldQuerySelectorAll22g;
+    switchMainMode = oldSwitchMainMode22g;
     renderTestResult("engine-suite", "Curriculum: galaxy map surfaces lab-star mastery", false, err.message);
   }
 

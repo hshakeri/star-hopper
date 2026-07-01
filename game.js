@@ -2564,6 +2564,17 @@ class StarHopperGame {
     this.refreshFutureWorldTeasers();
   }
 
+  startMapPlanet(index) {
+    const levelIndex = Number(index);
+    if (!Number.isFinite(levelIndex)) return false;
+    const aiTarget = this.getMapAIStateTarget(levelIndex);
+    if (aiTarget && typeof runAIStateDeckAction === 'function') {
+      return runAIStateDeckAction(aiTarget.card.id, this);
+    }
+    this.startLevel(levelIndex);
+    return true;
+  }
+
   // Animate a planet node from locked → available on the start-screen galaxy map.
   unlockNextPlanetNode(targetIndex) {
     if (targetIndex == null) return;
@@ -2987,7 +2998,7 @@ class StarHopperGame {
     btns.forEach(btn => {
       btn.addEventListener("click", () => {
         const id = parseInt(btn.getAttribute("data-level"));
-        this.startLevel(id);
+        this.startMapPlanet(id);
       });
     });
 
