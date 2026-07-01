@@ -2975,6 +2975,7 @@ function runEngineTests() {
     assertEquals("F/m=a", runCue.formulaChip, "In-run evidence ticker should name the science relation behind the changed value");
     assertEquals("-1.3", runCue.deltaChip, "In-run evidence ticker should expose the numeric size of the changed value");
     assertEquals(true, /TARGET Agility/.test(runCue.targetLine), "In-run evidence ticker should show progress toward the active mission target");
+    assertEquals("NEXT 90% TARGET", runCue.targetNextLine, "In-run evidence ticker should preview the next target checkpoint");
     assertEquals(true, Number(runCue.targetProgressBefore) < Number(runCue.targetProgress), "In-run evidence ticker should expose the before-to-after target movement");
     assertEquals(true, Number(runCue.targetProgress) > 0, "In-run evidence ticker should expose target progress for the mini meter");
     assertEquals("NEXT Agility 30+ reached", runCue.nextLine, "In-run evidence ticker should show the next experiment title");
@@ -2998,6 +2999,7 @@ function runEngineTests() {
     assertEquals(true, deltaLabels.includes("F/m=a"), "Drawing should write the science relation chip");
     assertEquals(true, deltaLabels.includes("DELTA -1.3"), "Drawing should write the numeric delta chip");
     assertEquals(true, deltaLabels.some(text => /TARGET Agility/.test(text)), "Drawing should write the active target line");
+    assertEquals(true, deltaLabels.includes("NEXT 90%"), "Drawing should write the next target checkpoint chip");
     assertEquals(true, deltaRects.some(rect => rect && rect.h === 5), "Drawing should highlight the before-to-after target movement segment");
     assertEquals(true, deltaRects.some(rect => rect && rect.h === 8), "Drawing should mark the after-position on the target rail");
     assertEquals(true, deltaLabels.some(text => /Mass:/.test(text)), "Drawing should write the changed science value");
@@ -3051,6 +3053,7 @@ function runEngineTests() {
     targetGame.canvas = { width: 720, height: 448 };
     const targetReadyCue = targetGame.getScienceDeltaRunCue();
     assertEquals(true, targetReadyCue.targetReady, "Crossed mission target should render as ready in the evidence ticker");
+    assertEquals("", targetReadyCue.targetNextLine, "Ready target ticker should not preview another checkpoint");
     assertEquals(true, Number(targetReadyCue.targetProgressBefore) < 1, "Ready ticker should preserve the before-target progress");
     assertEquals(1, targetReadyCue.targetProgress, "Ready ticker should clamp after-target progress to the complete rail");
 
@@ -3080,6 +3083,10 @@ function runEngineTests() {
     assertEquals(true, targetStepLabels.includes("50% TARGET"), "Target milestone cue should show the crossed threshold");
     assertEquals("TARGET STEP: Agility 7/10", targetStepGame.missionBalloon && targetStepGame.missionBalloon.text, "Mission CRT should announce non-XP target progress");
     assertEquals(true, targetStepBursts >= 4, "Target milestone should add extra particle feedback");
+    targetStepGame.state = 'playing';
+    targetStepGame.canvas = { width: 720, height: 448 };
+    const targetStepCue = targetStepGame.getScienceDeltaRunCue();
+    assertEquals("NEXT 75% TARGET", targetStepCue.targetNextLine, "Partial target step should preview the next checkpoint");
 
     const inputEl = {
       value: "",

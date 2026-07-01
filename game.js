@@ -8191,6 +8191,7 @@ class StarHopperGame {
       valueLine: `${primary.label || "Value"}: ${primary.value || "changed"}`,
       reasonLine: primary.cue || "",
       targetLine: targetCue ? targetCue.line : "",
+      targetNextLine: targetCue ? targetCue.nextLine : "",
       targetProgressBefore: targetCue ? targetCue.progressBefore : null,
       targetProgress: targetCue ? targetCue.progress : null,
       targetReady: targetCue ? targetCue.ready : false,
@@ -8235,6 +8236,19 @@ class StarHopperGame {
     return Math.abs(n) >= 10 ? String(Math.round(n)) : n.toFixed(1);
   }
 
+  getScienceDeltaNextTargetLine(progress, ready) {
+    if (ready) return "";
+    const p = Math.max(0, Math.min(1, Number(progress) || 0));
+    const steps = [
+      { threshold: 0.5, line: "NEXT 50% TARGET" },
+      { threshold: 0.75, line: "NEXT 75% TARGET" },
+      { threshold: 0.9, line: "NEXT 90% TARGET" },
+      { threshold: 1, line: "NEXT READY" }
+    ];
+    const next = steps.find(step => p < step.threshold - 0.001) || steps[steps.length - 1];
+    return next.line;
+  }
+
   getScienceDeltaTargetCue(delta) {
     const stat = typeof this.getMissionStat === 'function' ? this.getMissionStat() : null;
     const tracked = delta && delta.missionTarget && stat && delta.missionTarget.key === stat.key ? delta.missionTarget : null;
@@ -8259,7 +8273,7 @@ class StarHopperGame {
     const line = ready
       ? `TARGET ${label} ${this.formatScienceDeltaTargetNumber(value)}/${this.formatScienceDeltaTargetNumber(target)} READY`
       : `TARGET ${label} ${this.formatScienceDeltaTargetNumber(value)}/${this.formatScienceDeltaTargetNumber(target)} GAP ${this.formatScienceDeltaTargetNumber(gap)}`;
-    return { line, progress, progressBefore, ready };
+    return { line, nextLine: this.getScienceDeltaNextTargetLine(progress, ready), progress, progressBefore, ready };
   }
 
   getScienceDeltaCodeLine(delta, change) {
@@ -8369,6 +8383,7 @@ class StarHopperGame {
       const barW = Math.max(54, Math.min(112, w - 148));
       const barX = x + w - barW - 10;
       let targetTextW = w - 20;
+      const nextChipText = cue.targetNextLine ? String(cue.targetNextLine).replace(/\s+TARGET$/, "") : "";
       if (barW > 0 && barX > x + 86) {
         ctx.globalAlpha = 0.35 * fade;
         ctx.fillStyle = "rgba(148, 163, 184, 0.72)";
@@ -8388,6 +8403,23 @@ class StarHopperGame {
         ctx.fillStyle = cue.targetReady ? "#86efac" : "#c4b5fd";
         const markerX = barX + Math.max(0, Math.min(barW - 2, barW * afterProgress - 1));
         ctx.fillRect(markerX, textY + 2, 2, 8);
+        if (nextChipText) {
+          const nextChipW = Math.max(50, Math.min(barW - 4, 12 + nextChipText.length * 5));
+          const nextChipX = barX + (barW - nextChipW) / 2;
+          ctx.globalAlpha = 0.92 * fade;
+          ctx.fillStyle = "rgba(15, 23, 42, 0.78)";
+          ctx.strokeStyle = cue.targetReady ? "#86efac" : "#facc15";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.roundRect(nextChipX, textY - 8, nextChipW, 10, 3);
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = cue.targetReady ? "#86efac" : "#fef08a";
+          ctx.font = "bold 5.8px 'Share Tech Mono', monospace";
+          ctx.textAlign = "center";
+          ctx.fillText(this.fitCardText(ctx, nextChipText, nextChipW - 8), nextChipX + nextChipW / 2, textY - 3);
+          ctx.textAlign = "left";
+        }
         ctx.globalAlpha = 0.95 * fade;
         targetTextW = Math.max(72, barX - x - 14);
       }
