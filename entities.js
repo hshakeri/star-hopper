@@ -2533,6 +2533,7 @@ class NPC extends InteractiveObject {
 
     const goingHome = waitInCave || this.panicTimer > 0;
     if (goingHome && game.activeNPC === this) game.activeNPC = null;
+    if (goingHome && typeof game.ensureNPCSafeCave === 'function') game.ensureNPCSafeCave(this);
     if (goingHome && !this.hiddenInCave) {
       this.stepTowardCave(2.2);
     } else if (!goingHome && this.hiddenInCave) {

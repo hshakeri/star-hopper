@@ -1161,6 +1161,7 @@ function runEngineTests() {
         assertEquals(false, game.npcOverlapsRequiredGem(placed.x, placed.y), `${planet.name} NPC ${npcConf.id} should not overlap a required gem`);
         assertEquals(false, game.npcHasUnsafePlacement(placed.x, placed.y), `${planet.name} NPC ${npcConf.id} should not stand on hazards or crates`);
         assertEquals(true, Number.isFinite(placed.caveX) && Number.isFinite(placed.caveY), `${planet.name} NPC ${npcConf.id} should have a cave home`);
+        assertEquals(false, game.npcCaveHasUnsafePlacement(placed.caveX, placed.caveY), `${planet.name} NPC ${npcConf.id} cave should avoid gems, hazards, and crates`);
         assertEquals(true, roleKey !== "trader", `${planet.name} NPC ${npcConf.id} should have profession-specific visual gear`);
       }
     }
@@ -1180,10 +1181,29 @@ function runEngineTests() {
     assertEquals(false, safeGame.npcHasUnsafePlacement(spikePlaced.x, spikePlaced.y), "NPC shifts away from spike-backed surface");
     const cratePlaced = safeGame.placeNpcAwayFromCollectibles({ id: 'test_crate', name: 'Test', profession: 'Tester', type: 'npc', x: 7 * TILE_SIZE, color: '#fff' });
     assertEquals(false, safeGame.npcHasUnsafePlacement(cratePlaced.x, cratePlaced.y), "NPC shifts away from spawned crate");
+    assertEquals(false, safeGame.npcCaveHasUnsafePlacement(cratePlaced.caveX, cratePlaced.caveY), "NPC cave shifts away from spawned crates");
 
-    renderTestResult("engine-suite", "Villages: NPC placement avoids gems, spikes, and crates", true);
+    const unsafeCaveNpc = new NPC({
+      id: 'unsafe_cave',
+      name: 'Unsafe Cave',
+      profession: 'Tester',
+      type: 'npc',
+      x: 9 * TILE_SIZE,
+      y: 3 * TILE_SIZE - 36,
+      homeX: 9 * TILE_SIZE,
+      homeY: 3 * TILE_SIZE - 36,
+      caveX: 4 * TILE_SIZE - 10,
+      caveY: 3 * TILE_SIZE - 36,
+      color: '#fff'
+    });
+    assertEquals(true, safeGame.npcCaveHasUnsafePlacement(unsafeCaveNpc.caveX, unsafeCaveNpc.caveY), "Fixture cave starts on the spike-backed surface");
+    safeGame.parkNPCInCave(unsafeCaveNpc, "night");
+    assertEquals(false, safeGame.npcCaveHasUnsafePlacement(unsafeCaveNpc.caveX, unsafeCaveNpc.caveY), "Sheltering rehomes an unsafe cave before hiding the villager");
+    assertEquals(false, safeGame.entityTouchesHazard(unsafeCaveNpc), "Parked cave villager is not left touching spikes");
+
+    renderTestResult("engine-suite", "Villages: NPC placement avoids gems, spikes, crates, and unsafe caves", true);
   } catch (err) {
-    renderTestResult("engine-suite", "Villages: NPC placement avoids gems, spikes, and crates", false, err.message);
+    renderTestResult("engine-suite", "Villages: NPC placement avoids gems, spikes, crates, and unsafe caves", false, err.message);
   }
 
   // Test 17f: Mastery remixes unlock only after the mission gems were fully banked.

@@ -973,6 +973,7 @@ class StarHopperGame {
 
   parkNPCInCave(npc, reason = "shelter") {
     if (!npc) return;
+    if (typeof this.ensureNPCSafeCave === 'function') this.ensureNPCSafeCave(npc);
     npc.hiddenInCave = true;
     if (Number.isFinite(npc.caveX)) npc.x = npc.caveX + 10;
     if (Number.isFinite(npc.caveY)) npc.y = npc.caveY;
@@ -1021,12 +1022,14 @@ class StarHopperGame {
       const threat = shelter.threat;
       if (threat) {
         if (this.markNPCShelterThreat(obj, "nearby mob", { bubble: true, panicTimer: 150 })) touchNeedsSync = true;
+        if (typeof this.ensureNPCSafeCave === 'function') this.ensureNPCSafeCave(obj);
         if (!obj.hiddenInCave && typeof obj.stepTowardCave === 'function' && obj.stepTowardCave(2.8)) touchNeedsSync = true;
         continue;
       }
       if (shelter.reason === "night") {
         if (!obj.rescuePending) obj.shelterReason = "night";
         if (this.activeNPC === obj) touchNeedsSync = true;
+        if (typeof this.ensureNPCSafeCave === 'function') this.ensureNPCSafeCave(obj);
         if (obj.hiddenInCave) this.parkNPCInCave(obj, "night");
         else if (typeof obj.stepTowardCave === 'function' && obj.stepTowardCave(2.4)) touchNeedsSync = true;
         else obj.proximity = false;
@@ -1036,6 +1039,7 @@ class StarHopperGame {
       }
       if (this.shouldNPCWaitInCave(obj, shelter)) {
         if (this.activeNPC === obj) touchNeedsSync = true;
+        if (typeof this.ensureNPCSafeCave === 'function') this.ensureNPCSafeCave(obj);
         if (obj.hiddenInCave) this.parkNPCInCave(obj, obj.shelterReason || "nearby mob");
         else if (typeof obj.stepTowardCave === 'function' && obj.stepTowardCave(2.8)) touchNeedsSync = true;
         obj.proximity = false;
@@ -3531,6 +3535,41 @@ class StarHopperGame {
     return false;
   }
 
+  npcCaveHasUnsafePlacement(caveX, caveY) {
+    if (!Number.isFinite(caveX) || !Number.isFinite(caveY)) return true;
+    return this.npcHasUnsafePlacement(caveX + 10, caveY);
+  }
+
+  findSafeNpcCavePosition(homeX, homeY, options = {}) {
+    const map = this.getActiveMap();
+    const mapW = map && map[0] ? map[0].length * TILE_SIZE : 1920;
+    const baseX = Number.isFinite(homeX) ? homeX : 160;
+    const baseY = Number.isFinite(homeY) ? homeY : 320;
+    const offsets = [-32, 48, -64, 80, -96, 112, -128, 144, -160, 176, 0, 208, -208];
+
+    for (const dx of offsets) {
+      const bodyX = Math.max(48, Math.min(mapW - 96, baseX + dx));
+      const bodyY = options.snapToGround === false ? baseY : this.findSurfaceYForNpc(bodyX, baseY);
+      const caveX = Math.max(20, bodyX - 10);
+      if (!this.npcCaveHasUnsafePlacement(caveX, bodyY)) {
+        return { caveX, caveY: bodyY };
+      }
+    }
+    return null;
+  }
+
+  ensureNPCSafeCave(npc) {
+    if (!npc) return false;
+    if (!this.npcCaveHasUnsafePlacement(npc.caveX, npc.caveY)) return true;
+    const homeX = Number.isFinite(npc.homeX) ? npc.homeX : npc.x;
+    const homeY = Number.isFinite(npc.homeY) ? npc.homeY : npc.y;
+    const cave = this.findSafeNpcCavePosition(homeX, homeY);
+    if (!cave) return false;
+    npc.caveX = cave.caveX;
+    npc.caveY = cave.caveY;
+    return true;
+  }
+
   placeNpcAwayFromCollectibles(npcConf) {
     const placed = { ...npcConf };
     const map = this.getActiveMap();
@@ -3544,12 +3583,14 @@ class StarHopperGame {
         ? (Number.isFinite(placed.y) ? placed.y : this.findSurfaceYForNpc(candidateX, placed.y))
         : this.findSurfaceYForNpc(candidateX, placed.y);
       if (!this.npcHasUnsafePlacement(candidateX, candidateY)) {
+        const cave = this.findSafeNpcCavePosition(candidateX, candidateY, { snapToGround: placed.snapToGround });
+        if (!cave) continue;
         placed.x = candidateX;
         placed.y = candidateY;
         placed.homeX = candidateX;
         placed.homeY = candidateY;
-        placed.caveX = Math.max(20, candidateX - 42);
-        placed.caveY = candidateY;
+        placed.caveX = cave.caveX;
+        placed.caveY = cave.caveY;
         return placed;
       }
     }
@@ -3558,8 +3599,9 @@ class StarHopperGame {
     if (placed.snapToGround !== false) placed.y = this.findSurfaceYForNpc(placed.x, placed.y);
     placed.homeX = placed.x;
     placed.homeY = placed.y;
-    placed.caveX = Math.max(20, placed.x - 42);
-    placed.caveY = placed.y;
+    const cave = this.findSafeNpcCavePosition(placed.x, placed.y, { snapToGround: placed.snapToGround });
+    placed.caveX = cave ? cave.caveX : Math.max(20, placed.x - 42);
+    placed.caveY = cave ? cave.caveY : placed.y;
     return placed;
   }
 
