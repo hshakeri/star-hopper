@@ -2196,6 +2196,7 @@ function getStagedExperimentSourceLabel(source) {
     "lesson-phase": "Lesson phase",
     "phase-reward": "Phase reward",
     "cadet-lesson-path": "Cadet lesson",
+    "objective-compass": "Objective compass",
     "run-objective-queue": "Objective queue",
     "mentor-signal": "Village mentor",
     "science-delta": "What Changed",

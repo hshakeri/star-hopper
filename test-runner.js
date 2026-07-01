@@ -4438,7 +4438,22 @@ function runEngineTests() {
   }
 
   // Test 22bc2: the active canvas compass mirrors the top in-run objective queue item.
+  const oldStageScienceDeltaCommand22bc2 = stageScienceDeltaCommand;
   try {
+    let compassStage = null;
+    stageScienceDeltaCommand = (command, options = {}) => {
+      compassStage = { command, options };
+      if (options.game) {
+        options.game.lastStagedExperiment = {
+          title: options.title,
+          kind: options.kind,
+          source: options.source,
+          command,
+          time: Date.now()
+        };
+      }
+      return true;
+    };
     const game = new StarHopperGame();
     game.state = 'playing';
     game.canvas = { width: 320, height: 200 };
@@ -4461,7 +4476,9 @@ function runEngineTests() {
     assertEquals("READY TO TEST", cue.label, "Objective compass should mirror the top run-queue label");
     assertEquals("RESTAGE", cue.cta, "Objective compass should mirror the top run-queue action");
     assertEquals("Mass Lab", cue.title, "Objective compass should name the queued experiment");
+    assertEquals("use_hopper()\nhopper.mass = 1.0", cue.command, "Objective compass should preserve the full stageable command");
     assertEquals("hopper.mass = 1.0", cue.commandLine, "Objective compass should show the salient assignment, not setup boilerplate");
+    assertEquals("Q STAGE", cue.quickStageLabel, "Objective compass should expose the quick-stage key when the top item is actionable");
     assertEquals("F/m=a", cue.formulaChip, "Objective compass should show the science relation for the visible command");
     assertEquals("ASSIGN", cue.codeSkillChip, "Objective compass should name the coding concept behind the visible command");
     assertEquals("FROM Village mentor", cue.rewardChip, "Objective compass should show why the staged experiment matters");
@@ -4491,6 +4508,7 @@ function runEngineTests() {
     assertEquals(true, labels.some(text => /READY TO TEST/.test(text)), "Compass draw should write the ranked objective label");
     assertEquals(true, labels.includes("Mass Lab"), "Compass draw should write the experiment title");
     assertEquals(true, labels.includes("hopper.mass = 1.0"), "Compass draw should write the salient command line");
+    assertEquals(true, labels.includes("Q STAGE"), "Compass draw should advertise the quick-stage key");
     assertEquals(true, labels.includes("F/m=a"), "Compass draw should write the command formula chip");
     assertEquals(true, labels.includes("ASSIGN"), "Compass draw should write the coding concept chip");
     assertEquals(true, labels.includes("FROM Village mentor"), "Compass draw should write the reward/source chip");
@@ -4499,15 +4517,26 @@ function runEngineTests() {
     assertEquals("READY TO TEST", game.lastRunObjectiveCompassCue && game.lastRunObjectiveCompassCue.label, "Drawing should cache the visible objective cue");
     assertEquals(true, drawn.h > 60, "Compass should reserve compact space when reason and trail lines both render");
     assertEquals(0, drawn.flashFrames, "First compass draw should not pretend the objective changed");
+    assertEquals(true, game.stageRunObjectiveCompassCue(), "Q-stage helper should stage the top compass objective");
+    assertEquals("use_hopper()\nhopper.mass = 1.0", compassStage && compassStage.command, "Q-stage helper should stage the full command, not just the salient line");
+    assertEquals("Mass Lab", compassStage && compassStage.options && compassStage.options.title, "Q-stage helper should preserve the objective title");
+    assertEquals("objective-compass", compassStage && compassStage.options && compassStage.options.source, "Q-stage helper should record the compass source");
+    assertEquals("Objective compass", getStagedExperimentSourceLabel(compassStage && compassStage.options && compassStage.options.source), "Compass-staged reminders should have a readable source label");
     game.lastStagedExperiment = null;
+    compassStage = null;
     const nextDrawn = game.drawRunObjectiveCompass(fakeCtx);
     assertEquals("PREDICT", nextDrawn.label, "Compass should advance to the next queued objective when the staged item clears");
+    assertEquals("", nextDrawn.quickStageLabel, "Disabled prediction cues should not advertise Q-stage");
+    assertEquals(false, game.stageRunObjectiveCompassCue(), "Q-stage helper should not stage disabled prediction cues");
+    assertEquals(null, compassStage, "Disabled prediction cues should not call the staging helper");
     assertEquals(24, nextDrawn.flashFrames, "Changing the top objective should start the compass flash");
     assertEquals(23, game.runObjectiveCompassFlash, "Compass flash timer should decay after drawing");
     game.state = 'start';
     assertEquals(null, game.getRunObjectiveCompassCue(), "Objective compass should stay out of non-playing screens");
+    stageScienceDeltaCommand = oldStageScienceDeltaCommand22bc2;
     renderTestResult("engine-suite", "Curriculum: run objective compass mirrors queue", true);
   } catch (err) {
+    stageScienceDeltaCommand = oldStageScienceDeltaCommand22bc2;
     renderTestResult("engine-suite", "Curriculum: run objective compass mirrors queue", false, err.message);
   }
 

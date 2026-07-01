@@ -4048,6 +4048,13 @@ class StarHopperGame {
 
       if (document.activeElement.id === "console-input") return; // skip gameplay inputs if typing code
 
+      if (e.key.toLowerCase() === "q" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        if (this.stageRunObjectiveCompassCue()) {
+          e.preventDefault();
+          return;
+        }
+      }
+
       if (e.key.toLowerCase() === "e" && this.activeNPC) {
         e.preventDefault();
         if (typeof openTradeScreen === "function") {
@@ -9422,14 +9429,35 @@ class StarHopperGame {
     return { target, visible: false, offscreen: true, color, x: markerX, y: markerY, angle, label, kind };
   }
 
-  getRunObjectiveCompassCue() {
+  getRunObjectiveCompassQueue() {
     if (this.state !== 'playing' || typeof getRunObjectiveQueue !== 'function') return null;
-    let queue = [];
     try {
-      queue = getRunObjectiveQueue(this);
+      const queue = getRunObjectiveQueue(this);
+      return Array.isArray(queue) ? queue : [];
     } catch (err) {
-      queue = [];
+      return [];
     }
+  }
+
+  stageRunObjectiveCompassCue(options = {}) {
+    const queue = this.getRunObjectiveCompassQueue();
+    const item = Array.isArray(queue) && queue.length ? queue[0] : null;
+    const command = item && item.command ? String(item.command).trim() : "";
+    if (!item || item.disabled || !command || typeof stageScienceDeltaCommand !== 'function') return false;
+    const staged = stageScienceDeltaCommand(command, {
+      title: item.title || "Objective compass",
+      kind: item.kind || null,
+      source: options.source || "objective-compass",
+      prediction: item.prediction || null,
+      color: item.color || "#67e8f9",
+      game: this
+    });
+    if (staged) this.runObjectiveCompassFlash = Math.max(24, Math.floor(Number(this.runObjectiveCompassFlash) || 0));
+    return !!staged;
+  }
+
+  getRunObjectiveCompassCue() {
+    const queue = this.getRunObjectiveCompassQueue();
     if (!Array.isArray(queue) || !queue.length) return null;
     const item = queue[0] || {};
     const trail = queue.slice(1, 4).map(next => ({
@@ -9439,8 +9467,9 @@ class StarHopperGame {
       disabled: !!(next && next.disabled)
     }));
     const itemBody = String(item.body || "").trim();
+    const fullCommand = item.command ? String(item.command).trim() : "";
     const commandContext = `${item.title || ""} ${itemBody} ${item.reward || ""}`;
-    const commandLine = this.getSalientCommandLine(item.command || "", commandContext);
+    const commandLine = this.getSalientCommandLine(fullCommand, commandContext);
     const formulaChip = this.getCommandFormulaChip(commandLine, commandContext);
     const codeSkillChip = this.getCommandCodeSkillChip(commandLine);
     const rewardChip = this.getObjectiveRewardChip(item.reward || "");
@@ -9500,10 +9529,12 @@ class StarHopperGame {
       cta: item.cta || (commandLine ? "STAGE" : "CHECK"),
       title: item.title || "Next objective",
       body: commandLine || itemBody || item.reward || "Run the next focused experiment.",
+      command: fullCommand,
       reasonLine,
       reward: item.reward || "",
       rewardChip,
       commandLine,
+      quickStageLabel: fullCommand && !item.disabled ? "Q STAGE" : "",
       formulaChip,
       codeSkillChip,
       kind: item.kind || "objective",
@@ -9589,7 +9620,7 @@ class StarHopperGame {
     ctx.textBaseline = "middle";
     ctx.fillText(this.fitCardText(ctx, `#${cue.priority} ${cue.label}`, w - 72), x + 9, y + 10);
     ctx.textAlign = "right";
-    ctx.fillText(this.fitCardText(ctx, cue.cta, 58), x + w - 9, y + 10);
+    ctx.fillText(this.fitCardText(ctx, cue.quickStageLabel || cue.cta, 58), x + w - 9, y + 10);
 
     ctx.textAlign = "left";
     ctx.fillStyle = "#f8fafc";
