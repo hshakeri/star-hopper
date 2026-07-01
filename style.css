@@ -4945,6 +4945,79 @@ html {
   background: rgba(12, 74, 110, 0.38);
   color: #bae6fd;
 }
+.discovery-village-charter {
+  display: grid;
+  gap: 6px;
+  max-width: min(100%, 460px);
+  border-color: rgba(167, 243, 208, 0.54);
+  background:
+    linear-gradient(135deg, rgba(20, 83, 45, 0.5), rgba(113, 63, 18, 0.32)),
+    rgba(15, 23, 42, 0.74);
+  color: #dcfce7;
+}
+.discovery-village-charter strong {
+  color: #fef08a;
+  font-size: 0.62rem;
+}
+.discovery-village-charter > span {
+  color: #dbeafe;
+  font-size: 0.55rem;
+}
+.discovery-village-charter-lesson {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.discovery-village-charter-lesson span {
+  min-width: 0;
+  border: 1px solid rgba(167, 243, 208, 0.28);
+  border-radius: 4px;
+  background: rgba(15, 23, 42, 0.48);
+  color: #dcfce7;
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  line-height: 1.2;
+  padding: 4px;
+}
+.discovery-village-charter-lesson b {
+  display: block;
+  color: #bef264;
+  font-size: 0.47rem;
+  margin-bottom: 2px;
+}
+.discovery-village-charter-route {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  color: #bbf7d0;
+  font-family: var(--font-mono);
+  font-size: 0.54rem;
+}
+.discovery-village-charter-route code {
+  border: 1px solid rgba(250, 204, 21, 0.3);
+  border-radius: 4px;
+  background: rgba(30, 41, 59, 0.78);
+  color: #fef9c3;
+  padding: 2px 5px;
+}
+.discovery-village-charter-btn {
+  min-height: 22px;
+  border: 1px solid rgba(167, 243, 208, 0.58);
+  border-radius: 4px;
+  background: rgba(22, 101, 52, 0.34);
+  color: #dcfce7;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  font-weight: 900;
+  padding: 3px 7px;
+  text-transform: uppercase;
+}
+.discovery-village-charter-btn:hover {
+  background: rgba(21, 128, 61, 0.7);
+  box-shadow: 0 0 8px rgba(167, 243, 208, 0.24);
+}
 .discovery-ai-state {
   border-color: rgba(251, 191, 36, 0.52);
   background: rgba(69, 26, 3, 0.42);
@@ -11814,6 +11887,12 @@ body.readable-text-mode .clear-village-trust p,
 body.readable-text-mode .clear-village-chain-head,
 body.readable-text-mode .clear-village-chain p,
 body.readable-text-mode .clear-village-chain-steps span,
+body.readable-text-mode .discovery-village-charter,
+body.readable-text-mode .discovery-village-charter > span,
+body.readable-text-mode .discovery-village-charter-lesson span,
+body.readable-text-mode .discovery-village-charter-route,
+body.readable-text-mode .discovery-village-charter-route code,
+body.readable-text-mode .discovery-village-charter-btn,
 body.readable-text-mode .world-mastery-crt-head,
 body.readable-text-mode .world-mastery-crt-body strong,
 body.readable-text-mode .world-mastery-crt-body p,

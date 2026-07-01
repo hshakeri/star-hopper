@@ -10071,13 +10071,35 @@ function runCombatTests() {
   const oldGetElementByIdC24b = document.getElementById;
   const oldBubblePopC24b = ComicBubbles.pop;
   const oldParticleBurstC24b = Particles.spawnBurst;
+  const oldSwitchMainModeC24b = switchMainMode;
   try {
     const labels = [];
     let bursts = 0;
-    const panel = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };
+    let charterClick = null;
+    const charterRouteButton = {
+      dataset: { passportNextLevel: "0" },
+      addEventListener(event, handler) {
+        if (event === "click") charterClick = handler;
+      }
+    };
+    const panel = {
+      classList: { add: () => {}, remove: () => {} },
+      innerHTML: "",
+      querySelectorAll(selector) {
+        if (selector === "[data-passport-next-level]" && /discovery-village-charter-route/.test(this.innerHTML)) {
+          const match = this.innerHTML.match(/data-passport-next-level="([^"]+)"/);
+          if (match) charterRouteButton.dataset.passportNextLevel = match[1];
+          return [charterRouteButton];
+        }
+        return [];
+      }
+    };
     document.getElementById = (id) => id === "discovery-pulse" ? panel : null;
     ComicBubbles.pop = (x, y, text) => { labels.push(text); };
     Particles.spawnBurst = () => { bursts++; };
+    const charterStarts = [];
+    const charterModes = [];
+    switchMainMode = (mode) => { charterModes.push(mode); };
 
     const g = new StarHopperGame();
     g.currentPlanetIndex = 0;
@@ -10114,6 +10136,17 @@ function runCombatTests() {
     assertEquals(true, bursts > 0, "Guardian pact should spawn reward particles");
     assertEquals(true, /VILLAGE PACT \+10 XP/.test(panel.innerHTML), "Discovery Pulse should render the Guardian pact chip");
     assertEquals(true, /VILLAGE GUARDIAN PACT/.test(panel.innerHTML), "Discovery Pulse should show the pact completion card");
+    assertEquals("VILLAGE CHARTER", pulse.villagePactCharter && pulse.villagePactCharter.label, "Guardian pact should carry a village charter handoff");
+    assertEquals(true, /discovery-village-charter/.test(panel.innerHTML), "Discovery Pulse should render the village charter card");
+    assertEquals(true, /LEARN/.test(panel.innerHTML) && /danger -&gt; cave -&gt; safe -&gt; guard/.test(panel.innerHTML), "Village charter should teach the AI-state safety loop");
+    assertEquals(true, /CODE/.test(panel.innerHTML) && /state \+ event -&gt; next state/.test(panel.innerHTML), "Village charter should name the state transition formula");
+    assertEquals(true, /WIN/.test(panel.innerHTML) && /Guardian outpost/.test(panel.innerHTML), "Village charter should name the story payoff");
+    assertEquals(true, /data-passport-next-level="0"/.test(panel.innerHTML), "Village charter should expose a next-world route");
+    assertEquals(true, typeof charterClick === "function", "Village charter route should bind a click handler");
+    g.startLevel = (level) => { charterStarts.push(level); };
+    assertEquals(true, charterClick(), "Village charter route should launch through the passport helper");
+    assertEquals(0, charterStarts[0], "Village charter route should target the next passport world");
+    assertEquals("terminal", charterModes[0], "Village charter route should return to the playable terminal");
     const xpAfterFirst = g.researchXP;
     assertEquals(null, g.grantVillageGuardianPact(pulse), "Repeating the Guardian pact should be blocked");
     assertEquals(xpAfterFirst, g.researchXP, "Repeated Guardian pact should not farm Research XP");
@@ -10121,11 +10154,13 @@ function runCombatTests() {
     document.getElementById = oldGetElementByIdC24b;
     ComicBubbles.pop = oldBubblePopC24b;
     Particles.spawnBurst = oldParticleBurstC24b;
+    switchMainMode = oldSwitchMainModeC24b;
     renderTestResult(SUITE, "Trade: Village Guardian pact caps trust ladder", true);
   } catch (err) {
     document.getElementById = oldGetElementByIdC24b;
     ComicBubbles.pop = oldBubblePopC24b;
     Particles.spawnBurst = oldParticleBurstC24b;
+    switchMainMode = oldSwitchMainModeC24b;
     renderTestResult(SUITE, "Trade: Village Guardian pact caps trust ladder", false, err.message);
   }
 

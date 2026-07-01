@@ -7122,6 +7122,19 @@ function updateDiscoveryPulse(game) {
   const villagePact = pulse.villagePactProof
     ? `<div class="discovery-hypothesis discovery-village-trust">${escapeHTML(pulse.villagePactProof.label || "VILLAGE PACT")} +${escapeHTML(String(pulse.villagePactProof.rewardXP || 0))} XP · ${escapeHTML(pulse.villagePactProof.tier || "Village Guardian")}</div>`
     : "";
+  const villageCharter = pulse.villagePactCharter || null;
+  const villageCharterLevel = villageCharter && Number.isFinite(Number(villageCharter.levelIndex))
+    ? Number(villageCharter.levelIndex)
+    : null;
+  const villageCharterLesson = villageCharter
+    ? `<div class="discovery-village-charter-lesson"><span><b>LEARN</b>${escapeHTML(villageCharter.learn || "Village AI states")}</span><span><b>CODE</b>${escapeHTML(villageCharter.code || "state + event -> next state")}</span><span><b>WIN</b>${escapeHTML(villageCharter.win || "Guardian outpost")}</span></div>`
+    : "";
+  const villageCharterRoute = villageCharter && villageCharterLevel !== null
+    ? `<div class="discovery-village-charter-route">Next outpost <code>${escapeHTML(villageCharter.routeTitle || "next world")}</code><button type="button" class="discovery-village-charter-btn" data-passport-next-level="${escapeHTML(String(villageCharterLevel))}">${escapeHTML(villageCharter.routeLabel || "RUN NEXT STAMP")}</button></div>`
+    : "";
+  const villageCharterCard = villageCharter
+    ? `<div class="discovery-hypothesis discovery-village-charter"><strong>${escapeHTML(villageCharter.label || "VILLAGE CHARTER")} · ${escapeHTML(villageCharter.title || "Village Guardian Pact")}</strong><span>${escapeHTML(villageCharter.story || "The village now has a safe trade, cave, and guard loop.")}</span>${villageCharterLesson}${villageCharterRoute}</div>`
+    : "";
   const rankPerk = pulse.rankPerk
     ? `<div class="discovery-hypothesis discovery-perk">LAB PERK UNLOCKED: ${escapeHTML(pulse.rankPerk.label)}</div>`
     : "";
@@ -7179,6 +7192,7 @@ function updateDiscoveryPulse(game) {
     ${frontierRivalMilestone}
     ${villageTrust}
     ${villagePact}
+    ${villageCharterCard}
     ${rankPerk}
     ${unlockCard}
     <div class="discovery-pulse-body">${escapeHTML(pulse.insight)}</div>

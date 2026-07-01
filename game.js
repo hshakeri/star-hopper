@@ -448,6 +448,30 @@ class StarHopperGame {
     return `village-pact:${planetKey}:guardian`;
   }
 
+  getVillageGuardianPactCharter(progress = null, index = this.currentPlanetIndex) {
+    const planet = typeof PLANETS !== 'undefined' && Array.isArray(PLANETS) ? PLANETS[index] : null;
+    const planetName = planet && planet.name ? planet.name.split("(")[0].trim() : "Village";
+    const passportAction = typeof getSciencePassportNextStampAction === 'function'
+      ? getSciencePassportNextStampAction(this)
+      : (typeof getSciencePassportAction === 'function' ? getSciencePassportAction(this) : null);
+    const levelIndex = passportAction && Number.isFinite(Number(passportAction.levelIndex))
+      ? Number(passportAction.levelIndex)
+      : null;
+    return {
+      label: "VILLAGE CHARTER",
+      title: "Village Guardian Pact",
+      story: `${planetName} now has a safe village loop: trade for tools, shelter in caves, return when danger clears, and guard each other.`,
+      learn: "AI state machine: danger -> cave -> safe -> guard",
+      code: "state + event -> next state",
+      win: "Guardian outpost",
+      tier: progress && progress.title ? progress.title : "Village Guardian",
+      points: progress && Number.isFinite(Number(progress.points)) ? Math.max(0, Math.floor(Number(progress.points))) : 0,
+      routeLabel: passportAction ? (passportAction.actionLabel || passportAction.label || "RUN NEXT STAMP") : "",
+      routeTitle: passportAction ? (passportAction.title || passportAction.planetName || "next world") : "",
+      levelIndex
+    };
+  }
+
   grantVillageGuardianPact(pulse = null, options = {}) {
     const index = Number.isFinite(options.index) ? options.index : this.currentPlanetIndex;
     const progress = this.getVillageTrustProgress(index);
@@ -484,6 +508,7 @@ class StarHopperGame {
 
     if (pulse) {
       pulse.villagePactProof = result;
+      pulse.villagePactCharter = this.getVillageGuardianPactCharter(progress, index);
       pulse.rewardXP = Math.max(0, (pulse.rewardXP || 0) + rewardXP);
       pulse.worldMasteryAddedXP = Math.max(0, (pulse.worldMasteryAddedXP || 0) + result.worldMasteryAddedXP);
       pulse.nextLabUnlock = {
