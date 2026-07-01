@@ -5764,10 +5764,18 @@ function runExperimentLogTests() {
       children: [],
       appendChild(child) { this.children.push(child); }
     };
+    const inputEl = {
+      value: "",
+      focused: false,
+      style: {},
+      scrollHeight: 20,
+      focus() { this.focused = true; }
+    };
     const els = {
       "notebook-user-response": response,
       "notebook-prompt-question": question,
       "notebook-history": history,
+      "console-input": inputEl,
       "discovery-pulse": null,
       "research-rank-card": null
     };
@@ -5782,6 +5790,14 @@ function runExperimentLogTests() {
     game.masteryMeters = {};
     game.discoveryLog = [];
     game.currentMissionSteps = { observe: true, predict: true, code: true, test: true, explain: false };
+    game.lastScienceDelta = {
+      nextExperiment: {
+        kind: "check",
+        title: "Raise engine",
+        body: "Raise the engine, run it, and compare the new height evidence.",
+        command: "hopper.engine = 6"
+      }
+    };
     window.Game = game;
 
     saveNotebookReflection();
@@ -5791,6 +5807,12 @@ function runExperimentLogTests() {
     assertEquals(8, game.discoveryPulse.worldMasteryAddedXP, "Reflection save should add world mastery proof XP");
     assertEquals(4, entry.reflectionRewardXP, "Notebook entry should remember the reflection reward");
     assertEquals(true, /Reflection Proof: \+4 Research XP/.test(history.children[0].innerHTML), "Notebook history should show the proof reward");
+    assertEquals("Raise engine", entry.nextExperiment.title, "Reflection proof should preserve the next experiment cue");
+    assertEquals(true, /STAGE NEXT TEST/.test(history.children[0].innerHTML), "Notebook history should offer a next-test stage action");
+    assertEquals(true, /hopper\.engine = 6/.test(history.children[0].innerHTML), "Notebook history should show the staged command");
+    assertEquals(true, eval(buildNotebookStageCall(entry.nextExperiment)), "Notebook stage call should be executable");
+    assertEquals("hopper.engine = 6", inputEl.value, "Notebook stage action should write the next command to the terminal");
+    assertEquals(true, inputEl.focused, "Notebook stage action should focus the terminal input");
     assertEquals(true, game.currentMissionSteps.explain, "Saving a reflection completes the Explain loop step");
     assertEquals(1, cloudSaves, "Saving a reflection should persist the updated notebook entry");
 
@@ -5799,6 +5821,7 @@ function runExperimentLogTests() {
     assertEquals(14, game.researchXP, "Re-saving the same mission reflection should not farm XP");
     assertEquals("A revised explanation still uses evidence.", notebookEntries["earth-gravity-wall"].answer, "Re-save should still update the answer");
     assertEquals(4, notebookEntries["earth-gravity-wall"].reflectionRewardXP, "Re-save should preserve the original proof badge");
+    assertEquals("Raise engine", notebookEntries["earth-gravity-wall"].nextExperiment.title, "Re-save should preserve the next-test handoff");
     assertEquals(2, cloudSaves, "Re-saving should still persist the revised answer");
 
     document.getElementById = oldGetElementByIdE6;

@@ -216,7 +216,53 @@ function updateReflectionEvidenceStarter(game, activeMission = null) {
   return evidence;
 }
 
-function awardNotebookReflectionReward(game, missionId, missionTitle, alreadyRewarded = false) {
+function getNotebookReflectionNextExperiment(game, mission = null) {
+  const lastCue = game && game.lastScienceDelta && game.lastScienceDelta.nextExperiment
+    ? game.lastScienceDelta.nextExperiment
+    : null;
+  if (lastCue && (lastCue.title || lastCue.body || lastCue.command)) return { ...lastCue };
+
+  if (typeof buildNextExperimentCue === 'function') {
+    const cue = buildNextExperimentCue(game, null, mission);
+    if (cue && (cue.title || cue.body || cue.command)) return { ...cue };
+  }
+
+  const fullMission = mission && mission.fullMission ? mission.fullMission : null;
+  if (!fullMission) return null;
+  const command = typeof buildNextExperimentCommand === 'function'
+    ? buildNextExperimentCommand(fullMission)
+    : (fullMission.starterCode || "");
+  return {
+    kind: "reflection",
+    title: "Try one fresh test",
+    body: (fullMission.scaffold && (fullMission.scaffold.codeIdea || fullMission.scaffold.physicsIdea))
+      || fullMission.beginnerConcept
+      || "Change one value, run it, and compare the evidence.",
+    command
+  };
+}
+
+function encodeNotebookStageArg(value) {
+  return encodeURIComponent(String(value || ""));
+}
+
+function decodeNotebookStageArg(value) {
+  try {
+    return decodeURIComponent(String(value || ""));
+  } catch (e) {
+    return String(value || "");
+  }
+}
+
+function buildNotebookStageCall(cue) {
+  if (!cue || !cue.command) return "";
+  const command = encodeNotebookStageArg(cue.command);
+  const title = encodeNotebookStageArg(cue.title || "Next test");
+  const kind = encodeNotebookStageArg(cue.kind || "reflection");
+  return `stageScienceDeltaCommand(decodeNotebookStageArg('${command}'), { title: decodeNotebookStageArg('${title}'), kind: decodeNotebookStageArg('${kind}'), source: 'reflection-proof', color: '#bef264' })`;
+}
+
+function awardNotebookReflectionReward(game, missionId, missionTitle, alreadyRewarded = false, mission = null) {
   if (!game || !missionId || alreadyRewarded) return null;
   const sourceKey = `reflection-proof:${missionId}`;
   let masteryAward = null;
@@ -250,7 +296,8 @@ function awardNotebookReflectionReward(game, missionId, missionTitle, alreadyRew
     worldMasteryAddedXP: masteryAward ? (masteryAward.addedXP || 0) : 0,
     rankUp,
     rankTitle: afterRank ? afterRank.title : null,
-    rankPerk: rankUp && afterRank ? afterRank.perk : null
+    rankPerk: rankUp && afterRank ? afterRank.perk : null,
+    nextExperiment: getNotebookReflectionNextExperiment(game, mission)
   };
   if (afterRank && typeof getResearchUnlockPreview === 'function') {
     pulse.nextLabUnlock = getResearchUnlockPreview(afterRank);
@@ -346,7 +393,10 @@ function saveNotebookReflection() {
     timestamp: new Date().toLocaleTimeString()
   };
   const game = (typeof window !== 'undefined' && window.Game) ? window.Game : (typeof Game !== 'undefined' ? Game : null);
-  const reward = awardNotebookReflectionReward(game, missionId, missionTitle, alreadyRewarded);
+  const reward = awardNotebookReflectionReward(game, missionId, missionTitle, alreadyRewarded, mission);
+  const nextExperiment = reward && reward.nextExperiment
+    ? reward.nextExperiment
+    : (previousEntry && previousEntry.nextExperiment ? previousEntry.nextExperiment : getNotebookReflectionNextExperiment(game, mission));
   if (reward) {
     entry.reflectionRewardXP = reward.rewardXP || 0;
     entry.reflectionRewardLabel = reward.title || "Reflection Proof";
@@ -354,6 +404,7 @@ function saveNotebookReflection() {
     entry.reflectionRewardXP = previousEntry.reflectionRewardXP;
     entry.reflectionRewardLabel = previousEntry.reflectionRewardLabel || "Reflection Proof";
   }
+  if (nextExperiment) entry.nextExperiment = nextExperiment;
   notebookEntries[missionId] = entry;
 
   textEl.value = "";
@@ -383,11 +434,25 @@ function renderNotebookHistory() {
   }
 
   historyContainer.innerHTML = "";
+  const safe = (typeof escapeHTML === 'function')
+    ? escapeHTML
+    : (value) => String(value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c]));
   keys.forEach(key => {
     const entry = notebookEntries[key];
     const item = document.createElement("div");
     item.className = "notebook-entry";
     item.style.marginBottom = "10px";
+    const nextCue = entry.nextExperiment || null;
+    const stageCall = buildNotebookStageCall(nextCue);
+    const nextExperimentBlock = nextCue ? `
+      <div class="notebook-entry-next">
+        <span>NEXT TEST</span>
+        <strong>${safe(nextCue.title || "Try one fresh test")}</strong>
+        <p>${safe(nextCue.body || "Change one value, run it, and compare the evidence.")}</p>
+        ${nextCue.command ? `<code>${safe(nextCue.command)}</code>` : ""}
+        ${stageCall ? `<button type="button" class="notebook-entry-next-btn" onclick="${stageCall}">STAGE NEXT TEST</button>` : ""}
+      </div>
+    ` : "";
 
     item.innerHTML = `
       <div class="notebook-entry-header">
@@ -399,6 +464,7 @@ function renderNotebookHistory() {
       ${entry.evidence ? `<p class="notebook-entry-evidence">Evidence: ${entry.evidence}</p>` : ""}
       ${entry.reflectionRewardXP ? `<p class="notebook-entry-reward">${entry.reflectionRewardLabel || "Reflection Proof"}: +${entry.reflectionRewardXP} Research XP</p>` : ""}
       ${entry.badge ? `<p style="color: var(--neon-green); font-size: 0.72rem; margin-bottom: 4px;">Badge: ${entry.badge}</p>` : ""}
+      ${nextExperimentBlock}
       <p style="color: var(--text-muted); font-style: italic; font-size: 0.72rem; margin-bottom: 4px;">Q: ${entry.question || ""}</p>
       <p style="font-size: 0.78rem; color: var(--text-primary);">A: ${entry.answer || ""}</p>
     `;
