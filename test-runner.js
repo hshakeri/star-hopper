@@ -8837,6 +8837,17 @@ function runExperimentLogTests() {
     assertEquals(true, /lab chain: active x2/.test(starter.textContent), "Starter includes the matching lab-chain state");
     assertEquals(true, /height: 140px/.test(response.placeholder), "Starter becomes the empty reflection placeholder");
     assertEquals(starter.textContent, question.dataset.evidenceStarter, "Question dataset stores the starter for saving");
+    g.reflectionContext.proofSourceKey = "signal-lab-proof:daily:earth-20260630:day:0:mass-remix-proof:abc123";
+    g.masteryMeters = {
+      0: {
+        sources: {
+          "reflection-proof:signal-reflection:signal-lab-proof:daily:earth-20260630:day:0:mass-remix-proof:abc123": 9
+        }
+      }
+    };
+    updateActiveQuestion(g);
+    assertEquals(false, /signal lab: Daily Signal Lab/.test(starter.textContent), "Starter drops completed Signal Lab context");
+    assertEquals(false, /proof: SIGNAL LAB TESTED/.test(starter.textContent), "Starter drops completed Signal Lab proof labels");
     g.reflectionContext = {
       kind: "repair-proof",
       source: "Crash Lab",
@@ -9002,6 +9013,7 @@ function runExperimentLogTests() {
     assertEquals(5, signalEntry.reflectionRewardXP, "Daily Signal notebook entry should remember its proof reward");
     assertEquals("Signal Reflection Proof", signalEntry.reflectionRewardLabel, "Signal Lab notebook entry should label the specific proof");
     assertEquals(true, /signal lab: Daily Signal Lab/.test(signalEntry.evidence), "Signal Lab entry should preserve contextual evidence");
+    assertEquals(true, hasSignalReflectionCredit(game, signalProofKey), "Signal reflection helper should recognize a saved Signal Lab proof");
     assertEquals(3, cloudSaves, "Saving a Signal Lab reflection should persist the new entry");
 
     response.value = "A revised Daily Signal explanation still should not farm XP.";
@@ -9010,6 +9022,15 @@ function runExperimentLogTests() {
     assertEquals("A revised Daily Signal explanation still should not farm XP.", notebookEntries[signalEntryKey].answer, "Signal Lab re-save should update the answer");
     assertEquals(5, notebookEntries[signalEntryKey].reflectionRewardXP, "Daily Signal re-save should preserve the original proof badge");
     assertEquals(4, cloudSaves, "Signal Lab re-save should still persist the revised answer");
+    const masteryOnlySignal = new StarHopperGame();
+    masteryOnlySignal.masteryMeters = {
+      0: {
+        sources: {
+          [`reflection-proof:signal-reflection:${signalProofKey}`]: 9
+        }
+      }
+    };
+    assertEquals(true, hasSignalReflectionCredit(masteryOnlySignal, signalProofKey), "Signal reflection helper should recognize world mastery signal credit");
 
     const frontierProofKey = "signal-lab-proof:frontier:frontier-earth-1234:t2:0:mass-remix-proof:def456";
     game.reflectionContext = {

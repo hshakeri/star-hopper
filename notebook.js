@@ -237,6 +237,9 @@ function getNotebookReflectionContextEvidence(game) {
   if (repairProof && context.proofSourceKey && typeof hasRepairReflectionCredit === "function" && hasRepairReflectionCredit(game, context.proofSourceKey)) {
     return out;
   }
+  if (!repairProof && context.proofSourceKey && typeof hasSignalReflectionCredit === "function" && hasSignalReflectionCredit(game, context.proofSourceKey)) {
+    return out;
+  }
   const source = compactNotebookEvidenceValue(context.source || (repairProof ? "Crash Lab" : "Signal Lab"), 36);
   const title = compactNotebookEvidenceValue(context.title || (repairProof ? "Crash repair proof" : "Replay proof"), 44);
   if (source || title) out.push(`${repairProof ? "crash lab" : "signal lab"}: ${source}${title ? ` - ${title}` : ""}`);
@@ -384,11 +387,28 @@ function getRepairReflectionRewardSourceKey(proofSourceKey) {
   return entryKey ? `reflection-proof:${entryKey}` : "";
 }
 
+function getSignalReflectionEntryKey(proofSourceKey) {
+  const key = String(proofSourceKey || "").trim();
+  return key ? `signal-reflection:${key}` : "";
+}
+
+function getSignalReflectionRewardSourceKey(proofSourceKey) {
+  const entryKey = getSignalReflectionEntryKey(proofSourceKey);
+  return entryKey ? `reflection-proof:${entryKey}` : "";
+}
+
 function sourceMapHasRepairReflection(sourceMap, proofSourceKey = "") {
   if (!sourceMap || typeof sourceMap !== "object") return false;
   const exact = getRepairReflectionRewardSourceKey(proofSourceKey);
   if (exact) return !!sourceMap[exact];
   return Object.keys(sourceMap).some(source => source.indexOf("reflection-proof:repair-reflection:") === 0 && !!sourceMap[source]);
+}
+
+function sourceMapHasSignalReflection(sourceMap, proofSourceKey = "") {
+  if (!sourceMap || typeof sourceMap !== "object") return false;
+  const exact = getSignalReflectionRewardSourceKey(proofSourceKey);
+  if (exact) return !!sourceMap[exact];
+  return Object.keys(sourceMap).some(source => source.indexOf("reflection-proof:signal-reflection:") === 0 && !!sourceMap[source]);
 }
 
 function hasRepairReflectionCredit(game, proofSourceKey = "") {
@@ -400,6 +420,17 @@ function hasRepairReflectionCredit(game, proofSourceKey = "") {
   if (sourceMapHasRepairReflection(game && game.discoveryPassCounts, proofSourceKey)) return true;
   const meters = game && game.masteryMeters && typeof game.masteryMeters === "object" ? game.masteryMeters : {};
   return Object.keys(meters).some(key => sourceMapHasRepairReflection(meters[key] && meters[key].sources, proofSourceKey));
+}
+
+function hasSignalReflectionCredit(game, proofSourceKey = "") {
+  const entryKey = getSignalReflectionEntryKey(proofSourceKey);
+  if (entryKey && typeof notebookEntries !== "undefined") {
+    const entry = notebookEntries[entryKey];
+    if (entry && (entry.reflectionRewardXP || entry.reflectionRewardLabel)) return true;
+  }
+  if (sourceMapHasSignalReflection(game && game.discoveryPassCounts, proofSourceKey)) return true;
+  const meters = game && game.masteryMeters && typeof game.masteryMeters === "object" ? game.masteryMeters : {};
+  return Object.keys(meters).some(key => sourceMapHasSignalReflection(meters[key] && meters[key].sources, proofSourceKey));
 }
 
 function getNotebookReflectionSaveContext(game, missionId, missionTitle) {
@@ -419,7 +450,7 @@ function getNotebookReflectionSaveContext(game, missionId, missionTitle) {
     };
   }
   if (context && context.kind === "signal-lab" && context.proofSourceKey) {
-    const key = `signal-reflection:${context.proofSourceKey}`;
+    const key = getSignalReflectionEntryKey(context.proofSourceKey);
     const proofText = `${context.source || ""} ${context.proofLabel || ""}`;
     const sourceKeyProof = /future\s*lab\s*source|source\s*key/i.test(proofText);
     const darkMatterPrep = !sourceKeyProof && /dark\s*matter/i.test(proofText);
@@ -438,7 +469,7 @@ function getNotebookReflectionSaveContext(game, missionId, missionTitle) {
     return {
       entryKey: key,
       rewardId: key,
-      sourceKey: `reflection-proof:${key}`,
+      sourceKey: getSignalReflectionRewardSourceKey(context.proofSourceKey),
       missionTitle: context.title || missionTitle || "Signal Lab proof",
       rewardTitle,
       rewardFormula,
