@@ -2072,6 +2072,8 @@ function runEngineTests() {
     assertEquals(7, game.getWorldMasteryProgress(0).xp, "Repair proof should feed world mastery");
     assertEquals(1, game.discoveryPassCounts[outcome.repairProof.sourceKey], "Repair proof should persist its one-time source key");
     assertEquals(1, game.discoveryCombo, "Standalone repair proof should start the discovery chain");
+    assertEquals("repair-proof", game.reflectionContext && game.reflectionContext.kind, "Repair proof should seed notebook reflection context");
+    assertEquals(outcome.repairProof.sourceKey, game.reflectionContext && game.reflectionContext.proofSourceKey, "Repair reflection context should carry the one-time proof key");
     assertEquals(true, /REPAIR PROOF \+5 XP/.test(panel.innerHTML), "Discovery Pulse should render the repair proof chip");
     assertEquals(true, /predict higher/.test(panel.innerHTML), "Discovery Pulse should render the carried prediction");
     assertEquals("REPAIR PROOF: +5 Research XP", game.missionBalloon && game.missionBalloon.text, "Mission CRT should announce the repair proof reward");
@@ -8765,6 +8767,22 @@ function runExperimentLogTests() {
     assertEquals(true, /lab chain: active x2/.test(starter.textContent), "Starter includes the matching lab-chain state");
     assertEquals(true, /height: 140px/.test(response.placeholder), "Starter becomes the empty reflection placeholder");
     assertEquals(starter.textContent, question.dataset.evidenceStarter, "Question dataset stores the starter for saving");
+    g.reflectionContext = {
+      kind: "repair-proof",
+      source: "Crash Lab",
+      title: "Fix the jump arc",
+      concept: "Failure diagnosis",
+      command: "hopper.jump = 18",
+      prediction: "higher",
+      proofLabel: "REPAIR PROOF",
+      proofSourceKey: "failure-repair-proof:0:fix-the-jump-arc:abc123"
+    };
+    response.value = "";
+    response.placeholder = "";
+    updateActiveQuestion(g);
+    assertEquals(true, /crash lab: Crash Lab - Fix the jump arc/.test(starter.textContent), "Starter names the Crash Lab repair proof context");
+    assertEquals(true, /repair prediction: higher/.test(starter.textContent), "Starter includes the repair hypothesis");
+    assertEquals(true, /proof: REPAIR PROOF/.test(starter.textContent), "Starter includes the repair proof label");
     response.value = "Student is already typing";
     response.placeholder = "keep me";
     updateActiveQuestion(g);
@@ -9008,6 +9026,42 @@ function runExperimentLogTests() {
     assertEquals("The revised source-key explanation still should not farm XP.", notebookEntries[sourceEntryKey].answer, "Source Key re-save should update the answer");
     assertEquals(8, notebookEntries[sourceEntryKey].reflectionRewardXP, "Source Key re-save should preserve the original proof badge");
     assertEquals(10, cloudSaves, "Source Key re-save should still persist the revised answer");
+
+    const repairProofKey = "failure-repair-proof:0:fix-the-jump-arc:repair123";
+    game.reflectionContext = {
+      kind: "repair-proof",
+      source: "Crash Lab",
+      title: "Fix the jump arc",
+      concept: "Failure diagnosis",
+      command: "hopper.jump = 18",
+      prediction: "higher",
+      proofLabel: "REPAIR PROOF",
+      proofSourceKey: repairProofKey
+    };
+    question.dataset.evidenceStarter = buildReflectionEvidenceStarter(game, PLANETS[0].missions.find(mission => mission.id === "earth-gravity-wall"));
+    response.value = "The repair proof shows the jump arc went higher after changing the command.";
+    saveNotebookReflection();
+    const repairEntryKey = `repair-reflection:${repairProofKey}`;
+    const repairEntry = notebookEntries[repairEntryKey];
+    assertEquals(51, game.researchXP, "Repair reflection should award +5 Research XP");
+    assertEquals("Repair Reflection Proof", game.discoveryPulse.title, "Repair reflection should create a specific proof pulse");
+    assertEquals(9, game.discoveryPulse.worldMasteryAddedXP, "Repair reflection should add focused world mastery proof XP");
+    assertEquals("REPAIR PROOF!", game.discoveryPulse.reflectionEffect && game.discoveryPulse.reflectionEffect.label, "Repair reflection should use a Crash Lab proof cue");
+    assertEquals("REPAIR EXPLAINED: +5 Research XP", game.missionBalloon && game.missionBalloon.text, "Repair reflection should write a repair-specific CRT reward line");
+    assertEquals(true, reflectionLabels.includes("REPAIR PROOF!"), "Repair reflection should pop a visible repair cue");
+    assertEquals("Fix the jump arc", repairEntry.title, "Repair notebook entry should use the repair focus title");
+    assertEquals(5, repairEntry.reflectionRewardXP, "Repair notebook entry should remember its proof reward");
+    assertEquals("Repair Reflection Proof", repairEntry.reflectionRewardLabel, "Repair notebook entry should label the specific proof");
+    assertEquals(true, /crash lab: Crash Lab/.test(repairEntry.evidence), "Repair entry should preserve Crash Lab evidence");
+    assertEquals(true, /repair prediction: higher/.test(repairEntry.evidence), "Repair entry should preserve the repair hypothesis");
+    assertEquals(11, cloudSaves, "Saving a repair reflection should persist the new entry");
+
+    response.value = "The revised repair explanation still should not farm XP.";
+    saveNotebookReflection();
+    assertEquals(51, game.researchXP, "Re-saving the same repair reflection should not farm XP");
+    assertEquals("The revised repair explanation still should not farm XP.", notebookEntries[repairEntryKey].answer, "Repair re-save should update the answer");
+    assertEquals(5, notebookEntries[repairEntryKey].reflectionRewardXP, "Repair re-save should preserve the original proof badge");
+    assertEquals(12, cloudSaves, "Repair re-save should still persist the revised answer");
 
     document.getElementById = oldGetElementByIdE6;
     Object.keys(notebookEntries).forEach(key => delete notebookEntries[key]);

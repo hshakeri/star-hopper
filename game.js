@@ -7228,10 +7228,11 @@ class StarHopperGame {
     const title = String(pulse.title || "");
     const sourceKey = /Source Key Reflection/i.test(title) || /source\s*key/i.test(String(pulse.formula || ""));
     const signal = !sourceKey && /Signal Reflection/i.test(title);
-    const strongProof = signal || sourceKey;
-    const label = sourceKey ? "SOURCE PROOF!" : (signal ? "SIGNAL PROOF!" : "PROOF SAVED!");
-    const color = sourceKey ? "#fef08a" : (signal ? "#bef264" : "#a7f3d0");
-    const monitorLabel = sourceKey ? "SOURCE PROOF" : (signal ? "SIGNAL PROOF" : "EXPLAIN SAVED");
+    const repair = !sourceKey && !signal && /Repair Reflection/i.test(title);
+    const strongProof = signal || sourceKey || repair;
+    const label = sourceKey ? "SOURCE PROOF!" : (signal ? "SIGNAL PROOF!" : (repair ? "REPAIR PROOF!" : "PROOF SAVED!"));
+    const color = sourceKey ? "#fef08a" : (signal ? "#bef264" : (repair ? "#facc15" : "#a7f3d0"));
+    const monitorLabel = sourceKey ? "SOURCE PROOF" : (signal ? "SIGNAL PROOF" : (repair ? "REPAIR EXPLAINED" : "EXPLAIN SAVED"));
     const rewardXP = Math.max(0, Math.floor(Number(pulse.rewardXP) || 0));
 
     if (typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {

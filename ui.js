@@ -4320,6 +4320,16 @@ function awardFailureRepairProof(game, code, pulse = null) {
       game.discoveryLog = [pulse].concat(game.discoveryLog).slice(0, 8);
     }
   }
+  game.reflectionContext = {
+    kind: "repair-proof",
+    source: "Crash Lab",
+    title: proof.title,
+    concept: "Failure diagnosis",
+    command: proof.command,
+    prediction: proof.prediction,
+    proofLabel: label,
+    proofSourceKey: proof.sourceKey
+  };
 
   if (rankUp && afterRank && typeof showBadgeToast === 'function') {
     showBadgeToast({

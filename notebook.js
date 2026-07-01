@@ -231,13 +231,15 @@ function getNotebookScienceDeltaEvidence(game) {
 
 function getNotebookReflectionContextEvidence(game) {
   const context = game && game.reflectionContext;
-  if (!context || context.kind !== "signal-lab") return [];
+  if (!context || (context.kind !== "signal-lab" && context.kind !== "repair-proof")) return [];
   const out = [];
-  const source = compactNotebookEvidenceValue(context.source || "Signal Lab", 36);
-  const title = compactNotebookEvidenceValue(context.title || "Replay proof", 44);
-  if (source || title) out.push(`signal lab: ${source}${title ? ` - ${title}` : ""}`);
+  const repairProof = context.kind === "repair-proof";
+  const source = compactNotebookEvidenceValue(context.source || (repairProof ? "Crash Lab" : "Signal Lab"), 36);
+  const title = compactNotebookEvidenceValue(context.title || (repairProof ? "Crash repair proof" : "Replay proof"), 44);
+  if (source || title) out.push(`${repairProof ? "crash lab" : "signal lab"}: ${source}${title ? ` - ${title}` : ""}`);
   if (context.concept) out.push(`focus: ${compactNotebookEvidenceValue(context.concept, 52)}`);
   if (context.command) out.push(`code: ${compactNotebookEvidenceValue(context.command)}`);
+  if (context.prediction) out.push(`repair prediction: ${compactNotebookEvidenceValue(context.prediction, 40)}`);
   if (context.proofLabel) out.push(`proof: ${compactNotebookEvidenceValue(context.proofLabel, 40)}`);
   return out;
 }
@@ -371,6 +373,20 @@ function buildNotebookStageCall(cue) {
 
 function getNotebookReflectionSaveContext(game, missionId, missionTitle) {
   const context = game && game.reflectionContext;
+  if (context && context.kind === "repair-proof" && context.proofSourceKey) {
+    const key = `repair-reflection:${context.proofSourceKey}`;
+    return {
+      entryKey: key,
+      rewardId: key,
+      sourceKey: `reflection-proof:${key}`,
+      missionTitle: context.title || missionTitle || "Crash repair proof",
+      rewardTitle: "Repair Reflection Proof",
+      rewardFormula: "fix = failure + prediction + evidence",
+      rewardCue: "Use this proof to explain why the repair changed the next run.",
+      rewardXP: 5,
+      rewardMasteryXP: 9
+    };
+  }
   if (context && context.kind === "signal-lab" && context.proofSourceKey) {
     const key = `signal-reflection:${context.proofSourceKey}`;
     const proofText = `${context.source || ""} ${context.proofLabel || ""}`;
