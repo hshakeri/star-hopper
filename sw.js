@@ -4,12 +4,12 @@
 //     latest page (which then pulls fresh ?v=-stamped assets); falls back to cache offline.
 //   • Versioned assets (JS/CSS/icons): CACHE-FIRST (they're immutable per ?v=), filled on miss.
 // Bump the version below in lockstep with index.html's ?v=coach-vNN on every release.
-const CACHE = 'star-hopper-coach-v238';
+const CACHE = 'star-hopper-coach-v239';
 const CORE = [
   './',
   './index.html',
-  './style.css?v=coach-v238',
-  './manifest.json?v=coach-v238',
+  './style.css?v=coach-v239',
+  './manifest.json?v=coach-v239',
   './icons/icon-180.png',
   './icons/icon-192.png',
   './icons/icon-512.png'

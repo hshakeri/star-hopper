@@ -561,6 +561,27 @@ class StarHopperGame {
     return `lab-chain:${count}`;
   }
 
+  getNextDiscoveryComboMilestone(combo = this.discoveryCombo) {
+    const current = Math.max(0, Math.floor(Number(combo) || 0));
+    this.discoveryPassCounts = this.discoveryPassCounts || {};
+    let masterySources = null;
+    if (typeof this.normalizeWorldMasteryMeter === 'function') {
+      const meter = this.normalizeWorldMasteryMeter(this.currentPlanetIndex);
+      masterySources = meter && meter.sources ? meter.sources : null;
+    }
+    for (const milestone of DISCOVERY_COMBO_MILESTONES) {
+      if (!milestone) continue;
+      const sourceKey = this.getDiscoveryComboMilestoneSourceKey(milestone.combo);
+      if (this.discoveryPassCounts[sourceKey] || (masterySources && masterySources[sourceKey])) continue;
+      return {
+        ...milestone,
+        sourceKey,
+        remaining: Math.max(0, milestone.combo - current)
+      };
+    }
+    return null;
+  }
+
   grantDiscoveryComboMilestone(pulse = null, options = {}) {
     const combo = Math.max(0, Math.floor(Number((pulse && pulse.combo) || this.discoveryCombo) || 0));
     if (combo <= 0 || !Array.isArray(DISCOVERY_COMBO_MILESTONES)) return null;

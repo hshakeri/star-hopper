@@ -1092,6 +1092,20 @@ function getScienceDeltaChainBadge(game, delta) {
   };
 }
 
+function getDiscoveryComboMilestonePreview(game, combo) {
+  const current = Math.max(0, Math.floor(Number(combo) || 0));
+  const milestone = game && typeof game.getNextDiscoveryComboMilestone === "function"
+    ? game.getNextDiscoveryComboMilestone(current)
+    : null;
+  if (!milestone) return "";
+  const label = milestone.label || "LAB CHAIN";
+  const target = Math.max(1, Math.floor(Number(milestone.combo) || current + 1));
+  const reward = Math.max(0, Math.floor(Number(milestone.rewardXP) || 0));
+  const remaining = Math.max(0, Math.floor(Number(milestone.remaining) || (target - current)));
+  if (remaining <= 1) return `Next milestone: ${label} at x${target} (+${reward} XP).`;
+  return `${remaining} fresh experiments to ${label} at x${target} (+${reward} XP).`;
+}
+
 function getLabChainTarget(game) {
   const pulse = game && game.discoveryPulse;
   const combo = Math.max(0, Math.floor(Number(pulse && pulse.combo) || 0));
@@ -1103,6 +1117,7 @@ function getLabChainTarget(game) {
   const delta = game && game.lastScienceDelta ? game.lastScienceDelta : null;
   const next = delta && delta.nextExperiment ? delta.nextExperiment : null;
   const formulaTarget = typeof getActiveFormulaTarget === 'function' ? getActiveFormulaTarget(game, activeMission) : null;
+  const milestonePreview = getDiscoveryComboMilestonePreview(game, combo);
 
   let title = "Make one fresh change";
   let body = "Change one variable, run it, and compare the new result.";
@@ -1132,7 +1147,7 @@ function getLabChainTarget(game) {
       label: "CHAIN PAUSED",
       reward: "Repeat logged - change one new target",
       title,
-      body: `Repeat commands do not extend the chain. ${body}`,
+      body: `Repeat commands do not extend the chain. ${body}${milestonePreview ? ` ${milestonePreview}` : ""}`,
       command,
       kind
     };
@@ -1144,7 +1159,7 @@ function getLabChainTarget(game) {
       label: `LAB CHAIN x${combo}`,
       reward: `Next new progress can reach x${Math.min(99, combo + 1)}`,
       title,
-      body,
+      body: milestonePreview ? `${body} ${milestonePreview}` : body,
       command,
       kind
     };
@@ -1155,7 +1170,7 @@ function getLabChainTarget(game) {
     label: "CHAIN READY",
     reward: "Next new progress starts x2 combo",
     title,
-    body,
+    body: milestonePreview ? `${body} ${milestonePreview}` : body,
     command,
     kind
   };
@@ -3764,15 +3779,16 @@ function finishSuccessfulCodeRunDiscovery(game, activeMission, code, resultState
   return { opened, pulse, signalLabProof, anomalyTraceProof, quantumBranchProof, quantumChanceProof, lockedAfter };
 }
 
-function getDiscoveryChainHint(pulse) {
+function getDiscoveryChainHint(pulse, game = null) {
   const combo = Math.max(0, Math.floor(Number(pulse && pulse.combo) || 0));
   if (!pulse || combo <= 0) return "";
+  const milestonePreview = getDiscoveryComboMilestonePreview(game, combo);
   const earned = (pulse.rewardXP || 0) > 0 || !!pulse.cardUnlocked || !!pulse.hypothesisConfirmed || (pulse.openedGems || 0) > 0;
   if (!earned) {
     return {
       label: "CHAIN PAUSED",
       title: "Repeat commands do not count",
-      body: "Make one new checklist item, sample gate, or formula card change to restart the lab chain."
+      body: `Make one new checklist item, sample gate, or formula card change to restart the lab chain.${milestonePreview ? ` ${milestonePreview}` : ""}`
     };
   }
   const nextCombo = combo + 1;
@@ -3783,7 +3799,7 @@ function getDiscoveryChainHint(pulse) {
   return {
     label: `CHAIN NEXT x${nextCombo}`,
     title: `New progress can add combo XP${amplifier}`,
-    body: nextTarget
+    body: milestonePreview ? `${nextTarget}. ${milestonePreview}` : nextTarget
   };
 }
 
@@ -3853,7 +3869,7 @@ function updateDiscoveryPulse(game) {
   const unlockCard = unlockCue
     ? `<div class="discovery-next-unlock"><span>${escapeHTML(unlockCue.label)}</span><strong>${escapeHTML(unlockCue.title)}</strong><p>${escapeHTML(unlockCue.body)}</p><div class="discovery-next-unlock-bar" aria-label="${escapeHTML(String(unlockPct))}% toward next lab unlock"><i style="width: ${unlockPct}%"></i></div></div>`
     : "";
-  const chainHint = getDiscoveryChainHint(pulse);
+  const chainHint = getDiscoveryChainHint(pulse, game);
   const chainHintCard = chainHint
     ? `<div class="discovery-chain-next"><span>${escapeHTML(chainHint.label)}</span><strong>${escapeHTML(chainHint.title)}</strong><p>${escapeHTML(chainHint.body)}</p></div>`
     : "";

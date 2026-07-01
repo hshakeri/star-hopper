@@ -2286,6 +2286,7 @@ function runEngineTests() {
     assertEquals(true, /CHAIN NEXT x4/.test(panel.innerHTML), "Discovery pulse should show the next combo target");
     assertEquals(true, /New progress can add combo XP \+ amplifier XP/.test(panel.innerHTML), "Chain target should explain the amplified reward");
     assertEquals(true, /Unlock a new sample gate, formula card, or mission check/.test(panel.innerHTML), "Chain target should name valid new progress");
+    assertEquals(true, /FIVE TEST STREAK at x5 \(\+10 XP\)/.test(panel.innerHTML), "Chain target should preview the next combo milestone after Triple Test");
     assertEquals(true, /NEXT LAB UNLOCK/.test(panel.innerHTML), "Discovery pulse should show the next lab unlock target");
     assertEquals(true, /Daily Signal Lab in/.test(panel.innerHTML), "Next unlock cue should name the upcoming rank perk");
     assertEquals(true, /Reach Orbit Scientist/.test(panel.innerHTML), "Next unlock cue should connect XP to the next rank");
@@ -3950,6 +3951,7 @@ function runEngineTests() {
     assertEquals(true, !!chainTarget, "Mission panel should keep the lab-chain target visible");
     assertEquals(true, /LAB CHAIN x2/.test(chainTargetText), "Lab-chain target should show the active combo");
     assertEquals(true, /Next new progress can reach x3/.test(chainTargetText), "Lab-chain target should name the next combo step");
+    assertEquals(true, /TRIPLE TEST at x3 \(\+6 XP\)/.test(chainTargetText), "Lab-chain target should preview the next named milestone");
     assertEquals(true, /Engine Lab/.test(chainTargetText), "Lab-chain target should use the next experiment title");
     assertEquals(true, /hopper\.engine = 7/.test(chainTargetText), "Lab-chain target should render the next command");
     const chainStageButton = findByClass(chainTarget || list, "lab-chain-target-stage-btn");
