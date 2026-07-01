@@ -7139,6 +7139,9 @@ function attachScienceDeltaNextExperiment(game, resultState = null, activeMissio
   const cue = buildNextExperimentCue(game, resultState, activeMission);
   if (!cue) return null;
   game.lastScienceDelta.nextExperiment = cue;
+  if (typeof game.syncScienceBreadcrumbNextExperiment === 'function') {
+    game.syncScienceBreadcrumbNextExperiment(game.lastScienceDelta, cue);
+  }
   return cue;
 }
 

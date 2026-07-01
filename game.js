@@ -7952,6 +7952,7 @@ class StarHopperGame {
     const predictionCue = typeof this.getScienceDeltaPredictionCue === 'function'
       ? this.getScienceDeltaPredictionCue(delta)
       : null;
+    const nextCue = this.getScienceBreadcrumbNextData(delta.nextExperiment);
     const valueLabel = String(change.label || "Value");
     const valueText = String(change.value || "changed");
     const effect = {
@@ -7966,15 +7967,66 @@ class StarHopperGame {
       deltaChip,
       predictionLabel: predictionCue && predictionCue.line ? predictionCue.line : "",
       predictionColor: predictionCue && predictionCue.color ? predictionCue.color : "",
+      nextLabel: nextCue ? nextCue.nextLabel : "",
+      nextCommandLabel: nextCue ? nextCue.nextCommandLabel : "",
+      nextColor: nextCue ? nextCue.nextColor : "",
       valueLabel,
       valueText,
       valueLine: `${valueLabel} ${valueText}`,
-      direction: change.direction || "same"
+      direction: change.direction || "same",
+      sourceDeltaCode: String(delta.code || ""),
+      sourceDeltaTime: Number.isFinite(delta.time) ? delta.time : null
     };
     this.scienceBreadcrumbEffects = (this.scienceBreadcrumbEffects || []).slice(-2);
     this.scienceBreadcrumbEffects.push(effect);
     this.lastScienceBreadcrumbEffect = effect;
     return effect;
+  }
+
+  getScienceBreadcrumbNextData(nextExperiment) {
+    if (!nextExperiment) return null;
+    const title = String(nextExperiment.title || "Try one more test").trim();
+    const command = String(nextExperiment.command || "").trim();
+    const lines = command.split(/\n+/).map(line => line.trim()).filter(Boolean);
+    const cueText = `${title} ${nextExperiment.body || ""}`.toLowerCase();
+    const assignmentLines = lines.filter(line => /=/.test(line));
+    const matchers = [
+      { cue: /jump[_ -]?power|\bjump\b|height/, line: /jump_power/i },
+      { cue: /engine|thrust|speed/, line: /engine|rocket_power/i },
+      { cue: /mass|lighter|heavier|weight/, line: /mass/i },
+      { cue: /anti-?gravity|gravity|airtime/, line: /antigravity|gravity/i },
+      { cue: /friction|grip|slide/, line: /friction|spikes/i },
+      { cue: /chance|probability|trial/, line: /chance|repeat/i }
+    ];
+    const lineMatchers = matchers
+      .filter(matcher => matcher.cue.test(cueText))
+      .map(matcher => matcher.line);
+    const matchedLines = assignmentLines.filter(line => lineMatchers.some(pattern => pattern.test(line)));
+    const commandLine = matchedLines[matchedLines.length - 1] || assignmentLines[assignmentLines.length - 1] || lines[0] || "";
+    return {
+      nextLabel: title ? `NEXT ${title}` : "NEXT TEST",
+      nextCommandLabel: commandLine ? `TRY ${commandLine}` : "",
+      nextColor: "#a7f3d0"
+    };
+  }
+
+  syncScienceBreadcrumbNextExperiment(delta, nextExperiment = null) {
+    if (!delta || !this.scienceBreadcrumbEffects || !this.scienceBreadcrumbEffects.length) return 0;
+    const nextCue = this.getScienceBreadcrumbNextData(nextExperiment || delta.nextExperiment);
+    if (!nextCue) return 0;
+    const code = String(delta.code || "");
+    const time = Number.isFinite(delta.time) ? delta.time : null;
+    let updated = 0;
+    for (const fx of this.scienceBreadcrumbEffects) {
+      const sameCode = !code || !fx.sourceDeltaCode || fx.sourceDeltaCode === code;
+      const sameTime = time === null || fx.sourceDeltaTime === null || fx.sourceDeltaTime === time;
+      if (!sameCode || !sameTime) continue;
+      fx.nextLabel = nextCue.nextLabel;
+      fx.nextCommandLabel = nextCue.nextCommandLabel;
+      fx.nextColor = nextCue.nextColor;
+      updated++;
+    }
+    return updated;
   }
 
   updateScienceBreadcrumbEffects() {
@@ -8060,12 +8112,16 @@ class StarHopperGame {
       const resultColor = fx.direction === "down" ? "#bfdbfe" : (fx.direction === "up" ? "#bbf7d0" : "#fde68a");
       const deltaLabel = fx.deltaChip ? `DELTA ${fx.deltaChip}` : "";
       const predictionLabel = fx.predictionLabel || "";
+      const nextLabel = fx.nextLabel || "";
+      const nextCommandLabel = fx.nextCommandLabel || "";
       drawn.push({
         codeLine: fx.codeLine,
         relation: fx.relation,
         valueLine: fx.valueLine,
         deltaLabel,
-        predictionLabel
+        predictionLabel,
+        nextLabel,
+        nextCommandLabel
       });
 
       ctx.save();
@@ -8107,6 +8163,25 @@ class StarHopperGame {
         ctx.font = "bold 5.8px 'Share Tech Mono', monospace";
         ctx.textAlign = "center";
         ctx.fillText(this.fitCardText(ctx, predictionLabel, predictionChipW - 8), 0, -34.5);
+      }
+
+      if (nextLabel) {
+        ctx.fillStyle = "rgba(2, 6, 23, 0.66)";
+        ctx.strokeStyle = fx.nextColor || "#a7f3d0";
+        ctx.beginPath();
+        ctx.roundRect(-122, 22, 244, 15, 5);
+        ctx.fill();
+        ctx.stroke();
+        ctx.textAlign = "left";
+        ctx.fillStyle = fx.nextColor || "#a7f3d0";
+        ctx.font = "bold 6.2px 'Share Tech Mono', monospace";
+        const commandW = nextCommandLabel ? 90 : 0;
+        ctx.fillText(this.fitCardText(ctx, nextLabel, nextCommandLabel ? 130 : 232), -114, 29.5);
+        if (nextCommandLabel) {
+          ctx.textAlign = "right";
+          ctx.fillStyle = "#fef3c7";
+          ctx.fillText(this.fitCardText(ctx, nextCommandLabel, commandW), 114, 29.5);
+        }
       }
 
       ctx.shadowBlur = 0;
