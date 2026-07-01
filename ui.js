@@ -654,9 +654,11 @@ function appendSignalLabContractCard(listContainer, game) {
   const command = contract.command ? String(contract.command).trim() : "";
   if (!contract.title && !contract.body && !command) return;
   const isFrontier = !!signal.isFrontier;
+  const proofStatus = command ? getSignalLabProofStatus(game, command) : null;
+  const proofClaimed = !!(proofStatus && proofStatus.claimed);
 
   const card = document.createElement("div");
-  card.className = `signal-lab-contract-card ${isFrontier ? "frontier" : "daily"}`;
+  card.className = `signal-lab-contract-card ${isFrontier ? "frontier" : "daily"}${proofClaimed ? " claimed" : ""}`;
 
   const head = document.createElement("div");
   head.className = "signal-lab-contract-head";
@@ -681,6 +683,12 @@ function appendSignalLabContractCard(listContainer, game) {
   body.appendChild(title);
   body.appendChild(copy);
   body.appendChild(concept);
+  if (proofClaimed) {
+    const proof = document.createElement("div");
+    proof.className = "signal-lab-contract-proof";
+    proof.textContent = `${isFrontier ? "FRONTIER PROOF LOGGED" : "PROOF LOGGED"} - explain the evidence in the Science Notebook.`;
+    body.appendChild(proof);
+  }
   card.appendChild(body);
 
   if (command) {
@@ -688,18 +696,25 @@ function appendSignalLabContractCard(listContainer, game) {
     code.textContent = command;
     card.appendChild(code);
 
-    const stage = document.createElement("button");
-    stage.type = "button";
-    stage.className = "signal-lab-contract-stage-btn";
-    stage.textContent = "STAGE SIGNAL";
-    if (typeof stage.addEventListener === "function") {
-      stage.addEventListener("click", () => stageScienceDeltaCommand(command, {
-        title: contract.title || "Signal lab",
-        source: "signal-lab-contract",
-        color: isFrontier ? "#c4b5fd" : "#67e8f9"
-      }));
+    if (proofClaimed) {
+      const claimed = document.createElement("div");
+      claimed.className = "signal-lab-contract-claimed";
+      claimed.textContent = proofStatus && proofStatus.sourceKey ? "TESTED - proof saved" : "TESTED";
+      card.appendChild(claimed);
+    } else {
+      const stage = document.createElement("button");
+      stage.type = "button";
+      stage.className = "signal-lab-contract-stage-btn";
+      stage.textContent = "STAGE SIGNAL";
+      if (typeof stage.addEventListener === "function") {
+        stage.addEventListener("click", () => stageScienceDeltaCommand(command, {
+          title: contract.title || "Signal lab",
+          source: "signal-lab-contract",
+          color: isFrontier ? "#c4b5fd" : "#67e8f9"
+        }));
+      }
+      card.appendChild(stage);
     }
-    card.appendChild(stage);
   }
 
   listContainer.appendChild(card);
@@ -2602,6 +2617,20 @@ function getSignalLabProofCandidate(game, code) {
     sourceKey,
     stagedMatch,
     isFrontier: !!signal.isFrontier
+  };
+}
+
+function getSignalLabProofStatus(game, code) {
+  const proof = getSignalLabProofCandidate(game, code);
+  if (!proof) return null;
+  let claimed = !!(game && game.discoveryPassCounts && game.discoveryPassCounts[proof.sourceKey]);
+  if (!claimed && game && typeof game.normalizeWorldMasteryMeter === 'function') {
+    const meter = game.normalizeWorldMasteryMeter(game.currentPlanetIndex);
+    claimed = !!(meter && meter.sources && meter.sources[proof.sourceKey]);
+  }
+  return {
+    ...proof,
+    claimed
   };
 }
 

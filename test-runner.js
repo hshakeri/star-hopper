@@ -3006,6 +3006,18 @@ function runEngineTests() {
     const signalStagedText = flattenText(signalStaged || list);
     assertEquals(true, /Signal Lab/.test(signalStagedText), "Signal lab staged command should name its source in the reminder");
 
+    const proofStatus = getSignalLabProofStatus(game, signalFocus.command);
+    assertEquals(true, !!proofStatus, "Signal lab proof status should expose a durable source key");
+    game.discoveryPassCounts[proofStatus.sourceKey] = 1;
+    list = makeEl();
+    updateMissionList(game);
+    const claimedSignalLab = findByClass(list, "signal-lab-contract-card");
+    const claimedSignalText = flattenText(claimedSignalLab || list);
+    assertEquals(true, /PROOF LOGGED/.test(claimedSignalText), "Claimed Signal Lab card should show the proof is saved");
+    assertEquals(true, /Science Notebook/.test(claimedSignalText), "Claimed Signal Lab card should point to explaining evidence");
+    assertEquals(true, /TESTED - proof saved/.test(claimedSignalText), "Claimed Signal Lab card should show a tested badge");
+    assertEquals(null, findByClass(claimedSignalLab || list, "signal-lab-contract-stage-btn"), "Claimed Signal Lab card should not expose the repeat stage action");
+
     list = makeEl();
     game.dailyInfo = {
       isFrontier: true,

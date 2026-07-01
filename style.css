@@ -4128,6 +4128,11 @@ html {
     repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.026) 0 1px, transparent 1px 4px);
 }
 
+.signal-lab-contract-card.claimed {
+  border-color: rgba(190, 242, 100, 0.42);
+  box-shadow: inset 0 0 16px rgba(190, 242, 100, 0.12);
+}
+
 .signal-lab-contract-head {
   display: flex;
   justify-content: space-between;
@@ -4179,6 +4184,16 @@ html {
   line-height: 1.2;
 }
 
+.signal-lab-contract-proof {
+  border-left: 2px solid rgba(190, 242, 100, 0.7);
+  color: #d9f99d;
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  font-weight: 800;
+  line-height: 1.24;
+  padding-left: 6px;
+}
+
 .signal-lab-contract-card code {
   display: block;
   max-height: 58px;
@@ -4223,6 +4238,20 @@ html {
 .signal-lab-contract-card.frontier .signal-lab-contract-stage-btn:hover {
   background: rgba(196, 181, 253, 0.9);
   color: #2e1065;
+}
+
+.signal-lab-contract-claimed {
+  justify-self: start;
+  border: 1px solid rgba(190, 242, 100, 0.42);
+  border-radius: 4px;
+  background: rgba(63, 98, 18, 0.44);
+  color: #ecfccb;
+  font-family: var(--font-mono);
+  font-size: 0.53rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0;
+  padding: 5px 7px;
 }
 
 .lab-chain-target-card {
@@ -7086,8 +7115,10 @@ body.readable-text-mode .signal-lab-contract-head,
 body.readable-text-mode .signal-lab-contract-body strong,
 body.readable-text-mode .signal-lab-contract-body p,
 body.readable-text-mode .signal-lab-contract-body em,
+body.readable-text-mode .signal-lab-contract-proof,
 body.readable-text-mode .signal-lab-contract-card code,
 body.readable-text-mode .signal-lab-contract-stage-btn,
+body.readable-text-mode .signal-lab-contract-claimed,
 body.readable-text-mode .science-delta-row,
 body.readable-text-mode .science-delta-row em,
 body.readable-text-mode .science-delta-next span,
