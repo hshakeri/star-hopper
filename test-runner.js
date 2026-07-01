@@ -4326,6 +4326,8 @@ function runEngineTests() {
       assertEquals("WRITE EXPLANATION", completedRepairPrompt.cta, "Completed repair reflections should fall back to the normal explain action");
       assertEquals("Reward: notebook proof + Research XP", completedRepairPrompt.reward, "Completed repair reflections should hand off to the normal notebook reward");
       assertEquals(undefined, completedRepairPrompt.preserveReflectionContext, "Completed repair prompt should not preserve stale repair context");
+      assertEquals(false, /crash lab: Crash Lab/.test(completedRepairPrompt.evidence), "Completed repair prompt should not keep stale Crash Lab evidence");
+      assertEquals(false, /repair prediction: higher/.test(completedRepairPrompt.evidence), "Completed repair prompt should not keep stale repair hypotheses");
     } finally {
       if (oldSwitchMainMode22fg) switchMainMode = oldSwitchMainMode22fg;
       if (oldUpdateNotebook22fg) updateNotebook = oldUpdateNotebook22fg;
@@ -8851,6 +8853,16 @@ function runExperimentLogTests() {
     assertEquals(true, /crash lab: Crash Lab - Fix the jump arc/.test(starter.textContent), "Starter names the Crash Lab repair proof context");
     assertEquals(true, /repair prediction: higher/.test(starter.textContent), "Starter includes the repair hypothesis");
     assertEquals(true, /proof: REPAIR PROOF/.test(starter.textContent), "Starter includes the repair proof label");
+    g.masteryMeters = {
+      0: {
+        sources: {
+          "reflection-proof:repair-reflection:failure-repair-proof:0:fix-the-jump-arc:abc123": 9
+        }
+      }
+    };
+    updateActiveQuestion(g);
+    assertEquals(false, /crash lab: Crash Lab/.test(starter.textContent), "Starter drops completed Crash Lab repair context");
+    assertEquals(false, /repair prediction: higher/.test(starter.textContent), "Starter drops completed repair hypothesis context");
     response.value = "Student is already typing";
     response.placeholder = "keep me";
     updateActiveQuestion(g);

@@ -234,6 +234,9 @@ function getNotebookReflectionContextEvidence(game) {
   if (!context || (context.kind !== "signal-lab" && context.kind !== "repair-proof")) return [];
   const out = [];
   const repairProof = context.kind === "repair-proof";
+  if (repairProof && context.proofSourceKey && typeof hasRepairReflectionCredit === "function" && hasRepairReflectionCredit(game, context.proofSourceKey)) {
+    return out;
+  }
   const source = compactNotebookEvidenceValue(context.source || (repairProof ? "Crash Lab" : "Signal Lab"), 36);
   const title = compactNotebookEvidenceValue(context.title || (repairProof ? "Crash repair proof" : "Replay proof"), 44);
   if (source || title) out.push(`${repairProof ? "crash lab" : "signal lab"}: ${source}${title ? ` - ${title}` : ""}`);
