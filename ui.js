@@ -2689,6 +2689,19 @@ function getCadetLabChainPortfolioText(game = window.Game) {
   return "Lab Chain: start one fresh test";
 }
 
+function getCadetPassportPortfolioText(game = window.Game) {
+  if (typeof getPassportWorlds !== "function" || typeof isPassportWorldStamped !== "function") {
+    return "Passport pending";
+  }
+  const worlds = getPassportWorlds();
+  if (!Array.isArray(worlds) || !worlds.length) return "Passport pending";
+  const stamped = worlds.filter(({ index }) => isPassportWorldStamped(game, index));
+  const next = worlds.find(({ index }) => !isPassportWorldStamped(game, index));
+  if (!next) return `Passport complete · ${stamped.length}/${worlds.length} stamps`;
+  const nextName = next.planet && next.planet.name ? next.planet.name : `World ${next.index + 1}`;
+  return `Passport ${stamped.length}/${worlds.length} stamps · next ${nextName}`;
+}
+
 function getCadetIdentityPreview(game = window.Game) {
   const callsign = game && typeof game.getCadetCallsign === "function" ? game.getCadetCallsign() : "Cadet";
   const rank = typeof getResearchRank === "function"
@@ -2701,6 +2714,7 @@ function getCadetIdentityPreview(game = window.Game) {
   const story = typeof getSignalStoryProgress === "function" ? getSignalStoryProgress(game) : null;
   const transmissions = story ? `${story.unlocked.length}/${story.total} transmissions` : "0 transmissions";
   const labChain = getCadetLabChainPortfolioText(game);
+  const passport = getCadetPassportPortfolioText(game);
   const futureLab = getCadetFutureLabPortfolioText(game);
   const village = game && typeof game.getVillageTrustProgress === "function" ? game.getVillageTrustProgress(game.currentPlanetIndex) : null;
   const trust = village ? `${village.title} · ${village.points} trust` : "Village trust pending";
@@ -2732,7 +2746,7 @@ function getCadetIdentityPreview(game = window.Game) {
   return {
     label: "CADET RECORD",
     title: `${callsign} // ${rank.title}`,
-    body: `${Math.round(rank.xp || 0)} XP · ${labChain} · ${formulas} · ${transmissions} · ${futureLab} · ${aiStates} · ${trust}`,
+    body: `${Math.round(rank.xp || 0)} XP · ${labChain} · ${passport} · ${formulas} · ${transmissions} · ${futureLab} · ${aiStates} · ${trust}`,
     progress: Math.max(0, Math.min(1, Number(rank.progress) || 0)),
     aiAction
   };
