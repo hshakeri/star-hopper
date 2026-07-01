@@ -2921,9 +2921,9 @@ function runEngineTests() {
   const oldParticleBurst22ba = Particles.spawnBurst;
   const oldWindowGame22ba = window.Game;
   try {
-    let scienceDeltaBubble22ba = "";
+    const scienceDeltaBubbles22ba = [];
     let scienceDeltaBursts22ba = 0;
-    ComicBubbles.pop = (x, y, text) => { scienceDeltaBubble22ba = text; };
+    ComicBubbles.pop = (x, y, text) => { scienceDeltaBubbles22ba.push(text); };
     Particles.spawnBurst = () => { scienceDeltaBursts22ba++; };
 
     Compiler.reset();
@@ -2958,7 +2958,7 @@ function runEngineTests() {
     assertEquals(true, /Agility/.test(labels), "Delta should include mission stat movement");
     assertEquals(true, /Less mass/.test(text), "Delta should explain the mass science effect");
     assertEquals(delta, game.lastScienceDelta, "Latest delta should be stored on the game for the CRT");
-    assertEquals(true, /MASS/.test(scienceDeltaBubble22ba), "Science delta should pop the changed value in the level");
+    assertEquals(true, scienceDeltaBubbles22ba.some(text => /MASS/.test(text)), "Science delta should pop the changed value in the level");
     assertEquals(true, scienceDeltaBursts22ba >= 2, "Science delta should spawn a small particle reward");
     assertEquals("Agility 30+ reached", nextCue.title, "Next experiment cue should name the first failing mission check");
     assertEquals(true, /Lower mass/.test(nextCue.body), "Next experiment cue should reuse the mission waiting message");
@@ -3053,6 +3053,33 @@ function runEngineTests() {
     assertEquals(true, targetReadyCue.targetReady, "Crossed mission target should render as ready in the evidence ticker");
     assertEquals(true, Number(targetReadyCue.targetProgressBefore) < 1, "Ready ticker should preserve the before-target progress");
     assertEquals(1, targetReadyCue.targetProgress, "Ready ticker should clamp after-target progress to the complete rail");
+
+    const targetStepLabels = [];
+    let targetStepBursts = 0;
+    ComicBubbles.pop = (x, y, text) => { targetStepLabels.push(text); };
+    Particles.spawnBurst = () => { targetStepBursts++; };
+    const targetStepGame = new StarHopperGame();
+    targetStepGame.player = { charType: 'hopper', x: 50, y: 88, w: 24, h: 32, mass: 1, fuel: 100 };
+    targetStepGame.spawnedBoxes = [];
+    targetStepGame.interactiveObjects = [];
+    targetStepGame.targetTestAgility = 4;
+    targetStepGame.getActiveMass = () => 1;
+    targetStepGame.getEngineForce = () => 4;
+    targetStepGame.getJumpForce = () => 10;
+    targetStepGame.getDesignGravity = () => 1;
+    targetStepGame.getCurrentFriction = () => 0;
+    targetStepGame.getMissionStat = function () {
+      return { key: 'agility', label: 'Agility', value: this.targetTestAgility, target: 10 };
+    };
+    const targetStepBefore = captureScienceDeltaSnapshot(targetStepGame);
+    targetStepGame.targetTestAgility = 7;
+    const targetStepDelta = recordScienceDelta(targetStepGame, targetStepBefore, captureScienceDeltaSnapshot(targetStepGame), "hopper.engine = 7");
+    assertEquals(false, targetStepDelta.missionTarget && targetStepDelta.missionTarget.crossed, "Partial target movement should not mark the target complete");
+    assertEquals("HALFWAY!", targetStepDelta.missionTarget && targetStepDelta.missionTarget.milestone && targetStepDelta.missionTarget.milestone.label, "Crossing 50% should store a target milestone");
+    assertEquals(true, targetStepLabels.includes("HALFWAY!"), "Crossing a target milestone should pop a visible progress cue");
+    assertEquals(true, targetStepLabels.includes("50% TARGET"), "Target milestone cue should show the crossed threshold");
+    assertEquals("TARGET STEP: Agility 7/10", targetStepGame.missionBalloon && targetStepGame.missionBalloon.text, "Mission CRT should announce non-XP target progress");
+    assertEquals(true, targetStepBursts >= 4, "Target milestone should add extra particle feedback");
 
     const inputEl = {
       value: "",

@@ -6519,6 +6519,16 @@ function makeScienceDeltaChange(label, before, after, cueUp, cueDown, options = 
   };
 }
 
+function getScienceDeltaTargetMilestone(progressBefore, progressAfter) {
+  if (!Number.isFinite(progressBefore) || !Number.isFinite(progressAfter) || progressAfter <= progressBefore) return null;
+  const milestones = [
+    { threshold: 0.9, label: "ALMOST THERE!", detail: "90% TARGET" },
+    { threshold: 0.75, label: "THREE-QUARTERS!", detail: "75% TARGET" },
+    { threshold: 0.5, label: "HALFWAY!", detail: "50% TARGET" }
+  ];
+  return milestones.find(item => progressBefore < item.threshold && progressAfter >= item.threshold) || null;
+}
+
 function buildScienceDelta(game, before, after, code) {
   if (!game || !before || !after) return null;
   const changes = [];
@@ -6553,14 +6563,18 @@ function buildScienceDelta(game, before, after, code) {
     const afterValue = scienceDeltaNumber(after.missionStat.value);
     const targetValue = scienceDeltaNumber(after.missionStat.target);
     if (beforeValue !== null && afterValue !== null && targetValue !== null && targetValue > 0) {
+      const progressBefore = Math.max(0, Math.min(1, beforeValue / targetValue));
+      const progressAfter = Math.max(0, Math.min(1, afterValue / targetValue));
+      const milestone = getScienceDeltaTargetMilestone(progressBefore, progressAfter);
       missionTarget = {
         key: after.missionStat.key || "",
         label: after.missionStat.label || "Target",
         before: beforeValue,
         after: afterValue,
         target: targetValue,
-        progressBefore: Math.max(0, Math.min(1, beforeValue / targetValue)),
-        progressAfter: Math.max(0, Math.min(1, afterValue / targetValue)),
+        progressBefore,
+        progressAfter,
+        milestone,
         ready: afterValue >= targetValue,
         crossed: beforeValue < targetValue && afterValue >= targetValue
       };

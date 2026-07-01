@@ -7550,10 +7550,11 @@ class StarHopperGame {
     }
     const target = delta.missionTarget || null;
     const targetReady = !!(target && target.crossed);
+    let targetMilestone = null;
+    const fmt = (value) => typeof this.formatScienceDeltaTargetNumber === 'function'
+      ? this.formatScienceDeltaTargetNumber(value)
+      : (Math.abs(Number(value)) >= 10 ? String(Math.round(Number(value))) : Number(value).toFixed(1));
     if (targetReady) {
-      const fmt = (value) => typeof this.formatScienceDeltaTargetNumber === 'function'
-        ? this.formatScienceDeltaTargetNumber(value)
-        : (Math.abs(Number(value)) >= 10 ? String(Math.round(Number(value))) : Number(value).toFixed(1));
       const targetLabel = String(target.label || "Target");
       const targetLine = `${targetLabel} ${fmt(target.after)}/${fmt(target.target)}`;
       if (typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
@@ -7571,8 +7572,28 @@ class StarHopperGame {
           timer: 220
         });
       }
+    } else if (target && target.milestone) {
+      const milestone = target.milestone;
+      const targetLabel = String(target.label || "Target");
+      const targetLine = `${targetLabel} ${fmt(target.after)}/${fmt(target.target)}`;
+      targetMilestone = milestone;
+      if (typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+        ComicBubbles.pop(px, baseY - 34, milestone.label || "TARGET STEP!", "#facc15", 0.98);
+        ComicBubbles.pop(px, baseY - 52, milestone.detail || targetLine.toUpperCase(), "#a7f3d0", 0.74);
+      }
+      if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+        Particles.spawnBurst(px, py - 4, '#facc15', 10, 2.1, 2.0, 'glow');
+        Particles.spawnBurst(px, py - 4, '#67e8f9', 6, 1.6, 1.5, 'glow');
+      }
+      if (typeof this.showMissionBalloon === 'function') {
+        this.showMissionBalloon(`TARGET STEP: ${targetLine}`, {
+          title: "MISSION CRT",
+          color: "#a7f3d0",
+          timer: 190
+        });
+      }
     }
-    return { label, color, x: px, y: py, targetReady };
+    return { label, color, x: px, y: py, targetReady, targetMilestone };
   }
 
   spawnHypothesisEffect(pulse) {
@@ -8210,6 +8231,7 @@ class StarHopperGame {
   formatScienceDeltaTargetNumber(value) {
     const n = Number(value);
     if (!Number.isFinite(n)) return "?";
+    if (Number.isInteger(n)) return String(n);
     return Math.abs(n) >= 10 ? String(Math.round(n)) : n.toFixed(1);
   }
 
