@@ -283,6 +283,14 @@ class StarHopperGame {
     return { active: false, reason: null, threat: null };
   }
 
+  shouldNPCWaitInCave(npc, signal = null) {
+    if (!npc) return false;
+    const shelter = signal || this.getVillagerShelterSignal(npc, { radius: 128 });
+    if (shelter && shelter.active) return true;
+    if (!npc.rescuePending) return false;
+    return !!this.findThreateningMobForNPC(npc, 160);
+  }
+
   getVillagerCaveStatus(npc, signal = null) {
     const shelter = signal || this.getVillagerShelterSignal(npc, { radius: 128 });
     if (shelter && shelter.threat) {
@@ -876,6 +884,15 @@ class StarHopperGame {
         if (this.activeNPC === obj) this.activeNPC = null;
         continue;
       }
+      if (this.shouldNPCWaitInCave(obj, shelter)) {
+        if (this.activeNPC === obj) touchNeedsSync = true;
+        if (obj.hiddenInCave) this.parkNPCInCave(obj, obj.shelterReason || "nearby mob");
+        else if (typeof obj.stepTowardCave === 'function') obj.stepTowardCave(2.2);
+        obj.proximity = false;
+        if (this.activeNPC === obj) this.activeNPC = null;
+        continue;
+      }
+      if ((obj.panicTimer || 0) > 0) obj.panicTimer = 0;
       if (obj.hiddenInCave && (obj.panicTimer || 0) <= 0) {
         this.releaseNPCFromCave(obj);
         touchNeedsSync = true;

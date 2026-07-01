@@ -2525,7 +2525,12 @@ class NPC extends InteractiveObject {
     if (this.panicTimer > 0) this.panicTimer--;
     if (this.caveCooldown > 0) this.caveCooldown--;
 
-    const goingHome = nightShelter || this.panicTimer > 0 || !!threat;
+    const waitInCave = (typeof game.shouldNPCWaitInCave === 'function')
+      ? game.shouldNPCWaitInCave(this, shelter)
+      : (nightShelter || !!threat);
+    if (!waitInCave && this.panicTimer > 0) this.panicTimer = 0;
+
+    const goingHome = waitInCave || this.panicTimer > 0;
     if (goingHome && game.activeNPC === this) game.activeNPC = null;
     if (goingHome && !this.hiddenInCave) {
       this.stepTowardCave(2.2);

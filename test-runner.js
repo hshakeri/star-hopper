@@ -6004,15 +6004,31 @@ function runCombatTests() {
     loopRelease.researchXP = 0;
     loopRelease.masteryMeters = {};
     const loopNpc = new NPC({ id: 'loop-release', name: 'Loop Release', profession: 'Miner', type: 'npc', x: 130, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60, hiddenInCave: true });
-    loopNpc.panicTimer = 0;
+    loopNpc.panicTimer = 90;
     loopNpc.rescuePending = true;
     loopNpc.shelterReason = "nearby mob";
     loopRelease.interactiveObjects = [loopNpc];
     loopRelease.mobs = [];
     loopRelease.updateVillagerShelterStates();
     assertEquals(false, loopNpc.hiddenInCave, "Game loop shelter pass releases a hidden villager when danger is gone");
+    assertEquals(0, loopNpc.panicTimer, "Cleared danger cancels stale panic instead of hiding the villager offscreen");
     assertEquals(82, loopNpc.x, "Normal cave release starts the villager at the cave mouth");
     assertEquals(7, loopRelease.researchXP, "Loop release grants the rescue XP once the villager returns");
+
+    const directRelease = new StarHopperGame();
+    directRelease.state = 'playing'; directRelease.currentPlanetIndex = 1; directRelease.currentPlanet = PLANETS[1];
+    directRelease.player = new Player(0, 0);
+    directRelease.researchXP = 0;
+    directRelease.masteryMeters = {};
+    const directNpc = new NPC({ id: 'direct-release', name: 'Direct Release', profession: 'Miner', type: 'npc', x: 130, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60, hiddenInCave: true });
+    directNpc.panicTimer = 90;
+    directNpc.rescuePending = true;
+    directNpc.shelterReason = "nearby mob";
+    directRelease.interactiveObjects = [directNpc];
+    directRelease.mobs = [];
+    directNpc.update(directRelease);
+    assertEquals(false, directNpc.hiddenInCave, "NPC update also releases a hidden villager when danger clears");
+    assertEquals(0, directNpc.panicTimer, "NPC update clears stale panic once no mob is near the village");
 
     const nightGame = new StarHopperGame();
     nightGame.state = 'playing'; nightGame.currentPlanetIndex = 0; nightGame.currentPlanet = PLANETS[0];
