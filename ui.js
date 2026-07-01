@@ -2586,13 +2586,18 @@ function getStartVillageTrustPreview(game = window.Game) {
   const planet = game.currentPlanet && game.currentPlanet.name ? game.currentPlanet.name : "this world";
   const next = progress && progress.nextTier ? progress.nextTier : null;
   const pact = progress && progress.nextPact ? progress.nextPact : null;
+  const chain = (typeof getVillageQuestChainPreview === "function") ? getVillageQuestChainPreview(game) : null;
+  const chainTitle = chain ? ` · Quest ${chain.doneCount}/${chain.total}` : "";
+  const chainLead = chain
+    ? `Village Quest ${chain.doneCount}/${chain.total}: ${chain.title} (${chain.formula}). `
+    : "";
   const body = next
     ? `${Math.max(0, Math.floor(Number(next.points) || 0) - points)} trust to ${next.label} on ${planet}. ${pact ? `${pact.title}: ${pact.action}. ${pact.concept}.` : "Next: build village trust."}`
     : `${planet} trusts this cadet. Keep trades, rescues, and pet guards alive as relationship evidence.`;
   return {
     label: "VILLAGE TRUST",
-    title: `${title} · ${points} trust`,
-    body,
+    title: `${title} · ${points} trust${chainTitle}`,
+    body: `${chainLead}${body}`,
     progress: Math.max(0, Math.min(1, ((progress && Number(progress.pct)) || 0) / 100))
   };
 }

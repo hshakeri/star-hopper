@@ -3277,7 +3277,9 @@ function runEngineTests() {
     assertEquals(true, /30 XP to World Engineer/.test(els["start-world-preview-body"].textContent), "Start radar should show next world mastery gap");
     assertEquals("44%", els["start-world-preview-bar"].style.width, "Start radar should show world mastery progress");
     assertEquals("VILLAGE TRUST", els["start-village-preview-label"].textContent, "Start radar should label village trust preview");
-    assertEquals("Trading Friend · 3 trust", els["start-village-preview-title"].textContent, "Start radar should show village trust tier and points");
+    assertEquals("Trading Friend · 3 trust · Quest 1/3", els["start-village-preview-title"].textContent, "Start radar should show village trust tier, points, and quest-chain progress");
+    assertEquals(true, /Village Quest 1\/3: Next: Rescue pact/.test(els["start-village-preview-body"].textContent), "Start radar should show the next village quest-chain step");
+    assertEquals(true, /danger -> cave -> safe/.test(els["start-village-preview-body"].textContent), "Start radar should show the next village quest formula");
     assertEquals(true, /4 trust to Cave Ally/.test(els["start-village-preview-body"].textContent), "Start radar should show the next village trust gap");
     assertEquals(true, /Cave Rescue Pact/.test(els["start-village-preview-body"].textContent), "Start radar should name the next village pact");
     assertEquals(true, /State machine: danger -> cave -> safe/.test(els["start-village-preview-body"].textContent), "Start radar should connect village progress to the coding concept");
