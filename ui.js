@@ -6101,6 +6101,43 @@ function getVillageTradeRequest(game, npc) {
   };
 }
 
+function getVillageTradeMarker(game, npc) {
+  if (!npc || npc.hiddenInCave || npc.rescuePending || npc.shelterReason) return null;
+  const shelter = game && typeof game.getVillagerShelterSignal === 'function'
+    ? game.getVillagerShelterSignal(npc, { radius: 128 })
+    : null;
+  if (shelter && shelter.active) return null;
+
+  const request = getVillageTradeRequest(game, npc);
+  if (!request) return null;
+  if (request.complete) {
+    return {
+      tone: "complete",
+      label: "DONE",
+      detail: "ALL SET",
+      color: "#a7f3d0"
+    };
+  }
+  if (request.ready) {
+    return {
+      tone: "ready",
+      label: "READY",
+      detail: "TRADE",
+      color: (npc && npc.color) || "#a7f3d0",
+      tradeId: request.tradeId || ""
+    };
+  }
+  const missing = Math.max(0, Math.floor(Number(request.missing) || 0));
+  return {
+    tone: "need",
+    label: `NEED ${missing > 99 ? "99+" : String(missing)}`,
+    detail: String(getTradeGemLabel(request.costType)).toUpperCase(),
+    color: "#facc15",
+    tradeId: request.tradeId || "",
+    missing
+  };
+}
+
 function renderVillageTradeRequestHTML(request) {
   if (!request) return "";
   return `

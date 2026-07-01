@@ -6484,6 +6484,7 @@ function runCombatTests() {
     ComicBubbles.pop = (x, y, text) => { bubbleLabelsC24.push(text); };
     const g = new StarHopperGame();
     window.Game = g;
+    g.currentPlanetIndex = 1;
     g.player = new Player(0, 0);
     g.gemsWallet = { emerald: 5, quartz: 0, amber: 0, ice: 0, flux: 0 };
     g.purchasedTrades = new Set();
@@ -6502,6 +6503,9 @@ function runCombatTests() {
     assertEquals("Reinforce Engine", request.title, "Trade request should name the selected offer");
     assertEquals("Payoff: ENGINE +3 upgrade", request.reward, "Trade request should name the upgrade payoff");
     assertEquals(true, /READY TRADE/.test(renderVillageTradeRequestHTML(request)), "Trade request card should render the request status");
+    let marker = getVillageTradeMarker(g, npc);
+    assertEquals("READY", marker && marker.label, "In-world trade marker should show ready trades before opening the modal");
+    assertEquals("TRADE", marker && marker.detail, "Ready trade marker should name the trade action");
     executeNPCTrade('geary', 'engine_1');
     assertEquals(4, g.gemsWallet.emerald, "Trade deducts the cost from the wallet");
     assertEquals(3, g.upgradeCapBonuses.engine, "Cap reward applies the bonus");
@@ -6510,11 +6514,11 @@ function runCombatTests() {
     assertEquals("ENGINE +3", g.lastTradeRewardEffect.detail, "Cap trade cue should name the upgraded stat");
     assertEquals(true, bubbleLabelsC24.some(label => /CAP UP!/.test(label)), "Cap trade should pop a named reward cue");
     assertEquals(4, g.researchXP, "First village trade should award Research XP");
-    assertEquals(8, g.getWorldMasteryProgress(0).xp, "First village trade should add world mastery XP");
+    assertEquals(8, g.getWorldMasteryProgress(1).xp, "First village trade should add world mastery XP");
     assertEquals("Village Trade Proof", g.discoveryPulse && g.discoveryPulse.title, "Village trade should create a discovery pulse");
     assertEquals("TRADE PACT", g.discoveryPulse && g.discoveryPulse.villageTradeProof && g.discoveryPulse.villageTradeProof.label, "Cap trade should expose a trade proof chip");
-    assertEquals(3, g.getVillageTrustProgress(0).points, "First trade should add village trust");
-    assertEquals("Trading Friend", g.getVillageTrustProgress(0).title, "First trade should reach the first village trust tier");
+    assertEquals(3, g.getVillageTrustProgress(1).points, "First trade should add village trust");
+    assertEquals("Trading Friend", g.getVillageTrustProgress(1).title, "First trade should reach the first village trust tier");
     assertEquals("TRUST UP", g.discoveryPulse && g.discoveryPulse.villageTrust && g.discoveryPulse.villageTrust.label, "Trade pulse should expose the village trust chip");
     assertEquals("VILLAGE LAB", g.missionBalloon && g.missionBalloon.title, "Trade proof should use the mission monitor");
     assertEquals("TRADE PACT: +4 Research XP", g.missionBalloon && g.missionBalloon.text, "Trade proof should announce the XP payoff");
@@ -6522,14 +6526,22 @@ function runCombatTests() {
     assertEquals(1, g.discoveryPassCounts[tradeProofKey], "Trade proof stores its one-time source key");
     assertEquals(null, g.grantVillageTradeProof(npc, npc.trades[0]), "Repeating the same trade proof is blocked");
     assertEquals(4, g.researchXP, "Repeated trade proof does not farm Research XP");
-    assertEquals(3, g.getVillageTrustProgress(0).points, "Repeated trade proof does not farm village trust");
+    assertEquals(3, g.getVillageTrustProgress(1).points, "Repeated trade proof does not farm village trust");
     request = getVillageTradeRequest(g, npc);
     assertEquals("VILLAGE REQUEST", request.kicker, "After a purchase, request should move to the next unpurchased offer");
     assertEquals(95, request.missing, "Trade request should state the remaining gem gap");
     assertEquals(true, /Collect 95 more Emerald/.test(request.body), "Trade request should explain what to collect next");
+    marker = getVillageTradeMarker(g, npc);
+    assertEquals("NEED 95", marker && marker.label, "In-world trade marker should show the remaining gem gap");
+    assertEquals("EMERALD", marker && marker.detail, "Missing-gem marker should name the requested sample type");
     executeNPCTrade('geary', 'pricey');     // can't afford (have 4, costs 99)
     assertEquals(4, g.gemsWallet.emerald, "Unaffordable trade does not deduct");
     assertEquals(3, g.upgradeCapBonuses.engine, "Unaffordable trade grants no bonus");
+    g.purchasedTrades.add('pricey');
+    marker = getVillageTradeMarker(g, npc);
+    assertEquals("DONE", marker && marker.label, "In-world trade marker should show when local trades are complete");
+    npc.hiddenInCave = true;
+    assertEquals(null, getVillageTradeMarker(g, npc), "Sheltered villagers should not advertise trade markers");
     window.Game = prevGameC24;
     ComicBubbles.pop = oldBubblePopC24;
     renderTestResult(SUITE, "Trade: deducts gems, applies cap, blocks over-spend", true);

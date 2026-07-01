@@ -2718,6 +2718,42 @@ class NPC extends InteractiveObject {
     ctx.restore();
   }
 
+  drawTradeMarker(ctx, cx, cy, marker) {
+    if (!ctx || !marker) return;
+    const label = String(marker.label || "TRADE").slice(0, 8);
+    const detail = String(marker.detail || "").slice(0, 8);
+    const color = marker.color || this.color || '#a7f3d0';
+    const markerW = Math.max(44, Math.min(74, 18 + label.length * 5 + (detail ? detail.length * 3 : 0)));
+    const markerH = 17;
+    const x = cx + this.w / 2 - markerW / 2;
+    const y = cy - 35;
+
+    ctx.save();
+    ctx.shadowBlur = 9;
+    ctx.shadowColor = color;
+    ctx.fillStyle = marker.tone === 'need'
+      ? 'rgba(71, 47, 11, 0.82)'
+      : 'rgba(6, 78, 59, 0.78)';
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.roundRect(x, y, markerW, markerH, 4);
+    ctx.fill();
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = color;
+    ctx.font = "bold 7px 'Share Tech Mono', monospace";
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, cx + this.w / 2, y + 6);
+    if (detail) {
+      ctx.fillStyle = '#ecfeff';
+      ctx.font = "bold 5.5px 'Share Tech Mono', monospace";
+      ctx.fillText(detail, cx + this.w / 2, y + 13);
+    }
+    ctx.restore();
+  }
+
   draw(ctx, cameraX, game) {
     const cx = this.x - cameraX;
     const cy = this.y;
@@ -2914,6 +2950,11 @@ class NPC extends InteractiveObject {
     ctx.stroke();
 
     this.drawRoleGear(ctx, cx, cy);
+
+    const tradeMarker = (game && typeof getVillageTradeMarker === 'function')
+      ? getVillageTradeMarker(game, this)
+      : null;
+    this.drawTradeMarker(ctx, cx, cy, tradeMarker);
 
     // Draw floating prompt if proximity is active
     if (this.proximity && game && game.activeNPC === this) {
