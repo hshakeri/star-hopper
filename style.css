@@ -6756,6 +6756,120 @@ html {
   color: #082f49;
 }
 
+.hypothesis-proof-crt-card {
+  border: 1px solid rgba(167, 243, 208, 0.38);
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgba(20, 83, 45, 0.34), rgba(8, 47, 73, 0.26)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.028) 0 1px, transparent 1px 4px);
+  box-shadow: inset 0 0 14px rgba(167, 243, 208, 0.09);
+  display: grid;
+  gap: 5px;
+  padding: 7px 8px;
+}
+
+.hypothesis-proof-crt-card.prediction {
+  border-color: rgba(250, 204, 21, 0.42);
+  background:
+    linear-gradient(180deg, rgba(69, 26, 3, 0.32), rgba(20, 83, 45, 0.24)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.028) 0 1px, transparent 1px 4px);
+}
+
+.hypothesis-proof-crt-head {
+  align-items: baseline;
+  display: flex;
+  font-family: var(--font-mono);
+  gap: 8px;
+  justify-content: space-between;
+  line-height: 1.2;
+}
+
+.hypothesis-proof-crt-head span {
+  color: #bbf7d0;
+  font-size: 0.55rem;
+  font-weight: 900;
+}
+
+.hypothesis-proof-crt-card.prediction .hypothesis-proof-crt-head span {
+  color: #fde68a;
+}
+
+.hypothesis-proof-crt-head strong {
+  color: #ecfeff;
+  font-size: 0.62rem;
+  text-align: right;
+}
+
+.hypothesis-proof-crt-body strong {
+  color: #a7f3d0;
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  line-height: 1.25;
+}
+
+.hypothesis-proof-crt-card.prediction .hypothesis-proof-crt-body strong {
+  color: #fef08a;
+}
+
+.hypothesis-proof-crt-body code,
+.hypothesis-proof-command {
+  background: rgba(2, 6, 23, 0.42);
+  border: 1px solid rgba(167, 243, 208, 0.22);
+  border-radius: 4px;
+  color: #bbf7d0;
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  line-height: 1.2;
+  margin-top: 3px;
+  padding: 2px 5px;
+}
+
+.hypothesis-proof-command {
+  display: block;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.hypothesis-proof-crt-body p {
+  color: #dff6ff;
+  font-size: 0.6rem;
+  line-height: 1.28;
+  margin: 4px 0 0;
+}
+
+.hypothesis-proof-crt-body em {
+  color: #7dd3fc;
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  font-style: normal;
+  line-height: 1.2;
+  margin-top: 3px;
+}
+
+.hypothesis-proof-stage-btn {
+  background: rgba(20, 83, 45, 0.78);
+  border: 1px solid rgba(167, 243, 208, 0.58);
+  border-radius: 4px;
+  color: #ecfeff;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.53rem;
+  font-weight: 900;
+  justify-self: start;
+  letter-spacing: 0;
+  line-height: 1;
+  margin-top: 2px;
+  padding: 5px 7px;
+}
+
+.hypothesis-proof-stage-btn:hover {
+  background: rgba(167, 243, 208, 0.86);
+  color: #052e16;
+}
+
 .village-state-crt-card {
   border: 1px solid rgba(167, 243, 208, 0.3);
   border-radius: 6px;
@@ -11486,6 +11600,13 @@ body.readable-text-mode .ai-state-run-crt-body code,
 body.readable-text-mode .ai-state-run-crt-body p,
 body.readable-text-mode .ai-state-run-crt-body em,
 body.readable-text-mode .ai-state-run-crt-action-btn,
+body.readable-text-mode .hypothesis-proof-crt-head,
+body.readable-text-mode .hypothesis-proof-crt-body strong,
+body.readable-text-mode .hypothesis-proof-crt-body code,
+body.readable-text-mode .hypothesis-proof-crt-body p,
+body.readable-text-mode .hypothesis-proof-crt-body em,
+body.readable-text-mode .hypothesis-proof-command,
+body.readable-text-mode .hypothesis-proof-stage-btn,
 body.readable-text-mode .signal-story-crt-head,
 body.readable-text-mode .signal-story-crt-body strong,
 body.readable-text-mode .signal-story-crt-body code,
@@ -11698,6 +11819,11 @@ body.readable-text-mode .frontier-board-import input,
 body.readable-text-mode .frontier-rival-crt-head,
 body.readable-text-mode .frontier-rival-crt-body p,
 body.readable-text-mode .frontier-rival-crt-body em,
+body.readable-text-mode .hypothesis-proof-crt-head,
+body.readable-text-mode .hypothesis-proof-crt-body p,
+body.readable-text-mode .hypothesis-proof-crt-body em,
+body.readable-text-mode .hypothesis-proof-command,
+body.readable-text-mode .hypothesis-proof-stage-btn,
 body.readable-text-mode .signal-story-scene p,
 body.readable-text-mode .signal-story-scene em,
 body.readable-text-mode .signal-chapter p {
@@ -11742,6 +11868,7 @@ body.readable-text-mode .lab-chain-target-body strong,
 body.readable-text-mode .mission-lab-question-head strong,
 body.readable-text-mode .world-mastery-crt-head strong,
 body.readable-text-mode .signal-story-crt-head strong,
+body.readable-text-mode .hypothesis-proof-crt-body strong,
 body.readable-text-mode .coach-one-hint,
 body.readable-text-mode .coach-skip-note,
 body.readable-text-mode .coach-done-msg,
@@ -11793,6 +11920,7 @@ body.readable-text-mode :is(
   .village-request-crt-card,
   .village-chain-crt-card,
   .ai-state-run-crt-card,
+  .hypothesis-proof-crt-card,
   .start-mission-radar,
   .start-rank-preview,
   .start-world-preview,
@@ -11845,6 +11973,7 @@ body.readable-text-mode :is(
   .village-request-crt-body p,
   .village-chain-crt-body p,
   .ai-state-run-crt-body p,
+  .hypothesis-proof-crt-body p,
   .run-objective-queue-item p,
   .start-mission-radar p,
   .start-rank-preview span,
@@ -11882,6 +12011,8 @@ body.readable-text-mode :is(
   .village-request-crt-body code,
   .village-chain-crt-body code,
   .ai-state-run-crt-body code,
+  .hypothesis-proof-crt-body code,
+  .hypothesis-proof-command,
   .run-objective-queue-item code,
   .start-story-preview code,
   .start-resume-test code,
@@ -11924,7 +12055,8 @@ body.readable-text-mode :is(
   .clear-objective-action-btn,
   .notebook-entry-next-btn,
   .ai-state-deck-btn,
-  .ai-state-run-crt-action-btn
+  .ai-state-run-crt-action-btn,
+  .hypothesis-proof-stage-btn
 ) {
   border-color: rgba(125, 211, 252, 0.7);
   background: rgba(8, 47, 73, 0.9);

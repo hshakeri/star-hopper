@@ -420,6 +420,7 @@ function updateMissionList(game) {
   appendRunObjectiveQueueCard(listContainer, game);
   appendLessonLensCard(listContainer, game);
   appendMissionLabQuestionCard(listContainer, game);
+  appendHypothesisProofRunCard(listContainer, game);
   appendWorldMasteryCrtCard(listContainer, game);
   appendVillageTrustCrtCard(listContainer, game);
   appendVillageQuestChainCrtCard(listContainer, game);
@@ -1433,6 +1434,112 @@ function appendVillageQuestChainCrtCard(listContainer, game) {
       <div class="village-chain-steps">${stepHTML}</div>
     </div>
   `;
+  listContainer.appendChild(card);
+}
+
+function getActiveHypothesisProofContract(game) {
+  if (!game || !game.activeHypothesisMissionId) return null;
+  const missionId = String(game.activeHypothesisMissionId || "").trim();
+  const fullMission = (typeof PlatformerMissions !== "undefined" && Array.isArray(PlatformerMissions))
+    ? PlatformerMissions.find(mission => mission && mission.id === missionId)
+    : null;
+  if (!fullMission || !fullMission.prediction) {
+    game.activeHypothesisMissionId = null;
+    return null;
+  }
+
+  const levelIndex = Number(fullMission.planetId);
+  const currentLevel = Number(game.currentPlanetIndex);
+  if (Number.isFinite(levelIndex) && Number.isFinite(currentLevel) && levelIndex !== currentLevel) {
+    game.activeHypothesisMissionId = null;
+    return null;
+  }
+
+  const confirmed = typeof getConfirmedHypothesisSet === "function"
+    ? getConfirmedHypothesisSet(game)
+    : new Set();
+  if (confirmed.has(missionId)) {
+    game.activeHypothesisMissionId = null;
+    return null;
+  }
+
+  const progress = typeof getHypothesisPortfolioProgress === "function"
+    ? getHypothesisPortfolioProgress(game)
+    : { done: 0, total: 0 };
+  const selectedId = game.coachPredictions && game.coachPredictions[missionId]
+    ? game.coachPredictions[missionId]
+    : "";
+  const selectedOption = selectedId && Array.isArray(fullMission.prediction.options)
+    ? fullMission.prediction.options.find(option => option && option.id === selectedId)
+    : null;
+  const selected = !!selectedOption;
+  const labCue = selected && typeof getAttemptLogNextQuestion === "function"
+    ? getAttemptLogNextQuestion(game)
+    : null;
+  const proofCue = labCue && labCue.kind !== "prediction" ? labCue : null;
+  const command = selected
+    ? ((proofCue && proofCue.command) || (typeof buildNextExperimentCommand === "function" ? buildNextExperimentCommand(fullMission, null, game) : ""))
+    : "";
+  return {
+    missionId,
+    fullMission,
+    progress,
+    selected,
+    selectedOption,
+    command,
+    title: fullMission.title || "Hypothesis proof",
+    question: fullMission.prediction.question || "Choose a prediction before coding.",
+    proofTitle: proofCue && proofCue.title ? proofCue.title : "Run proof",
+    proofBody: proofCue && proofCue.body
+      ? proofCue.body
+      : "Stage one focused code change, run it, and compare the evidence against the prediction."
+  };
+}
+
+function appendHypothesisProofRunCard(listContainer, game) {
+  if (!listContainer || !game) return;
+  const contract = getActiveHypothesisProofContract(game);
+  if (!contract) return;
+  const done = Math.max(0, Number(contract.progress && contract.progress.done) || 0);
+  const total = Math.max(0, Number(contract.progress && contract.progress.total) || 0);
+  const selectedLabel = contract.selectedOption && contract.selectedOption.label
+    ? contract.selectedOption.label
+    : "";
+  const stateLabel = contract.selected ? "RUN PROOF" : "PREDICT FIRST";
+  const card = document.createElement("div");
+  card.className = `hypothesis-proof-crt-card ${contract.selected ? "ready" : "prediction"}`;
+  card.innerHTML = `
+    <div class="hypothesis-proof-crt-head">
+      <span>HYPOTHESIS PROOF RUN</span>
+      <strong>${escapeHTML(String(done))}/${escapeHTML(String(total))} proofs</strong>
+    </div>
+    <div class="hypothesis-proof-crt-body">
+      <strong>${escapeHTML(contract.title)} · ${escapeHTML(stateLabel)}</strong>
+      <code>${escapeHTML(contract.selected ? `prediction = ${selectedLabel || "selected"}` : "predict -> code -> compare")}</code>
+      <p>${escapeHTML(contract.selected ? contract.proofBody : contract.question)}</p>
+      <em>${escapeHTML(contract.selected ? "One new result can confirm this proof." : "Pick the Mission Coach guess before touching the code.")}</em>
+    </div>
+  `;
+  if (contract.selected && contract.command) {
+    const code = document.createElement("code");
+    code.className = "hypothesis-proof-command";
+    code.textContent = contract.command;
+    card.appendChild(code);
+    const stage = document.createElement("button");
+    stage.type = "button";
+    stage.className = "hypothesis-proof-stage-btn";
+    stage.textContent = "STAGE PROOF";
+    if (typeof stage.addEventListener === "function") {
+      stage.addEventListener("click", () => stageScienceDeltaCommand(contract.command, {
+        title: contract.proofTitle || contract.title,
+        kind: "hypothesis-proof",
+        source: "hypothesis-proof",
+        prediction: selectedLabel || null,
+        color: "#a7f3d0"
+      }));
+    }
+    card.appendChild(stage);
+  }
   listContainer.appendChild(card);
 }
 
