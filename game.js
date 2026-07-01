@@ -7992,13 +7992,16 @@ class StarHopperGame {
       .split(/\n/)
       .map(line => line.trim())
       .find(Boolean) || "";
+    const itemBody = String(item.body || "").trim();
+    const reasonLine = commandLine && itemBody && itemBody !== commandLine ? itemBody : "";
     return {
       key: `${item.label || "NEXT"}:${item.title || "Next objective"}:${commandLine || item.body || item.reward || ""}:${item.source || "run-objective-queue"}`,
       priority: item.priority || 1,
       label: item.label || "NEXT",
       cta: item.cta || (commandLine ? "STAGE" : "CHECK"),
       title: item.title || "Next objective",
-      body: commandLine || item.body || item.reward || "Run the next focused experiment.",
+      body: commandLine || itemBody || item.reward || "Run the next focused experiment.",
+      reasonLine,
       reward: item.reward || "",
       commandLine,
       kind: item.kind || "objective",
@@ -8025,7 +8028,9 @@ class StarHopperGame {
     const px = (Number.isFinite(p.x) ? p.x : 0) + (Number.isFinite(p.w) ? p.w : 24) / 2 - (this.cameraX || 0);
     const py = Number.isFinite(p.y) ? p.y : H / 2;
     const w = Math.max(124, Math.min(176, W - 24));
-    const h = cue.trail && cue.trail.length ? 60 : 48;
+    const hasReason = !!cue.reasonLine;
+    const hasTrail = !!(cue.trail && cue.trail.length);
+    const h = 48 + (hasReason ? 12 : 0) + (hasTrail ? 12 : 0);
     const x = Math.max(12, Math.min(W - w - 12, px - w / 2));
     const y = Math.max(64, Math.min(H - h - 16, py - 62));
     const color = cue.color || "#67e8f9";
@@ -8080,8 +8085,13 @@ class StarHopperGame {
     ctx.fillStyle = cue.disabled ? "#e2e8f0" : "#bbf7d0";
     ctx.font = "7px 'Share Tech Mono', monospace";
     ctx.fillText(this.fitCardText(ctx, cue.body, w - 18), x + 9, y + 39);
+    if (hasReason) {
+      ctx.fillStyle = cue.disabled ? "#cbd5e1" : "#fde68a";
+      ctx.font = "6.5px 'Share Tech Mono', monospace";
+      ctx.fillText(this.fitCardText(ctx, cue.reasonLine, w - 18), x + 9, y + 50);
+    }
 
-    if (cue.trail && cue.trail.length) {
+    if (hasTrail) {
       const trailY = y + h - 10;
       ctx.globalAlpha = 0.86;
       cue.trail.forEach((next, index) => {

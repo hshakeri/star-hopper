@@ -3207,6 +3207,7 @@ function runEngineTests() {
     assertEquals("RESTAGE", cue.cta, "Objective compass should mirror the top run-queue action");
     assertEquals("Mass Lab", cue.title, "Objective compass should name the queued experiment");
     assertEquals("hopper.mass = 1.0", cue.commandLine, "Objective compass should show the first runnable command");
+    assertEquals(true, /compare what changed/.test(cue.reasonLine), "Objective compass should preserve the science reason behind the command");
     assertEquals("mentor-signal", cue.source, "Objective compass should preserve queue source metadata");
     assertEquals(true, /READY TO TEST:Mass Lab/.test(cue.key), "Objective compass should expose a stable key for transition feedback");
     assertEquals(true, cue.queueCount >= 2, "Objective compass should know when more queued objectives follow");
@@ -3232,8 +3233,10 @@ function runEngineTests() {
     assertEquals(true, labels.some(text => /READY TO TEST/.test(text)), "Compass draw should write the ranked objective label");
     assertEquals(true, labels.includes("Mass Lab"), "Compass draw should write the experiment title");
     assertEquals(true, labels.includes("hopper.mass = 1.0"), "Compass draw should write the command line");
+    assertEquals(true, labels.some(text => /^Press Enter/.test(text)), "Compass draw should write the science reason line");
     assertEquals(true, labels.some(text => /NEXT #2 PREDICT/.test(text)), "Compass draw should show the next queued objective trail");
     assertEquals("READY TO TEST", game.lastRunObjectiveCompassCue && game.lastRunObjectiveCompassCue.label, "Drawing should cache the visible objective cue");
+    assertEquals(true, drawn.h > 60, "Compass should reserve compact space when reason and trail lines both render");
     assertEquals(0, drawn.flashFrames, "First compass draw should not pretend the objective changed");
     game.lastStagedExperiment = null;
     const nextDrawn = game.drawRunObjectiveCompass(fakeCtx);
