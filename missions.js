@@ -103,20 +103,21 @@ const PlatformerMissions = [
     title: "Luna Loop Springs",
     ageRange: "8-12",
     concept: "Spring elastic force stores kinetic energy to launch objects.",
-    beginnerConcept: "Loops repeat a command so you do not type the same thing again and again.",
-    codingConcept: "Repeat loops",
-    starterCode: "repeat 3: spawn_spring()",
-    objective: "Use arithmetic jump tuning and repeat loops to collect Moon Quartz gems and cross the lunar canyon.",
+    beginnerConcept: "First use arithmetic to make one jump number tall enough. Then use a repeat loop so one command builds three springs.",
+    codingConcept: "Arithmetic first, repeat loops second",
+    starterCode: "player.jump_power = gravity * 10",
+    objective: "First boost jump height with arithmetic, then use a repeat loop to place Moon springs and cross the canyon.",
     steps: [
       { id: "observe", prompt: "Observe: Walking off the edge makes you fall into the canyon.", done: false },
       { id: "predict", prompt: "Predict: Can 3 springs carry you all the way across?", done: false },
-      { id: "code", prompt: "Code: Type: repeat 3: spawn_spring()", done: false },
-      { id: "test", prompt: "Test: Run over the springs to trigger the elastic bounce and reach the high Quartz gems.", done: false },
-      { id: "explain", prompt: "Explain: How does a spring conserve and return energy?", done: false },
+      { id: "code", prompt: "Code: First run player.jump_power = gravity * 10. After the jump works, run repeat 3: spawn_spring().", done: false },
+      { id: "test", prompt: "Test: Jump higher first, then run over the spring chain to reach the Quartz gems.", done: false },
+      { id: "explain", prompt: "Explain: What did the arithmetic change first, and what did the loop build after that?", done: false },
       { id: "challenge", prompt: "Challenge: Spawn 5 springs in a row and reach the top platform.", done: false }
     ],
     hints: [
-      "Loops allow you to run the same command multiple times.",
+      "First success: arithmetic changes one jump number you can feel immediately.",
+      "Second idea: loops allow you to run the same command multiple times.",
       "Springs launch you upwards when you step on them.",
       "Lower Quartz gems use jump arithmetic; high Quartz gems unlock after the spring loop."
     ],
@@ -124,15 +125,35 @@ const PlatformerMissions = [
       mode: "pattern-fill",
       template: "player.jump_power = gravity * {jump_math}\nrepeat {springs}: spawn_spring()",
       slots: [
-        { id: "jump_math", label: "gravity x", value: "10", hint: "Moon gravity (~2 m/s²) times 10 makes a jump force tall enough." },
-        { id: "springs", label: "springs", value: "3", hint: "The loop places three spring launchpads." }
+        { id: "jump_math", label: "gravity x", value: "10", resultCheckId: "moon-jump-math", hint: "Moon gravity (~2 m/s²) times 10 makes a jump force tall enough." },
+        { id: "springs", label: "springs", value: "3", resultCheckId: "moon-spring-loop", unlockAfterCheck: "moon-jump-math", lockedHint: "First prove the arithmetic jump boost; then the repeat loop appears.", hint: "Second tweak: one repeat command places three spring launchpads." }
       ],
-      explain: "Arithmetic makes the jump power, and the repeat loop builds several springs from one line.",
-      parentPrompt: "Why is a loop easier than typing spawn_spring three times?",
-      codeIdea: "Use one math line and one repeat loop.",
+      explain: "Arithmetic makes the jump power first. Once that works, the repeat loop builds several springs from one line.",
+      parentPrompt: "What changed after the arithmetic line, before the repeat loop was added?",
+      codeIdea: "Set player.jump_power = gravity * 10 first; then run repeat 3: spawn_spring().",
       physicsIdea: "Springs store energy and return it as a bounce.",
       success: "Rover collects Moon Quartz gems after using arithmetic and springs."
     },
+    lessonPhases: [
+      {
+        id: "moon-jump-phase",
+        label: "1 Jump math",
+        checkId: "moon-jump-math",
+        formula: "jump = gravity * number",
+        command: "player.jump_power = gravity * 10",
+        payoff: "Moon hops reach higher"
+      },
+      {
+        id: "moon-loop-phase",
+        label: "2 Spring loop",
+        checkId: "moon-spring-loop",
+        unlockAfterCheck: "moon-jump-math",
+        lockedHint: "First prove jump math; then the repeat-loop code appears.",
+        formula: "repeat n -> n tools",
+        command: "repeat 3: spawn_spring()",
+        payoff: "Three spring pads build the canyon route"
+      }
+    ],
     prediction: {
       question: "What will repeat 3 do to the spring command?",
       options: [

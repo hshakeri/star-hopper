@@ -119,7 +119,7 @@ const PLANETS = [
     
     tutorial: [
       { trigger: "start", text: "Awesome, you made it to the Moon! Gravity is tiny here (g ≈ 2 m/s², about 1/6th of Earth). Notice how slowly we float! Our jumps are huge." },
-      { trigger: "gap", text: "Look at that massive canyon! We need to place multiple bouncy springs on the launchpad. Type this loop: repeat 3 { spawn_spring() }" },
+      { trigger: "gap", text: "Look at that massive canyon! First make the Moon jump tall with player.jump_power = gravity * 10. Then build the spring chain with repeat 3: spawn_spring()." },
       { trigger: "gravity_check", text: "The Moon's gravity is fixed (g ≈ 2 m/s²). Type antigravity = 1.5 to push back against it and float even longer!" }
     ],
 

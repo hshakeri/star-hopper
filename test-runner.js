@@ -939,6 +939,59 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: Forge coach phases mass before elasticity", false, err.message);
   }
 
+  // Test 17c1a: Moon coaching stages arithmetic first, then unlocks the repeat loop.
+  try {
+    Compiler.reset();
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[1];
+    game.currentPlanetIndex = 1;
+    game.player = { charType: 'rover', jumpPower: 9, mass: 1, spikes: false };
+    game.spawnedSprings = [];
+    const moonMission = PlatformerMissions.find(mission => mission.id === "moon-canyon-jump");
+    const activeMission = { id: "moon-canyon-jump", fullMission: moonMission };
+
+    const phaseRowsOne = getMissionLessonPhaseRows(game, moonMission);
+    assertEquals("active", phaseRowsOne[0].status, "Moon phase ladder starts on jump arithmetic");
+    assertEquals("locked", phaseRowsOne[1].status, "Moon phase ladder locks the repeat loop before jump math passes");
+    assertEquals("", phaseRowsOne[1].command, "Locked Moon phase should not reveal the spring-loop command");
+    const phaseHTMLBefore = renderMissionLessonPhaseLadder(game, moonMission);
+    assertEquals(true, /data-lesson-phase-stage="0"/.test(phaseHTMLBefore), "Active Moon jump phase should expose a stage button");
+    assertEquals(false, /repeat 3: spawn_spring/.test(phaseHTMLBefore), "Moon ladder should hide the loop command before jump proof");
+
+    const phaseOne = scaffoldWithActiveSlots(moonMission.scaffold, game, moonMission);
+    assertEquals(1, phaseOne.slots.length, "Moon phase one should expose only the jump-math slot");
+    assertEquals("jump_math", phaseOne.slots[0].id, "Moon phase one should expose arithmetic first");
+    assertEquals(false, /repeat/.test(phaseOne.template), "Moon phase one scaffold should not include repeat-loop code");
+    assertEquals("player.jump_power = gravity * 10", buildNextExperimentCommand(moonMission, null, game), "Moon first stage command should be jump arithmetic only");
+    const phaseOneState = evaluateMissionResultChecks(game, moonMission);
+    const phaseOneCue = buildNextExperimentCue(game, phaseOneState, activeMission);
+    assertEquals(false, /spawn_spring/.test(phaseOneCue.command), "Moon next cue should not stage springs before jump math passes");
+
+    game.player.jumpPower = 20;
+    const phaseRowsTwo = getMissionLessonPhaseRows(game, moonMission);
+    assertEquals("complete", phaseRowsTwo[0].status, "Moon phase ladder marks jump math complete after proof");
+    assertEquals("active", phaseRowsTwo[1].status, "Moon phase ladder activates the spring loop after jump math");
+    assertEquals("repeat 3: spawn_spring()", phaseRowsTwo[1].command, "Unlocked Moon phase reveals the repeat-loop command");
+    const phaseHTMLAfter = renderMissionLessonPhaseLadder(game, moonMission);
+    assertEquals(false, /data-lesson-phase-stage="0"/.test(phaseHTMLAfter), "Completed Moon jump phase should stop exposing the stage action");
+    assertEquals(true, /data-lesson-phase-stage="1"/.test(phaseHTMLAfter), "Active Moon loop phase should expose a stage button");
+
+    const phaseTwo = scaffoldWithActiveSlots(moonMission.scaffold, game, moonMission);
+    assertEquals(2, phaseTwo.slots.length, "Moon phase two reveals the spring-loop slot after jump math passes");
+    assertEquals("springs", phaseTwo.slots[1].id, "Moon phase two exposes repeat-loop springs second");
+    assertEquals("repeat 3: spawn_spring()", buildNextExperimentCommand(moonMission, null, game), "Moon second stage command should be repeat-loop only");
+    const phaseTwoState = evaluateMissionResultChecks(game, moonMission);
+    const phaseTwoCue = buildNextExperimentCue(game, phaseTwoState, activeMission);
+    assertEquals("repeat 3: spawn_spring()", phaseTwoCue.command, "Moon next cue should stage the loop after the jump proof");
+
+    game.spawnedSprings = [{}, {}, {}];
+    const phaseRowsDone = getMissionLessonPhaseRows(game, moonMission);
+    assertEquals("complete", phaseRowsDone[1].status, "Moon phase ladder marks spring loop complete after three springs");
+    renderTestResult("engine-suite", "Curriculum: Moon coach phases arithmetic before loops", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Curriculum: Moon coach phases arithmetic before loops", false, err.message);
+  }
+
   // Test 17c1b: completing a visible Forge phase creates a non-farmable visual cue.
   const oldGetElementById17c1b = document.getElementById;
   const oldBubblePop17c1b = ComicBubbles.pop;
