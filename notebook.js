@@ -79,6 +79,7 @@ function updateNotebook(game) {
   }
   updateResearchProgress(game);
   updateSciencePassport(game);
+  updateVillageAlmanac(game);
 
   // Render Mini Energy Bars
   const maxKE = 100;
@@ -784,6 +785,101 @@ function updateSciencePassport(game = window.Game) {
   `;
 }
 
+function getVillageAlmanacWorlds() {
+  if (typeof PLANETS === 'undefined' || !Array.isArray(PLANETS)) return [];
+  return PLANETS
+    .map((planet, index) => ({ planet, index }))
+    .filter(({ planet }) => planet && Array.isArray(planet.npcs) && planet.npcs.length > 0);
+}
+
+function getVillageAlmanacRequest(game, planet) {
+  const npcs = planet && Array.isArray(planet.npcs) ? planet.npcs : [];
+  let completeRequest = null;
+  for (const npc of npcs) {
+    const request = typeof getVillageTradeRequest === 'function' ? getVillageTradeRequest(game, npc) : null;
+    if (!request) continue;
+    if (!request.complete) return { ...request, npc };
+    completeRequest = completeRequest || { ...request, npc };
+  }
+  if (completeRequest) return completeRequest;
+  const mentor = npcs[0] || {};
+  return {
+    kicker: "VILLAGE WATCH",
+    title: "Keep the village safe",
+    body: `${mentor.name || "Villagers"} trade again after danger clears. Rescue cave shelters, tame pets, and watch state changes.`,
+    reward: "Payoff: AI state machine evidence",
+    complete: false,
+    npc: mentor
+  };
+}
+
+function getVillageAlmanacTrust(game, index) {
+  if (game && typeof game.getVillageTrustProgress === 'function') return game.getVillageTrustProgress(index);
+  return {
+    title: "New Arrival",
+    points: 0,
+    pct: 0,
+    nextPact: { title: "First Trade Pact", action: "make one fair sample trade", concept: "Resource flow" }
+  };
+}
+
+function updateVillageAlmanac(game = window.Game) {
+  const panel = document.getElementById("village-almanac-panel");
+  if (!panel) return;
+  const worlds = getVillageAlmanacWorlds();
+  if (!worlds.length) {
+    panel.innerHTML = `<div class="village-almanac-empty">Village records appear after mentors load.</div>`;
+    return;
+  }
+  const currentIndex = game && Number.isFinite(Number(game.currentPlanetIndex)) ? Number(game.currentPlanetIndex) : 0;
+  const trustedWorlds = worlds.filter(({ index }) => getVillageAlmanacTrust(game, index).points > 0);
+  const currentWorld = worlds.find(({ index }) => index === currentIndex);
+  const nextWorld = currentWorld || worlds.find(({ planet, index }) => {
+    const trust = getVillageAlmanacTrust(game, index);
+    const request = getVillageAlmanacRequest(game, planet);
+    return trust.points === 0 || (request && !request.complete);
+  }) || worlds[0];
+  const nextRequest = getVillageAlmanacRequest(game, nextWorld.planet);
+
+  panel.innerHTML = `
+    <div class="village-almanac-head">
+      <div>
+        <span>VILLAGE STORYLINE</span>
+        <strong>${trustedWorlds.length}/${worlds.length} villages helped</strong>
+      </div>
+      <em>${escapeHTML(`${nextWorld.planet.name}: ${nextRequest.title}`)}</em>
+    </div>
+    <div class="village-almanac-grid">
+      ${worlds.map(({ planet, index }) => {
+        const trust = getVillageAlmanacTrust(game, index);
+        const request = getVillageAlmanacRequest(game, planet);
+        const pact = trust.nextPact || trust.currentPact || null;
+        const active = index === currentIndex;
+        const trusted = trust.points > 0;
+        const npcList = (planet.npcs || []).map(npc => `${npc.name || "Villager"} // ${npc.profession || "Mentor"}`).join(" · ");
+        const pactText = pact ? `${pact.title}: ${pact.action} (${pact.concept})` : "Village mentor status online";
+        return `
+        <div class="village-almanac-card ${trusted ? "trusted" : ""} ${active ? "active" : ""}">
+          <div class="village-almanac-card-head">
+            <span>${escapeHTML(active ? "CURRENT VILLAGE" : (trusted ? "TRUST LOGGED" : "REQUEST BOARD"))}</span>
+            <strong>${escapeHTML(planet.name)}</strong>
+          </div>
+          <p class="village-almanac-roles">${escapeHTML(npcList)}</p>
+          <div class="village-almanac-meter" aria-label="${escapeHTML(`${trust.points} village trust`)}"><span style="width: ${Math.max(0, Math.min(100, Number(trust.pct) || 0))}%"></span></div>
+          <strong class="village-almanac-trust">${escapeHTML(`${trust.title} · ${trust.points} trust`)}</strong>
+          <div class="village-almanac-request ${request.ready ? "ready" : ""} ${request.complete ? "complete" : ""}">
+            <span>${escapeHTML(request.kicker || "VILLAGE REQUEST")}</span>
+            <strong>${escapeHTML(request.title || "Village request")}</strong>
+            <p>${escapeHTML(request.body || "Help this village with a trade, rescue, or pet guard.")}</p>
+            <em>${escapeHTML(request.reward || "Payoff: relationship progress")}</em>
+          </div>
+          <code>${escapeHTML(pactText)}</code>
+        </div>`;
+      }).join("")}
+    </div>
+  `;
+}
+
 function updateBadgeShelf(game = window.Game) {
   const list = document.getElementById("badge-shelf-list");
   if (!list || typeof PlatformerMissions === 'undefined') return;
@@ -926,6 +1022,9 @@ function switchMainMode(mode) {
   }
   if (typeof updateSciencePassport === 'function' && window.Game) {
     updateSciencePassport(window.Game);
+  }
+  if (typeof updateVillageAlmanac === 'function' && window.Game) {
+    updateVillageAlmanac(window.Game);
   }
   if (typeof updateBadgeShelf === 'function' && window.Game) {
     updateBadgeShelf(window.Game);

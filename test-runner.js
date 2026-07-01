@@ -1491,6 +1491,39 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: Science Passport shows planet lesson stamps", false, err.message);
   }
 
+  // Test 22a1b: Village Almanac makes villager requests and relationship pacts reviewable in the Log.
+  const oldGetElementById22village = document.getElementById;
+  try {
+    const panel = { innerHTML: "" };
+    document.getElementById = (id) => id === "village-almanac-panel" ? panel : null;
+    const game = new StarHopperGame();
+    game.currentPlanetIndex = 3;
+    game.currentPlanet = PLANETS[3];
+    game.gemsWallet = { emerald: 0, quartz: 0, amber: 0, ice: 0, flux: 0, forge: 0 };
+    game.purchasedTrades = new Set(["glacies_ice_spikes", "glacies_light_alloy"]);
+    game.villageTrust = {
+      3: { points: 7, badges: ["friend", "ally"], sources: { "village-trade:3:cryo:glacies_ice_spikes": 3, "village-rescue:3:cryo": 4 } }
+    };
+
+    updateVillageAlmanac(game);
+    const totalVillageWorlds = getVillageAlmanacWorlds().length;
+    assertEquals(true, new RegExp(`1\\/${totalVillageWorlds} villages helped`).test(panel.innerHTML), "Village Almanac should summarize trusted villages");
+    assertEquals(true, /VILLAGE STORYLINE/.test(panel.innerHTML), "Village Almanac should render a storyline header");
+    assertEquals(true, /Glacies \(Ice Comet\): Mix Calming Lotion/.test(panel.innerHTML), "Current village should own the resume request");
+    assertEquals(true, /CURRENT VILLAGE/.test(panel.innerHTML), "Current village card should be marked active");
+    assertEquals(true, /Gripkeeper Cryo \/\/ Gripkeeper/.test(panel.innerHTML), "Village card should name villager roles");
+    assertEquals(true, /Cave Ally · 7 trust/.test(panel.innerHTML), "Village card should show the trust tier and points");
+    assertEquals(true, /Collect 1 more Violet Ice/.test(panel.innerHTML), "Village request should show the missing gemstone target");
+    assertEquals(true, /calming lotion unlocked/.test(panel.innerHTML), "Village request should show the tool payoff");
+    assertEquals(true, /Guardian Pact: train a pet guard or protect the village \(AI state: scared -&gt; pet -&gt; guard\)/.test(panel.innerHTML), "Village card should show the next relationship pact and coding concept");
+    assertEquals(true, /VILLAGE WATCH/.test(panel.innerHTML), "Village worlds without trades should fall back to safety-state story copy");
+    document.getElementById = oldGetElementById22village;
+    renderTestResult("engine-suite", "Curriculum: Village Almanac shows requests and pacts", true);
+  } catch (err) {
+    document.getElementById = oldGetElementById22village;
+    renderTestResult("engine-suite", "Curriculum: Village Almanac shows requests and pacts", false, err.message);
+  }
+
   // Test 22a2: Scientist Certificate unlock path is visible before it is earned.
   const oldGetElementById22cert = document.getElementById;
   const oldWindowGame22cert = window.Game;
