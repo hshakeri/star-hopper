@@ -8281,6 +8281,8 @@ function runRetryRemixTests() {
     const els = {
       "daily-signal-label": { textContent: "" },
       "frontier-signal-btn": { style: {}, textContent: "", title: "" },
+      "daily-signal-code": { textContent: "", title: "", style: {} },
+      "daily-signal-btn": { textContent: "", title: "", dataset: {} },
       "frontier-record-banner": { style: {} },
       "frontier-record-label": { textContent: "" },
       "frontier-record-detail": { textContent: "" },
@@ -8298,6 +8300,12 @@ function runRetryRemixTests() {
     assertEquals(true, /Daily Signal/.test(els["daily-signal-label"].textContent), "Daily strip should render the daily challenge");
     assertEquals(true, els["daily-signal-label"].textContent.indexOf(bannerDaily.concept) >= 0, "Daily strip should name the science concept");
     assertEquals(true, els["daily-signal-label"].textContent.indexOf(bannerDaily.labContract.title) >= 0, "Daily strip should name the replay lab focus");
+    assertEquals(true, els["daily-signal-code"].textContent.indexOf(bannerDaily.labContract.command.split("\n")[0]) >= 0, "Daily strip should expose the first sample command");
+    assertEquals(true, /3★ Try:/.test(els["daily-signal-code"].textContent), "Daily strip should frame the command as a 3-star proof attempt");
+    assertEquals("inline-block", els["daily-signal-code"].style.display, "Daily sample command should be visible before launch");
+    assertEquals(true, /3 Lab Stars/.test(els["daily-signal-btn"].title), "Daily accept button should name the lab-star goal");
+    assertEquals(true, els["daily-signal-btn"].title.indexOf(bannerDaily.labContract.command.split("\n")[0]) >= 0, "Daily accept button should preserve the first sample command");
+    assertEquals(bannerDaily.labContract.command.split("\n")[0], els["daily-signal-btn"].dataset.command, "Daily accept button should carry the sample command");
     assertEquals("flex", els["frontier-record-banner"].style.display, "Frontier record banner should appear after star-map completion");
     assertEquals(true, /Today's frontier cleared/.test(els["frontier-record-label"].textContent), "Banner should show today's local clear");
     assertEquals(true, /Best T/.test(els["frontier-record-detail"].textContent), "Banner should show the local best tier");

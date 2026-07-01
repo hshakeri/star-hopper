@@ -2231,6 +2231,8 @@ class StarHopperGame {
   // Keep the start screen's signal strip current (called at init and after clears).
   refreshDailySignalBanner() {
     const label = document.getElementById('daily-signal-label');
+    const dailyCode = document.getElementById('daily-signal-code');
+    const dailyBtn = document.getElementById('daily-signal-btn');
     const frontierBtn = document.getElementById('frontier-signal-btn');
     if (!label) return;
     const daily = this.getDailySignal();
@@ -2239,7 +2241,28 @@ class StarHopperGame {
     const dailyConcept = daily.concept || (typeof PLANETS !== 'undefined' && PLANETS[daily.planetIndex] ? PLANETS[daily.planetIndex].tagline : "Physics remix");
     const dailyVariant = daily.variant && daily.variant.variantLabel ? daily.variant.variantLabel : daily.label;
     const dailyFocus = daily.labContract && daily.labContract.title ? ` · Focus: ${daily.labContract.title}` : "";
+    const dailyGoal = daily.labGoal || "3 Lab Stars: tasks + samples + proof";
+    const dailyCommand = daily.labContract && daily.labContract.command ? String(daily.labContract.command).trim() : "";
+    const dailyFirstCommand = dailyCommand.split(/\n/).map(line => line.trim()).find(Boolean) || "";
     label.textContent = `📡 Daily Signal ${daily.dateStr} — ${dailyPlanet}: ${dailyConcept} · ${dailyVariant}${dailyFocus}`;
+    if (dailyCode) {
+      dailyCode.textContent = dailyFirstCommand ? `3★ Try: ${dailyFirstCommand}` : `3★ ${dailyGoal}`;
+      dailyCode.title = dailyFirstCommand
+        ? `${dailyGoal} · Full contract: ${dailyCommand}`
+        : dailyGoal;
+      if (dailyCode.style) dailyCode.style.display = "inline-block";
+    }
+    if (dailyBtn) {
+      dailyBtn.textContent = "▶ ACCEPT";
+      dailyBtn.title = dailyFirstCommand
+        ? `Start today's Daily Signal. ${dailyGoal}. Try: ${dailyFirstCommand}`
+        : `Start today's Daily Signal. ${dailyGoal}.`;
+      if (dailyBtn.dataset) {
+        dailyBtn.dataset.goal = dailyGoal;
+        dailyBtn.dataset.focus = daily.labContract && daily.labContract.title ? daily.labContract.title : "";
+        dailyBtn.dataset.command = dailyFirstCommand;
+      }
+    }
     const frontier = this.getFrontierChallenge();
     if (frontierBtn) {
       frontierBtn.style.display = frontier ? 'inline-flex' : 'none';
