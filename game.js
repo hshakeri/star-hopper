@@ -337,6 +337,24 @@ class StarHopperGame {
     return result;
   }
 
+  attachFormulaCardUnlock(pulse, kind) {
+    if (!pulse || !kind || typeof unlockFormulaKind !== 'function') return false;
+    const cardUnlocked = unlockFormulaKind(this, kind);
+    pulse.cardUnlocked = !!cardUnlocked;
+    pulse.formulaCardKind = kind;
+    const rule = typeof DISCOVERY_RULES !== 'undefined' && Array.isArray(DISCOVERY_RULES)
+      ? DISCOVERY_RULES.find(item => item && item.kind === kind)
+      : null;
+    if (rule) {
+      pulse.formulaCardTitle = rule.title;
+      pulse.formulaCardFormula = rule.formula;
+    }
+    if (cardUnlocked && typeof this.spawnFormulaCardEffect === 'function') {
+      this.spawnFormulaCardEffect(pulse);
+    }
+    return cardUnlocked;
+  }
+
   grantVillageRescueReward(npc, reason = "danger") {
     if (!npc) return null;
     const sourceKey = this.getVillageRescueSourceKey(npc);
@@ -370,6 +388,7 @@ class StarHopperGame {
       worldMasteryAddedXP: award.addedXP,
       villageTrust: villageTrust && villageTrust.added > 0 ? villageTrust : null
     };
+    this.attachFormulaCardUnlock(pulse, "state");
     this.discoveryPulse = pulse;
     this.discoveryLog = [pulse].concat(Array.isArray(this.discoveryLog) ? this.discoveryLog : []).slice(0, 8);
     if (typeof ui_log_output === 'function') {
@@ -4399,6 +4418,7 @@ class StarHopperGame {
       },
       villageTrust: villageTrust && villageTrust.added > 0 ? villageTrust : null
     };
+    this.attachFormulaCardUnlock(pulse, 'state');
     this.discoveryPulse = pulse;
     this.discoveryLog = [pulse].concat(Array.isArray(this.discoveryLog) ? this.discoveryLog : []).slice(0, 8);
 
@@ -5819,6 +5839,10 @@ class StarHopperGame {
     const px = this.player.x + this.player.w / 2;
     const py = this.player.y - 26;
     const collection = (typeof getFormulaCollection === 'function') ? getFormulaCollection(this) : null;
+    const cardKind = pulse.formulaCardKind || pulse.kind;
+    const cardRule = typeof DISCOVERY_RULES !== 'undefined' && Array.isArray(DISCOVERY_RULES)
+      ? DISCOVERY_RULES.find(rule => rule && rule.kind === cardKind)
+      : null;
     const discovered = this.discoveredFormulaKinds instanceof Set
       ? this.discoveredFormulaKinds.size
       : (Array.isArray(this.discoveredFormulaKinds) ? this.discoveredFormulaKinds.length : 0);
@@ -5838,8 +5862,8 @@ class StarHopperGame {
       vy: -0.55,
       life: 0,
       maxLife: 96,
-      title: pulse.title || "Formula Card",
-      formula: pulse.formula || "",
+      title: pulse.formulaCardTitle || (cardRule && cardRule.title) || pulse.title || "Formula Card",
+      formula: pulse.formulaCardFormula || (cardRule && cardRule.formula) || pulse.formula || "",
       deckCount,
       deckTotal,
       deckLabel,

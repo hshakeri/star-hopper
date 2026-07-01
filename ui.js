@@ -2203,12 +2203,29 @@ const DISCOVERY_RULES = [
     move: "Change hopper.pole",
     payoff: "Turn fields into lifts",
     sampleCode: "when player.touching('magnet'): hopper.pole = 'south'"
+  },
+  {
+    kind: "state",
+    pattern: /\b(?:rave_mode\s*\(|state\s*=|pet\s+state|player\.touching\()/i,
+    title: "AI State Lab",
+    formula: "state + event -> next state",
+    insight: "Game characters can switch behavior when an event happens: wild, scared, pet, shelter, trade, or guard.",
+    cue: "Watch a mob, pet, or villager change state after danger, night, trade, or a touch event.",
+    axis: "Events change behavior state",
+    move: "Trigger one AI event",
+    payoff: "Grow Village Trust",
+    sampleCode: "rave_mode()"
   }
 ];
 
 function getPulseFormulaKind(pulse) {
   if (!pulse) return null;
-  if (pulse.kind && pulse.kind !== "mission") return pulse.kind;
+  if (pulse.formulaCardKind && DISCOVERY_RULES.some(rule => rule.kind === pulse.formulaCardKind)) {
+    return pulse.formulaCardKind;
+  }
+  if (pulse.kind && pulse.kind !== "mission" && DISCOVERY_RULES.some(rule => rule.kind === pulse.kind)) {
+    return pulse.kind;
+  }
   const title = String(pulse.title || "").toLowerCase();
   const formula = String(pulse.formula || "").toLowerCase();
   const match = DISCOVERY_RULES.find(rule =>

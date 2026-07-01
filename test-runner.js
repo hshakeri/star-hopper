@@ -2031,7 +2031,7 @@ function runEngineTests() {
     assertEquals(true, /Formula Deck/.test(els["research-rank-card"].innerHTML), "Rank card should show the current lab perk");
     assertEquals(true, /Next Perk/.test(els["research-rank-card"].innerHTML), "Rank card should preview the next lab perk");
     assertEquals(true, /Combo Amplifier/.test(els["research-rank-card"].innerHTML), "Rank card should name the next lab perk");
-    assertEquals(true, /Formula Cards 2\/9/.test(els["discovery-deck"].innerHTML), "Deck should show formula collection progress");
+    assertEquals(true, new RegExp(`Formula Cards 2\\/${DISCOVERY_RULES.length}`).test(els["discovery-deck"].innerHTML), "Deck should show formula collection progress");
     assertEquals(true, /NEXT EXPERIMENT/.test(els["discovery-deck"].innerHTML), "Deck should turn the next card into a focused experiment");
     assertEquals(true, /Engine Lab/.test(els["discovery-deck"].innerHTML), "Formula focus should point at the next locked card");
     assertEquals(true, /LEARN/.test(els["discovery-deck"].innerHTML), "Formula focus should label the science idea");
@@ -2371,7 +2371,7 @@ function runEngineTests() {
     assertEquals(true, /Collect Mass Lab/.test(els["research-rank-card"].innerHTML), "Rendered quest should point to the next formula card");
     assertEquals("LAB QUEST", startKicker.textContent, "Start radar should reuse the lab quest category");
     assertEquals("Collect Mass Lab", els["start-mission-radar-title"].textContent, "Start radar should show the same next quest");
-    assertEquals("1/9 formulas · 60 XP", els["start-mission-radar-progress"].textContent, "Start radar should show formula and XP progress");
+    assertEquals(`1/${DISCOVERY_RULES.length} formulas · 60 XP`, els["start-mission-radar-progress"].textContent, "Start radar should show formula and XP progress");
     assertEquals(true, /formula card/.test(els["start-mission-radar-reward"].textContent), "Start radar should show the quest reward");
     assertEquals("NEXT LAB UNLOCK", els["start-rank-preview-label"].textContent, "Start radar should label the next rank unlock");
     assertEquals("Combo Amplifier in 40 XP", els["start-rank-preview-title"].textContent, "Start radar should name the next perk and remaining XP");
@@ -2554,7 +2554,7 @@ function runEngineTests() {
     updateFormulaTarget(game);
     assertEquals(true, /NEXT FORMULA CARD/.test(panel.innerHTML), "CRT should label the next card target");
     assertEquals(true, /Mass Lab/.test(panel.innerHTML), "CRT should advance to the next Earth formula card");
-    assertEquals(true, /1\/9/.test(panel.innerHTML), "CRT should show collection progress");
+    assertEquals(true, new RegExp(`1\\/${DISCOVERY_RULES.length}`).test(panel.innerHTML), "CRT should show collection progress");
     assertEquals(true, /LEARN/.test(panel.innerHTML), "CRT formula target should label the science idea");
     assertEquals(true, /Mass controls acceleration/.test(panel.innerHTML), "CRT formula target should name the concept axis");
     assertEquals(true, /CODE/.test(panel.innerHTML), "CRT formula target should label the coding move");
@@ -2649,7 +2649,7 @@ function runEngineTests() {
     assertEquals(true, /NEXT RUN CONTRACT/.test(report.innerHTML), "Clear report should include a replay contract");
     assertEquals(true, /Collect Mass Lab/.test(report.innerHTML), "Replay contract should target the next formula card");
     assertEquals(true, /RETRY FOR FORMULA/.test(report.innerHTML), "Replay contract should include an actionable next-run button");
-    assertEquals(true, /1\/9/.test(report.innerHTML), "Clear report should include formula deck progress");
+    assertEquals(true, new RegExp(`1\\/${DISCOVERY_RULES.length}`).test(report.innerHTML), "Clear report should include formula deck progress");
     assertEquals(true, /\+2 emerald/.test(report.innerHTML), "Clear report should include newly banked gems");
     assertEquals(true, /Collect Mass Lab/.test(report.innerHTML), "Clear report should include the next lab quest");
 
@@ -4603,6 +4603,11 @@ function runCombatTests() {
     assertEquals(7, g.getWorldMasteryProgress(0).xp, "First pet tame adds world mastery XP");
     assertEquals("Pet Pact", g.discoveryPulse && g.discoveryPulse.title, "Taming creates a pet pact pulse");
     assertEquals("PET PACT", g.discoveryPulse && g.discoveryPulse.petProof && g.discoveryPulse.petProof.label, "Taming exposes a pet proof chip");
+    assertEquals(true, g.discoveredFormulaKinds.has("state"), "Taming a scared mob collects the AI State Lab card");
+    assertEquals(1, g.formulaCardEffects.length, "AI State Lab card unlock spawns one formula card effect");
+    assertEquals("AI State Lab", g.formulaCardEffects[0].title, "AI State Lab card effect names the state-machine concept");
+    assertEquals("state + event -> next state", g.formulaCardEffects[0].formula, "AI State Lab card effect shows the state transition formula");
+    assertEquals(`CARD 1/${DISCOVERY_RULES.length}`, g.formulaCardEffects[0].deckLabel, "AI State Lab card effect advances the formula deck");
     assertEquals("PET LAB", g.missionBalloon && g.missionBalloon.title, "Pet proof uses the mission monitor");
     assertEquals("PET PACT: +3 Research XP", g.missionBalloon && g.missionBalloon.text, "Pet proof announces the XP payoff");
     assertEquals(1, g.discoveryPassCounts[g.getPetBondProofSourceKey('tame')], "Pet pact stores its one-time source");
@@ -4629,6 +4634,7 @@ function runCombatTests() {
     assertEquals("TRUST UP", g.discoveryPulse && g.discoveryPulse.villageTrust && g.discoveryPulse.villageTrust.label, "Pet guard proof exposes a village trust chip");
     assertEquals("GUARD PROOF: +4 Research XP", g.missionBalloon && g.missionBalloon.text, "Guard proof announces the XP payoff");
     assertEquals(1, g.discoveryPassCounts[g.getPetBondProofSourceKey('guard')], "Guard proof stores its one-time source");
+    assertEquals(1, g.formulaCardEffects.length, "Guard proof does not duplicate the AI State Lab card after taming unlocked it");
     assertEquals(null, g.grantPetBondProof('guard', pet), "Repeating the guard proof is blocked");
     assertEquals(7, g.researchXP, "Repeated guard proof does not farm Research XP");
     assertEquals(3, g.getVillageTrustProgress(0).points, "Repeated guard proof does not farm village trust");
@@ -4965,6 +4971,9 @@ function runCombatTests() {
     sentry.panicTimer = 0;
     sentry.update(g);
     assertEquals(false, sentry.hiddenInCave, "Villager comes back out when nearby danger clears");
+    assertEquals(true, g.discoveredFormulaKinds.has("state"), "Village rescue collects the AI State Lab card");
+    assertEquals(1, g.formulaCardEffects.length, "Village rescue spawns one AI State Lab card effect");
+    assertEquals("AI State Lab", g.formulaCardEffects[0].title, "Village rescue card effect names the state-machine concept");
     const homeGuard = new NPC({ id: 'home-guard', name: 'Home Guard', profession: 'Guard', type: 'npc', x: 250, y: 60, color: '#cbd5e1', homeX: 250, homeY: 60, caveX: 24, caveY: 60, hiddenInCave: true });
     homeGuard.x = homeGuard.caveX + 10;
     homeGuard.panicTimer = 0;
