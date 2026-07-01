@@ -1626,6 +1626,8 @@ function runEngineTests() {
     progress = getAIStateDeckProgress(completeGame);
     assertEquals(5, progress.earnedCount, "AI State Deck should count trade, rescue, pet, guard, and guardian proofs");
     assertEquals(true, progress.complete, "AI State Deck should complete after every behavior proof is present");
+    const completeCadetRecord = getCadetIdentityPreview(completeGame);
+    assertEquals(true, /AI Mastered 5\/5 states/.test(completeCadetRecord.body), "Cadet Record should celebrate completed AI State Deck mastery");
 
     updateAIStateDeck(completeGame);
     assertEquals(true, /5\/5 AI states logged/.test(panel.innerHTML), "Complete AI State Deck should render full progress");
@@ -3429,6 +3431,8 @@ function runEngineTests() {
     assertEquals(true, /1\/\d+ formulas/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include formula deck progress");
     assertEquals(true, /1\/12 transmissions/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include story transmission progress");
     assertEquals(true, /1\/5 AI states/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include AI State Deck progress");
+    assertEquals(true, /next Shelter Loop/.test(els["start-cadet-identity-body"].textContent), "Cadet record should name the next AI State Deck card");
+    assertEquals(true, /RUN RESCUE/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include the next AI State Deck action");
     assertEquals(true, /Trading Friend · 3 trust/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include village trust identity");
     assertEquals("8%", els["start-cadet-identity-bar"].style.width, "Cadet record should show rank progress");
     assertEquals("NEXT LAB UNLOCK", els["start-rank-preview-label"].textContent, "Start radar should label the next rank unlock");
@@ -3809,6 +3813,8 @@ function runEngineTests() {
     assertEquals(true, /🚀 Nova \/\/ Physics Tinkerer/.test(report.innerHTML), "Clear report should show the cadet and research title");
     assertEquals(true, /1\/\d+ formulas/.test(report.innerHTML), "Clear report cadet record should show formula progress");
     assertEquals(true, /2\/5 AI states/.test(report.innerHTML), "Clear report cadet record should show AI State Deck progress");
+    assertEquals(true, /next Pet Pact/.test(report.innerHTML), "Clear report cadet record should name the next AI behavior card");
+    assertEquals(true, /GET LOTION/.test(report.innerHTML), "Clear report cadet record should include the next AI behavior action");
     assertEquals(true, /NEW MASTERY BADGE/.test(report.innerHTML), "Clear report should celebrate a first 3-star mastery");
     assertEquals(true, /\+25 Research XP/.test(report.innerHTML), "Clear report should show the mastery XP reward");
     assertEquals(true, /WORLD MASTERY/.test(report.innerHTML), "Clear report should include per-world mastery progress");

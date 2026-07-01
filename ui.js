@@ -2635,9 +2635,22 @@ function getCadetIdentityPreview(game = window.Game) {
   const village = game && typeof game.getVillageTrustProgress === "function" ? game.getVillageTrustProgress(game.currentPlanetIndex) : null;
   const trust = village ? `${village.title} · ${village.points} trust` : "Village trust pending";
   const aiDeck = typeof getAIStateDeckProgress === "function" ? getAIStateDeckProgress(game) : null;
-  const aiStates = aiDeck && Number.isFinite(Number(aiDeck.total))
-    ? `${aiDeck.earnedCount}/${aiDeck.total} AI states`
-    : "AI states pending";
+  let aiStates = "AI states pending";
+  if (aiDeck && Number.isFinite(Number(aiDeck.total))) {
+    const earned = Math.max(0, Number(aiDeck.earnedCount) || 0);
+    const total = Math.max(0, Number(aiDeck.total) || 0);
+    if (aiDeck.complete) {
+      aiStates = `AI Mastered ${earned}/${total} states`;
+    } else {
+      const next = aiDeck.nextCard || null;
+      const action = next && typeof getAIStateDeckAction === "function"
+        ? getAIStateDeckAction(game, next.id)
+        : null;
+      const nextTitle = next && next.title ? next.title : "next state";
+      const actionLabel = action && action.label ? ` · ${action.label}` : "";
+      aiStates = `${earned}/${total} AI states · next ${nextTitle}${actionLabel}`;
+    }
+  }
   return {
     label: "CADET RECORD",
     title: `${callsign} // ${rank.title}`,
