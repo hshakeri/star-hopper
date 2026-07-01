@@ -646,6 +646,20 @@ function appendSignalStoryCrtCard(listContainer, game) {
   listContainer.appendChild(card);
 }
 
+function runSignalLabExplainAction(game) {
+  const target = game || (typeof window !== 'undefined' ? window.Game : null);
+  if (target && typeof target.runClearExplainPrompt === 'function') {
+    return target.runClearExplainPrompt();
+  }
+  if (typeof switchMainMode === 'function') {
+    switchMainMode('notebook');
+    const response = typeof document !== 'undefined' ? document.getElementById("notebook-user-response") : null;
+    if (response && typeof response.focus === 'function') response.focus();
+    return true;
+  }
+  return false;
+}
+
 function appendSignalLabContractCard(listContainer, game) {
   if (!listContainer || !game || !game.dailyInfo || !game.dailyInfo.labContract) return;
   if (game.remixContext !== 'daily') return;
@@ -701,6 +715,15 @@ function appendSignalLabContractCard(listContainer, game) {
       claimed.className = "signal-lab-contract-claimed";
       claimed.textContent = proofStatus && proofStatus.sourceKey ? "TESTED - proof saved" : "TESTED";
       card.appendChild(claimed);
+
+      const explain = document.createElement("button");
+      explain.type = "button";
+      explain.className = "signal-lab-contract-explain-btn";
+      explain.textContent = "EXPLAIN EVIDENCE";
+      if (typeof explain.addEventListener === "function") {
+        explain.addEventListener("click", () => runSignalLabExplainAction(game));
+      }
+      card.appendChild(explain);
     } else {
       const stage = document.createElement("button");
       stage.type = "button";

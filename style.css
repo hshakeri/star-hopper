@@ -4254,6 +4254,26 @@ html {
   padding: 5px 7px;
 }
 
+.signal-lab-contract-explain-btn {
+  justify-self: start;
+  border: 1px solid rgba(190, 242, 100, 0.52);
+  border-radius: 4px;
+  background: rgba(22, 101, 52, 0.58);
+  color: #f7fee7;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.53rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0;
+  padding: 5px 7px;
+}
+
+.signal-lab-contract-explain-btn:hover {
+  background: rgba(190, 242, 100, 0.9);
+  color: #14532d;
+}
+
 .lab-chain-target-card {
   border: 1px solid rgba(103, 232, 249, 0.34);
   border-radius: 6px;
@@ -7119,6 +7139,7 @@ body.readable-text-mode .signal-lab-contract-proof,
 body.readable-text-mode .signal-lab-contract-card code,
 body.readable-text-mode .signal-lab-contract-stage-btn,
 body.readable-text-mode .signal-lab-contract-claimed,
+body.readable-text-mode .signal-lab-contract-explain-btn,
 body.readable-text-mode .science-delta-row,
 body.readable-text-mode .science-delta-row em,
 body.readable-text-mode .science-delta-next span,

@@ -3009,6 +3009,8 @@ function runEngineTests() {
     const proofStatus = getSignalLabProofStatus(game, signalFocus.command);
     assertEquals(true, !!proofStatus, "Signal lab proof status should expose a durable source key");
     game.discoveryPassCounts[proofStatus.sourceKey] = 1;
+    let explainCalls = 0;
+    game.runClearExplainPrompt = () => { explainCalls++; return true; };
     list = makeEl();
     updateMissionList(game);
     const claimedSignalLab = findByClass(list, "signal-lab-contract-card");
@@ -3017,6 +3019,10 @@ function runEngineTests() {
     assertEquals(true, /Science Notebook/.test(claimedSignalText), "Claimed Signal Lab card should point to explaining evidence");
     assertEquals(true, /TESTED - proof saved/.test(claimedSignalText), "Claimed Signal Lab card should show a tested badge");
     assertEquals(null, findByClass(claimedSignalLab || list, "signal-lab-contract-stage-btn"), "Claimed Signal Lab card should not expose the repeat stage action");
+    const explainSignalButton = findByClass(claimedSignalLab || list, "signal-lab-contract-explain-btn");
+    assertEquals("EXPLAIN EVIDENCE", explainSignalButton && explainSignalButton.textContent, "Claimed Signal Lab card should expose the explain action");
+    explainSignalButton._events.click();
+    assertEquals(1, explainCalls, "Signal Lab explain action should reuse the Science Notebook explain flow");
 
     list = makeEl();
     game.dailyInfo = {
