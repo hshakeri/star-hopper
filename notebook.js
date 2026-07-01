@@ -1239,11 +1239,133 @@ function getAIStateDeckProgress(game = window.Game) {
   };
 }
 
+function getAIStateDeckTradeTarget(game) {
+  const worlds = typeof getVillageAlmanacWorlds === 'function' ? getVillageAlmanacWorlds() : [];
+  if (!worlds.length) return { index: 0, planet: null, request: null };
+  const currentIndex = game && Number.isFinite(Number(game.currentPlanetIndex)) ? Number(game.currentPlanetIndex) : 0;
+  const current = worlds.find(({ index }) => index === currentIndex);
+  const incomplete = ({ planet }) => {
+    const request = typeof getVillageAlmanacRequest === 'function' ? getVillageAlmanacRequest(game, planet) : null;
+    return !!(request && !request.complete);
+  };
+  const target = (current && incomplete(current))
+    ? current
+    : (worlds.find(incomplete) || current || worlds[0]);
+  return {
+    ...target,
+    request: target ? getVillageAlmanacRequest(game, target.planet) : null
+  };
+}
+
+function getAIStateDeckVillageTarget(game, options = {}) {
+  const worlds = typeof getVillageAlmanacWorlds === 'function' ? getVillageAlmanacWorlds() : [];
+  if (!worlds.length) return { index: 0, planet: null };
+  const currentIndex = game && Number.isFinite(Number(game.currentPlanetIndex)) ? Number(game.currentPlanetIndex) : 0;
+  const current = worlds.find(({ index }) => index === currentIndex);
+  if (options.avoidEarth) {
+    return worlds.find(({ index }) => index !== 0) || current || worlds[0];
+  }
+  return current || worlds[0];
+}
+
+function hasAIStateDeckTamingLotion(game) {
+  if (!game) return false;
+  if (typeof game.hasTamingLotion === 'function') return !!game.hasTamingLotion();
+  return !!(game.unlockedTools && game.unlockedTools.has && game.unlockedTools.has('taming_lotion'));
+}
+
+function getAIStateDeckAction(game = window.Game, cardId = null) {
+  const progress = getAIStateDeckProgress(game);
+  const card = (cardId && progress.cards.find(item => item.id === cardId)) || progress.nextCard;
+  if (!card || card.earned) return null;
+  const currentIndex = game && Number.isFinite(Number(game.currentPlanetIndex)) ? Number(game.currentPlanetIndex) : 0;
+
+  if (card.id === "trade-flow") {
+    const target = getAIStateDeckTradeTarget(game);
+    const request = target.request || {};
+    return {
+      cardId: card.id,
+      action: "level",
+      label: request.ready ? "MAKE TRADE" : "RUN TRADE",
+      title: request.title ? `Trade goal: ${request.title}` : "Run a village trade",
+      body: request.body || card.next,
+      levelIndex: Number.isFinite(Number(target.index)) ? Number(target.index) : currentIndex
+    };
+  }
+
+  if (card.id === "shelter-loop") {
+    const target = getAIStateDeckVillageTarget(game, { avoidEarth: true });
+    return {
+      cardId: card.id,
+      action: "survival",
+      label: "RUN RESCUE",
+      title: "Start Survival near a village",
+      body: "Let danger trigger cave shelter, then clear the mob so the villager returns.",
+      levelIndex: Number.isFinite(Number(target.index)) ? Number(target.index) : currentIndex,
+      enableSurvival: true
+    };
+  }
+
+  if (card.id === "pet-pact") {
+    const hasLotion = hasAIStateDeckTamingLotion(game);
+    return {
+      cardId: card.id,
+      action: hasLotion ? "survival" : "level",
+      label: hasLotion ? "TAME PET" : "GET LOTION",
+      title: hasLotion ? "Use lotion on a scared mob" : "Trade for calming lotion",
+      body: hasLotion
+        ? "Start Survival, trigger rave mode, then tame a small scared mob."
+        : "Run Glacies, collect Violet Ice, and trade with Cryo for calming lotion.",
+      levelIndex: 3,
+      enableSurvival: hasLotion
+    };
+  }
+
+  if (card.id === "guard-mode") {
+    const target = getAIStateDeckVillageTarget(game, { avoidEarth: true });
+    return {
+      cardId: card.id,
+      action: "survival",
+      label: "RUN GUARD",
+      title: "Let a pet protect someone",
+      body: "Bring a trained pet into danger and let it intercept a hostile mob.",
+      levelIndex: Number.isFinite(Number(target.index)) ? Number(target.index) : currentIndex,
+      enableSurvival: true
+    };
+  }
+
+  if (card.id === "guardian-pact") {
+    const target = getAIStateDeckVillageTarget(game);
+    return {
+      cardId: card.id,
+      action: "level",
+      label: "BUILD TRUST",
+      title: "Finish the village trust arc",
+      body: "Use the next trade, rescue, or pet guard proof to reach Village Guardian.",
+      levelIndex: Number.isFinite(Number(target.index)) ? Number(target.index) : currentIndex
+    };
+  }
+
+  return null;
+}
+
+function runAIStateDeckAction(cardId = null, game = window.Game) {
+  const action = getAIStateDeckAction(game, cardId);
+  if (!action || !game || typeof game.startLevel !== 'function') return false;
+  game.startLevel(Number.isFinite(Number(action.levelIndex)) ? Number(action.levelIndex) : 0);
+  if (action.enableSurvival && typeof game.toggleSurvival === 'function' && !game.survivalMode) {
+    game.toggleSurvival();
+  }
+  if (typeof switchMainMode === 'function') switchMainMode('terminal');
+  return true;
+}
+
 function updateAIStateDeck(game = window.Game) {
   const panel = document.getElementById("ai-state-deck-panel");
   if (!panel) return;
   const progress = getAIStateDeckProgress(game);
   const next = progress.nextCard;
+  const action = getAIStateDeckAction(game, next ? next.id : null);
   const headerCue = next
     ? `Next: ${next.title} - ${next.next}`
     : "All village AI behavior cards logged. Use the system in remixes and Daily Signals.";
@@ -1254,7 +1376,10 @@ function updateAIStateDeck(game = window.Game) {
         <span>BEHAVIOR COLLECTION</span>
         <strong>${escapeHTML(String(progress.earnedCount))}/${escapeHTML(String(progress.total))} AI states logged</strong>
       </div>
-      <em>${escapeHTML(headerCue)}</em>
+      <div class="ai-state-deck-next">
+        <em>${escapeHTML(headerCue)}</em>
+        ${action ? `<button type="button" class="ai-state-deck-btn" data-state="${escapeHTML(action.cardId)}" onclick="runAIStateDeckAction('${escapeHTML(action.cardId)}')">${escapeHTML(action.label || "RUN NEXT")}</button>` : ""}
+      </div>
     </div>
     <div class="ai-state-deck-meter" aria-label="${escapeHTML(String(progress.pct))}% of AI state deck collected"><span style="width: ${escapeHTML(String(progress.pct))}%"></span></div>
     <div class="ai-state-deck-grid">

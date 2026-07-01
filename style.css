@@ -8024,8 +8024,34 @@ body.navigator-active .coach-bubble { display: none !important; }
   font-size: 0.62rem;
   font-style: normal;
   line-height: 1.35;
-  max-width: 48%;
   text-align: right;
+}
+
+.ai-state-deck-next {
+  align-items: flex-end;
+  display: grid;
+  gap: 6px;
+  justify-items: end;
+  max-width: 50%;
+}
+
+.ai-state-deck-btn {
+  background: linear-gradient(135deg, #38bdf8, #22c55e);
+  border: 0;
+  border-radius: 5px;
+  color: #020617;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  min-height: 24px;
+  padding: 5px 8px;
+  text-transform: uppercase;
+}
+
+.ai-state-deck-btn:hover {
+  filter: brightness(1.08);
 }
 
 .ai-state-deck-meter {
@@ -9299,6 +9325,7 @@ body.readable-text-mode .ai-state-card p,
 body.readable-text-mode .ai-state-card code,
 body.readable-text-mode .ai-state-card em,
 body.readable-text-mode .ai-state-card b,
+body.readable-text-mode .ai-state-deck-btn,
 body.readable-text-mode .research-rank-kicker,
 body.readable-text-mode .research-rank-xp,
 body.readable-text-mode .research-rank-next,

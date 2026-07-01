@@ -1549,6 +1549,7 @@ function runEngineTests() {
 
   // Test 22a1c: AI State Deck turns village and pet behavior proofs into collectible lesson cards.
   const oldGetElementById22aiDeck = document.getElementById;
+  const oldSwitchMainMode22aiDeck = switchMainMode;
   try {
     const panel = { innerHTML: "" };
     document.getElementById = (id) => id === "ai-state-deck-panel" ? panel : null;
@@ -1569,6 +1570,32 @@ function runEngineTests() {
     assertEquals(true, /NEXT STATE/.test(panel.innerHTML) && /Shelter Loop/.test(panel.innerHTML), "AI State Deck should mark the next unearned behavior card");
     assertEquals(true, /state = samples -&gt; trade -&gt; tool/.test(panel.innerHTML), "AI State Deck should show the trade state formula");
     assertEquals(true, /Clear mob danger so a villager leaves the cave/.test(panel.innerHTML), "AI State Deck should show the next rescue action");
+    assertEquals(true, /RUN RESCUE/.test(panel.innerHTML), "AI State Deck should expose a direct next-state action");
+    assertEquals(true, /data-state="shelter-loop"/.test(panel.innerHTML), "AI State Deck action should target the next missing state");
+
+    const rescueStarts = [];
+    const rescueModes = [];
+    const rescueGame = {
+      currentPlanetIndex: 0,
+      survivalMode: false,
+      startLevel: (level) => rescueStarts.push(level),
+      toggleSurvival: () => { rescueGame.survivalMode = true; }
+    };
+    switchMainMode = (mode) => rescueModes.push(mode);
+    assertEquals(true, runAIStateDeckAction("shelter-loop", rescueGame), "AI State Deck rescue action should launch a playable proof route");
+    assertEquals(1, rescueStarts[0], "Rescue action should prefer a non-Earth village to avoid night blocking the proof");
+    assertEquals(true, rescueGame.survivalMode, "Rescue action should enable Survival so mobs can trigger cave shelter");
+    assertEquals("terminal", rescueModes[0], "AI State Deck action should return to the playable terminal");
+
+    const petPrep = new StarHopperGame();
+    petPrep.unlockedTools = new Set();
+    let petAction = getAIStateDeckAction(petPrep, "pet-pact");
+    assertEquals("GET LOTION", petAction && petAction.label, "Pet card action should route to the lotion trade before the tool is unlocked");
+    assertEquals(false, !!(petAction && petAction.enableSurvival), "Missing-lotion pet route should not start Survival yet");
+    petPrep.unlockedTools.add("taming_lotion");
+    petAction = getAIStateDeckAction(petPrep, "pet-pact");
+    assertEquals("TAME PET", petAction && petAction.label, "Pet card action should switch to taming once lotion is unlocked");
+    assertEquals(true, !!(petAction && petAction.enableSurvival), "Taming route should start Survival for scared mobs");
 
     const completeGame = new StarHopperGame();
     completeGame.villageTrust = {
@@ -1600,9 +1627,12 @@ function runEngineTests() {
     assertEquals(true, /Pet Pact/.test(panel.innerHTML) && /wild -&gt; scared -&gt; pet/.test(panel.innerHTML), "AI State Deck should include the taming hidden-behavior card");
     assertEquals(true, /Guard Mode/.test(panel.innerHTML) && /follow -&gt; protect/.test(panel.innerHTML), "AI State Deck should include the pet guard behavior card");
     assertEquals(true, /Guardian Pact/.test(panel.innerHTML) && /trust -&gt; guardian/.test(panel.innerHTML), "AI State Deck should include the long village arc card");
+    assertEquals(false, /ai-state-deck-btn/.test(panel.innerHTML), "Complete AI State Deck should not render an unnecessary launch button");
+    switchMainMode = oldSwitchMainMode22aiDeck;
     document.getElementById = oldGetElementById22aiDeck;
     renderTestResult("engine-suite", "Curriculum: AI State Deck collects village behavior proofs", true);
   } catch (err) {
+    switchMainMode = oldSwitchMainMode22aiDeck;
     document.getElementById = oldGetElementById22aiDeck;
     renderTestResult("engine-suite", "Curriculum: AI State Deck collects village behavior proofs", false, err.message);
   }
