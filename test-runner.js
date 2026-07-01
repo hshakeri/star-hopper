@@ -3640,6 +3640,12 @@ function runEngineTests() {
     assertEquals(true, /Village Guardian at 12 trust/.test(report.innerHTML), "Clear report should show the next village trust tier");
     assertEquals(true, /Guardian Pact/.test(report.innerHTML), "Clear report should name the next village pact");
     assertEquals(true, /AI state: scared -&gt; pet -&gt; guard/.test(report.innerHTML), "Clear report should connect village trust to the AI-state concept");
+    assertEquals(true, /VILLAGE QUEST CHAIN/.test(report.innerHTML), "Clear report should include the village quest chain");
+    assertEquals(true, /2\/3/.test(report.innerHTML), "Clear report should show village quest-chain completion");
+    assertEquals(true, /Next: Guard pact/.test(report.innerHTML), "Clear report should name the next village quest-chain step");
+    assertEquals(true, /scared -&gt; pet -&gt; guard/.test(report.innerHTML), "Clear report should show the next village quest formula");
+    assertEquals(true, /OK Trade: Resource flow/.test(report.innerHTML), "Clear report should credit the trade pact in the chain");
+    assertEquals(true, /OK Rescue: State machine/.test(report.innerHTML), "Clear report should credit the rescue pact in the chain");
     assertEquals(true, /NEXT LAB UNLOCK/.test(report.innerHTML), "Clear report should show the next research unlock target");
     assertEquals(true, /Combo Amplifier in 30 XP/.test(report.innerHTML), "Clear report should show the post-run tuned XP gap to the next perk");
     assertEquals(true, /50% toward next lab unlock/.test(report.innerHTML), "Clear report should render tuned research unlock progress");

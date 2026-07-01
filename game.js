@@ -6749,6 +6749,20 @@ class StarHopperGame {
         <p>${safe(`${villageTrust.points} trust · ${villageTrustNext} · ${villageTrustAction}`)}</p>
       </div>
     ` : "";
+    const villageChain = typeof getVillageQuestChainPreview === 'function' ? getVillageQuestChainPreview(this) : null;
+    const villageChainSteps = villageChain && Array.isArray(villageChain.steps)
+      ? villageChain.steps.map(step => `<span class="${step.done ? "done" : ""}">${safe(`${step.done ? "OK" : "NEXT"} ${step.label}: ${step.concept}`)}</span>`).join("")
+      : "";
+    const villageChainBlock = villageChain ? `
+      <div class="clear-village-chain ${safe(villageChain.stateClass || "new")}">
+        <div class="clear-village-chain-head">
+          <span>VILLAGE QUEST CHAIN</span>
+          <strong>${safe(`${villageChain.doneCount}/${villageChain.total}`)}</strong>
+        </div>
+        <p>${safe(`${villageChain.title} · ${villageChain.formula} · ${villageChain.body}`)}</p>
+        <div class="clear-village-chain-steps">${villageChainSteps}</div>
+      </div>
+    ` : "";
     const nextLabel = isFrontierRun
       ? "Open the log and compare this frontier tier."
       : (isDailyRun
@@ -6770,6 +6784,7 @@ class StarHopperGame {
       ${masteryRibbon}
       ${worldMasteryBlock}
       ${villageTrustBlock}
+      ${villageChainBlock}
       ${unlockBlock}
       ${timeBadge}
       ${rivalBlock}
