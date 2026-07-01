@@ -5259,7 +5259,7 @@ html {
 .code-concept-cartridge-pips {
   display: grid;
   gap: 3px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .code-concept-pip {
@@ -8883,6 +8883,43 @@ body.navigator-active .coach-bubble { display: none !important; }
   font-family: var(--font-mono);
   font-size: 0.66rem;
   margin-right: 7px;
+}
+
+.code-concept-lesson-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  margin: 6px 0;
+}
+
+.code-concept-lesson-strip span {
+  border: 1px solid rgba(147, 197, 253, 0.22);
+  border-radius: 5px;
+  background: rgba(15, 23, 42, 0.54);
+  color: #dbeafe;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 4px 5px;
+  font-family: var(--font-mono);
+  font-size: 0.54rem;
+  line-height: 1.15;
+}
+
+.code-concept-lesson-strip b {
+  color: #fef08a;
+  font-size: 0.48rem;
+  letter-spacing: 0;
+}
+
+.code-concept-lesson-strip.mini {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 6px 0 4px;
+}
+
+.code-concept-lesson-strip.mini span {
+  font-size: 0.5rem;
+  padding: 3px 4px;
 }
 
 .code-concept-stage-btn {

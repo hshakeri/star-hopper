@@ -2166,6 +2166,10 @@ function runEngineTests() {
     assertEquals(true, /Next: Loop/.test(panel.innerHTML), "Code Concept Deck should name the next programming idea");
     assertEquals(true, /NEXT CODING IDEA/.test(panel.innerHTML) && /Loop/.test(panel.innerHTML), "Code Concept Deck should render a next-concept contract");
     assertEquals(true, /repeat 3 \{ spawn_block\(\) \}/.test(panel.innerHTML), "Code Concept Deck should expose a runnable sample for the next idea");
+    assertEquals(true, /LEARN/.test(panel.innerHTML) && /Repeat count makes tools/.test(panel.innerHTML), "Code Concept Deck should explain the learning idea");
+    assertEquals(true, /CODE/.test(panel.innerHTML) && /Repeat a helper/.test(panel.innerHTML), "Code Concept Deck should name the coding move");
+    assertEquals(true, /WIN/.test(panel.innerHTML) && /Build the route/.test(panel.innerHTML), "Code Concept Deck should name the game payoff");
+    assertEquals(true, /API Alias/.test(panel.innerHTML) && /Use bridge syntax/.test(panel.innerHTML), "Code Concept Deck should include the bridge alias lesson card");
     assertEquals(true, /Assignment/.test(panel.innerHTML) && /collected/.test(panel.innerHTML), "Code Concept Deck should mark collected ideas");
     assertEquals(true, /Loop/.test(panel.innerHTML) && /next concept/.test(panel.innerHTML), "Code Concept Deck should mark the next card");
     assertEquals(true, /STAGE NEXT/.test(panel.innerHTML), "Code Concept Deck should expose a stage action for the next concept");
@@ -2174,6 +2178,9 @@ function runEngineTests() {
     const target = getActiveCodeConceptTarget(game);
     assertEquals("LOOP", target && target.concept, "Code Concept target should identify the next missing idea");
     assertEquals("repeat 3 { spawn_block() }", target && target.command, "Code Concept target should carry the runnable sample");
+    assertEquals("Repeat count makes tools", target && target.learn, "Code Concept target should carry the learning idea");
+    assertEquals("Repeat a helper", target && target.codeMove, "Code Concept target should carry the coding move");
+    assertEquals("Build the route", target && target.payoff, "Code Concept target should carry the game payoff");
     assertEquals("Reward: code concept card", target && target.reward, "Code Concept target should name the next deck payoff");
     assertEquals(1, target && target.count, "Code Concept target should expose collected count");
     assertEquals(5, target && target.total, "Code Concept target should expose deck total");

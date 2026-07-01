@@ -3874,31 +3874,46 @@ const CODE_CONCEPT_CARDS = [
     concept: "ASSIGN",
     title: "Assignment",
     body: "Store a new value in one game variable.",
-    sampleCode: "hopper.mass = 1.2"
+    sampleCode: "hopper.mass = 1.2",
+    learn: "Variables store evidence",
+    codeMove: "Change one value",
+    payoff: "Measure a delta"
   },
   {
     concept: "LOOP",
     title: "Loop",
     body: "Repeat one instruction to build a pattern.",
-    sampleCode: "repeat 3 { spawn_block() }"
+    sampleCode: "repeat 3 { spawn_block() }",
+    learn: "Repeat count makes tools",
+    codeMove: "Repeat a helper",
+    payoff: "Build the route"
   },
   {
     concept: "IF",
     title: "Conditional",
     body: "Choose behavior from the current game state.",
-    sampleCode: "if player.touching('ice'): friction = 8"
+    sampleCode: "if player.touching('ice'): friction = 8",
+    learn: "State chooses branch",
+    codeMove: "Check then act",
+    payoff: "Handle hazards"
   },
   {
     concept: "CALL",
     title: "Function Call",
     body: "Run a named action or helper.",
-    sampleCode: "use_hopper()"
+    sampleCode: "use_hopper()",
+    learn: "Names trigger actions",
+    codeMove: "Run a helper",
+    payoff: "Spawn or switch"
   },
   {
     concept: "ALIAS",
     title: "API Alias",
     body: "Use a friendly bridge name that maps to the game's canonical command.",
-    sampleCode: "spawnSpring()"
+    sampleCode: "spawnSpring()",
+    learn: "API names can map",
+    codeMove: "Use bridge syntax",
+    payoff: "Unlock Code Bridge"
   }
 ];
 
@@ -3962,6 +3977,9 @@ function getActiveCodeConceptTarget(game = window.Game) {
     title: next.title,
     body: next.body,
     command,
+    learn: next.learn || "",
+    codeMove: next.codeMove || "",
+    payoff: next.payoff || "",
     progress: `${progress.count}/${progress.total}`,
     count: progress.count,
     total: progress.total,
@@ -4008,6 +4026,11 @@ function updateCodeConceptDeck(game = window.Game) {
       <span>NEXT CODING IDEA</span>
       <strong>${escapeHTML(next.title)}</strong>
       <p>${escapeHTML(next.body)}</p>
+      <div class="code-concept-lesson-strip">
+        <span><b>LEARN</b>${escapeHTML(next.learn || "Programming idea")}</span>
+        <span><b>CODE</b>${escapeHTML(next.codeMove || "Try the sample")}</span>
+        <span><b>WIN</b>${escapeHTML(next.payoff || "Collect the card")}</span>
+      </div>
       <code>${escapeHTML(next.sampleCode || "")}</code>
       ${nextCommand ? `<button type="button" class="code-concept-stage-btn" data-code-concept-command="${escapeHTML(nextCommand)}">STAGE NEXT</button>` : ""}
     </div>
@@ -4026,6 +4049,11 @@ function updateCodeConceptDeck(game = window.Game) {
           <span>${card.unlocked ? "collected" : (next && next.concept === card.concept ? "next concept" : "locked")}</span>
         </div>
         <code>${escapeHTML(card.concept)} · ${escapeHTML(card.sampleCode || "")}</code>
+        <div class="code-concept-lesson-strip mini">
+          <span><b>LEARN</b>${escapeHTML(card.learn || "Coding idea")}</span>
+          <span><b>CODE</b>${escapeHTML(card.codeMove || "Try sample")}</span>
+          <span><b>WIN</b>${escapeHTML(card.payoff || "Deck progress")}</span>
+        </div>
         <p>${escapeHTML(card.body)}</p>
       </div>
       `).join("")}
