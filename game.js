@@ -6788,18 +6788,30 @@ class StarHopperGame {
         anchors.push({ x, y });
       }
     };
-    addAnchor(npc.x + npc.w / 2, npc.y + npc.h / 2);
-    const homeX = Number.isFinite(npc.homeX) ? npc.homeX : npc.x;
-    const homeY = Number.isFinite(npc.homeY) ? npc.homeY : npc.y;
-    const homeCenterX = homeX + npc.w / 2;
-    const homeCenterY = homeY + npc.h / 2;
-    const caveX = Number.isFinite(npc.caveX) ? npc.caveX : homeX - 38;
-    const caveY = Number.isFinite(npc.caveY) ? npc.caveY : homeY;
-    const caveCenterX = caveX + 16;
-    const caveCenterY = caveY + 18;
-    addAnchor(homeCenterX, homeCenterY);
-    addAnchor(caveCenterX, caveCenterY);
-    addAnchor((homeCenterX + caveCenterX) / 2, (homeCenterY + caveCenterY) / 2);
+    const addNpcAnchors = (villager) => {
+      if (!villager) return;
+      const w = Number.isFinite(villager.w) ? villager.w : 28;
+      const h = Number.isFinite(villager.h) ? villager.h : 36;
+      const x = Number.isFinite(villager.x) ? villager.x : 0;
+      const y = Number.isFinite(villager.y) ? villager.y : 0;
+      addAnchor(x + w / 2, y + h / 2);
+      const homeX = Number.isFinite(villager.homeX) ? villager.homeX : x;
+      const homeY = Number.isFinite(villager.homeY) ? villager.homeY : y;
+      const homeCenterX = homeX + w / 2;
+      const homeCenterY = homeY + h / 2;
+      const caveX = Number.isFinite(villager.caveX) ? villager.caveX : homeX - 38;
+      const caveY = Number.isFinite(villager.caveY) ? villager.caveY : homeY;
+      const caveCenterX = caveX + 16;
+      const caveCenterY = caveY + 18;
+      addAnchor(homeCenterX, homeCenterY);
+      addAnchor(caveCenterX, caveCenterY);
+      addAnchor((homeCenterX + caveCenterX) / 2, (homeCenterY + caveCenterY) / 2);
+    };
+    addNpcAnchors(npc);
+    for (const obj of this.interactiveObjects || []) {
+      if (obj === npc || !(typeof NPC !== 'undefined' && obj instanceof NPC)) continue;
+      addNpcAnchors(obj);
+    }
     for (const m of this.mobs) {
       if (!m || m.pet) continue;
       const mx = m.x + m.w / 2;

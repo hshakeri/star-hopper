@@ -8841,6 +8841,43 @@ function runCombatTests() {
     assertEquals("pet-pact", g.lastAIStateRunProof && g.lastAIStateRunProof.nextCardId, "Logged rescue proof remembers the next AI card id");
     assertEquals("GET LOTION", g.lastAIStateRunProof && g.lastAIStateRunProof.nextActionLabel, "Logged rescue proof remembers the next AI route action");
     assertEquals("wild -> scared -> pet", g.lastAIStateRunProof && g.lastAIStateRunProof.nextState, "Logged rescue proof remembers the next AI state formula");
+
+    const villageAlarm = new StarHopperGame();
+    villageAlarm.state = 'playing'; villageAlarm.currentPlanetIndex = 1; villageAlarm.currentPlanet = PLANETS[1];
+    villageAlarm.currentVariant = {
+      map: [
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+      ]
+    };
+    villageAlarm.player = new Player(0, 0);
+    villageAlarm.researchXP = 0;
+    villageAlarm.masteryMeters = {};
+    const nearTrader = new NPC({ id: 'near-alarm', name: 'Near Alarm', profession: 'Guard', type: 'npc', x: 96, y: 60, homeX: 96, homeY: 60, caveX: 64, caveY: 60, color: '#cbd5e1' });
+    const farTrader = new NPC({ id: 'far-alarm', name: 'Far Alarm', profession: 'Miner', type: 'npc', x: 360, y: 60, homeX: 360, homeY: 60, caveX: 328, caveY: 60, color: '#a7f3d0' });
+    const alarmMob = new Mob(104, 60, 'hog', '#9a6b4f', 1);
+    alarmMob.speed = 0; alarmMob.behaviorTimer = 999;
+    villageAlarm.interactiveObjects = [nearTrader, farTrader];
+    villageAlarm.mobs = [alarmMob];
+    const farOwnDistance = Math.hypot((alarmMob.x + alarmMob.w / 2) - (farTrader.x + farTrader.w / 2), (alarmMob.y + alarmMob.h / 2) - (farTrader.y + farTrader.h / 2));
+    assertEquals(true, farOwnDistance > villageAlarm.getVillagerThreatRadius(), "Far villager fixture starts outside its own personal mob radius");
+    assertEquals(true, !!villageAlarm.getVillagerShelterSignal(farTrader).threat, "Village-wide alarm sends every villager to caves when one mob reaches the village");
+    const beforeFarAlarmX = farTrader.x;
+    villageAlarm.updateVillagerShelterStates();
+    assertEquals(true, nearTrader.x < 96, "Near villager starts retreating from the alarm mob");
+    assertEquals(true, farTrader.x < beforeFarAlarmX, "Far villager also starts retreating because the village alarm is active");
+    for (let i = 0; i < 40 && !(nearTrader.hiddenInCave && farTrader.hiddenInCave); i++) villageAlarm.updateVillagerShelterStates();
+    assertEquals(true, nearTrader.hiddenInCave, "Near villager reaches the cave during village alarm");
+    assertEquals(true, farTrader.hiddenInCave, "Far villager reaches the cave during village alarm");
+    villageAlarm.mobs = [];
+    nearTrader.panicTimer = 0;
+    farTrader.panicTimer = 0;
+    villageAlarm.updateVillagerShelterStates();
+    assertEquals(false, nearTrader.hiddenInCave, "Near villager comes back out when the village alarm clears");
+    assertEquals(false, farTrader.hiddenInCave, "Far villager comes back out when the village alarm clears");
+
     const homeGuard = new NPC({ id: 'home-guard', name: 'Home Guard', profession: 'Guard', type: 'npc', x: 250, y: 60, color: '#cbd5e1', homeX: 250, homeY: 60, caveX: 24, caveY: 60, hiddenInCave: true });
     homeGuard.x = homeGuard.caveX + 10;
     homeGuard.panicTimer = 0;
