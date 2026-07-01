@@ -2538,10 +2538,11 @@ class NPC extends InteractiveObject {
       this.stepTowardCave(2.2);
     } else if (!goingHome && this.hiddenInCave) {
       if (typeof game.releaseNPCFromCave === 'function') {
-        game.releaseNPCFromCave(this);
+        game.releaseNPCFromCave(this, { returnHome: true });
       } else {
         this.hiddenInCave = false;
-        if (Number.isFinite(this.caveX)) this.x = this.caveX + 10;
+        if (Number.isFinite(this.homeX)) this.x = this.homeX;
+        else if (Number.isFinite(this.caveX)) this.x = this.caveX + 10;
         if (Number.isFinite(this.homeY)) this.y = this.homeY;
         if (this.rescuePending && typeof game.grantVillageRescueReward === 'function') {
           game.grantVillageRescueReward(this, this.shelterReason || "danger");
@@ -2553,7 +2554,7 @@ class NPC extends InteractiveObject {
         this.proximity = false;
       }
       if (typeof ComicBubbles !== 'undefined') {
-        ComicBubbles.spawn(this.caveX + 16, this.caveY - 4, "Trading?", "rounded", this.color, -0.35, { maxLife: 80 });
+        ComicBubbles.spawn(this.x + this.w / 2, this.y - 4, "Trading?", "rounded", this.color, -0.35, { maxLife: 80 });
       }
     } else if (!goingHome && !this.hiddenInCave && this.rescuePending && typeof game.releaseNPCFromCave === 'function') {
       game.releaseNPCFromCave(this, { returnHome: true });

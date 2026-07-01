@@ -7580,6 +7580,7 @@ function runCombatTests() {
     npc.panicTimer = 0;
     npc.update(g);
     assertEquals(false, npc.hiddenInCave, "Villager comes out when danger clears");
+    assertEquals(100, npc.x, "Cleared mob danger returns the villager to the village home");
     renderTestResult(SUITE, "Villagers: mobs attack and villagers run to caves", true);
   } catch (err) {
     renderTestResult(SUITE, "Villagers: mobs attack and villagers run to caves", false, err.message);
@@ -7743,7 +7744,7 @@ function runCombatTests() {
     loopRelease.updateVillagerShelterStates();
     assertEquals(false, loopNpc.hiddenInCave, "Game loop shelter pass releases a hidden villager when danger is gone");
     assertEquals(0, loopNpc.panicTimer, "Cleared danger cancels stale panic instead of hiding the villager offscreen");
-    assertEquals(82, loopNpc.x, "Normal cave release starts the villager at the cave mouth");
+    assertEquals(130, loopNpc.x, "Normal cave release returns the villager to the village home");
     assertEquals(7, loopRelease.researchXP, "Loop release grants the rescue XP once the villager returns");
 
     const loopTurnBack = new StarHopperGame();
@@ -7781,6 +7782,7 @@ function runCombatTests() {
     directRelease.mobs = [];
     directNpc.update(directRelease);
     assertEquals(false, directNpc.hiddenInCave, "NPC update also releases a hidden villager when danger clears");
+    assertEquals(130, directNpc.x, "NPC update release returns a hidden villager to the village home");
     assertEquals(0, directNpc.panicTimer, "NPC update clears stale panic once no mob is near the village");
     assertEquals(0, directNpc.caveCooldown, "NPC update uses the shared cave release cleanup");
     assertEquals(false, directNpc.proximity, "NPC update clears stale cave proximity after release");
@@ -7835,6 +7837,7 @@ function runCombatTests() {
     nightGame.getEarthDayNightPhase = () => ({ t: 0.5, daylight: 1, isDay: true, sunX: 0.5, sunY: 0.34 });
     nightGame.updateVillagerShelterStates();
     assertEquals(false, nightNpc.hiddenInCave, "Daylight after survival-off brings the villager back out");
+    assertEquals(120, nightNpc.x, "Daylight after survival-off returns the villager to the village home");
     assertEquals(null, nightNpc.shelterReason, "Daylight after survival-off clears the cave reason");
     assertEquals(true, nightGame.canNPCTrade(nightNpc), "Daylight-returned villager can trade again");
     assertEquals(7, nightGame.researchXP, "The rescue reward waits until the villager actually returns");
@@ -7870,6 +7873,7 @@ function runCombatTests() {
     g.getEarthDayNightPhase = () => ({ t: 0.5, daylight: 1, isDay: true, sunX: 0.5, sunY: 0.34 });
     g.updateVillagerShelterStates();
     assertEquals(false, npc.hiddenInCave, "Villager comes out in daylight");
+    assertEquals(100, npc.x, "Daylight returns the villager to the village home");
     assertEquals(null, npc.shelterReason, "Daylight clears the night shelter reason");
     assertEquals(0, g.researchXP || 0, "Daylight release from night shelter does not award rescue XP");
     const partialNightNpc = new NPC({ id: 'partial-night', name: 'Partial Night', profession: 'Miner', type: 'npc', x: 140, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60 });
@@ -7899,6 +7903,7 @@ function runCombatTests() {
     loadGame.getEarthDayNightPhase = () => ({ t: 0.5, daylight: 1, isDay: true, sunX: 0.5, sunY: 0.34 });
     loadedNpc.update(loadGame);
     assertEquals(false, loadedNpc.hiddenInCave, "Night-loaded villager comes out at daylight");
+    assertEquals(loadedNpc.homeX, loadedNpc.x, "Night-loaded villager returns to its village home at daylight");
     assertEquals(0, loadGame.researchXP, "Daylight release from night shelter does not award rescue XP");
     renderTestResult(SUITE, "Villagers: Earth night and day controls caves", true);
   } catch (err) {

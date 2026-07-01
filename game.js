@@ -1076,7 +1076,7 @@ class StarHopperGame {
         this.releaseNPCFromCave(obj, { returnHome: true });
         touchNeedsSync = true;
       } else if (obj.hiddenInCave && (obj.panicTimer || 0) <= 0) {
-        this.releaseNPCFromCave(obj);
+        this.releaseNPCFromCave(obj, { returnHome: true });
         touchNeedsSync = true;
       } else if (!obj.hiddenInCave && obj.shelterReason === "night" && !obj.rescuePending) {
         obj.shelterReason = null;
