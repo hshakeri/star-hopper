@@ -5271,7 +5271,13 @@ function runRetryRemixTests() {
 
   // Test R11c: Frontier records keep the best local clear and expose the share code.
   const oldGetElementByIdR11c = document.getElementById;
+  const oldBubblePopR11c = ComicBubbles.pop;
+  const oldParticleBurstR11c = Particles.spawnBurst;
   try {
+    const shareLabels = [];
+    let shareBursts = 0;
+    ComicBubbles.pop = (x, y, text) => { shareLabels.push(text); };
+    Particles.spawnBurst = () => { shareBursts++; };
     const g = new StarHopperGame();
     g.getTodayDateStr = () => "2026-06-30";
     g.planetClears = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 };
@@ -5420,10 +5426,20 @@ function runRetryRemixTests() {
     });
     const leadingTarget = g.getFrontierRivalTarget(frontier);
     assertEquals("leading", leadingTarget.state, "A stronger local clear flips the rival target into leading state");
+    const shareEffect = g.spawnFrontierShareEffect(g.getFrontierShareText(frontier), { copied: true });
+    assertEquals("FRONTIER COPIED!", shareEffect.label, "Copying a Frontier line should create a visible share payoff");
+    assertEquals(frontier.shareCode, shareEffect.shareCode, "Share payoff should remember the Frontier code");
+    assertEquals("FRONTIER LINE COPIED: send it to a classmate", g.missionBalloon && g.missionBalloon.text, "Share payoff should write to the Mission CRT");
+    assertEquals(true, shareLabels.includes("FRONTIER COPIED!"), "Share payoff should pop an in-world copy cue");
+    assertEquals(true, shareBursts > 0, "Share payoff should spawn particles");
     document.getElementById = oldGetElementByIdR11c;
+    ComicBubbles.pop = oldBubblePopR11c;
+    Particles.spawnBurst = oldParticleBurstR11c;
     renderTestResult(SUITE, "Frontier Records: local best and class board", true);
   } catch (err) {
     document.getElementById = oldGetElementByIdR11c;
+    ComicBubbles.pop = oldBubblePopR11c;
+    Particles.spawnBurst = oldParticleBurstR11c;
     renderTestResult(SUITE, "Frontier Records: local best and class board", false, err.message);
   }
 

@@ -1158,16 +1158,55 @@ class StarHopperGame {
     const text = this.getFrontierShareText();
     if (!text) return false;
     const done = () => {
-      if (typeof ui_log_output === 'function') ui_log_output(`Frontier code ready to share: ${text}`, "success");
+      this.spawnFrontierShareEffect(text, { copied: true });
     };
     if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
       navigator.clipboard.writeText(text).then(done).catch(() => {
-        if (typeof ui_log_output === 'function') ui_log_output(text, "info");
+        this.spawnFrontierShareEffect(text, { copied: false });
       });
       return true;
     }
-    if (typeof ui_log_output === 'function') ui_log_output(text, "info");
+    this.spawnFrontierShareEffect(text, { copied: false });
     return false;
+  }
+
+  spawnFrontierShareEffect(text, options = {}) {
+    const shareText = String(text || "").trim();
+    if (!shareText) return null;
+    const copied = !!options.copied;
+    const match = shareText.match(/\b(FRONTIER-[A-Z]+-\d{4})\b/i);
+    const shareCode = match ? match[1].toUpperCase() : "";
+    const label = copied ? "FRONTIER COPIED!" : "SHARE READY!";
+    const monitorText = copied
+      ? "FRONTIER LINE COPIED: send it to a classmate"
+      : "FRONTIER LINE READY: copy it for a classmate";
+    const px = this.player
+      ? (Number.isFinite(this.player.x) ? this.player.x : 0) + (Number.isFinite(this.player.w) ? this.player.w : 24) / 2
+      : 0;
+    const py = this.player
+      ? (Number.isFinite(this.player.y) ? this.player.y : 0) + (Number.isFinite(this.player.h) ? this.player.h : 32) / 2
+      : 0;
+    const effect = { label, monitorText, shareCode, text: shareText, copied, x: px, y: py };
+    this.lastFrontierShareEffect = effect;
+
+    if (typeof ui_log_output === 'function') {
+      ui_log_output(copied ? `Frontier code ready to share: ${shareText}` : shareText, copied ? "success" : "info");
+    }
+    if (typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+      ComicBubbles.pop(px, py - 44, label, copied ? "#facc15" : "#c4b5fd", 1.04);
+    }
+    if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+      Particles.spawnBurst(px, py - 8, copied ? "#facc15" : "#c4b5fd", 14, 2.4, 2.1, "glow");
+      Particles.spawnBurst(px, py - 8, "#67e8f9", 6, 1.8, 1.6, "glow");
+    }
+    if (typeof this.showMissionBalloon === 'function') {
+      this.showMissionBalloon(monitorText, {
+        title: "FRONTIER CRT",
+        color: copied ? "#facc15" : "#c4b5fd",
+        timer: 260
+      });
+    }
+    return effect;
   }
 
   refreshFrontierRecordBanner(frontier = null) {
