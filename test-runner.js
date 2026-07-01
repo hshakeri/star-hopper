@@ -9296,6 +9296,36 @@ function runCombatTests() {
     cavePathGame.updateVillagerShelterStates();
     assertEquals(false, pathNpc.hiddenInCave, "Villager can come back out once the cave-route mob clears");
 
+    const cycleGame = new StarHopperGame();
+    cycleGame.state = 'playing'; cycleGame.currentPlanetIndex = 0; cycleGame.currentPlanet = PLANETS[0];
+    cycleGame.player = new Player(0, 0);
+    cycleGame.getEarthDayNightPhase = () => ({ t: 0.5, daylight: 1, isDay: true, sunX: 0.5, sunY: 0.34 });
+    const cycleNpc = new NPC({ id: 'cycle-watch', name: 'Cycle Watch', profession: 'Guard', type: 'npc', x: 92, y: 60, homeX: 150, homeY: 60, caveX: 72, caveY: 60, color: '#cbd5e1' });
+    cycleNpc.returningFromCave = true;
+    cycleNpc.returningFromCaveTimer = 120;
+    cycleGame.interactiveObjects = [cycleNpc];
+    cycleGame.mobs = [new Mob(96, 60, 'hog', '#9a6b4f', 1)];
+    cycleGame.updateVillagerShelterStates();
+    assertEquals(false, !!cycleNpc.returningFromCave, "A new close mob interrupts cave-exit walking");
+    assertEquals("nearby mob", cycleNpc.shelterReason, "Interrupted cave-exit switches back to mob shelter state");
+    for (let i = 0; i < 40 && !cycleNpc.hiddenInCave; i++) cycleGame.updateVillagerShelterStates();
+    assertEquals(true, cycleNpc.hiddenInCave, "Interrupted cave-exit parks the villager back inside the cave");
+    cycleGame.mobs = [];
+    cycleNpc.panicTimer = 0;
+    cycleGame.updateVillagerShelterStates();
+    assertEquals(false, cycleNpc.hiddenInCave, "Clearing the second mob danger brings the villager out again");
+    assertEquals(true, !!cycleNpc.returningFromCave, "Clear danger restarts the visible cave-exit walk");
+    for (let i = 0; i < 160 && cycleNpc.returningFromCave; i++) cycleNpc.update(cycleGame);
+    assertEquals(true, cycleGame.canNPCTrade(cycleNpc), "Returned villager becomes tradeable after the danger cycle");
+    cycleGame.getEarthDayNightPhase = () => ({ t: 0, daylight: 0.1, isDay: false, sunX: 0.1, sunY: 0.2 });
+    cycleGame.updateVillagerShelterStates();
+    assertEquals("night", cycleNpc.shelterReason, "Earth night takes over after a cleared mob cycle");
+    for (let i = 0; i < 40 && !cycleNpc.hiddenInCave; i++) cycleGame.updateVillagerShelterStates();
+    assertEquals(true, cycleNpc.hiddenInCave, "Night sends the returned villager back into the cave");
+    cycleGame.getEarthDayNightPhase = () => ({ t: 0.5, daylight: 1, isDay: true, sunX: 0.5, sunY: 0.34 });
+    cycleGame.updateVillagerShelterStates();
+    assertEquals(false, cycleNpc.hiddenInCave, "Daylight after night brings the villager out again");
+
     const npc = new NPC({ id: 'caver', name: 'Caver', profession: 'Miner', type: 'npc', x: 100, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60 });
     const mob = new Mob(102, 60, 'hog', '#9a6b4f', 1);
     mob.speed = 0; mob.behaviorTimer = 999;
