@@ -4299,7 +4299,9 @@ class StarHopperGame {
         body: item.body || "",
         reward: item.reward || "",
         cta: item.cta || "",
-        action: item.action || null
+        action: item.action || null,
+        cardId: item.cardId || null,
+        preserveReflectionContext: !!item.preserveReflectionContext
       });
     };
 
@@ -4309,7 +4311,8 @@ class StarHopperGame {
         title: replayContract.title,
         body: replayContract.body,
         reward: replayContract.reward,
-        cta: replayContract.cta
+        cta: replayContract.cta,
+        action: "replay"
       });
     }
 
@@ -4319,7 +4322,9 @@ class StarHopperGame {
         title: explainPrompt.title,
         body: explainPrompt.question,
         reward: explainPrompt.reward || "Reward: notebook proof + Research XP",
-        cta: explainPrompt.cta
+        cta: explainPrompt.cta,
+        action: "explain",
+        preserveReflectionContext: !!explainPrompt.preserveReflectionContext
       });
     }
 
@@ -4330,7 +4335,8 @@ class StarHopperGame {
         title: story.title,
         body: story.body,
         reward: storyUnlock ? (story.progress || "Story chapter decoded") : `Decode: ${story.concept || story.progress || "next chapter"}`,
-        cta: storyUnlock ? "READ SIGNAL" : "NEXT CHAPTER"
+        cta: storyUnlock ? "READ SIGNAL" : "NEXT CHAPTER",
+        action: "story"
       });
     }
 
@@ -4355,7 +4361,9 @@ class StarHopperGame {
         title: aiDeck.nextCard.title,
         body: aiAction.body || aiDeck.nextCard.next || "Run the next behavior proof and watch the state change.",
         reward: `${aiDeck.earnedCount}/${aiDeck.total} AI states logged · ${aiDeck.nextCard.concept || "state machine"}`,
-        cta: aiAction.label || "RUN STATE"
+        cta: aiAction.label || "RUN STATE",
+        action: "ai-state",
+        cardId: aiDeck.nextCard.id
       });
     }
 
@@ -4388,6 +4396,23 @@ class StarHopperGame {
       source: "clear-lab-chain",
       color: "#bef264"
     });
+  }
+
+  runClearObjectiveQueueAction(priorityOrAction = 1) {
+    const queue = Array.isArray(this.lastClearObjectiveQueue) ? this.lastClearObjectiveQueue : [];
+    const item = typeof priorityOrAction === "number"
+      ? queue.find(entry => entry && entry.priority === priorityOrAction)
+      : queue.find(entry => entry && entry.action === priorityOrAction);
+    if (!item || !item.action) return false;
+    if (item.action === "replay") return this.runClearReplayContract(this.lastClearReplayContract);
+    if (item.action === "explain") return this.runClearExplainPrompt({ preserveReflectionContext: !!item.preserveReflectionContext });
+    if (item.action === "lab-chain") return this.runClearLabChainTarget(this.lastClearLabChainTarget);
+    if (item.action === "ai-state") return this.runClearCadetAIAction(item.cardId || null);
+    if (item.action === "story") {
+      if (typeof switchMainMode === 'function') switchMainMode('notebook');
+      return true;
+    }
+    return false;
   }
 
   runClearReplayContract(contract = this.lastClearReplayContract) {
@@ -7040,7 +7065,7 @@ class StarHopperGame {
             <strong>${safe(item.title)}</strong>
             <p>${safe(item.body)}</p>
             ${(item.reward || item.cta) ? `<em>${safe(`${item.reward || "Reward ready"}${item.cta ? ` · ${item.cta}` : ""}`)}</em>` : ""}
-            ${item.action === "lab-chain" ? `<button type="button" class="clear-objective-action-btn" onclick="if (window.Game) window.Game.runClearLabChainTarget()">${safe(item.cta || "STAGE CHAIN")}</button>` : ""}
+            ${item.action ? `<button type="button" class="clear-objective-action-btn" onclick="if (window.Game) window.Game.runClearObjectiveQueueAction(${item.priority})">${safe(item.cta || "RUN")}</button>` : ""}
           </div>
         `).join("")}
       </div>
