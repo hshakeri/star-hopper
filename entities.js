@@ -2537,14 +2537,21 @@ class NPC extends InteractiveObject {
     if (goingHome && !this.hiddenInCave) {
       this.stepTowardCave(2.2);
     } else if (!goingHome && this.hiddenInCave) {
-      this.hiddenInCave = false;
-      if (Number.isFinite(this.caveX)) this.x = this.caveX + 10;
-      if (Number.isFinite(this.homeY)) this.y = this.homeY;
-      if (this.rescuePending && typeof game.grantVillageRescueReward === 'function') {
-        game.grantVillageRescueReward(this, this.shelterReason || "danger");
+      if (typeof game.releaseNPCFromCave === 'function') {
+        game.releaseNPCFromCave(this);
+      } else {
+        this.hiddenInCave = false;
+        if (Number.isFinite(this.caveX)) this.x = this.caveX + 10;
+        if (Number.isFinite(this.homeY)) this.y = this.homeY;
+        if (this.rescuePending && typeof game.grantVillageRescueReward === 'function') {
+          game.grantVillageRescueReward(this, this.shelterReason || "danger");
+        }
+        this.rescuePending = false;
+        this.shelterReason = null;
+        this.panicTimer = 0;
+        this.caveCooldown = 0;
+        this.proximity = false;
       }
-      this.rescuePending = false;
-      this.shelterReason = null;
       if (typeof ComicBubbles !== 'undefined') {
         ComicBubbles.spawn(this.caveX + 16, this.caveY - 4, "Trading?", "rounded", this.color, -0.35, { maxLife: 80 });
       }

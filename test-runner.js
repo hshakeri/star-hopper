@@ -7099,13 +7099,20 @@ function runCombatTests() {
     directRelease.masteryMeters = {};
     const directNpc = new NPC({ id: 'direct-release', name: 'Direct Release', profession: 'Miner', type: 'npc', x: 130, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60, hiddenInCave: true });
     directNpc.panicTimer = 90;
+    directNpc.caveCooldown = 24;
+    directNpc.proximity = true;
     directNpc.rescuePending = true;
     directNpc.shelterReason = "nearby mob";
     directRelease.interactiveObjects = [directNpc];
+    directRelease.activeNPC = directNpc;
     directRelease.mobs = [];
     directNpc.update(directRelease);
     assertEquals(false, directNpc.hiddenInCave, "NPC update also releases a hidden villager when danger clears");
     assertEquals(0, directNpc.panicTimer, "NPC update clears stale panic once no mob is near the village");
+    assertEquals(0, directNpc.caveCooldown, "NPC update uses the shared cave release cleanup");
+    assertEquals(false, directNpc.proximity, "NPC update clears stale cave proximity after release");
+    assertEquals(null, directRelease.activeNPC, "NPC update release closes stale trade focus");
+    assertEquals(7, directRelease.researchXP, "NPC update release records the rescue proof once");
 
     const directTurnBack = new StarHopperGame();
     directTurnBack.state = 'playing'; directTurnBack.currentPlanetIndex = 1; directTurnBack.currentPlanet = PLANETS[1];
