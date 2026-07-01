@@ -3263,6 +3263,7 @@ function runEngineTests() {
     assertEquals("TRIPLE TEST", cue.milestoneLabel, "Active lab-chain HUD should name the next milestone");
     assertEquals(6, cue.reward, "Active lab-chain HUD should show the next milestone XP");
     assertEquals("NEXT PAYS", cue.ruleChip, "Active lab-chain HUD should explain that the next fresh proof pays");
+    assertEquals("1 FRESH TEST -> +6 XP", cue.contractLine, "Active lab-chain HUD should turn the next milestone into a visible reward contract");
     assertEquals(3, cue.pipTotal, "Active lab-chain HUD should size pips to the next milestone");
     assertEquals(2, cue.pipFilled, "Active lab-chain HUD should fill pips for earned fresh experiments");
 
@@ -3281,6 +3282,7 @@ function runEngineTests() {
     const drawn = game.drawLabChainRunCue(fakeCtx);
     assertEquals("TRIPLE TEST", drawn.milestoneLabel, "Drawing should return the same lab-chain cue");
     assertEquals(true, labels.includes("NEXT PAYS"), "Drawing should write the active lab-chain rule chip");
+    assertEquals(true, labels.includes("1 FRESH TEST -> +6 XP"), "Drawing should write the next reward contract");
     assertEquals(true, fillTextCount >= 3, "Drawing should write the label, title, and next-step copy");
     assertEquals("LAB CHAIN", game.lastLabChainRunCue && game.lastLabChainRunCue.label, "Drawing should cache the visible lab-chain cue");
 
@@ -3289,6 +3291,7 @@ function runEngineTests() {
     assertEquals("CHAIN PAUSED", pausedCue.label, "Repeat progress should show the paused chain state");
     assertEquals("paused", pausedCue.state, "Paused lab-chain HUD should not look like an active reward");
     assertEquals("NO REPEATS", pausedCue.ruleChip, "Paused lab-chain HUD should explain why repeat commands do not extend the chain");
+    assertEquals("FRESH TEST ONLY", pausedCue.contractLine, "Paused lab-chain HUD should explain what kind of action restarts the reward contract");
     assertEquals(true, /Fresh evidence/.test(pausedCue.title), "Paused lab-chain HUD should explain the next valid move");
     game.state = 'start';
     assertEquals(null, game.getLabChainRunCue(), "Lab-chain HUD should stay out of the start screen");
