@@ -8016,6 +8016,21 @@ class StarHopperGame {
     return matchedLines[matchedLines.length - 1] || assignmentLines[assignmentLines.length - 1] || lines[0] || "";
   }
 
+  getCommandFormulaChip(commandLine, cueText = "") {
+    const text = `${commandLine || ""} ${cueText || ""}`.toLowerCase();
+    if (/mass/.test(text)) return "F/m=a";
+    if (/engine|rocket_power|thrust/.test(text)) return "F->motion";
+    if (/jump_power|\bjump\b/.test(text)) return "F->jump";
+    if (/anti-?gravity|gravity/.test(text)) return "g->airtime";
+    if (/friction|spikes|grip|slide/.test(text)) return "grip->slide";
+    if (/chance|probability|trial/.test(text)) return "p=pass";
+    if (/repeat|spawn_/.test(text)) return "loop*n";
+    if (/when|touching|if /.test(text)) return "if->then";
+    if (/magnet|pole/.test(text)) return "field->force";
+    if (/elastic/.test(text)) return "bounce";
+    return "";
+  }
+
   syncScienceBreadcrumbNextExperiment(delta, nextExperiment = null) {
     if (!delta || !this.scienceBreadcrumbEffects || !this.scienceBreadcrumbEffects.length) return 0;
     const nextCue = this.getScienceBreadcrumbNextData(nextExperiment || delta.nextExperiment);
@@ -8359,6 +8374,7 @@ class StarHopperGame {
     const itemBody = String(item.body || "").trim();
     const commandContext = `${item.title || ""} ${itemBody} ${item.reward || ""}`;
     const commandLine = this.getSalientCommandLine(item.command || "", commandContext);
+    const formulaChip = this.getCommandFormulaChip(commandLine, commandContext);
     const reasonLine = commandLine && itemBody && itemBody !== commandLine ? itemBody : "";
     const progressInfo = item.progress && typeof item.progress === "object" ? item.progress : null;
     const progressValue = progressInfo && Number.isFinite(Number(progressInfo.value))
@@ -8377,6 +8393,7 @@ class StarHopperGame {
       reasonLine,
       reward: item.reward || "",
       commandLine,
+      formulaChip,
       kind: item.kind || "objective",
       source: item.source || "run-objective-queue",
       color: item.color || "#67e8f9",
@@ -8460,7 +8477,27 @@ class StarHopperGame {
     ctx.textAlign = "left";
     ctx.fillStyle = "#f8fafc";
     ctx.font = "bold 9px 'Share Tech Mono', monospace";
-    ctx.fillText(this.fitCardText(ctx, cue.title, w - 18), x + 9, y + 26);
+    const hasFormulaChip = !!cue.formulaChip;
+    const formulaText = hasFormulaChip ? String(cue.formulaChip) : "";
+    const formulaChipW = hasFormulaChip ? Math.max(44, Math.min(82, Math.ceil(16 + formulaText.length * 6))) : 0;
+    if (hasFormulaChip) {
+      const chipX = x + w - formulaChipW - 8;
+      ctx.fillStyle = "rgba(15, 23, 42, 0.68)";
+      ctx.strokeStyle = cue.disabled ? "rgba(203, 213, 225, 0.38)" : "#fef08a";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(chipX, y + 19, formulaChipW, 12, 4);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = cue.disabled ? "#e2e8f0" : "#fef08a";
+      ctx.font = "bold 6px 'Share Tech Mono', monospace";
+      ctx.textAlign = "center";
+      ctx.fillText(this.fitCardText(ctx, formulaText, formulaChipW - 8), chipX + formulaChipW / 2, y + 25);
+      ctx.textAlign = "left";
+      ctx.fillStyle = "#f8fafc";
+      ctx.font = "bold 9px 'Share Tech Mono', monospace";
+    }
+    ctx.fillText(this.fitCardText(ctx, cue.title, hasFormulaChip ? w - formulaChipW - 26 : w - 18), x + 9, y + 26);
     ctx.fillStyle = cue.disabled ? "#e2e8f0" : "#bbf7d0";
     ctx.font = "7px 'Share Tech Mono', monospace";
     ctx.fillText(this.fitCardText(ctx, cue.body, w - 18), x + 9, y + 39);
