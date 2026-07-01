@@ -5703,8 +5703,13 @@ function updateDiscoveryPulse(game) {
     ? String(formulaProgress.nextCommand).trim()
     : "";
   const formulaNextCommandLabel = formulaNextCommand.replace(/\s+/g, " ");
+  const formulaNextAxis = formulaProgress && formulaProgress.nextAxis ? String(formulaProgress.nextAxis) : "";
+  const formulaNextPayoff = formulaProgress && formulaProgress.nextPayoff ? String(formulaProgress.nextPayoff) : "";
+  const formulaNextWhy = !formulaProgress || formulaProgress.complete
+    ? ""
+    : `<span><b>LEARN</b>${escapeHTML(formulaNextAxis || "Next science idea")}</span><span><b>WIN</b>${escapeHTML(formulaNextPayoff || "Collect the next formula card")}</span>`;
   const formulaDeckNext = formulaProgress
-    ? `<div class="discovery-hypothesis discovery-formula-next">${escapeHTML(formulaProgress.label || "FORMULA CARD")} · ${formulaProgress.complete ? "Deck complete" : `Next: ${escapeHTML(formulaProgress.nextTitle || "Formula Deck")}`}${formulaNextCommand ? ` · Try <code>${escapeHTML(formulaNextCommandLabel)}</code><button type="button" class="discovery-formula-stage-btn" data-formula-next-command="${escapeHTML(formulaNextCommand)}" data-formula-next-title="${escapeHTML(formulaProgress.nextTitle || "Next formula")}">STAGE CARD</button>` : ""}</div>`
+    ? `<div class="discovery-hypothesis discovery-formula-next"><strong>${escapeHTML(formulaProgress.label || "FORMULA CARD")} · ${formulaProgress.complete ? "Deck complete" : `Next: ${escapeHTML(formulaProgress.nextTitle || "Formula Deck")}`}</strong>${formulaNextWhy ? `<div class="discovery-formula-next-why">${formulaNextWhy}</div>` : ""}${formulaNextCommand ? `<div class="discovery-formula-next-code">Try <code>${escapeHTML(formulaNextCommandLabel)}</code><button type="button" class="discovery-formula-stage-btn" data-formula-next-command="${escapeHTML(formulaNextCommand)}" data-formula-next-title="${escapeHTML(formulaProgress.nextTitle || "Next formula")}">STAGE CARD</button></div>` : ""}</div>`
     : "";
   const aiStateDeckMastery = pulse.aiStateDeckMastery
     ? `<div class="discovery-hypothesis discovery-ai-state">${escapeHTML(pulse.aiStateDeckMastery.label || "AI DECK MASTERED")} +${escapeHTML(String(pulse.aiStateDeckMastery.rewardXP || 0))} XP · ${escapeHTML(String(pulse.aiStateDeckMastery.count || 0))}/${escapeHTML(String(pulse.aiStateDeckMastery.total || 0))} states</div>`

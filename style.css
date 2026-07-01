@@ -4224,6 +4224,59 @@ html {
   background: rgba(120, 53, 15, 0.72);
   box-shadow: 0 0 8px rgba(251, 191, 36, 0.18);
 }
+.discovery-formula-next {
+  display: grid;
+  gap: 4px;
+  max-width: min(100%, 520px);
+  border-color: rgba(250, 204, 21, 0.56);
+  background:
+    linear-gradient(135deg, rgba(120, 53, 15, 0.52), rgba(15, 23, 42, 0.72)),
+    rgba(69, 26, 3, 0.34);
+  color: #fef3c7;
+  box-shadow: 0 0 12px rgba(250, 204, 21, 0.14);
+}
+.discovery-formula-next > strong {
+  color: #fef08a;
+  font-size: 0.62rem;
+  font-weight: 900;
+}
+.discovery-formula-next-why {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.discovery-formula-next-why span {
+  border: 1px solid rgba(103, 232, 249, 0.28);
+  border-radius: 4px;
+  background: rgba(8, 47, 73, 0.42);
+  color: #dff6ff;
+  padding: 2px 5px;
+}
+.discovery-formula-next-why b {
+  color: #67e8f9;
+  display: inline-block;
+  font-size: 0.5rem;
+  margin-right: 4px;
+}
+.discovery-formula-next-code {
+  color: #fde68a;
+}
+.discovery-formula-stage-btn {
+  border: 1px solid rgba(250, 204, 21, 0.58);
+  border-radius: 4px;
+  background: rgba(69, 26, 3, 0.62);
+  color: #fef3c7;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  font-weight: 900;
+  margin-left: 6px;
+  padding: 2px 5px;
+}
+.discovery-formula-stage-btn:hover {
+  background: rgba(146, 64, 14, 0.78);
+  box-shadow: 0 0 8px rgba(250, 204, 21, 0.2);
+}
 .discovery-perk {
   border-color: rgba(250, 204, 21, 0.46);
   background: rgba(113, 63, 18, 0.36);
@@ -10189,6 +10242,7 @@ body.readable-text-mode .discovery-pulse-body,
 body.readable-text-mode .discovery-pulse-foot,
 body.readable-text-mode .discovery-hypothesis,
 body.readable-text-mode .discovery-phase-stage-btn,
+body.readable-text-mode .discovery-formula-stage-btn,
 body.readable-text-mode .discovery-chain-next span,
 body.readable-text-mode .discovery-chain-next p,
 body.readable-text-mode .run-replay-contract-head,

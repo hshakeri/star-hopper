@@ -2182,6 +2182,8 @@ function runEngineTests() {
     assertEquals("Engine Lab", firstPulse.formulaDeckProgress.nextTitle, "Discovery pulse should expose the next formula card target");
     assertEquals("hopper.engine = 7", game.formulaCardEffects[0].nextCommand, "Formula card effect should carry the next deck command");
     assertEquals("hopper.engine = 7", firstPulse.formulaDeckProgress.nextCommand, "Discovery pulse should expose the next formula card command");
+    assertEquals("Force changes speed", firstPulse.formulaDeckProgress.nextAxis, "Discovery pulse should expose the next card science axis");
+    assertEquals("Beat Agility gates", firstPulse.formulaDeckProgress.nextPayoff, "Discovery pulse should expose the next card game payoff");
     const formulaLabels22b = [];
     game.canvas = { width: 720, height: 448 };
     const formulaCtx22b = {
@@ -2195,6 +2197,8 @@ function runEngineTests() {
     assertEquals(true, formulaLabels22b.includes("TRY hopper.engine = 7"), "Formula card draw should write the next runnable command");
     assertEquals(true, pulsePanel22b.innerHTML.includes(`CARD 1/${formulaDeckTotal22b}`), "Discovery Pulse should show formula deck progress after a card unlock");
     assertEquals(true, /Next: Engine Lab/.test(pulsePanel22b.innerHTML), "Discovery Pulse should show the next formula card target");
+    assertEquals(true, /LEARN/.test(pulsePanel22b.innerHTML) && /Force changes speed/.test(pulsePanel22b.innerHTML), "Discovery Pulse should teach the next card science axis");
+    assertEquals(true, /WIN/.test(pulsePanel22b.innerHTML) && /Beat Agility gates/.test(pulsePanel22b.innerHTML), "Discovery Pulse should show the next card payoff");
     assertEquals(true, /Try <code>hopper\.engine = 7<\/code>/.test(pulsePanel22b.innerHTML), "Discovery Pulse should show the next runnable formula command");
     assertEquals(true, /STAGE CARD/.test(pulsePanel22b.innerHTML), "Discovery Pulse should expose a formula stage action");
     assertEquals(true, typeof formulaRewardClick === "function", "Discovery Pulse formula action should attach a click handler");

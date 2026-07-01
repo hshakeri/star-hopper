@@ -7501,12 +7501,16 @@ class StarHopperGame {
     const nextLabel = nextCard && nextCard.title ? `NEXT ${nextCard.title}` : (deckCount >= deckTotal ? "DECK COMPLETE" : "");
     const nextCommand = nextCard && nextCard.sampleCode ? String(nextCard.sampleCode).replace(/\s+/g, " ").trim() : "";
     const nextCommandLabel = nextCommand ? `TRY ${nextCommand}` : "";
+    const nextAxis = nextCard && nextCard.axis ? String(nextCard.axis) : "";
+    const nextPayoff = nextCard && nextCard.payoff ? String(nextCard.payoff) : "";
     pulse.formulaDeckProgress = {
       count: deckCount,
       total: deckTotal,
       label: deckLabel,
       nextTitle: nextCard && nextCard.title ? nextCard.title : "",
       nextCommand,
+      nextAxis,
+      nextPayoff,
       complete: deckCount >= deckTotal
     };
     const effect = {
