@@ -2233,6 +2233,7 @@ class StarHopperGame {
     const label = document.getElementById('daily-signal-label');
     const dailyCode = document.getElementById('daily-signal-code');
     const dailyBtn = document.getElementById('daily-signal-btn');
+    const frontierCode = document.getElementById('frontier-signal-code');
     const frontierBtn = document.getElementById('frontier-signal-btn');
     if (!label) return;
     const daily = this.getDailySignal();
@@ -2264,11 +2265,33 @@ class StarHopperGame {
       }
     }
     const frontier = this.getFrontierChallenge();
+    const frontierContract = frontier && frontier.labContract ? frontier.labContract : null;
+    const frontierGoal = frontier && frontier.labGoal ? frontier.labGoal : "3 Lab Stars: tasks + samples + proof";
+    const frontierCommand = frontierContract && frontierContract.command ? String(frontierContract.command).trim() : "";
+    const frontierFirstCommand = frontierCommand.split(/\n/).map(line => line.trim()).find(Boolean) || "";
+    if (frontierCode) {
+      if (frontier) {
+        frontierCode.textContent = frontierFirstCommand ? `Frontier 3★ Try: ${frontierFirstCommand}` : `Frontier 3★ ${frontierGoal}`;
+        frontierCode.title = frontierFirstCommand
+          ? `${frontierGoal} · Full contract: ${frontierCommand}`
+          : frontierGoal;
+        if (frontierCode.style) frontierCode.style.display = "inline-block";
+      } else {
+        frontierCode.textContent = "";
+        frontierCode.title = "";
+        if (frontierCode.style) frontierCode.style.display = "none";
+      }
+    }
     if (frontierBtn) {
       frontierBtn.style.display = frontier ? 'inline-flex' : 'none';
       frontierBtn.textContent = frontier ? `◆ FRONTIER T${frontier.tier}` : '◆ FRONTIER';
-      const frontierFocus = frontier && frontier.labContract ? ` · Focus: ${frontier.labContract.title} · Try: ${frontier.labContract.command}` : "";
+      const frontierFocus = frontierContract ? ` · Focus: ${frontierContract.title} · Try: ${frontierCommand}` : "";
       frontierBtn.title = frontier ? `${frontier.concept || "Physics remix"} · ${frontier.labGoal || "3 Lab Stars"} · ${frontier.label}${frontierFocus} · ${frontier.shareCode}` : 'Complete the star-map to unlock Frontier Challenge';
+      if (frontierBtn.dataset) {
+        frontierBtn.dataset.goal = frontier ? frontierGoal : "";
+        frontierBtn.dataset.focus = frontierContract && frontierContract.title ? frontierContract.title : "";
+        frontierBtn.dataset.command = frontierFirstCommand;
+      }
     }
     this.refreshFrontierRecordBanner(frontier);
     if (typeof updateStartMissionRadar === 'function') updateStartMissionRadar(this);

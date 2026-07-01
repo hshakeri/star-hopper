@@ -8321,9 +8321,10 @@ function runRetryRemixTests() {
 
     const els = {
       "daily-signal-label": { textContent: "" },
-      "frontier-signal-btn": { style: {}, textContent: "", title: "" },
+      "frontier-signal-btn": { style: {}, textContent: "", title: "", dataset: {} },
       "daily-signal-code": { textContent: "", title: "", style: {} },
       "daily-signal-btn": { textContent: "", title: "", dataset: {} },
+      "frontier-signal-code": { textContent: "", title: "", style: {} },
       "frontier-record-banner": { style: {} },
       "frontier-record-label": { textContent: "" },
       "frontier-record-detail": { textContent: "" },
@@ -8351,9 +8352,13 @@ function runRetryRemixTests() {
     assertEquals(true, /Today's frontier cleared/.test(els["frontier-record-label"].textContent), "Banner should show today's local clear");
     assertEquals(true, /Best T/.test(els["frontier-record-detail"].textContent), "Banner should show the local best tier");
     assertEquals(true, els["frontier-share-btn"].title.indexOf("FRONTIER-") >= 0, "Copy button should carry the share code");
+    assertEquals(true, els["frontier-signal-code"].textContent.indexOf(frontier.labContract.command.split("\n")[0]) >= 0, "Frontier strip should expose the first sample command");
+    assertEquals(true, /Frontier 3★ Try:/.test(els["frontier-signal-code"].textContent), "Frontier strip should frame the command as a 3-star proof attempt");
+    assertEquals("inline-block", els["frontier-signal-code"].style.display, "Frontier sample command should be visible before launch");
     assertEquals(true, /3 Lab Stars/.test(els["frontier-signal-btn"].title), "Frontier button should name the lab-star goal");
     assertEquals(true, els["frontier-signal-btn"].title.indexOf(frontier.labContract.title) >= 0, "Frontier button should name the replay lab focus");
     assertEquals(true, els["frontier-signal-btn"].title.indexOf(frontier.labContract.command.split("\n")[0]) >= 0, "Frontier button should expose the sample command");
+    assertEquals(frontier.labContract.command.split("\n")[0], els["frontier-signal-btn"].dataset.command, "Frontier start button should carry the sample command");
     assertEquals("grid", els["frontier-board"].style.display, "Frontier board should appear after star-map completion");
     assertEquals(true, /Grace/.test(els["frontier-board-list"].innerHTML), "Frontier board should render the leading imported pilot");
     assertEquals(true, /Beat Grace/.test(els["frontier-rival-copy"].textContent), "Frontier board should render a specific rival target");
