@@ -3814,6 +3814,9 @@ function updateDiscoveryPulse(game) {
   const villageTrust = pulse.villageTrust
     ? `<div class="discovery-hypothesis discovery-village-trust">${escapeHTML(pulse.villageTrust.label || "TRUST")} +${escapeHTML(String(pulse.villageTrust.added || 0))} · ${escapeHTML(pulse.villageTrust.title || "Village Trust")} (${escapeHTML(String(pulse.villageTrust.points || 0))})</div>`
     : "";
+  const villagePact = pulse.villagePactProof
+    ? `<div class="discovery-hypothesis discovery-village-trust">${escapeHTML(pulse.villagePactProof.label || "VILLAGE PACT")} +${escapeHTML(String(pulse.villagePactProof.rewardXP || 0))} XP · ${escapeHTML(pulse.villagePactProof.tier || "Village Guardian")}</div>`
+    : "";
   const rankPerk = pulse.rankPerk
     ? `<div class="discovery-hypothesis discovery-perk">LAB PERK UNLOCKED: ${escapeHTML(pulse.rankPerk.label)}</div>`
     : "";
@@ -3846,6 +3849,7 @@ function updateDiscoveryPulse(game) {
     ${villageTradeProof}
     ${petProof}
     ${villageTrust}
+    ${villagePact}
     ${rankPerk}
     ${unlockCard}
     <div class="discovery-pulse-body">${escapeHTML(pulse.insight)}</div>

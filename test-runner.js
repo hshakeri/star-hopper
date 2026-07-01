@@ -5853,6 +5853,68 @@ function runCombatTests() {
     renderTestResult(SUITE, "Trade: deducts gems, applies cap, blocks over-spend", false, err.message);
   }
 
+  // C24b: reaching the final village trust tier creates a one-time Guardian pact payoff.
+  const oldGetElementByIdC24b = document.getElementById;
+  const oldBubblePopC24b = ComicBubbles.pop;
+  const oldParticleBurstC24b = Particles.spawnBurst;
+  try {
+    const labels = [];
+    let bursts = 0;
+    const panel = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };
+    document.getElementById = (id) => id === "discovery-pulse" ? panel : null;
+    ComicBubbles.pop = (x, y, text) => { labels.push(text); };
+    Particles.spawnBurst = () => { bursts++; };
+
+    const g = new StarHopperGame();
+    g.currentPlanetIndex = 0;
+    g.currentPlanet = PLANETS[0];
+    g.player = new Player(60, 80);
+    g.researchXP = 0;
+    g.masteryMeters = {};
+    g.discoveryPassCounts = {};
+    g.discoveredFormulaKinds = new Set();
+    g.formulaCardEffects = [];
+    g.villageTrust = {
+      0: {
+        points: 9,
+        badges: ["friend", "ally"],
+        sources: { "seed:trade": 3, "seed:rescue": 4, "seed:guard": 2 }
+      }
+    };
+    const npc = { id: 'geary', name: 'Geary', profession: 'Machinist', color: '#facc15' };
+    const trade = { id: 'guardian_drill', cost: { type: 'emerald', amount: 1 }, desc: 'Guardian Drill', reward: { type: 'tool', key: 'drill', label: 'drill' } };
+    const pulse = g.grantVillageTradeProof(npc, trade);
+    assertEquals("Village Trade Proof", pulse && pulse.title, "Final-tier trade still records the trade proof");
+    assertEquals("Village Guardian", g.getVillageTrustProgress(0).title, "Final-tier trade reaches Village Guardian");
+    assertEquals("VILLAGE PACT", pulse.villagePactProof && pulse.villagePactProof.label, "Final trust tier should create a pact chip");
+    assertEquals(14, pulse.rewardXP, "Trade proof and Guardian pact XP should combine in the pulse");
+    assertEquals(14, g.researchXP, "Trade proof and Guardian pact should add Research XP once");
+    assertEquals(22, g.getWorldMasteryProgress(0).xp, "Trade proof and Guardian pact should both feed world mastery");
+    assertEquals(1, g.discoveryPassCounts[g.getVillageGuardianPactSourceKey(0)], "Guardian pact stores a one-time source");
+    assertEquals(true, g.discoveredFormulaKinds.has("state"), "Guardian pact unlocks the AI State Lab card");
+    assertEquals(1, g.formulaCardEffects.length, "Guardian pact spawns one AI State Lab card effect");
+    assertEquals("VILLAGE GUARDIAN", g.missionBalloon && g.missionBalloon.title, "Guardian pact should own the Mission CRT line");
+    assertEquals("VILLAGE PACT: +10 Research XP", g.missionBalloon && g.missionBalloon.text, "Guardian pact CRT announces the capstone XP");
+    assertEquals(true, labels.includes("VILLAGE PACT!"), "Guardian pact should pop a named capstone cue");
+    assertEquals(true, labels.includes("AI STATES MASTERED"), "Guardian pact should name the learned system");
+    assertEquals(true, bursts > 0, "Guardian pact should spawn reward particles");
+    assertEquals(true, /VILLAGE PACT \+10 XP/.test(panel.innerHTML), "Discovery Pulse should render the Guardian pact chip");
+    assertEquals(true, /VILLAGE GUARDIAN PACT/.test(panel.innerHTML), "Discovery Pulse should show the pact completion card");
+    const xpAfterFirst = g.researchXP;
+    assertEquals(null, g.grantVillageGuardianPact(pulse), "Repeating the Guardian pact should be blocked");
+    assertEquals(xpAfterFirst, g.researchXP, "Repeated Guardian pact should not farm Research XP");
+
+    document.getElementById = oldGetElementByIdC24b;
+    ComicBubbles.pop = oldBubblePopC24b;
+    Particles.spawnBurst = oldParticleBurstC24b;
+    renderTestResult(SUITE, "Trade: Village Guardian pact caps trust ladder", true);
+  } catch (err) {
+    document.getElementById = oldGetElementByIdC24b;
+    ComicBubbles.pop = oldBubblePopC24b;
+    Particles.spawnBurst = oldParticleBurstC24b;
+    renderTestResult(SUITE, "Trade: Village Guardian pact caps trust ladder", false, err.message);
+  }
+
   // C25: tool rewards from NPC trades persist and immediately equip the cadet.
   const oldBubblePopC25 = ComicBubbles.pop;
   const oldParticleBurstC25 = Particles.spawnBurst;

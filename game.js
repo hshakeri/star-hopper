@@ -337,6 +337,101 @@ class StarHopperGame {
     return result;
   }
 
+  getVillageGuardianPactSourceKey(index = this.currentPlanetIndex) {
+    const planetKey = Number.isFinite(index) ? index : 0;
+    return `village-pact:${planetKey}:guardian`;
+  }
+
+  grantVillageGuardianPact(pulse = null, options = {}) {
+    const index = Number.isFinite(options.index) ? options.index : this.currentPlanetIndex;
+    const progress = this.getVillageTrustProgress(index);
+    const finalTier = VILLAGE_TRUST_TIERS[VILLAGE_TRUST_TIERS.length - 1];
+    if (!finalTier || !progress || progress.points < finalTier.points) return null;
+    this.discoveryPassCounts = this.discoveryPassCounts || {};
+    const sourceKey = this.getVillageGuardianPactSourceKey(index);
+    if (this.discoveryPassCounts[sourceKey]) return null;
+
+    const rewardXP = 10;
+    const masteryXP = 14;
+    const color = options.color || "#facc15";
+    const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+    const mastery = typeof this.awardWorldMasteryXP === 'function'
+      ? this.awardWorldMasteryXP(masteryXP, "village guardian pact", { sourceKey, silent: true })
+      : { addedXP: 0, duplicate: false };
+    if (mastery && mastery.duplicate) {
+      this.discoveryPassCounts[sourceKey] = 1;
+      return null;
+    }
+    this.discoveryPassCounts[sourceKey] = 1;
+    this.researchXP = Math.max(0, (this.researchXP || 0) + rewardXP);
+    const afterRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+    const rankUp = !!(beforeRank && afterRank && afterRank.level > beforeRank.level);
+    const result = {
+      label: "VILLAGE PACT",
+      title: "Village Guardian Pact",
+      rewardXP,
+      worldMasteryAddedXP: mastery && Number.isFinite(mastery.addedXP) ? mastery.addedXP : 0,
+      points: progress.points,
+      tier: progress.title,
+      sourceKey
+    };
+
+    if (pulse) {
+      pulse.villagePactProof = result;
+      pulse.rewardXP = Math.max(0, (pulse.rewardXP || 0) + rewardXP);
+      pulse.worldMasteryAddedXP = Math.max(0, (pulse.worldMasteryAddedXP || 0) + result.worldMasteryAddedXP);
+      pulse.nextLabUnlock = {
+        label: "VILLAGE GUARDIAN PACT",
+        title: "State-machine village secured",
+        body: "Use pets, cave safety, and fair trades as evidence that AI states can protect a community.",
+        progress: 1
+      };
+      if (rankUp) {
+        pulse.rankUp = true;
+        pulse.rankTitle = afterRank ? afterRank.title : null;
+        pulse.rankPerk = afterRank ? afterRank.perk : null;
+      }
+      this.attachFormulaCardUnlock(pulse, "state");
+    }
+
+    if (typeof ui_log_output === 'function') {
+      const masteryText = result.worldMasteryAddedXP > 0 ? `, +${result.worldMasteryAddedXP} world mastery XP` : "";
+      ui_log_output(`Village Guardian Pact: +${rewardXP} Research XP${masteryText}.`, "success");
+    }
+    if (typeof this.showMissionBalloon === 'function') {
+      this.showMissionBalloon(`VILLAGE PACT: +${rewardXP} Research XP`, {
+        title: "VILLAGE GUARDIAN",
+        color,
+        timer: 260
+      });
+    }
+
+    const fx = options.npc || this.player;
+    if (fx && typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+      const width = Number.isFinite(fx.w) ? fx.w : 28;
+      const height = Number.isFinite(fx.h) ? fx.h : 36;
+      const x = (Number.isFinite(fx.x) ? fx.x : 0) + width / 2;
+      const y = Number.isFinite(fx.y) ? fx.y : 0;
+      ComicBubbles.pop(x, y - 64, "VILLAGE PACT!", color, 0.96);
+      ComicBubbles.pop(x, y - 44, "AI STATES MASTERED", "#a7f3d0", 0.68);
+      if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+        Particles.spawnBurst(x, y + height / 2, color, 16, 2.2, 2.1, "glow");
+        Particles.spawnBurst(x, y + height / 2, "#a7f3d0", 10, 1.6, 1.7, "glow");
+      }
+    }
+    if (rankUp && typeof showBadgeToast === 'function' && afterRank) {
+      showBadgeToast({
+        icon: "AI",
+        label: `Research Rank: ${afterRank.title}`,
+        description: `Village Guardian Pact unlocked ${afterRank.perk.label}.`
+      });
+    }
+    if (rankUp && pulse && typeof this.spawnResearchRankEffect === 'function') {
+      pulse.rankEffect = this.spawnResearchRankEffect(pulse);
+    }
+    return result;
+  }
+
   attachFormulaCardUnlock(pulse, kind) {
     if (!pulse || !kind || typeof unlockFormulaKind !== 'function') return false;
     const cardUnlocked = unlockFormulaKind(this, kind);
@@ -490,6 +585,7 @@ class StarHopperGame {
     if (rankUp && typeof this.spawnResearchRankEffect === 'function') {
       pulse.rankEffect = this.spawnResearchRankEffect(pulse);
     }
+    this.grantVillageGuardianPact(pulse, { npc, color: npc.color || "#4ade80" });
     if (typeof updateDiscoveryPulse === 'function') updateDiscoveryPulse(this);
     if (typeof updateResearchProgress === 'function') updateResearchProgress(this);
     if (typeof saveLocalProgress === 'function' && typeof window !== 'undefined' && window.Game === this) saveLocalProgress();
@@ -4568,6 +4664,7 @@ class StarHopperGame {
         timer: 230
       });
     }
+    this.grantVillageGuardianPact(pulse, { npc: fx, color });
     if (typeof updateDiscoveryPulse === 'function') updateDiscoveryPulse(this);
     if (typeof updateResearchProgress === 'function') updateResearchProgress(this);
     if (typeof saveLocalProgress === 'function' && typeof window !== 'undefined' && window.Game === this) saveLocalProgress();
@@ -5277,6 +5374,7 @@ class StarHopperGame {
         timer: 230
       });
     }
+    this.grantVillageGuardianPact(pulse, { npc, color: npc.color || "#4ade80" });
     if (typeof updateDiscoveryPulse === 'function') updateDiscoveryPulse(this);
     if (typeof updateResearchProgress === 'function') updateResearchProgress(this);
     if (typeof saveLocalProgress === 'function' && typeof window !== 'undefined' && window.Game === this) saveLocalProgress();
