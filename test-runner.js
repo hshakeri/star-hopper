@@ -2911,6 +2911,41 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: future lab roadmap tracks prep proofs", false, err.message);
   }
 
+  // Test 22cb1b: tagged future-lab runs surface a visible science cue during play.
+  try {
+    const g = new StarHopperGame();
+    g.state = 'playing';
+    g.dailyInfo = { isFrontier: true, darkMatterPrep: true };
+    let cue = g.getFutureLabRunCue();
+    assertEquals("DARK MATTER PREP", cue.label, "Dark Matter prep runs should show the hidden-force cue");
+    assertEquals("curve", cue.mode, "Dark Matter prep cue should use the curve visualization");
+    assertEquals(true, /hidden force/.test(cue.formula), "Dark Matter prep cue should name the hidden-force model");
+
+    g.dailyInfo = null;
+    g.lastStagedExperiment = { source: "start-anomaly-trace" };
+    cue = g.getFutureLabRunCue();
+    assertEquals("ANOMALY TRACE", cue.label, "Anomaly trace staging should show the field cue");
+    assertEquals("field", cue.mode, "Anomaly trace cue should use the field visualization");
+
+    g.lastStagedExperiment = { source: "start-quantum-branch" };
+    cue = g.getFutureLabRunCue();
+    assertEquals("QUANTUM PREP", cue.label, "Quantum branch staging should show the branch cue");
+    assertEquals("branch", cue.mode, "Quantum branch cue should use the split-path visualization");
+    assertEquals(true, /path A\/B/.test(cue.formula), "Quantum branch cue should name path selection");
+
+    g.lastStagedExperiment = { source: "start-quantum-chance" };
+    cue = g.getFutureLabRunCue();
+    assertEquals("QUANTUM CHANCE", cue.label, "Quantum chance staging should show the probability cue");
+    assertEquals("chance", cue.mode, "Quantum chance cue should use the probability visualization");
+    assertEquals(true, /measured pattern/.test(cue.formula), "Quantum chance cue should connect chance to evidence");
+
+    g.state = 'start';
+    assertEquals(null, g.getFutureLabRunCue(), "Future-lab cue should stay out of the start screen");
+    renderTestResult("engine-suite", "Curriculum: future lab cue follows active prep state", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Curriculum: future lab cue follows active prep state", false, err.message);
+  }
+
   // Test 22cb2: Narrative spine uses the active cadet callsign, Vector CRT voice, suit quips, and final hero copy.
   const oldProfiles22cb2 = window.StarHopperProfiles;
   try {

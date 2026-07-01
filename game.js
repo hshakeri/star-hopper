@@ -7184,6 +7184,126 @@ class StarHopperGame {
     return { target, visible: false, offscreen: true, color, x: markerX, y: markerY, angle, label, kind };
   }
 
+  getFutureLabRunCue() {
+    if (this.state !== 'playing') return null;
+    const staged = this.lastStagedExperiment || null;
+    const source = staged && staged.source ? String(staged.source) : "";
+    if (this.dailyInfo && this.dailyInfo.isFrontier && this.dailyInfo.darkMatterPrep) {
+      return {
+        label: "DARK MATTER PREP",
+        title: "Curve evidence",
+        body: "Compare path curve, speed, and force to infer an unseen pull.",
+        formula: "motion clue -> hidden force",
+        color: "#818cf8",
+        mode: "curve"
+      };
+    }
+    if (source === "start-anomaly-trace") {
+      return {
+        label: "ANOMALY TRACE",
+        title: "Invisible field test",
+        body: "Use the magnet event rule as a prototype for hidden forces.",
+        formula: "event -> field response",
+        color: "#a78bfa",
+        mode: "field"
+      };
+    }
+    if (source === "start-quantum-branch") {
+      return {
+        label: "QUANTUM PREP",
+        title: "Branch condition",
+        body: "One game state chooses one code path.",
+        formula: "if state -> path A/B",
+        color: "#22d3ee",
+        mode: "branch"
+      };
+    }
+    if (source === "start-quantum-chance") {
+      return {
+        label: "QUANTUM CHANCE",
+        title: "Probability seed",
+        body: "Repeat chance trials and compare the observed rate.",
+        formula: "chance p -> measured pattern",
+        color: "#38bdf8",
+        mode: "chance"
+      };
+    }
+    return null;
+  }
+
+  drawFutureLabRunCue(ctx) {
+    const cue = this.getFutureLabRunCue();
+    if (!ctx || !cue || !this.canvas) return null;
+    const W = this.canvas.width || 720;
+    const H = this.canvas.height || 448;
+    const x = Math.max(14, W - 226);
+    const y = Math.max(124, H - 104);
+    const w = 206;
+    const h = 78;
+    const t = this.reducedMotion ? 0 : Date.now() / 700;
+    const pulse = this.reducedMotion ? 0.5 : 0.5 + 0.5 * Math.sin(t);
+    const color = cue.color || "#67e8f9";
+
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    ctx.shadowBlur = 12 + pulse * 4;
+    ctx.shadowColor = color;
+    ctx.fillStyle = "rgba(2, 6, 23, 0.78)";
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, 7);
+    ctx.fill();
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "rgba(255, 255, 255, 0.045)";
+    for (let lineY = y + 8; lineY < y + h - 6; lineY += 5) ctx.fillRect(x + 6, lineY, w - 12, 1);
+
+    ctx.fillStyle = color;
+    ctx.font = "bold 8px 'Share Tech Mono', monospace";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText(cue.label, x + 10, y + 12);
+    ctx.fillStyle = "#f8fafc";
+    ctx.font = "bold 11px 'Share Tech Mono', monospace";
+    ctx.fillText(cue.title, x + 10, y + 28);
+    ctx.fillStyle = "#dbeafe";
+    ctx.font = "8px 'Share Tech Mono', monospace";
+    ctx.fillText(this.fitCardText(ctx, cue.body, w - 20), x + 10, y + 44);
+    ctx.fillStyle = "#bef264";
+    ctx.fillText(this.fitCardText(ctx, cue.formula, w - 20), x + 10, y + 61);
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.globalAlpha = 0.72;
+    if (cue.mode === "branch" || cue.mode === "chance") {
+      const cx = x + w - 42;
+      const cy = y + 27;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+      ctx.moveTo(cx, cy + 4);
+      ctx.lineTo(cx - 16, cy + 24);
+      ctx.moveTo(cx, cy + 4);
+      ctx.lineTo(cx + 16, cy + 24);
+      ctx.stroke();
+      ctx.fillStyle = "#fef08a";
+      ctx.fillText(cue.mode === "chance" ? "%" : "IF", cx - 10, cy - 9);
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(x + w - 70, y + 23);
+      ctx.bezierCurveTo(x + w - 50, y + 8, x + w - 32, y + 52, x + w - 12, y + 34);
+      ctx.stroke();
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x + w - 12, y + 34, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+    this.lastFutureLabRunCue = cue;
+    return cue;
+  }
+
   draw() {
     if (window.navigatorModeActive) {
       if (typeof drawNavigator === 'function') {
@@ -7312,6 +7432,9 @@ class StarHopperGame {
 
     // 9f. Meteor-shower "take shelter" warning banner (screen-space).
     this.drawMeteorBanner(this.ctx);
+
+    // 9g. Future-lab prep cue: keep Dark Matter / Quantum teaser science visible in-run.
+    this.drawFutureLabRunCue(this.ctx);
 
     // 10. Mission/objective speech balloon (screen-space, top-center)
     this.drawMissionBalloon(this.ctx);
