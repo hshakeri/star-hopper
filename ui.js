@@ -2885,6 +2885,128 @@ function awardSignalLabContractProof(game, code, pulse = null) {
   return pulse ? pulse.signalLabProof : null;
 }
 
+function getAnomalyTraceProofCandidate(game, code) {
+  if (!game) return null;
+  const staged = game.lastStagedExperiment || null;
+  const runCode = String(code || "").trim();
+  const stagedCode = String(staged && staged.command || "").trim();
+  if (!runCode || !stagedCode || runCode !== stagedCode) return null;
+  if (!staged || staged.source !== "start-anomaly-trace") return null;
+  const planet = Number.isFinite(game.currentPlanetIndex) ? game.currentPlanetIndex : 0;
+  return {
+    command: runCode,
+    title: staged.title || "Trace hidden force",
+    sourceKey: [
+      "anomaly-trace-proof",
+      planet,
+      normalizeSignalLabProofPart(staged.title || "hidden-force"),
+      hashSignalLabCommand(runCode)
+    ].join(":"),
+    planet
+  };
+}
+
+function awardAnomalyTraceProof(game, code, pulse = null) {
+  const proof = getAnomalyTraceProofCandidate(game, code);
+  if (!proof) return null;
+  game.discoveryPassCounts = game.discoveryPassCounts || {};
+  if (game.discoveryPassCounts[proof.sourceKey]) return null;
+
+  let masterySources = null;
+  if (typeof game.normalizeWorldMasteryMeter === 'function') {
+    const meter = game.normalizeWorldMasteryMeter(game.currentPlanetIndex);
+    masterySources = meter && meter.sources ? meter.sources : null;
+  }
+  if (masterySources && masterySources[proof.sourceKey]) {
+    game.discoveryPassCounts[proof.sourceKey] = 1;
+    return null;
+  }
+
+  const rewardXP = 5;
+  const masteryXP = 8;
+  const label = "ANOMALY TRACED";
+  const color = "#818cf8";
+  const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(game.researchXP || 0) : null;
+  const existingReward = !!(pulse && ((pulse.rewardXP || 0) > 0 || pulse.cardUnlocked || pulse.hypothesisConfirmed || (pulse.openedGems || 0) > 0));
+  const mastery = typeof game.awardWorldMasteryXP === 'function'
+    ? game.awardWorldMasteryXP(masteryXP, "anomaly trace proof", { sourceKey: proof.sourceKey, silent: true })
+    : { addedXP: 0, duplicate: false };
+  if (mastery && mastery.duplicate) {
+    game.discoveryPassCounts[proof.sourceKey] = 1;
+    return null;
+  }
+
+  game.discoveryPassCounts[proof.sourceKey] = 1;
+  game.researchXP = Math.max(0, (game.researchXP || 0) + rewardXP);
+  if (pulse && !existingReward) {
+    game.discoveryCombo = Math.min(99, (game.discoveryCombo || 0) + 1);
+    pulse.combo = game.discoveryCombo;
+    if (pulse.combo === 1 && typeof game.spawnDiscoveryComboPrimerEffect === 'function') {
+      pulse.comboPrimer = game.spawnDiscoveryComboPrimerEffect(pulse);
+    } else if (pulse.combo > 1 && typeof game.spawnDiscoveryComboEffect === 'function') {
+      pulse.anomalyComboEffect = game.spawnDiscoveryComboEffect(pulse);
+    }
+  }
+
+  const afterRank = (typeof getResearchRank === 'function') ? getResearchRank(game.researchXP || 0) : null;
+  const rankUp = !!(beforeRank && afterRank && afterRank.level > beforeRank.level);
+  const proofResult = {
+    label,
+    title: proof.title,
+    source: "Dark Matter Echo",
+    rewardXP,
+    worldMasteryAddedXP: mastery && Number.isFinite(mastery.addedXP) ? mastery.addedXP : 0,
+    sourceKey: proof.sourceKey
+  };
+  if (pulse) {
+    pulse.rewardXP = Math.max(0, (pulse.rewardXP || 0) + rewardXP);
+    pulse.anomalyTraceProof = proofResult;
+    pulse.rankUp = pulse.rankUp || rankUp;
+    pulse.rankTitle = pulse.rankTitle || (afterRank ? afterRank.title : null);
+    pulse.rankPerk = pulse.rankPerk || (rankUp && afterRank ? afterRank.perk : null);
+    game.discoveryPulse = pulse;
+    if (Array.isArray(game.discoveryLog) && game.discoveryLog[0] !== pulse) {
+      game.discoveryLog = [pulse].concat(game.discoveryLog).slice(0, 8);
+    }
+  }
+
+  if (rankUp && afterRank && typeof showBadgeToast === 'function') {
+    showBadgeToast({
+      icon: "DM",
+      label: `Research Rank: ${afterRank.title}`,
+      description: `Anomaly trace unlocked ${afterRank.perk.label}.`
+    });
+  }
+  if (rankUp && pulse && typeof game.spawnResearchRankEffect === 'function') {
+    pulse.rankEffect = game.spawnResearchRankEffect(pulse);
+  }
+  if (typeof ui_log_output === 'function') {
+    const masteryText = mastery && mastery.addedXP > 0 ? `, +${mastery.addedXP} world mastery XP` : "";
+    ui_log_output(`${label}: +${rewardXP} Research XP${masteryText}.`, "success");
+  }
+  if (typeof game.showMissionBalloon === 'function') {
+    game.showMissionBalloon(`${label}: +${rewardXP} Research XP`, {
+      title: "ANOMALY TRACE",
+      color,
+      timer: 250
+    });
+  }
+  if (game.player && typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+    const px = (Number.isFinite(game.player.x) ? game.player.x : 0) + (game.player.w || 24) / 2;
+    const py = Number.isFinite(game.player.y) ? game.player.y : 0;
+    ComicBubbles.pop(px, py - 52, label, color, 1.0);
+    if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+      Particles.spawnBurst(px, py - 10, color, 12, 2.2, 2.0, "glow");
+      Particles.spawnBurst(px, py - 10, "#67e8f9", 6, 1.6, 1.5, "glow");
+    }
+  }
+  if (typeof updateDiscoveryPulse === 'function') updateDiscoveryPulse(game);
+  if (typeof updateResearchProgress === 'function') updateResearchProgress(game);
+  if (typeof game.checkLabStarProgress === 'function') game.checkLabStarProgress("science");
+  if (typeof saveLocalProgress === 'function' && typeof window !== 'undefined' && window.Game === game) saveLocalProgress();
+  return pulse ? pulse.anomalyTraceProof : proofResult;
+}
+
 function finishSuccessfulCodeRunDiscovery(game, activeMission, code, resultState, lockedBefore = 0, lockedBeforeList = []) {
   if (!game || !activeMission || !activeMission.fullMission || !resultState) return { opened: 0, pulse: null };
   const lockedAfter = typeof game.getLockedRequiredCollectibleCount === 'function' ? game.getLockedRequiredCollectibleCount() : lockedBefore;
@@ -2899,7 +3021,8 @@ function finishSuccessfulCodeRunDiscovery(game, activeMission, code, resultState
   }
   const pulse = recordDiscoveryPulse(game, activeMission, code, resultState, opened);
   const signalLabProof = awardSignalLabContractProof(game, code, pulse);
-  return { opened, pulse, signalLabProof, lockedAfter };
+  const anomalyTraceProof = awardAnomalyTraceProof(game, code, pulse);
+  return { opened, pulse, signalLabProof, anomalyTraceProof, lockedAfter };
 }
 
 function getDiscoveryChainHint(pulse) {
@@ -2951,6 +3074,9 @@ function updateDiscoveryPulse(game) {
   const signalLabProof = pulse.signalLabProof
     ? `<div class="discovery-hypothesis discovery-signal-lab">${escapeHTML(pulse.signalLabProof.label)} +${escapeHTML(String(pulse.signalLabProof.rewardXP || 0))} XP</div>`
     : "";
+  const anomalyTraceProof = pulse.anomalyTraceProof
+    ? `<div class="discovery-hypothesis discovery-signal-lab">${escapeHTML(pulse.anomalyTraceProof.label)} +${escapeHTML(String(pulse.anomalyTraceProof.rewardXP || 0))} XP</div>`
+    : "";
   const rankPerk = pulse.rankPerk
     ? `<div class="discovery-hypothesis discovery-perk">LAB PERK UNLOCKED: ${escapeHTML(pulse.rankPerk.label)}</div>`
     : "";
@@ -2975,6 +3101,7 @@ function updateDiscoveryPulse(game) {
     ${comboAmplifier}
     ${hypothesis}
     ${signalLabProof}
+    ${anomalyTraceProof}
     ${rankPerk}
     ${unlockCard}
     <div class="discovery-pulse-body">${escapeHTML(pulse.insight)}</div>

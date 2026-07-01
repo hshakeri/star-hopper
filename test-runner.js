@@ -1662,6 +1662,72 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: Signal Lab contracts reward completed proofs", false, err.message);
   }
 
+  // Test 22b4: the staged Anomaly Trace quest pays off only when its exact command runs.
+  const oldGetElementById22b4 = document.getElementById;
+  const oldBubblePop22b4 = ComicBubbles.pop;
+  const oldParticleBurst22b4 = Particles.spawnBurst;
+  try {
+    const labels = [];
+    let bursts = 0;
+    const panel = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };
+    document.getElementById = (id) => id === "discovery-pulse" ? panel : null;
+    ComicBubbles.pop = (x, y, text) => { labels.push(text); };
+    Particles.spawnBurst = () => { bursts++; };
+
+    const activeMission = PLANETS[4].missions.find(mission => mission.id === "magnet-field-event");
+    const noProgress = {
+      allPassed: false,
+      items: [
+        { id: "magnet-hopper-active", label: "Hopper activated", passed: false, message: "Need Hopper" },
+        { id: "magnet-touch-rule", label: "Magnet touch rule", passed: false, message: "Need an event rule" }
+      ]
+    };
+    const command = "use_hopper()\nwhen player.touching('magnet'): hopper.pole = 'south'";
+
+    const anomaly = new StarHopperGame();
+    anomaly.currentPlanet = PLANETS[4];
+    anomaly.currentPlanetIndex = 4;
+    anomaly.player = { x: 80, y: 100, w: 24, h: 32 };
+    anomaly.masteryMeters = {};
+    anomaly.researchXP = 0;
+    anomaly.lastStagedExperiment = {
+      title: "Trace hidden force",
+      source: "start-anomaly-trace",
+      command,
+      time: Date.now()
+    };
+
+    const outcome = finishSuccessfulCodeRunDiscovery(anomaly, activeMission, command, noProgress, 0, []);
+    assertEquals("ANOMALY TRACED", outcome.anomalyTraceProof && outcome.anomalyTraceProof.label, "Exact staged Anomaly Trace command should award proof");
+    assertEquals(5, anomaly.researchXP, "Anomaly Trace proof grants focused Research XP");
+    assertEquals(8, anomaly.getWorldMasteryProgress(4).xp, "Anomaly Trace proof feeds Mag-Net world mastery");
+    assertEquals(1, anomaly.discoveryPassCounts[outcome.anomalyTraceProof.sourceKey], "Anomaly Trace proof stores a one-time source key");
+    assertEquals(1, anomaly.discoveryCombo, "A standalone Anomaly Trace proof starts the lab chain");
+    assertEquals("ANOMALY TRACE", anomaly.missionBalloon && anomaly.missionBalloon.title, "Mission CRT labels the Anomaly Trace reward");
+    assertEquals("ANOMALY TRACED: +5 Research XP", anomaly.missionBalloon && anomaly.missionBalloon.text, "Mission CRT announces the Anomaly Trace reward");
+    assertEquals(true, labels.includes("ANOMALY TRACED"), "Anomaly Trace proof pops a visible reward cue");
+    assertEquals(true, bursts > 0, "Anomaly Trace proof spawns celebratory particles");
+    assertEquals(true, /ANOMALY TRACED \+5 XP/.test(panel.innerHTML), "Discovery pulse renders the Anomaly Trace proof chip");
+
+    const xpAfterFirst = anomaly.researchXP;
+    const masteryAfterFirst = anomaly.getWorldMasteryProgress(4).xp;
+    const repeat = finishSuccessfulCodeRunDiscovery(anomaly, activeMission, command, noProgress, 0, []);
+    assertEquals(null, repeat.anomalyTraceProof, "Repeating the same Anomaly Trace proof should not award again");
+    assertEquals(xpAfterFirst, anomaly.researchXP, "Repeated Anomaly Trace proofs should not farm Research XP");
+    assertEquals(masteryAfterFirst, anomaly.getWorldMasteryProgress(4).xp, "Repeated Anomaly Trace proofs should not farm world mastery");
+    assertEquals(1, anomaly.discoveryCombo, "Repeated Anomaly Trace proofs should not extend the chain");
+
+    document.getElementById = oldGetElementById22b4;
+    ComicBubbles.pop = oldBubblePop22b4;
+    Particles.spawnBurst = oldParticleBurst22b4;
+    renderTestResult("engine-suite", "Curriculum: Anomaly Trace rewards completed proofs", true);
+  } catch (err) {
+    document.getElementById = oldGetElementById22b4;
+    ComicBubbles.pop = oldBubblePop22b4;
+    Particles.spawnBurst = oldParticleBurst22b4;
+    renderTestResult("engine-suite", "Curriculum: Anomaly Trace rewards completed proofs", false, err.message);
+  }
+
   // Test 22ba: successful KidCode runs summarize the live science delta.
   const oldGetElementById22ba = document.getElementById;
   const oldBubblePop22ba = ComicBubbles.pop;
