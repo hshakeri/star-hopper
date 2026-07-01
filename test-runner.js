@@ -6551,7 +6551,7 @@ function runRetryRemixTests() {
     assertEquals(1, g.streakCount, "First local day starts the streak");
     assertEquals(16, g.researchXP, "First-ever play should not grant free Research XP");
     assertEquals(null, g.lastReturnStreakReward, "No reward pulse is created on the first-ever day");
-    assertEquals("Daily lab habit", reward.textContent, "Start chip should show habit copy without a reward");
+    assertEquals("Next daily experiment: +5 Research XP", reward.textContent, "Start chip should preview the next daily lab reward");
     g.updateReturnStreak();
     assertEquals(1, saveCalls, "Same-day streak refresh should not save or farm rewards");
 
@@ -6574,6 +6574,9 @@ function runRetryRemixTests() {
     assertEquals(true, /Rank Up: Variable Scout/.test(panel.innerHTML), "Discovery pulse should render the streak rank-up");
     assertEquals(true, /streak day 2/.test(panel.innerHTML), "Discovery pulse should use the custom streak progress label");
     assertEquals("+5 Research XP today", reward.textContent, "Start chip should show today's streak reward");
+    g.lastReturnStreakReward = null;
+    g.refreshStreakBanner();
+    assertEquals("Next daily experiment: +6 Research XP", reward.textContent, "Start chip should show the next consecutive reward after today's pulse is gone");
     assertEquals(10, g.getReturnStreakRewardXP(99), "Daily streak XP should stay capped");
     const afterRewardXP = g.researchXP;
     g.updateReturnStreak();

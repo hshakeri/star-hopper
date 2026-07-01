@@ -1737,6 +1737,17 @@ class StarHopperGame {
     return RETURN_STREAK_RESEARCH_BASE_XP + Math.min(RETURN_STREAK_RESEARCH_CAP_BONUS_XP, Math.max(0, streak - 1));
   }
 
+  getNextReturnStreakPreview() {
+    const current = Math.max(0, Math.floor(Number(this.streakCount) || 0));
+    const nextStreak = Math.max(2, current + 1);
+    const rewardXP = this.getReturnStreakRewardXP(nextStreak);
+    return {
+      streak: nextStreak,
+      rewardXP,
+      label: `Next daily experiment: +${rewardXP} Research XP`
+    };
+  }
+
   grantReturnStreakReward(previousDate, today) {
     if (!previousDate || previousDate === today) {
       this.lastReturnStreakReward = null;
@@ -1815,9 +1826,10 @@ class StarHopperGame {
     if (this.streakCount > 0) {
       if (countEl) countEl.textContent = this.streakCount;
       if (rewardEl) {
+        const next = this.getNextReturnStreakPreview();
         rewardEl.textContent = this.lastReturnStreakReward
           ? `+${this.lastReturnStreakReward.rewardXP} Research XP today`
-          : "Daily lab habit";
+          : next.label;
       }
       banner.style.display = 'flex';
     } else {
