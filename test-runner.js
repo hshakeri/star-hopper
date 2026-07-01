@@ -3818,6 +3818,7 @@ function runEngineTests() {
     const signalStaged = findByClass(list, "staged-experiment-card");
     const signalStagedText = flattenText(signalStaged || list);
     assertEquals(true, /Signal Lab/.test(signalStagedText), "Signal lab staged command should name its source in the reminder");
+    assertEquals(true, /bank proof/.test(signalStagedText), "Signal lab staged reminder should name the proof payoff");
 
     const proofStatus = getSignalLabProofStatus(game, signalFocus.command);
     assertEquals(true, !!proofStatus, "Signal lab proof status should expose a durable source key");

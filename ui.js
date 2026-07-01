@@ -1058,6 +1058,13 @@ function getStagedExperimentSourceLabel(source) {
   return labels[source] || "Mission CRT";
 }
 
+function getStagedExperimentBody(staged) {
+  if (staged && staged.source === "signal-lab-contract") {
+    return "Press Enter in Mission Coach to test this Signal Lab command, then compare what changed to bank proof.";
+  }
+  return "Press Enter in Mission Coach to run this experiment, then compare what changed.";
+}
+
 function getScienceDeltaChainBadge(game, delta) {
   const pulse = game && game.discoveryPulse;
   if (!pulse || !delta || !delta.code) return null;
@@ -1263,7 +1270,7 @@ function appendStagedExperimentCard(listContainer, game) {
   card.appendChild(title);
 
   const body = document.createElement("p");
-  body.textContent = "Press Enter in Mission Coach to run this experiment, then compare what changed.";
+  body.textContent = getStagedExperimentBody(staged);
   card.appendChild(body);
 
   const code = document.createElement("code");
