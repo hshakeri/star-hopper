@@ -8501,11 +8501,15 @@ class StarHopperGame {
       : (remaining <= 1
         ? `One fresh proof reaches ${milestoneLabel}.`
         : `${remaining} fresh proofs to ${milestoneLabel}.`);
+    const ruleChip = state === "paused"
+      ? "NO REPEATS"
+      : (remaining <= 1 ? "NEXT PAYS" : "NEW PROOF");
     const color = state === "paused" ? "#cbd5e1" : (combo >= 3 ? "#facc15" : "#67e8f9");
     return {
       label: state === "paused" ? "CHAIN PAUSED" : "LAB CHAIN",
       title,
       body,
+      ruleChip,
       combo,
       state,
       color,
@@ -8547,7 +8551,23 @@ class StarHopperGame {
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
     const rewardText = cue.reward > 0 ? ` +${cue.reward} XP` : "";
-    ctx.fillText(this.fitCardText(ctx, `${cue.label}${rewardText}`, w - 18), x + 10, y + 11);
+    ctx.fillText(this.fitCardText(ctx, `${cue.label}${rewardText}`, w - 90), x + 10, y + 11);
+    if (cue.ruleChip) {
+      const chipW = 66;
+      const chipX = x + w - chipW - 8;
+      ctx.fillStyle = cue.state === "paused" ? "rgba(71, 85, 105, 0.62)" : "rgba(14, 116, 144, 0.46)";
+      ctx.strokeStyle = cue.state === "paused" ? "rgba(203, 213, 225, 0.45)" : "rgba(103, 232, 249, 0.52)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(chipX, y + 4, chipW, 13, 4);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = cue.state === "paused" ? "#e2e8f0" : "#fef08a";
+      ctx.font = "bold 6.5px 'Share Tech Mono', monospace";
+      ctx.textAlign = "center";
+      ctx.fillText(this.fitCardText(ctx, cue.ruleChip, chipW - 8), chipX + chipW / 2, y + 11);
+      ctx.textAlign = "left";
+    }
     ctx.fillStyle = "#f8fafc";
     ctx.font = "bold 10px 'Share Tech Mono', monospace";
     ctx.fillText(this.fitCardText(ctx, cue.title, w - 18), x + 10, y + 27);
