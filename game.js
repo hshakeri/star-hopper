@@ -4336,7 +4336,7 @@ class StarHopperGame {
     return `pet:${kind || 'tame'}:${planetKey}`;
   }
 
-  grantPetBondProof(kind = 'tame', mob = null) {
+  grantPetBondProof(kind = 'tame', mob = null, options = {}) {
     const action = kind === 'guard' ? 'guard' : 'tame';
     const sourceKey = this.getPetBondProofSourceKey(action);
     this.discoveryPassCounts = this.discoveryPassCounts || {};
@@ -4346,9 +4346,11 @@ class StarHopperGame {
     const masteryXP = action === 'guard' ? 10 : 7;
     const label = action === 'guard' ? 'GUARD PROOF' : 'PET PACT';
     const species = mob && mob.species ? String(mob.species) : 'small mob';
-    const formula = action === 'guard' ? 'pet state -> protect cadet' : 'scared mob + lotion -> pet state';
+    const guardedVillager = action === 'guard' && options && options.target === 'villager';
+    const guardTargetLabel = guardedVillager ? 'a villager' : 'the cadet';
+    const formula = action === 'guard' ? `pet state -> protect ${guardedVillager ? 'village' : 'cadet'}` : 'scared mob + lotion -> pet state';
     const insight = action === 'guard'
-      ? `A trained ${species} protected the cadet. That is game AI changing state from follow to guard when danger gets close.`
+      ? `A trained ${species} protected ${guardTargetLabel}. That is game AI changing state from follow to guard when danger gets close.`
       : `Calming lotion changed a scared ${species} into a pet. The hidden rule is a state change: wild -> scared -> friend.`;
     const cue = action === 'guard'
       ? 'Keep pets near the cadet or villagers so they can intercept hostile mobs.'
@@ -4380,7 +4382,7 @@ class StarHopperGame {
       missionTitle: this.currentPlanet ? this.currentPlanet.name : 'Pet Lab',
       passed: 1,
       total: 1,
-      progressLabel: action === 'guard' ? 'pet protected cadet' : `${species} trained`,
+      progressLabel: action === 'guard' ? (guardedVillager ? 'pet protected village' : 'pet protected cadet') : `${species} trained`,
       openedGems: 0,
       rewardXP,
       combo: this.discoveryCombo || 0,
@@ -4457,7 +4459,10 @@ class StarHopperGame {
       if (!m || m === pet || m.pet) continue;
       const petDist = this.entityDistance(pet, m);
       const playerDist = this.entityDistance(this.player, m);
-      if ((petDist <= radius || playerDist <= 120) && petDist < bestDist) {
+      const villageThreat = typeof this.findNPCForMobAttack === 'function'
+        ? this.findNPCForMobAttack(m, 72)
+        : null;
+      if ((petDist <= radius || playerDist <= 120 || (villageThreat && petDist <= radius + 80)) && petDist < bestDist) {
         best = { index: i, mob: m, distance: petDist };
         bestDist = petDist;
       }
@@ -4465,20 +4470,23 @@ class StarHopperGame {
     return best;
   }
 
-  findProtectingPet(hostile) {
+  findProtectingPet(hostile, target = this.player) {
     if (!hostile || !this.mobs || !this.player) return null;
     for (const pet of this.mobs) {
       if (!pet || !pet.pet || (pet.attackCooldown || 0) > 0) continue;
       const nearThreat = this.entityDistance(pet, hostile) <= 84;
-      const guardingCadet = this.entityDistance(pet, this.player) <= 92 && this.entityDistance(hostile, this.player) <= 70;
-      if (nearThreat || guardingCadet) return pet;
+      const guardingTarget = target &&
+        this.entityDistance(hostile, target) <= 76 &&
+        (this.entityDistance(pet, target) <= 112 || this.entityDistance(pet, hostile) <= 112);
+      if (nearThreat || guardingTarget) return pet;
     }
     return null;
   }
 
-  petStrikeMob(index, pet) {
+  petStrikeMob(index, pet, guardTarget = null) {
     const m = this.mobs && this.mobs[index];
     if (!m || m.pet || !pet || (pet.attackCooldown || 0) > 0) return null;
+    const guardingVillager = !!(guardTarget && guardTarget.profession);
     pet.attackCooldown = 32;
     pet.dir = m.x > pet.x ? 1 : -1;
     pet.eyeDir = pet.dir;
@@ -4489,8 +4497,14 @@ class StarHopperGame {
     m.vy = Math.min(m.vy || 0, -3.5);
     if (typeof SFX !== 'undefined' && SFX.playStomp) SFX.playStomp();
     if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(m.x + m.w / 2, m.y - 4, "PROTECT!", "#4ade80", 0.85);
+    if (guardingVillager && typeof ComicBubbles !== 'undefined') {
+      ComicBubbles.pop(guardTarget.x + guardTarget.w / 2, guardTarget.y - 8, "GUARDED!", guardTarget.color || "#a7f3d0", 0.78);
+    }
     if (typeof Particles !== 'undefined') Particles.spawnBurst(m.x + m.w / 2, m.y + m.h / 2, '#4ade80', 8, 2.0, 2.1, 'glow');
-    this.grantPetBondProof('guard', pet);
+    this.grantPetBondProof('guard', pet, {
+      target: guardingVillager ? 'villager' : 'cadet',
+      targetName: guardingVillager ? guardTarget.name : null
+    });
     if (m.hp <= 0) {
       const wasWoken = !!m.woken;
       this.killMob(index, 'pet');
@@ -4576,6 +4590,13 @@ class StarHopperGame {
       if (m.y > 470 || m.x < -60 || m.x > mapW + 60) { this.mobs.splice(j, 1); continue; }
       if (this.damageMobFromHazards(j)) continue;
       const npcVictim = (m.attackCooldown || 0) <= 0 ? this.findNPCForMobAttack(m) : null;
+      if (npcVictim) {
+        const villageProtector = this.findProtectingPet(m, npcVictim);
+        if (villageProtector) {
+          this.petStrikeMob(j, villageProtector, npcVictim);
+          continue;
+        }
+      }
       if (npcVictim && this.damageNPCFromMob(npcVictim, m)) continue;
       if (flee && this.tryTameMob(j)) continue;
       if (!Physics.isOverlapping(this.player, m)) continue;

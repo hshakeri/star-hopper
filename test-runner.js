@@ -5007,6 +5007,45 @@ function runCombatTests() {
     renderTestResult(SUITE, "Villagers: mobs attack and villagers run to caves", false, err.message);
   }
 
+  // C19d2: trained pets intercept mobs before they can hurt villagers.
+  try {
+    const g = new StarHopperGame();
+    g.state = 'playing'; g.currentPlanetIndex = 0; g.currentPlanet = PLANETS[0];
+    g.currentVariant = {
+      map: [
+        [0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0],
+        [1,1,1,1,1,1,1,1]
+      ]
+    };
+    g.player = new Player(360, 64);
+    g.researchXP = 0;
+    g.masteryMeters = {};
+    const villager = new NPC({ id: 'guarded', name: 'Guarded', profession: 'Miner', type: 'npc', x: 112, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60 });
+    const pet = new Mob(144, 60, 'blob', '#4ade80', 1);
+    pet.pet = true;
+    pet.hp = 2;
+    pet.attackCooldown = 0;
+    const raider = new Mob(114, 60, 'hog', '#9a6b4f', 1);
+    raider.speed = 0;
+    raider.behaviorTimer = 999;
+    raider.hp = 1;
+    g.interactiveObjects = [villager];
+    g.mobs = [pet, raider];
+    g.updateMobs();
+    assertEquals(1, g.mobs.length, "Pet guard removes the hostile mob before villager contact damage");
+    assertEquals(true, g.mobs[0].pet, "The trained pet remains after guarding the villager");
+    assertEquals(villager.maxHealth, villager.health, "Villager health is unchanged when a pet intercepts the mob");
+    assertEquals(false, villager.rescuePending, "Guarded villagers do not enter rescue panic");
+    assertEquals("pet state -> protect village", g.discoveryPulse && g.discoveryPulse.formula, "Pet guard proof names village protection");
+    assertEquals("pet protected village", g.discoveryPulse && g.discoveryPulse.progressLabel, "Pet guard proof records village protection progress");
+    assertEquals(3, g.getVillageTrustProgress(0).points, "Village pet guard adds trust once");
+    renderTestResult(SUITE, "Villagers: trained pets protect the village", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Villagers: trained pets protect the village", false, err.message);
+  }
+
   // C19e: turning survival off clears panic hiding unless the stage itself is night.
   try {
     const g = new StarHopperGame();
