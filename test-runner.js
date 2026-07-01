@@ -2173,9 +2173,10 @@ function runEngineTests() {
     assertEquals(true, /Daily Beacon/.test(els["signal-story-panel"].innerHTML), "Daily chapter should render");
     assertEquals(true, /Village Pact/.test(els["signal-story-panel"].innerHTML), "Village rescue chapter should render");
     storyContract = getSignalStoryContract(complete);
-    assertEquals("SIGNAL LOOP", storyContract.kicker, "Complete story should keep a loop contract instead of ending cold");
-    assertEquals(true, /SIGNAL LOOP/.test(els["signal-story-panel"].innerHTML), "Complete story panel should show the ongoing loop");
-    assertEquals(true, /Daily Signals, Frontier runs/.test(els["signal-story-panel"].innerHTML), "Complete story loop should point to replay practice");
+    assertEquals("DARK MATTER PREP", storyContract.kicker, "Complete traced story should keep a future-lab prep contract instead of ending cold");
+    assertEquals(true, /DARK MATTER PREP/.test(els["signal-story-panel"].innerHTML), "Complete story panel should show the future-lab prep loop");
+    assertEquals(true, /Bank curve evidence/.test(els["signal-story-panel"].innerHTML), "Complete story loop should name the next hidden-force evidence target");
+    assertEquals(true, /Daily Signal, Frontier run, or mastery remix/.test(els["signal-story-panel"].innerHTML), "Complete story loop should point to replay practice");
 
     document.getElementById = oldGetElementById22cb;
     ComicBubbles.pop = oldBubblePop22cb;
@@ -2421,9 +2422,9 @@ function runEngineTests() {
 
     game.discoveryPassCounts = { "anomaly-trace-proof:4:trace-hidden-force:test": 1 };
     updateStartMissionRadar(game);
-    assertEquals("SIGNAL COMPLETE", els["start-story-preview-label"].textContent, "Trace proof should complete the current story trail");
-    assertEquals("Star-map restored", els["start-story-preview-title"].textContent, "Complete story should show finale copy on start radar");
-    assertEquals(true, /Daily Signals and Frontier/.test(els["start-story-preview-body"].textContent), "Complete story should point into ongoing signal practice");
+    assertEquals("DARK MATTER PREP", els["start-story-preview-label"].textContent, "Trace proof should turn complete story into future-lab prep");
+    assertEquals("Source traced", els["start-story-preview-title"].textContent, "Complete traced story should show the source-traced payoff on start radar");
+    assertEquals(true, /Bank curve evidence/.test(els["start-story-preview-body"].textContent), "Complete traced story should point into curve-evidence practice");
     assertEquals("12/12 decoded", els["start-story-preview-progress"].textContent, "Complete story should show all chapters decoded");
     assertEquals("Clear today's signal", els["start-mission-radar-title"].textContent, "After trace proof, the radar should return to replay practice");
 

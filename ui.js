@@ -1768,6 +1768,14 @@ function getSignalStoryContract(game = window.Game, story = null) {
   const progress = story || getSignalStoryProgress(game);
   const next = progress.nextChapter;
   if (!next) {
+    if (hasAnomalyTraceStoryCredit(game)) {
+      return {
+        kicker: "DARK MATTER PREP",
+        title: "Bank curve evidence",
+        body: "Run a Daily Signal, Frontier run, or mastery remix. Compare path curve, speed, and force changes so Dark Matter Lab starts with evidence.",
+        reward: "Reward: stronger hidden-force record"
+      };
+    }
     return {
       kicker: "SIGNAL LOOP",
       title: "Keep the star-map alive",
@@ -1799,6 +1807,15 @@ function getStartSignalStoryPreview(game = window.Game) {
       title: story.nextChapter.title,
       body: `${story.nextChapter.concept}. Next: ${contract.title}. Reward: ${reward}.`,
       progress: `${story.unlocked.length}/${story.total} decoded`
+    };
+  }
+  const contract = getSignalStoryContract(game, story);
+  if (contract && contract.kicker === "DARK MATTER PREP") {
+    return {
+      label: "DARK MATTER PREP",
+      title: "Source traced",
+      body: `${contract.title}. ${contract.body}`,
+      progress: `${story.total}/${story.total} decoded`
     };
   }
   return {
