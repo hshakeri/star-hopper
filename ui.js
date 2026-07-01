@@ -1884,6 +1884,7 @@ function getStagedExperimentSourceLabel(source) {
     "mentor-signal": "Village mentor",
     "science-delta": "What Changed",
     "tested-result": "Tested result",
+    "science-proof": "Science proof",
     "lab-chain-target": "Lab chain",
     "formula-focus": "Formula Deck",
     "formula-card-reward": "Formula reward",
@@ -4773,6 +4774,47 @@ function getDiscoveryComboBonus(game, comboCount, rank = null) {
   };
 }
 
+function buildDiscoveryScienceDeltaProof(game, pulse) {
+  const delta = game && game.lastScienceDelta ? game.lastScienceDelta : null;
+  if (!game || !pulse || !delta || !Array.isArray(delta.changes) || !delta.changes.length) return null;
+  const pulseCode = String(pulse.code || "").trim();
+  const deltaCode = String(delta.code || "").trim();
+  if (!pulseCode || !deltaCode || deltaCode.slice(0, pulseCode.length) !== pulseCode) return null;
+
+  const primary = delta.changes.find(change => change && /Agility|Thrust|Mass|Felt gravity|Probability/.test(change.label || "")) || delta.changes[0];
+  if (!primary) return null;
+  const formulaChip = typeof game.getScienceDeltaFormulaChip === "function"
+    ? game.getScienceDeltaFormulaChip(primary)
+    : "code->evidence";
+  const deltaChip = typeof game.getScienceDeltaValueDelta === "function"
+    ? game.getScienceDeltaValueDelta(primary)
+    : "";
+  const codeLine = typeof game.getScienceDeltaCodeLine === "function"
+    ? game.getScienceDeltaCodeLine(delta, primary)
+    : `CODE ${pulseCode.split(/\n/).map(line => line.trim()).filter(Boolean)[0] || pulseCode}`;
+  const targetCue = typeof game.getScienceDeltaTargetCue === "function"
+    ? game.getScienceDeltaTargetCue(delta)
+    : null;
+  const next = delta.nextExperiment || null;
+  const nextCommand = next && next.command ? String(next.command).trim() : "";
+  const winLine = targetCue && targetCue.line
+    ? targetCue.line
+    : (next && next.title ? `NEXT ${next.title}` : "Bank evidence, then test the level");
+
+  return {
+    label: "SCIENCE PROOF",
+    title: delta.summary || `${primary.label || "Value"} changed`,
+    codeLine: codeLine.replace(/\s+/g, " ").trim(),
+    valueLine: `${primary.label || "Value"}: ${primary.value || "changed"}`,
+    relation: formulaChip,
+    delta: deltaChip,
+    reason: primary.cue || "",
+    winLine,
+    nextTitle: next && next.title ? next.title : "",
+    nextCommand
+  };
+}
+
 function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems = 0) {
   if (!game) return null;
   const pulse = inferDiscoveryPulse(game, activeMission, code, resultState, openedGems);
@@ -4790,6 +4832,7 @@ function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems
     const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(game.researchXP || 0) : null;
     const cardUnlocked = unlockFormulaKind(game, pulse.kind);
     const hypothesis = confirmHypothesisForPulse(game, activeMission, earned);
+    pulse.scienceDeltaProof = buildDiscoveryScienceDeltaProof(game, pulse);
     game.discoveryCombo = Math.min(99, (game.discoveryCombo || 0) + 1);
     pulse.combo = game.discoveryCombo;
     pulse.cardUnlocked = cardUnlocked;
@@ -5698,6 +5741,20 @@ function updateDiscoveryPulse(game) {
   const formulaDeckMastery = pulse.formulaDeckMastery
     ? `<div class="discovery-hypothesis discovery-perk">${escapeHTML(pulse.formulaDeckMastery.label || "DECK MASTERED")} +${escapeHTML(String(pulse.formulaDeckMastery.rewardXP || 0))} XP · ${escapeHTML(String(pulse.formulaDeckMastery.count || 0))}/${escapeHTML(String(pulse.formulaDeckMastery.total || 0))} cards</div>`
     : "";
+  const scienceProofData = pulse.scienceDeltaProof || null;
+  const scienceProofCommand = scienceProofData && scienceProofData.nextCommand
+    ? String(scienceProofData.nextCommand).trim()
+    : "";
+  const scienceProofCommandLabel = scienceProofCommand.replace(/\s+/g, " ");
+  const scienceProofCode = scienceProofData && scienceProofData.codeLine
+    ? String(scienceProofData.codeLine).replace(/^CODE\s+/i, "")
+    : "";
+  const scienceProofScience = scienceProofData
+    ? `${scienceProofData.relation || "code->evidence"}${scienceProofData.delta ? ` · ${scienceProofData.delta}` : ""}`
+    : "";
+  const scienceProof = scienceProofData
+    ? `<div class="discovery-hypothesis discovery-science-proof"><strong>${escapeHTML(scienceProofData.label || "SCIENCE PROOF")} · ${escapeHTML(scienceProofData.title || "What changed")}</strong><div class="discovery-science-proof-grid"><span><b>CODE</b>${escapeHTML(scienceProofCode || "latest command")}</span><span><b>SCIENCE</b>${escapeHTML(scienceProofScience)}</span><span><b>WIN</b>${escapeHTML(scienceProofData.winLine || "test the level")}</span></div>${scienceProofData.reason ? `<p>${escapeHTML(scienceProofData.reason)}</p>` : ""}${scienceProofCommand ? `<div class="discovery-science-proof-code">Next <code>${escapeHTML(scienceProofCommandLabel)}</code><button type="button" class="discovery-science-proof-stage-btn" data-science-proof-command="${escapeHTML(scienceProofCommand)}" data-science-proof-title="${escapeHTML(scienceProofData.nextTitle || "Next proof")}">STAGE NEXT</button></div>` : ""}</div>`
+    : "";
   const formulaProgress = pulse.cardUnlocked && pulse.formulaDeckProgress ? pulse.formulaDeckProgress : null;
   const formulaNextCommand = formulaProgress && formulaProgress.nextCommand
     ? String(formulaProgress.nextCommand).trim()
@@ -5786,6 +5843,7 @@ function updateDiscoveryPulse(game) {
     ${comboAmplifier}
     ${comboMilestone}
     ${hypothesis}
+    ${scienceProof}
     ${lessonPhase}
     ${lessonPathMastery}
     ${formulaDeckMastery}
@@ -5851,6 +5909,25 @@ function attachDiscoveryPulseStageButtons(panel, game, pulse) {
         kind: "formula-card",
         source: "formula-card-reward",
         color: "#facc15"
+      });
+    });
+  });
+  const scienceProof = pulse && pulse.scienceDeltaProof ? pulse.scienceDeltaProof : null;
+  panel.querySelectorAll("[data-science-proof-command]").forEach(button => {
+    if (!button || typeof button.addEventListener !== "function") return;
+    button.addEventListener("click", () => {
+      const command = button.dataset && button.dataset.scienceProofCommand
+        ? button.dataset.scienceProofCommand
+        : (scienceProof && scienceProof.nextCommand ? scienceProof.nextCommand : "");
+      if (!String(command || "").trim()) return false;
+      const title = button.dataset && button.dataset.scienceProofTitle
+        ? button.dataset.scienceProofTitle
+        : (scienceProof && scienceProof.nextTitle ? scienceProof.nextTitle : "Next proof");
+      return stageScienceDeltaCommand(command, {
+        title,
+        kind: "science-proof",
+        source: "science-proof",
+        color: "#67e8f9"
       });
     });
   });

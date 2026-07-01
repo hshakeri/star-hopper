@@ -2122,17 +2122,22 @@ function runEngineTests() {
   const oldParticleBurst22b = Particles.spawnBurst;
   try {
     let formulaRewardClick = null;
+    let scienceProofClick = null;
     const formulaRewardButton = {
       dataset: { formulaNextCommand: "hopper.engine = 7", formulaNextTitle: "Engine Lab" },
       addEventListener(event, handler) { if (event === "click") formulaRewardClick = handler; }
+    };
+    const scienceProofButton = {
+      dataset: { scienceProofCommand: "hopper.engine = 7", scienceProofTitle: "Agility 30+ reached" },
+      addEventListener(event, handler) { if (event === "click") scienceProofClick = handler; }
     };
     const pulsePanel22b = {
       classList: { add: () => {}, remove: () => {} },
       innerHTML: "",
       querySelectorAll(selector) {
-        return selector === "[data-formula-next-command]" && /data-formula-next-command/.test(this.innerHTML)
-          ? [formulaRewardButton]
-          : [];
+        if (selector === "[data-formula-next-command]" && /data-formula-next-command/.test(this.innerHTML)) return [formulaRewardButton];
+        if (selector === "[data-science-proof-command]" && /data-science-proof-command/.test(this.innerHTML)) return [scienceProofButton];
+        return [];
       }
     };
     const input22b = {
@@ -2155,6 +2160,24 @@ function runEngineTests() {
     const game = new StarHopperGame();
     game.player = { x: 100, y: 120, w: 24, h: 32 };
     game.cameraX = 0;
+    game.lastScienceDelta = {
+      title: "What changed",
+      summary: "Mass changed",
+      code: "use_hopper()\nhopper.mass = 1.2",
+      changes: [
+        {
+          label: "Mass",
+          value: "2.5 -> 1.2 (-1.3)",
+          direction: "down",
+          cue: "Less mass: same force makes more acceleration; gravity still sets falling acceleration."
+        }
+      ],
+      nextExperiment: {
+        title: "Agility 30+ reached",
+        body: "Lower mass or raise engine.",
+        command: "hopper.engine = 7"
+      }
+    };
     const activeMission = PLANETS[0].missions.find(mission => mission.id === "earth-gravity-wall");
     const partial = {
       allPassed: false,
@@ -2173,6 +2196,11 @@ function runEngineTests() {
     const massDelta = buildScienceDelta(game, { mass: 2.5 }, { mass: 1.2 }, "hopper.mass = 1.2");
     assertEquals(true, /gravity still sets falling acceleration/.test(massDelta && massDelta.changes && massDelta.changes[0] && massDelta.changes[0].cue), "Mass science delta should explain that gravity, not mass, controls free-fall acceleration");
     assertEquals(true, !!firstPulse.cardUnlocked, "First real mass progress should unlock the mass formula card");
+    assertEquals("SCIENCE PROOF", firstPulse.scienceDeltaProof && firstPulse.scienceDeltaProof.label, "Discovery pulse should carry the matching science proof");
+    assertEquals("Mass changed", firstPulse.scienceDeltaProof && firstPulse.scienceDeltaProof.title, "Science proof should name the changed value");
+    assertEquals("F/m=a", firstPulse.scienceDeltaProof && firstPulse.scienceDeltaProof.relation, "Science proof should carry the formula relation");
+    assertEquals("-1.3", firstPulse.scienceDeltaProof && firstPulse.scienceDeltaProof.delta, "Science proof should expose the numeric delta");
+    assertEquals("hopper.engine = 7", firstPulse.scienceDeltaProof && firstPulse.scienceDeltaProof.nextCommand, "Science proof should expose the next runnable experiment");
     assertEquals(true, game.discoveredFormulaKinds.has("mass"), "Mass formula should be collected");
     assertEquals(1, game.formulaCardEffects.length, "Formula card unlock should spawn an in-world card effect");
     assertEquals("Mass Lab", game.formulaCardEffects[0].title, "Formula card effect should name the collected card");
@@ -2199,6 +2227,12 @@ function runEngineTests() {
     assertEquals(true, /Next: Engine Lab/.test(pulsePanel22b.innerHTML), "Discovery Pulse should show the next formula card target");
     assertEquals(true, /LEARN/.test(pulsePanel22b.innerHTML) && /Force changes speed/.test(pulsePanel22b.innerHTML), "Discovery Pulse should teach the next card science axis");
     assertEquals(true, /WIN/.test(pulsePanel22b.innerHTML) && /Beat Agility gates/.test(pulsePanel22b.innerHTML), "Discovery Pulse should show the next card payoff");
+    assertEquals(true, /SCIENCE PROOF/.test(pulsePanel22b.innerHTML), "Discovery Pulse should render the science proof card");
+    assertEquals(true, /CODE/.test(pulsePanel22b.innerHTML) && /hopper\.mass = 1\.2/.test(pulsePanel22b.innerHTML), "Science proof should show the causal code");
+    assertEquals(true, /SCIENCE/.test(pulsePanel22b.innerHTML) && /F\/m=a/.test(pulsePanel22b.innerHTML), "Science proof should show the formula relation");
+    assertEquals(true, /WIN/.test(pulsePanel22b.innerHTML) && /(NEXT Agility 30\+ reached|TARGET Agility)/.test(pulsePanel22b.innerHTML), "Science proof should show the next game target");
+    assertEquals(true, /STAGE NEXT/.test(pulsePanel22b.innerHTML), "Science proof should expose a next-experiment stage action");
+    assertEquals(true, typeof scienceProofClick === "function", "Discovery Pulse science proof action should attach a click handler");
     assertEquals(true, /Try <code>hopper\.engine = 7<\/code>/.test(pulsePanel22b.innerHTML), "Discovery Pulse should show the next runnable formula command");
     assertEquals(true, /STAGE CARD/.test(pulsePanel22b.innerHTML), "Discovery Pulse should expose a formula stage action");
     assertEquals(true, typeof formulaRewardClick === "function", "Discovery Pulse formula action should attach a click handler");
@@ -2223,6 +2257,10 @@ function runEngineTests() {
     assertEquals(firstBubbleCount, bubbleLabels22b.length, "Repeating without progress should not spawn combo text");
     assertEquals(firstBurstCount, particleBursts22b, "Repeating without progress should not spawn combo particles");
     window.Game = game;
+    scienceProofClick();
+    assertEquals("hopper.engine = 7", input22b.value, "Science proof stage button should write the next command to the console");
+    assertEquals("science-proof", game.lastStagedExperiment && game.lastStagedExperiment.source, "Science proof stage button should preserve its source");
+    assertEquals("Science proof", getStagedExperimentSourceLabel(game.lastStagedExperiment.source), "Science proof staged reminder should name the reward source");
     formulaRewardClick();
     assertEquals("hopper.engine = 7", input22b.value, "Formula reward stage button should write the next command to the console");
     assertEquals(true, input22b.focused, "Formula reward stage button should focus the console");

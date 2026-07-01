@@ -4277,6 +4277,69 @@ html {
   background: rgba(146, 64, 14, 0.78);
   box-shadow: 0 0 8px rgba(250, 204, 21, 0.2);
 }
+.discovery-science-proof {
+  display: grid;
+  gap: 6px;
+  max-width: min(100%, 540px);
+  border-color: rgba(103, 232, 249, 0.56);
+  background:
+    linear-gradient(135deg, rgba(8, 47, 73, 0.56), rgba(15, 23, 42, 0.78)),
+    rgba(6, 78, 59, 0.28);
+  color: #e0f2fe;
+  box-shadow: 0 0 14px rgba(103, 232, 249, 0.13);
+}
+.discovery-science-proof > strong {
+  color: #a7f3d0;
+  font-size: 0.62rem;
+  font-weight: 900;
+}
+.discovery-science-proof-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: 5px;
+}
+.discovery-science-proof-grid span {
+  min-width: 0;
+  border: 1px solid rgba(125, 211, 252, 0.3);
+  border-radius: 4px;
+  background: rgba(2, 6, 23, 0.34);
+  color: #dff6ff;
+  overflow: hidden;
+  padding: 3px 5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.discovery-science-proof-grid b {
+  color: #67e8f9;
+  display: block;
+  font-size: 0.5rem;
+  letter-spacing: 0;
+  margin-bottom: 1px;
+}
+.discovery-science-proof p {
+  color: #bbf7d0;
+  line-height: 1.25;
+  margin: 0;
+}
+.discovery-science-proof-code {
+  color: #fde68a;
+}
+.discovery-science-proof-stage-btn {
+  border: 1px solid rgba(103, 232, 249, 0.58);
+  border-radius: 4px;
+  background: rgba(8, 47, 73, 0.68);
+  color: #e0f2fe;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  font-weight: 900;
+  margin-left: 6px;
+  padding: 2px 5px;
+}
+.discovery-science-proof-stage-btn:hover {
+  background: rgba(14, 116, 144, 0.78);
+  box-shadow: 0 0 8px rgba(103, 232, 249, 0.22);
+}
 .discovery-perk {
   border-color: rgba(250, 204, 21, 0.46);
   background: rgba(113, 63, 18, 0.36);
@@ -10181,6 +10244,10 @@ body.readable-text-mode .science-delta-chain-badge span,
 body.readable-text-mode .science-delta-chain-badge strong,
 body.readable-text-mode .science-delta-chain-badge p,
 body.readable-text-mode .science-delta-tested-stage-btn,
+body.readable-text-mode .discovery-science-proof,
+body.readable-text-mode .discovery-science-proof-grid span,
+body.readable-text-mode .discovery-science-proof p,
+body.readable-text-mode .discovery-science-proof-stage-btn,
 body.readable-text-mode .lab-chain-target-head,
 body.readable-text-mode .lab-chain-target-body p,
 body.readable-text-mode .lab-chain-target-card code,
