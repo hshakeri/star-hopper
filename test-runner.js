@@ -3148,8 +3148,16 @@ function runEngineTests() {
     targetGame.targetTestAgility = 11;
     const targetDelta = recordScienceDelta(targetGame, targetBefore, captureScienceDeltaSnapshot(targetGame), "hopper.engine = 8");
     assertEquals(true, targetDelta.missionTarget && targetDelta.missionTarget.crossed, "Science delta should mark a mission stat crossing");
+    assertEquals("TARGET READY", targetDelta.scienceCheckpointProof && targetDelta.scienceCheckpointProof.label, "Target-ready crossing should create a checkpoint proof");
+    assertEquals(5, targetDelta.scienceCheckpointProof && targetDelta.scienceCheckpointProof.rewardXP, "Target-ready checkpoint should award the stronger proof XP");
+    assertEquals(1, targetGame.discoveryPassCounts[getScienceCheckpointProofSourceKey(targetGame, targetDelta)], "Target-ready checkpoint should store a one-time source key");
+    assertEquals(5, targetGame.researchXP, "Target-ready checkpoint should add Research XP");
+    assertEquals("science-checkpoint", targetGame.discoveryPulse && targetGame.discoveryPulse.kind, "Target-ready checkpoint should create a Discovery Pulse");
+    assertEquals(null, grantScienceCheckpointProof(targetGame, targetDelta), "Repeating a target-ready checkpoint should not farm rewards");
+    assertEquals(5, targetGame.researchXP, "Repeated target-ready checkpoint should not add more Research XP");
     assertEquals(true, targetReadyLabels.includes("TARGET READY!"), "Crossing the mission target should pop a visible ready cue");
     assertEquals(true, targetReadyLabels.includes("AGILITY 11/10"), "Ready cue should show the live stat over the target");
+    assertEquals(true, targetReadyLabels.includes("+5 CHECKPOINT"), "Target-ready checkpoint should pop the proof reward");
     assertEquals("TARGET READY: Agility 11/10", targetGame.missionBalloon && targetGame.missionBalloon.text, "Mission CRT should announce the target-ready payoff");
     assertEquals(true, targetReadyBursts >= 4, "Target-ready payoff should add extra particle feedback");
     targetGame.state = 'playing';
@@ -3183,10 +3191,26 @@ function runEngineTests() {
     const targetStepDelta = recordScienceDelta(targetStepGame, targetStepBefore, captureScienceDeltaSnapshot(targetStepGame), "hopper.engine = 7");
     assertEquals(false, targetStepDelta.missionTarget && targetStepDelta.missionTarget.crossed, "Partial target movement should not mark the target complete");
     assertEquals("HALFWAY!", targetStepDelta.missionTarget && targetStepDelta.missionTarget.milestone && targetStepDelta.missionTarget.milestone.label, "Crossing 50% should store a target milestone");
+    assertEquals("TARGET CHECKPOINT", targetStepDelta.scienceCheckpointProof && targetStepDelta.scienceCheckpointProof.label, "Crossing a target milestone should create a checkpoint proof");
+    assertEquals(3, targetStepDelta.scienceCheckpointProof && targetStepDelta.scienceCheckpointProof.rewardXP, "Partial target checkpoint should award small proof XP");
+    assertEquals(1, targetStepGame.discoveryPassCounts[getScienceCheckpointProofSourceKey(targetStepGame, targetStepDelta)], "Partial target checkpoint should store a one-time source key");
+    assertEquals(3, targetStepGame.researchXP, "Partial target checkpoint should add Research XP");
+    assertEquals(null, grantScienceCheckpointProof(targetStepGame, targetStepDelta), "Repeating a partial target checkpoint should not farm rewards");
+    assertEquals(3, targetStepGame.researchXP, "Repeated partial target checkpoint should not add more Research XP");
     assertEquals(true, targetStepLabels.includes("HALFWAY!"), "Crossing a target milestone should pop a visible progress cue");
     assertEquals(true, targetStepLabels.includes("50% TARGET"), "Target milestone cue should show the crossed threshold");
+    assertEquals(true, targetStepLabels.includes("+3 CHECKPOINT"), "Partial target checkpoint should pop the proof reward");
     assertEquals("TARGET STEP: Agility 7/10", targetStepGame.missionBalloon && targetStepGame.missionBalloon.text, "Mission CRT should announce non-XP target progress");
     assertEquals(true, targetStepBursts >= 4, "Target milestone should add extra particle feedback");
+    const checkpointPanel22ba = {
+      classList: { add: () => {}, remove: () => {} },
+      innerHTML: "",
+      querySelectorAll() { return []; }
+    };
+    document.getElementById = (id) => id === "discovery-pulse" ? checkpointPanel22ba : null;
+    updateDiscoveryPulse(targetStepGame);
+    assertEquals(true, /TARGET CHECKPOINT \+3 XP/.test(checkpointPanel22ba.innerHTML), "Discovery Pulse should render the checkpoint reward");
+    assertEquals(true, /HALFWAY!/.test(checkpointPanel22ba.innerHTML) && /Agility 7\.0\/10/.test(checkpointPanel22ba.innerHTML), "Checkpoint pulse should show the threshold and target stat");
     targetStepGame.state = 'playing';
     targetStepGame.canvas = { width: 720, height: 448 };
     const targetStepCue = targetStepGame.getScienceDeltaRunCue();
@@ -9412,13 +9436,13 @@ function runRetryRemixTests() {
       dailySignalClears: 3, lastPlayedDate: "2026-06-13", streakCount: 5,
       frontierRecords: { "2026-06-30": { dateStr: "2026-06-30", shareCode: "FRONTIER-EARTH-1234", tier: 2, stars: 3, bestTime: 31.2 } },
       frontierBoard: { "FRONTIER-MOON-2222": { dateStr: "2026-06-30", shareCode: "FRONTIER-MOON-2222", tier: 2, stars: 2, bestTime: 42.5, pilot: "Ada" } },
-      researchXP: 24, discoveryCombo: 1, discoveryLog: [], discoveryPassCounts: {},
+      researchXP: 24, discoveryCombo: 1, discoveryLog: [], discoveryPassCounts: { "science-checkpoint:0:agility:50": 1 },
       discoveredFormulaKinds: new Set(["mass"]),
       confirmedHypotheses: new Set(["earth-gravity-wall"])
     };
     window.Game = Game;
     const snap = shCaptureProgress();
-    Game.bestClearTimes = {}; Game.bestLabStars = {}; Game.dailySignalClears = 0; Game.frontierRecords = {}; Game.frontierBoard = {}; Game.lastPlayedDate = null; Game.streakCount = 0; Game.masteryCleared = {}; Game.villageTrust = {}; Game.researchXP = 0; Game.discoveredFormulaKinds = new Set(); Game.confirmedHypotheses = new Set();
+    Game.bestClearTimes = {}; Game.bestLabStars = {}; Game.dailySignalClears = 0; Game.frontierRecords = {}; Game.frontierBoard = {}; Game.lastPlayedDate = null; Game.streakCount = 0; Game.masteryCleared = {}; Game.villageTrust = {}; Game.researchXP = 0; Game.discoveryPassCounts = {}; Game.discoveredFormulaKinds = new Set(); Game.confirmedHypotheses = new Set();
     shApplyProgress(snap);
     assertEquals(12.4, Game.bestClearTimes[0], "best clear time round-trips");
     assertEquals(3, Game.bestLabStars[0], "best lab stars round-trip");
@@ -9431,6 +9455,7 @@ function runRetryRemixTests() {
     assertEquals("2026-06-13", Game.lastPlayedDate, "lastPlayedDate round-trips");
     assertEquals(5, Game.streakCount, "streakCount round-trips");
     assertEquals(24, Game.researchXP, "Research XP round-trips");
+    assertEquals(1, Game.discoveryPassCounts["science-checkpoint:0:agility:50"], "Science checkpoint proof source round-trips");
     assertEquals(true, Game.discoveredFormulaKinds.has("mass"), "Formula cards round-trip");
     assertEquals(true, Game.confirmedHypotheses.has("earth-gravity-wall"), "Confirmed hypotheses round-trip");
     Game = oldGameR16; window.Game = oldGameR16;

@@ -4340,6 +4340,28 @@ html {
   background: rgba(14, 116, 144, 0.78);
   box-shadow: 0 0 8px rgba(103, 232, 249, 0.22);
 }
+.discovery-science-checkpoint {
+  display: grid;
+  gap: 3px;
+  max-width: min(100%, 440px);
+  border-color: rgba(190, 242, 100, 0.52);
+  background:
+    linear-gradient(135deg, rgba(20, 83, 45, 0.5), rgba(15, 23, 42, 0.74)),
+    rgba(22, 101, 52, 0.24);
+  color: #dcfce7;
+}
+.discovery-science-checkpoint strong {
+  color: #bef264;
+  font-size: 0.62rem;
+  font-weight: 900;
+}
+.discovery-science-checkpoint span {
+  color: #e0f2fe;
+}
+.discovery-science-checkpoint em {
+  color: #fde68a;
+  font-style: normal;
+}
 .discovery-perk {
   border-color: rgba(250, 204, 21, 0.46);
   background: rgba(113, 63, 18, 0.36);
@@ -10248,6 +10270,9 @@ body.readable-text-mode .discovery-science-proof,
 body.readable-text-mode .discovery-science-proof-grid span,
 body.readable-text-mode .discovery-science-proof p,
 body.readable-text-mode .discovery-science-proof-stage-btn,
+body.readable-text-mode .discovery-science-checkpoint,
+body.readable-text-mode .discovery-science-checkpoint span,
+body.readable-text-mode .discovery-science-checkpoint em,
 body.readable-text-mode .lab-chain-target-head,
 body.readable-text-mode .lab-chain-target-body p,
 body.readable-text-mode .lab-chain-target-card code,

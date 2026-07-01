@@ -1885,6 +1885,7 @@ function getStagedExperimentSourceLabel(source) {
     "science-delta": "What Changed",
     "tested-result": "Tested result",
     "science-proof": "Science proof",
+    "science-checkpoint": "Science checkpoint",
     "lab-chain-target": "Lab chain",
     "formula-focus": "Formula Deck",
     "formula-card-reward": "Formula reward",
@@ -4815,6 +4816,112 @@ function buildDiscoveryScienceDeltaProof(game, pulse) {
   };
 }
 
+function getScienceCheckpointProofSourceKey(game, delta) {
+  const target = delta && delta.missionTarget ? delta.missionTarget : null;
+  if (!target || !target.key) return "";
+  const index = game && Number.isFinite(Number(game.currentPlanetIndex)) ? Math.floor(Number(game.currentPlanetIndex)) : 0;
+  const rawThreshold = target.crossed ? 1 : (target.milestone && Number.isFinite(Number(target.milestone.threshold)) ? Number(target.milestone.threshold) : null);
+  if (!Number.isFinite(rawThreshold)) return "";
+  const threshold = rawThreshold >= 1 ? "ready" : String(Math.round(rawThreshold * 100));
+  return `science-checkpoint:${index}:${String(target.key).replace(/[^a-z0-9_-]+/gi, "-").toLowerCase()}:${threshold}`;
+}
+
+function buildScienceCheckpointProof(game, delta) {
+  const target = delta && delta.missionTarget ? delta.missionTarget : null;
+  if (!target || (!target.crossed && !target.milestone)) return null;
+  const sourceKey = getScienceCheckpointProofSourceKey(game, delta);
+  if (!sourceKey) return null;
+  const label = target.crossed ? "TARGET READY" : "TARGET CHECKPOINT";
+  const checkpoint = target.crossed ? "100% TARGET" : (target.milestone && target.milestone.detail ? target.milestone.detail : "TARGET STEP");
+  const title = target.crossed ? `${target.label || "Target"} ready` : (target.milestone && target.milestone.label ? target.milestone.label : "Target step");
+  const fmt = typeof formatScienceDeltaValue === "function" ? formatScienceDeltaValue : (value => String(Math.round(Number(value) || 0)));
+  const statLine = `${target.label || "Target"} ${fmt(target.after)}/${fmt(target.target)}`;
+  const rewardXP = target.crossed ? 5 : 3;
+  return {
+    label,
+    title,
+    checkpoint,
+    statLine,
+    sourceKey,
+    rewardXP,
+    worldMasteryXP: target.crossed ? 7 : 4,
+    code: String((delta && delta.code) || "").trim().slice(0, 160),
+    progressLabel: target.crossed ? "target ready" : checkpoint.toLowerCase()
+  };
+}
+
+function spawnScienceCheckpointProofEffect(game, proof) {
+  if (!game || !proof || !game.player) return null;
+  const baseX = Number.isFinite(game.player.x) ? game.player.x : 0;
+  const baseY = Number.isFinite(game.player.y) ? game.player.y : 0;
+  const width = Number.isFinite(game.player.w) ? game.player.w : 24;
+  const height = Number.isFinite(game.player.h) ? game.player.h : 32;
+  const px = baseX + width / 2;
+  const py = baseY + height / 2;
+  const color = proof.label === "TARGET READY" ? "#facc15" : "#67e8f9";
+  if (typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+    ComicBubbles.pop(px, baseY - 70, `+${proof.rewardXP} CHECKPOINT`, color, proof.label === "TARGET READY" ? 0.98 : 0.86);
+  }
+  if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+    Particles.spawnBurst(px, py - 12, color, proof.label === "TARGET READY" ? 12 : 8, 2.0, 1.9, "glow");
+  }
+  return { label: proof.label, color, rewardXP: proof.rewardXP, x: px, y: py };
+}
+
+function getMatchingScienceCheckpointProof(game, pulse) {
+  const proof = game && game.lastScienceCheckpointProof ? game.lastScienceCheckpointProof : null;
+  if (!proof || !pulse) return null;
+  const pulseCode = String(pulse.code || "").trim();
+  const proofCode = String(proof.code || "").trim();
+  if (!pulseCode || !proofCode || proofCode.slice(0, pulseCode.length) !== pulseCode) return null;
+  return proof;
+}
+
+function grantScienceCheckpointProof(game, delta) {
+  const proof = buildScienceCheckpointProof(game, delta);
+  if (!game || !proof) return null;
+  game.discoveryPassCounts = game.discoveryPassCounts || {};
+  if (game.discoveryPassCounts[proof.sourceKey]) return null;
+
+  game.discoveryPassCounts[proof.sourceKey] = 1;
+  game.researchXP = Math.max(0, (game.researchXP || 0) + proof.rewardXP);
+  if (typeof game.awardWorldMasteryXP === "function") {
+    const mastery = game.awardWorldMasteryXP(proof.worldMasteryXP, "science checkpoint", {
+      sourceKey: proof.sourceKey,
+      silent: true
+    });
+    proof.worldMasteryAddedXP = mastery && mastery.added > 0 ? mastery.added : 0;
+  }
+  proof.effect = spawnScienceCheckpointProofEffect(game, proof);
+  game.lastScienceCheckpointProof = proof;
+  if (delta) delta.scienceCheckpointProof = proof;
+
+  const pulse = {
+    kind: "science-checkpoint",
+    title: proof.title || "Target Checkpoint",
+    formula: "target progress -> proof",
+    insight: `${proof.statLine} reached ${proof.checkpoint}. Partial target progress is evidence, not just setup.`,
+    cue: "Keep one variable moving until the next checkpoint or the mission target.",
+    missionId: "_science_checkpoint",
+    missionTitle: "Science Target",
+    code: proof.code,
+    passed: 0,
+    total: 0,
+    openedGems: 0,
+    rewardXP: proof.rewardXP,
+    combo: game.discoveryCombo || 0,
+    scienceCheckpointProof: proof
+  };
+  pulse.scienceDeltaProof = buildDiscoveryScienceDeltaProof(game, pulse);
+  game.discoveryPulse = pulse;
+  game.discoveryLog = [pulse].concat(Array.isArray(game.discoveryLog) ? game.discoveryLog : []).slice(0, 8);
+  updateDiscoveryPulse(game);
+  if (typeof updateResearchProgress === "function") updateResearchProgress(game);
+  const isLiveGame = typeof window !== "undefined" && window.Game === game;
+  if (isLiveGame && typeof saveLocalProgress === "function") saveLocalProgress();
+  return proof;
+}
+
 function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems = 0) {
   if (!game) return null;
   const pulse = inferDiscoveryPulse(game, activeMission, code, resultState, openedGems);
@@ -4833,6 +4940,8 @@ function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems
     const cardUnlocked = unlockFormulaKind(game, pulse.kind);
     const hypothesis = confirmHypothesisForPulse(game, activeMission, earned);
     pulse.scienceDeltaProof = buildDiscoveryScienceDeltaProof(game, pulse);
+    const checkpointProof = getMatchingScienceCheckpointProof(game, pulse);
+    if (checkpointProof) pulse.scienceCheckpointProof = checkpointProof;
     game.discoveryCombo = Math.min(99, (game.discoveryCombo || 0) + 1);
     pulse.combo = game.discoveryCombo;
     pulse.cardUnlocked = cardUnlocked;
@@ -5755,6 +5864,9 @@ function updateDiscoveryPulse(game) {
   const scienceProof = scienceProofData
     ? `<div class="discovery-hypothesis discovery-science-proof"><strong>${escapeHTML(scienceProofData.label || "SCIENCE PROOF")} · ${escapeHTML(scienceProofData.title || "What changed")}</strong><div class="discovery-science-proof-grid"><span><b>CODE</b>${escapeHTML(scienceProofCode || "latest command")}</span><span><b>SCIENCE</b>${escapeHTML(scienceProofScience)}</span><span><b>WIN</b>${escapeHTML(scienceProofData.winLine || "test the level")}</span></div>${scienceProofData.reason ? `<p>${escapeHTML(scienceProofData.reason)}</p>` : ""}${scienceProofCommand ? `<div class="discovery-science-proof-code">Next <code>${escapeHTML(scienceProofCommandLabel)}</code><button type="button" class="discovery-science-proof-stage-btn" data-science-proof-command="${escapeHTML(scienceProofCommand)}" data-science-proof-title="${escapeHTML(scienceProofData.nextTitle || "Next proof")}">STAGE NEXT</button></div>` : ""}</div>`
     : "";
+  const scienceCheckpoint = pulse.scienceCheckpointProof
+    ? `<div class="discovery-hypothesis discovery-science-checkpoint"><strong>${escapeHTML(pulse.scienceCheckpointProof.label || "TARGET CHECKPOINT")} +${escapeHTML(String(pulse.scienceCheckpointProof.rewardXP || 0))} XP</strong><span>${escapeHTML(pulse.scienceCheckpointProof.title || "Target step")} · ${escapeHTML(pulse.scienceCheckpointProof.statLine || "")}</span><em>${escapeHTML(pulse.scienceCheckpointProof.checkpoint || "science checkpoint")}${pulse.scienceCheckpointProof.worldMasteryAddedXP ? ` · +${escapeHTML(String(pulse.scienceCheckpointProof.worldMasteryAddedXP))} world XP` : ""}</em></div>`
+    : "";
   const formulaProgress = pulse.cardUnlocked && pulse.formulaDeckProgress ? pulse.formulaDeckProgress : null;
   const formulaNextCommand = formulaProgress && formulaProgress.nextCommand
     ? String(formulaProgress.nextCommand).trim()
@@ -5843,6 +5955,7 @@ function updateDiscoveryPulse(game) {
     ${comboAmplifier}
     ${comboMilestone}
     ${hypothesis}
+    ${scienceCheckpoint}
     ${scienceProof}
     ${lessonPhase}
     ${lessonPathMastery}
@@ -6893,6 +7006,9 @@ function recordScienceDelta(game, before, after, code) {
   game.lastScienceDelta = delta;
   if (typeof game.spawnScienceDeltaEffect === 'function') {
     game.spawnScienceDeltaEffect(delta);
+  }
+  if (typeof grantScienceCheckpointProof === 'function') {
+    grantScienceCheckpointProof(game, delta);
   }
   if (typeof ui_log_output === 'function') {
     const first = delta.changes[0];
