@@ -7575,6 +7575,7 @@ class StarHopperGame {
     const targetReady = !!(target && target.crossed);
     let targetMilestone = null;
     let targetCloser = null;
+    let targetFarther = null;
     const fmt = (value) => typeof this.formatScienceDeltaTargetNumber === 'function'
       ? this.formatScienceDeltaTargetNumber(value)
       : (Math.abs(Number(value)) >= 10 ? String(Math.round(Number(value))) : Number(value).toFixed(1));
@@ -7620,6 +7621,7 @@ class StarHopperGame {
       const progressBefore = Math.max(0, Math.min(1, Number(target.progressBefore)));
       const progressAfter = Math.max(0, Math.min(1, Number(target.progressAfter)));
       const progressGain = Math.max(0, progressAfter - progressBefore);
+      const progressDrop = Math.max(0, progressBefore - progressAfter);
       if (progressGain >= 0.02) {
         const targetLabel = String(target.label || "Target");
         const targetLine = `${targetLabel} ${fmt(target.after)}/${fmt(target.target)}`;
@@ -7640,9 +7642,29 @@ class StarHopperGame {
             timer: 150
           });
         }
+      } else if (progressDrop >= 0.02) {
+        const targetLabel = String(target.label || "Target");
+        const targetLine = `${targetLabel} ${fmt(target.after)}/${fmt(target.target)}`;
+        const compareLabel = `COMPARE -${Math.max(1, Math.round(progressDrop * 100))}%`;
+        targetFarther = { label: compareLabel, progressDrop, targetLine };
+        if (typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+          ComicBubbles.pop(px, baseY - 34, compareLabel, "#fca5a5", 0.84);
+          ComicBubbles.pop(px, baseY - 52, targetLine.toUpperCase(), "#bfdbfe", 0.68);
+        }
+        if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+          Particles.spawnBurst(px, py - 4, '#fca5a5', 7, 1.8, 1.7, 'glow');
+          Particles.spawnBurst(px, py - 4, '#93c5fd', 5, 1.35, 1.3, 'glow');
+        }
+        if (typeof this.showMissionBalloon === 'function') {
+          this.showMissionBalloon(`TARGET COMPARE: ${targetLine}`, {
+            title: "MISSION CRT",
+            color: "#fca5a5",
+            timer: 150
+          });
+        }
       }
     }
-    const effect = { label, color, x: px, y: py, targetReady, targetMilestone, targetCloser, breadcrumb };
+    const effect = { label, color, x: px, y: py, targetReady, targetMilestone, targetCloser, targetFarther, breadcrumb };
     this.lastScienceDeltaEffect = effect;
     return effect;
   }

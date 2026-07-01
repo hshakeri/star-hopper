@@ -3234,6 +3234,43 @@ function runEngineTests() {
     assertEquals("CLOSER +20%", targetCloserGame.lastScienceDeltaEffect && targetCloserGame.lastScienceDeltaEffect.targetCloser && targetCloserGame.lastScienceDeltaEffect.targetCloser.label, "Closer target movement should be inspectable as a visual effect");
     assertEquals(true, targetCloserBursts >= 4, "Closer target movement should still get lightweight particles");
 
+    const targetFartherLabels = [];
+    let targetFartherBursts = 0;
+    ComicBubbles.pop = (x, y, text) => { targetFartherLabels.push(text); };
+    Particles.spawnBurst = () => { targetFartherBursts++; };
+    const targetFartherGame = new StarHopperGame();
+    targetFartherGame.player = { charType: 'hopper', x: 58, y: 94, w: 24, h: 32, mass: 1, fuel: 100 };
+    targetFartherGame.spawnedBoxes = [];
+    targetFartherGame.interactiveObjects = [];
+    targetFartherGame.targetTestAgility = 5;
+    targetFartherGame.getActiveMass = () => 1;
+    targetFartherGame.getEngineForce = () => 4;
+    targetFartherGame.getJumpForce = () => 10;
+    targetFartherGame.getDesignGravity = () => 1;
+    targetFartherGame.getCurrentFriction = () => 0;
+    targetFartherGame.getMissionStat = function () {
+      return { key: 'agility', label: 'Agility', value: this.targetTestAgility, target: 10 };
+    };
+    const targetFartherBefore = captureScienceDeltaSnapshot(targetFartherGame);
+    targetFartherGame.targetTestAgility = 3;
+    const targetFartherDelta = recordScienceDelta(targetFartherGame, targetFartherBefore, captureScienceDeltaSnapshot(targetFartherGame), "hopper.mass = 3");
+    assertEquals(false, targetFartherDelta.missionTarget && targetFartherDelta.missionTarget.crossed, "Farther target movement should not mark the target complete");
+    assertEquals(null, targetFartherDelta.missionTarget && targetFartherDelta.missionTarget.milestone, "Farther target movement should not invent a checkpoint milestone");
+    assertEquals(null, targetFartherDelta.scienceCheckpointProof || null, "Farther target movement should not create a checkpoint proof");
+    assertEquals(0, targetFartherGame.researchXP || 0, "Farther target movement should not award Research XP");
+    assertEquals(null, targetFartherGame.discoveryPulse || null, "Farther target movement should not create a Discovery Pulse");
+    assertEquals(true, targetFartherLabels.includes("COMPARE -20%"), "Farther target movement should pop a compare cue instead of a reward");
+    assertEquals(true, targetFartherLabels.includes("AGILITY 3/10"), "Compare cue should show the updated target stat");
+    assertEquals("TARGET COMPARE: Agility 3/10", targetFartherGame.missionBalloon && targetFartherGame.missionBalloon.text, "Mission CRT should announce target regression as comparison evidence");
+    assertEquals("COMPARE -20%", targetFartherGame.lastScienceDeltaEffect && targetFartherGame.lastScienceDeltaEffect.targetFarther && targetFartherGame.lastScienceDeltaEffect.targetFarther.label, "Farther target movement should be inspectable as a visual effect");
+    assertEquals(true, targetFartherBursts >= 4, "Farther target movement should still get lightweight particles");
+    targetFartherGame.state = 'playing';
+    targetFartherGame.canvas = { width: 720, height: 448 };
+    const targetFartherCue = targetFartherGame.getScienceDeltaRunCue();
+    assertEquals(true, Number(targetFartherCue.targetProgressBefore) > Number(targetFartherCue.targetProgress), "Evidence ticker should expose target movement away from the goal");
+    assertEquals("NEXT 50% TARGET", targetFartherCue.targetNextLine, "Target regression should keep the next checkpoint visible");
+    assertEquals("+2", targetFartherCue.targetNeedLine, "Target regression should show how much is needed to recover the next checkpoint");
+
     const targetStepLabels = [];
     let targetStepBursts = 0;
     ComicBubbles.pop = (x, y, text) => { targetStepLabels.push(text); };
