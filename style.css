@@ -7448,6 +7448,52 @@ html {
   background: rgba(250, 204, 21, 0.3);
   border-color: #fef08a;
 }
+.coach-code-bridge {
+  border: 1px solid rgba(125, 211, 252, 0.22);
+  border-radius: 6px;
+  background: rgba(2, 6, 23, 0.34);
+  display: grid;
+  gap: 5px;
+  padding: 6px;
+}
+.coach-code-bridge-head {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.coach-code-bridge-head span {
+  color: #67e8f9;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  font-weight: 900;
+  line-height: 1;
+}
+.coach-code-bridge-head strong {
+  color: #ecfeff;
+  font-size: 0.68rem;
+  line-height: 1.1;
+}
+.coach-code-bridge-grid {
+  display: grid;
+  gap: 3px 6px;
+  grid-template-columns: minmax(56px, auto) minmax(0, 1fr);
+  max-width: 100%;
+}
+.coach-code-bridge-grid span {
+  color: #a5f3fc;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  font-weight: 900;
+  line-height: 1.2;
+  padding-top: 5px;
+  text-transform: uppercase;
+}
+.coach-code-bridge-grid code {
+  justify-self: stretch;
+  min-width: 0;
+  white-space: pre-wrap;
+}
 .coach-proof-stage-btn {
   justify-self: start;
   border: 1px solid rgba(187, 247, 208, 0.42);
@@ -11266,6 +11312,9 @@ body.readable-text-mode .coach-proof-hook strong,
 body.readable-text-mode .coach-proof-hook p,
 body.readable-text-mode .coach-proof-hook code,
 body.readable-text-mode .coach-proof-progress span,
+body.readable-text-mode .coach-code-bridge-head,
+body.readable-text-mode .coach-code-bridge-grid span,
+body.readable-text-mode .coach-code-bridge-grid code,
 body.readable-text-mode .coach-proof-stage-btn,
 body.readable-text-mode .coach-prediction-card p,
 body.readable-text-mode .coach-result-box p,

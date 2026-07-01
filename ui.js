@@ -7034,6 +7034,119 @@ function appendCoachProofProgress(card, proofHook) {
   card.appendChild(wrap);
 }
 
+function toCodeBridgeCamel(name) {
+  return String(name || "").replace(/_([a-z])/g, (_, letter) => String(letter || "").toUpperCase());
+}
+
+function translateCodeBridgeExpression(expr, language) {
+  let out = String(expr || "").trim();
+  if (language === "js") {
+    out = out
+      .replace(/\band\b/g, "&&")
+      .replace(/\bor\b/g, "||")
+      .replace(/\bnot\b/g, "!")
+      .replace(/\bTrue\b/g, "true")
+      .replace(/\bFalse\b/g, "false")
+      .replace(/\bNone\b/g, "null")
+      .replace(/\bhopper\.jump_power\b/g, "hopper.jumpPower")
+      .replace(/\bhopper\.rocket_power\b/g, "hopper.rocketPower")
+      .replace(/\bplayer\.jump_power\b/g, "player.jumpPower")
+      .replace(/\buse_hopper\s*\(/g, "useHopper(")
+      .replace(/\bspawn_spring\s*\(/g, "spawnSpring(")
+      .replace(/\bspawn_block\s*\(/g, "spawnBlock(");
+  }
+  return out;
+}
+
+function translateCodeBridgeStatement(line, language) {
+  const text = String(line || "").trim().replace(/;$/, "");
+  if (!text) return null;
+  const repeatColon = text.match(/^repeat\s+(.+?)\s*:\s*(.+)$/i);
+  const repeatBrace = text.match(/^repeat\s+(.+?)\s*\{\s*(.+?)\s*\}$/i);
+  const repeat = repeatColon || repeatBrace;
+  if (repeat) {
+    const count = translateCodeBridgeExpression(repeat[1], language);
+    const body = translateCodeBridgeStatement(repeat[2], language);
+    if (!body) return null;
+    if (language === "py") return `for i in range(${count}):\n    ${body.replace(/\n/g, "\n    ")}`;
+    return `for (let i = 0; i < ${count}; i++) {\n  ${body.replace(/;$/, "").replace(/\n/g, "\n  ")};\n}`;
+  }
+
+  const branch = text.match(/^if\s+(.+?)\s*:\s*(.+)$/i);
+  if (branch) {
+    const condition = translateCodeBridgeExpression(branch[1], language);
+    const body = translateCodeBridgeStatement(branch[2], language);
+    if (!body) return null;
+    if (language === "py") return `if ${condition}:\n    ${body.replace(/\n/g, "\n    ")}`;
+    return `if (${condition}) {\n  ${body.replace(/;$/, "").replace(/\n/g, "\n  ")};\n}`;
+  }
+
+  const eventRule = text.match(/^when\s+(.+?)\s*:\s*(.+)$/i);
+  if (eventRule) {
+    const eventName = eventRule[1].trim().replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    const body = translateCodeBridgeStatement(eventRule[2], language);
+    if (!body) return null;
+    if (language === "py") return `def handler():\n    ${body.replace(/\n/g, "\n    ")}\non_event("${eventName}", handler)`;
+    return `onEvent("${eventName}", () => { ${body.replace(/;$/, "")}; });`;
+  }
+
+  const assignment = text.match(/^([A-Za-z_][\w.]*?)\s*=\s*(.+)$/);
+  if (assignment) {
+    const lhs = language === "js" ? toCodeBridgeCamel(assignment[1]) : assignment[1];
+    const rhs = translateCodeBridgeExpression(assignment[2], language);
+    return language === "js" ? `${lhs} = ${rhs};` : `${lhs} = ${rhs}`;
+  }
+
+  const call = text.match(/^([A-Za-z_][\w.]*)\(([\s\S]*)\)$/);
+  if (call) {
+    const fn = language === "js" ? toCodeBridgeCamel(call[1]) : call[1];
+    const args = translateCodeBridgeExpression(call[2], language);
+    return language === "js" ? `${fn}(${args});` : `${fn}(${args})`;
+  }
+  return null;
+}
+
+function getCoachCodeBridge(command) {
+  const kid = String(command || "").trim();
+  if (!kid) return null;
+  const lines = kid.split(/\n+/).map(line => line.trim()).filter(Boolean);
+  if (!lines.length || lines.length > 4) return null;
+  const python = [];
+  const javascript = [];
+  for (const line of lines) {
+    const py = translateCodeBridgeStatement(line, "py");
+    const js = translateCodeBridgeStatement(line, "js");
+    if (!py || !js) return null;
+    python.push(py);
+    javascript.push(js);
+  }
+  return {
+    kid,
+    python: python.join("\n"),
+    javascript: javascript.join("\n")
+  };
+}
+
+function appendCoachCodeBridge(card, command) {
+  if (!card) return;
+  const bridge = getCoachCodeBridge(command);
+  if (!bridge) return;
+  const wrap = document.createElement("div");
+  wrap.className = "coach-code-bridge";
+  wrap.innerHTML = `
+    <div class="coach-code-bridge-head">
+      <span>CODE BRIDGE</span>
+      <strong>KidCode -> Python -> JavaScript</strong>
+    </div>
+    <div class="coach-code-bridge-grid">
+      <span>KidCode</span><code>${escapeHTML(bridge.kid)}</code>
+      <span>Python</span><code>${escapeHTML(bridge.python)}</code>
+      <span>JavaScript</span><code>${escapeHTML(bridge.javascript)}</code>
+    </div>
+  `;
+  card.appendChild(wrap);
+}
+
 // Direction + live reading for the numeric tuners, so the coach can detect an
 // assignment the cadet has already made and skip past it.
 const COACH_SLOT_RULES = {
@@ -8574,6 +8687,7 @@ function updatePedagogicalGuide(game) {
       ${command}
     `;
     appendCoachProofProgress(hook, proofHook);
+    appendCoachCodeBridge(hook, proofHook.command);
     if (proofHook.command) {
       const stage = document.createElement("button");
       stage.type = "button";
