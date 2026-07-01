@@ -1969,6 +1969,7 @@ function getStagedExperimentSourceLabel(source) {
     "science-proof": "Science proof",
     "science-checkpoint": "Science checkpoint",
     "lab-chain-target": "Lab chain",
+    "lab-chain-next": "Lab chain",
     "formula-focus": "Formula Deck",
     "formula-card-reward": "Formula reward",
     "formula-target": "Formula target",
@@ -6261,11 +6262,26 @@ function getDiscoveryChainHint(pulse, game = null) {
   if (!pulse || combo <= 0) return "";
   const milestonePreview = getDiscoveryComboMilestonePreview(game, combo);
   const earned = (pulse.rewardXP || 0) > 0 || !!pulse.cardUnlocked || !!pulse.hypothesisConfirmed || (pulse.openedGems || 0) > 0;
+  const target = game && typeof getLabChainTarget === "function" ? getLabChainTarget(game) : null;
+  const rawCommand = target && target.command ? String(target.command).trim() : "";
+  const pulseCode = pulse && pulse.code ? String(pulse.code).trim() : "";
+  const command = rawCommand && rawCommand !== pulseCode ? rawCommand : "";
+  const contract = target
+    ? {
+        title: target.title || "Make one fresh change",
+        body: target.body || "Change one variable, run it, and compare the new result.",
+        command,
+        kind: target.kind || "lab-chain",
+        cta: command ? (target.state === "paused" ? "STAGE FIX" : "STAGE CHAIN") : "",
+        source: "lab-chain-next"
+      }
+    : null;
   if (!earned) {
     return {
       label: "CHAIN PAUSED",
       title: "Repeat commands do not count",
-      body: `Make one new checklist item, sample gate, or formula card change to restart the lab chain.${milestonePreview ? ` ${milestonePreview}` : ""}`
+      body: `Make one new checklist item, sample gate, or formula card change to restart the lab chain.${milestonePreview ? ` ${milestonePreview}` : ""}`,
+      contract
     };
   }
   const nextCombo = combo + 1;
@@ -6276,7 +6292,8 @@ function getDiscoveryChainHint(pulse, game = null) {
   return {
     label: `CHAIN NEXT x${nextCombo}`,
     title: `New progress can add combo XP${amplifier}`,
-    body: milestonePreview ? `${nextTarget}. ${milestonePreview}` : nextTarget
+    body: milestonePreview ? `${nextTarget}. ${milestonePreview}` : nextTarget,
+    contract
   };
 }
 
@@ -6422,8 +6439,11 @@ function updateDiscoveryPulse(game) {
     ? `<div class="discovery-next-unlock"><span>${escapeHTML(unlockCue.label)}</span><strong>${escapeHTML(unlockCue.title)}</strong><p>${escapeHTML(unlockCue.body)}</p><div class="discovery-next-unlock-bar" aria-label="${escapeHTML(String(unlockPct))}% toward next lab unlock"><i style="width: ${unlockPct}%"></i></div></div>`
     : "";
   const chainHint = getDiscoveryChainHint(pulse, game);
+  const chainContract = chainHint && chainHint.contract ? chainHint.contract : null;
+  const chainCommand = chainContract && chainContract.command ? String(chainContract.command).trim() : "";
+  const chainCommandLabel = chainCommand.replace(/\s+/g, " ");
   const chainHintCard = chainHint
-    ? `<div class="discovery-chain-next"><span>${escapeHTML(chainHint.label)}</span><strong>${escapeHTML(chainHint.title)}</strong><p>${escapeHTML(chainHint.body)}</p></div>`
+    ? `<div class="discovery-chain-next"><span>${escapeHTML(chainHint.label)}</span><strong>${escapeHTML(chainHint.title)}</strong><p>${escapeHTML(chainHint.body)}</p>${chainContract ? `<div class="discovery-chain-contract"><span><b>NEXT</b>${escapeHTML(chainContract.title || "Make one fresh change")}</span><span><b>WHY</b>${escapeHTML(chainContract.body || "Compare one changed result.")}</span></div>` : ""}${chainCommand ? `<div class="discovery-chain-code">Try <code>${escapeHTML(chainCommandLabel)}</code><button type="button" class="discovery-chain-stage-btn" data-chain-next-command="${escapeHTML(chainCommand)}" data-chain-next-title="${escapeHTML(chainContract.title || "Lab chain")}">${escapeHTML(chainContract.cta || "STAGE CHAIN")}</button></div>` : ""}</div>`
     : "";
   panel.innerHTML = `
     <div class="discovery-pulse-head">
@@ -6469,6 +6489,26 @@ function updateDiscoveryPulse(game) {
 
 function attachDiscoveryPulseStageButtons(panel, game, pulse) {
   if (!panel || typeof panel.querySelectorAll !== "function" || typeof stageScienceDeltaCommand !== "function") return;
+  const chainHint = getDiscoveryChainHint(pulse, game);
+  const chainContract = chainHint && chainHint.contract ? chainHint.contract : null;
+  panel.querySelectorAll("[data-chain-next-command]").forEach(button => {
+    if (!button || typeof button.addEventListener !== "function") return;
+    button.addEventListener("click", () => {
+      const command = button.dataset && button.dataset.chainNextCommand
+        ? button.dataset.chainNextCommand
+        : (chainContract && chainContract.command ? chainContract.command : "");
+      if (!String(command || "").trim()) return false;
+      const title = button.dataset && button.dataset.chainNextTitle
+        ? button.dataset.chainNextTitle
+        : (chainContract && chainContract.title ? chainContract.title : "Lab chain");
+      return stageScienceDeltaCommand(command, {
+        title,
+        kind: chainContract && chainContract.kind ? chainContract.kind : "lab-chain",
+        source: "lab-chain-next",
+        color: "#67e8f9"
+      });
+    });
+  });
   const phase = pulse && pulse.lessonPhaseAdvance ? pulse.lessonPhaseAdvance : null;
   panel.querySelectorAll("[data-phase-next-command]").forEach(button => {
     if (!button || typeof button.addEventListener !== "function") return;

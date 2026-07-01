@@ -4505,6 +4505,57 @@ html {
   font-size: 0.62rem;
   line-height: 1.3;
 }
+.discovery-chain-contract {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 5px;
+  min-width: 0;
+}
+.discovery-chain-contract span {
+  min-width: 0;
+  border: 1px solid rgba(103, 232, 249, 0.24);
+  border-radius: 4px;
+  background: rgba(2, 6, 23, 0.32);
+  color: #dff6ff;
+  overflow: hidden;
+  padding: 3px 5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.discovery-chain-contract b {
+  color: #67e8f9;
+  display: inline-block;
+  font-size: 0.5rem;
+  margin-right: 4px;
+}
+.discovery-chain-code {
+  color: #fde68a;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  line-height: 1.35;
+}
+.discovery-chain-code code {
+  color: #ecfeff;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  font-weight: 900;
+}
+.discovery-chain-stage-btn {
+  border: 1px solid rgba(103, 232, 249, 0.58);
+  border-radius: 4px;
+  background: rgba(8, 47, 73, 0.68);
+  color: #e0f2fe;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  font-weight: 900;
+  margin-left: 6px;
+  padding: 2px 5px;
+}
+.discovery-chain-stage-btn:hover {
+  background: rgba(14, 116, 144, 0.78);
+  box-shadow: 0 0 8px rgba(103, 232, 249, 0.22);
+}
 .discovery-pulse-body {
   font-size: 0.68rem;
   line-height: 1.35;

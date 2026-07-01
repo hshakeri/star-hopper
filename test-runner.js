@@ -3799,6 +3799,7 @@ function runEngineTests() {
 
   // Test 22bc: Loop Engineer's Combo Amplifier pays only for chained NEW progress.
   const oldGetElementById22bc = document.getElementById;
+  const oldWindowGame22bc = window.Game;
   try {
     const activeMission = PLANETS[0].missions.find(mission => mission.id === "earth-gravity-wall");
     const complete = {
@@ -3808,8 +3809,32 @@ function runEngineTests() {
         { id: "earth-emerald-gates", label: "Agility 30+ reached", passed: true, message: "Gate open" }
       ]
     };
-    const panel = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };
-    document.getElementById = (id) => id === "discovery-pulse" ? panel : null;
+    let chainStageClick = null;
+    const chainStageButton = {
+      dataset: { chainNextCommand: "hopper.jump_power = 18", chainNextTitle: "Raise jump power" },
+      addEventListener(event, handler) { if (event === "click") chainStageClick = handler; }
+    };
+    const panel = {
+      classList: { add: () => {}, remove: () => {} },
+      innerHTML: "",
+      querySelectorAll(selector) {
+        return selector === "[data-chain-next-command]" && /data-chain-next-command/.test(this.innerHTML)
+          ? [chainStageButton]
+          : [];
+      }
+    };
+    const input22bc = {
+      value: "",
+      focused: false,
+      style: {},
+      focus() { this.focused = true; },
+      setSelectionRange() {}
+    };
+    document.getElementById = (id) => {
+      if (id === "discovery-pulse") return panel;
+      if (id === "console-input") return input22bc;
+      return null;
+    };
 
     const game = new StarHopperGame();
     game.player = { x: 100, y: 120, w: 24, h: 32 };
@@ -3817,6 +3842,14 @@ function runEngineTests() {
     game.discoveryCombo = 2;
     game.discoveryPassCounts = { [activeMission.id]: 1 };
     game.discoveredFormulaKinds = new Set(["engine"]);
+    game.lastScienceDelta = {
+      code: "hopper.engine = 6",
+      nextExperiment: {
+        title: "Raise jump power",
+        body: "Jump is still below target; raise one force variable and compare height.",
+        command: "hopper.jump_power = 18"
+      }
+    };
     const beforeXP = game.researchXP;
     const pulse = recordDiscoveryPulse(game, activeMission, "hopper.engine = 6", complete, 0);
     assertEquals(3, pulse.combo, "New progress extends the existing combo");
@@ -3833,6 +3866,13 @@ function runEngineTests() {
     assertEquals(true, /CHAIN NEXT x4/.test(panel.innerHTML), "Discovery pulse should show the next combo target");
     assertEquals(true, /New progress can add combo XP \+ amplifier XP/.test(panel.innerHTML), "Chain target should explain the amplified reward");
     assertEquals(true, /Unlock a new sample gate, formula card, or mission check/.test(panel.innerHTML), "Chain target should name valid new progress");
+    assertEquals(true, /<b>NEXT<\/b>Raise jump power/.test(panel.innerHTML), "Chain target should turn the next experiment cue into a contract");
+    assertEquals(true, /data-chain-next-command=\"hopper\.jump_power = 18\"/.test(panel.innerHTML), "Chain contract should expose a stageable next command");
+    assertEquals("function", typeof chainStageClick, "Chain contract should wire a stage button");
+    window.Game = null;
+    chainStageClick();
+    assertEquals("hopper.jump_power = 18", input22bc.value, "Chain stage button should move the next experiment into Mission Coach");
+    assertEquals(true, input22bc.focused, "Chain stage button should focus the Mission Coach input");
     assertEquals(true, /FIVE TEST STREAK at x5 \(\+10 XP\)/.test(panel.innerHTML), "Chain target should preview the next combo milestone after Triple Test");
     assertEquals(true, /NEXT LAB UNLOCK/.test(panel.innerHTML), "Discovery pulse should show the next lab unlock target");
     assertEquals(true, /Daily Signal Lab in/.test(panel.innerHTML), "Next unlock cue should name the upcoming rank perk");
@@ -3848,9 +3888,11 @@ function runEngineTests() {
     assertEquals(true, /Repeat commands do not count/.test(panel.innerHTML), "Paused chain should explain why no reward was added");
 
     document.getElementById = oldGetElementById22bc;
+    window.Game = oldWindowGame22bc;
     renderTestResult("engine-suite", "Curriculum: combo amplifier rewards chained progress", true);
   } catch (err) {
     document.getElementById = oldGetElementById22bc;
+    window.Game = oldWindowGame22bc;
     renderTestResult("engine-suite", "Curriculum: combo amplifier rewards chained progress", false, err.message);
   }
 
