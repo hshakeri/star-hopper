@@ -3492,9 +3492,83 @@ body.resizing-panes * {
   font-style: normal;
 }
 
+.start-objective-code,
+.start-objective-progress {
+  grid-column: 1;
+  min-width: 0;
+}
+
+.start-objective-code {
+  display: inline-block;
+  width: max-content;
+  max-width: 100%;
+  padding: 2px 5px;
+  border: 1px solid rgba(103, 232, 249, 0.32);
+  border-radius: 4px;
+  background: rgba(8, 47, 73, 0.54);
+  color: #bae6fd;
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.start-objective-progress {
+  display: grid;
+  grid-template-columns: auto minmax(34px, 1fr);
+  align-items: center;
+  gap: 5px;
+  margin-top: 1px;
+}
+
+.start-objective-progress span {
+  color: #bbf7d0;
+  font-size: 0.52rem;
+  line-height: 1;
+}
+
+.start-objective-progress div {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(6px, 1fr);
+  gap: 2px;
+  min-width: 0;
+}
+
+.start-objective-progress i {
+  display: block;
+  height: 4px;
+  border: 1px solid rgba(148, 163, 184, 0.38);
+  border-radius: 2px;
+  background: rgba(15, 23, 42, 0.62);
+}
+
+.start-objective-progress i.filled {
+  border-color: rgba(167, 243, 208, 0.74);
+  background: #14b8a6;
+  box-shadow: 0 0 8px rgba(20, 184, 166, 0.28);
+}
+
+.start-objective-progress i.next {
+  border-color: #fef08a;
+  background: rgba(250, 204, 21, 0.24);
+}
+
+.start-objective-item.start-code-concept {
+  border-color: rgba(147, 197, 253, 0.34);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.18), rgba(2, 6, 23, 0.42));
+}
+
+.start-objective-item.start-lab-chain {
+  border-color: rgba(45, 212, 191, 0.38);
+  background: linear-gradient(135deg, rgba(13, 148, 136, 0.18), rgba(2, 6, 23, 0.42));
+}
+
 .start-objective-action-btn {
   grid-column: 2;
-  grid-row: 1 / span 4;
+  grid-row: 1 / span 6;
   align-self: center;
   min-height: 22px;
   padding: 3px 7px;
@@ -10916,6 +10990,8 @@ body.readable-text-mode .start-objective-item span,
 body.readable-text-mode .start-objective-item strong,
 body.readable-text-mode .start-objective-item p,
 body.readable-text-mode .start-objective-item em,
+body.readable-text-mode .start-objective-code,
+body.readable-text-mode .start-objective-progress span,
 body.readable-text-mode .start-objective-action-btn,
 body.readable-text-mode .start-resume-test,
 body.readable-text-mode .start-resume-test span,

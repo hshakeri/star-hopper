@@ -2039,6 +2039,14 @@ function runEngineTests() {
       innerHTML: "",
       querySelectorAll() { return []; }
     };
+    const startQueuePanel22codeDeck = {
+      innerHTML: "",
+      style: {},
+      classList: {
+        toggle() {},
+        contains() { return false; }
+      }
+    };
     const radarButton = { dataset: {}, textContent: "", title: "" };
     const inputEl = {
       value: "",
@@ -2050,6 +2058,7 @@ function runEngineTests() {
     };
     document.getElementById = (id) => {
       if (id === "code-concept-deck-panel") return panel;
+      if (id === "start-objective-queue") return startQueuePanel22codeDeck;
       if (id === "start-mission-radar-btn") return radarButton;
       if (id === "console-input") return inputEl;
       return null;
@@ -2093,6 +2102,12 @@ function runEngineTests() {
     assertEquals("Collect Loop", startQueue[0] && startQueue[0].title, "Start objective queue should name the next coding idea");
     assertEquals("STAGE IDEA", startQueue[0] && startQueue[0].cta, "Start objective queue should expose a Code Concept stage action");
     assertEquals("code-concept", startQueue[0] && startQueue[0].action, "Start objective queue should keep Code Concept action metadata");
+    assertEquals("code-concept", startQueue[0] && startQueue[0].progress && startQueue[0].progress.mode, "Start objective Code Concept should carry progress metadata");
+    updateStartObjectiveQueue(queueGame, startQueue);
+    assertEquals(true, /start-objective-code/.test(startQueuePanel22codeDeck.innerHTML), "Start objective queue should render a command chip");
+    assertEquals(true, /repeat 3 \{ spawn_block\(\) \}/.test(startQueuePanel22codeDeck.innerHTML), "Start objective command chip should show the Code Concept sample");
+    assertEquals(true, /start-objective-progress code-concept/.test(startQueuePanel22codeDeck.innerHTML), "Start objective queue should render Code Concept progress pips");
+    assertEquals(true, /1\/4 ideas/.test(startQueuePanel22codeDeck.innerHTML), "Start objective Code Concept progress should show idea count");
     queueGame.lastStartObjectiveQueue = startQueue;
     const startQueueStarts = [];
     const startQueueModes = [];
@@ -2125,6 +2140,12 @@ function runEngineTests() {
     assertEquals("Raise engine again", chainStartQueue[0] && chainStartQueue[0].title, "Start lab-chain queue should name the next experiment");
     assertEquals("STAGE CHAIN", chainStartQueue[0] && chainStartQueue[0].cta, "Start lab-chain queue should expose a stage action");
     assertEquals("lab-chain", chainStartQueue[0] && chainStartQueue[0].action, "Start lab-chain queue should keep action metadata");
+    assertEquals("lab-chain", chainStartQueue[0] && chainStartQueue[0].progress && chainStartQueue[0].progress.mode, "Start lab-chain queue should carry progress metadata");
+    updateStartObjectiveQueue(chainQueueGame, chainStartQueue);
+    assertEquals(true, /start-objective-code/.test(startQueuePanel22codeDeck.innerHTML), "Start lab-chain queue should render a command chip");
+    assertEquals(true, /hopper\.engine = 7/.test(startQueuePanel22codeDeck.innerHTML), "Start lab-chain command chip should show the next chain command");
+    assertEquals(true, /start-objective-progress lab-chain/.test(startQueuePanel22codeDeck.innerHTML), "Start lab-chain queue should render chain progress pips");
+    assertEquals(true, /2\/3 to TRIPLE TEST/.test(startQueuePanel22codeDeck.innerHTML), "Start lab-chain progress should show the next milestone");
     chainQueueGame.lastStartObjectiveQueue = chainStartQueue;
     const chainStarts = [];
     const chainModes = [];

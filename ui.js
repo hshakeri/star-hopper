@@ -4442,6 +4442,7 @@ function getStartObjectiveQueue(game = window.Game, context = {}) {
       color: item.color || "",
       levelIndex: Number.isFinite(Number(item.levelIndex)) ? Number(item.levelIndex) : null,
       stageTitle: item.stageTitle || "",
+      progress: item.progress && typeof item.progress === "object" ? item.progress : null,
       priority: queue.length + 1
     });
   };
@@ -4525,13 +4526,25 @@ function getStartObjectiveQueue(game = window.Game, context = {}) {
       source: "start-code-concept",
       color: codeConceptTarget.color || "#93c5fd",
       levelIndex: Number.isFinite(Number(game && game.currentPlanetIndex)) ? Number(game.currentPlanetIndex) : 0,
-      stageTitle: `Code Concept: ${codeConceptTarget.title}`
+      stageTitle: `Code Concept: ${codeConceptTarget.title}`,
+      progress: {
+        mode: "code-concept",
+        value: codeConceptTarget.count,
+        total: codeConceptTarget.total,
+        label: `${codeConceptTarget.count}/${codeConceptTarget.total} ideas`
+      }
     });
   }
 
   const labChain = typeof getLabChainTarget === "function" ? getLabChainTarget(game) : null;
   const labChainCommand = labChain && labChain.command ? String(labChain.command).trim() : "";
   if (labChain && labChainCommand && labChainCommand !== codeConceptCommand) {
+    const pulseCombo = game && game.discoveryPulse ? Number(game.discoveryPulse.combo) : 0;
+    const combo = Math.max(1, Math.floor(Number(game && game.discoveryCombo) || pulseCombo || Number(labChain.combo) || 1));
+    const milestone = typeof getDiscoveryComboMilestoneStatus === "function"
+      ? getDiscoveryComboMilestoneStatus(game, combo)
+      : (typeof getActiveLabChainMilestone === "function" ? getActiveLabChainMilestone(game) : null);
+    const targetCombo = Math.max(combo, Math.floor(Number(milestone && milestone.target) || combo + 1));
     add({
       key: `lab-chain:${labChainCommand}`,
       label: labChain.label || "LAB CHAIN",
@@ -4545,7 +4558,13 @@ function getStartObjectiveQueue(game = window.Game, context = {}) {
       source: "start-lab-chain",
       color: labChain.state === "paused" ? "#cbd5e1" : "#67e8f9",
       levelIndex: Number.isFinite(Number(game && game.currentPlanetIndex)) ? Number(game.currentPlanetIndex) : 0,
-      stageTitle: labChain.title || "Lab chain"
+      stageTitle: labChain.title || "Lab chain",
+      progress: {
+        mode: "lab-chain",
+        value: combo,
+        total: targetCombo,
+        label: milestone && milestone.label ? `${combo}/${targetCombo} to ${milestone.label}` : `chain x${combo}`
+      }
     });
   }
 
@@ -4585,6 +4604,10 @@ function updateStartObjectiveQueue(game, queue) {
     panel.innerHTML = "";
     return;
   }
+  const itemClass = (item) => {
+    const raw = `${item.source || item.action || item.kind || "objective"}`.replace(/[^a-z0-9_-]+/gi, "-").toLowerCase();
+    return raw ? ` ${raw}` : "";
+  };
   panel.innerHTML = `
     <div class="start-objective-queue-head">
       <span>NEXT OBJECTIVE QUEUE</span>
@@ -4592,14 +4615,36 @@ function updateStartObjectiveQueue(game, queue) {
     </div>
     <div class="start-objective-queue-list">
       ${items.map(item => `
-        <div class="start-objective-item">
+        <div class="start-objective-item${itemClass(item)}">
           <span>#${item.priority} ${escapeHTML(item.label)}</span>
           <strong>${escapeHTML(item.title)}</strong>
           <p>${escapeHTML(item.body)}</p>
+          ${item.command ? `<code class="start-objective-code">${escapeHTML(compactStartObjectiveCommand(item.command))}</code>` : ""}
+          ${renderStartObjectiveProgress(item)}
           ${(item.reward || item.cta) ? `<em>${escapeHTML(`${item.reward || "Reward ready"}${item.cta ? ` · ${item.cta}` : ""}`)}</em>` : ""}
           ${item.action ? `<button type="button" class="start-objective-action-btn" onclick="runStartObjectiveQueueAction(${item.priority})">${escapeHTML(item.cta || "RUN")}</button>` : ""}
         </div>
       `).join("")}
+    </div>
+  `;
+}
+
+function renderStartObjectiveProgress(item) {
+  const progress = item && item.progress && typeof item.progress === "object" ? item.progress : null;
+  if (!progress) return "";
+  const rawTotal = Math.max(1, Math.floor(Number(progress.total) || 1));
+  const total = Math.max(1, Math.min(6, rawTotal));
+  const rawValue = Math.max(0, Math.floor(Number(progress.value) || 0));
+  const value = Math.max(0, Math.min(total, rawTotal > total ? Math.round((rawValue / rawTotal) * total) : rawValue));
+  const mode = String(progress.mode || "progress").replace(/[^a-z0-9_-]+/gi, "-").toLowerCase();
+  const label = progress.label || `${rawValue}/${rawTotal}`;
+  const pips = Array.from({ length: total }, (_, index) =>
+    `<i class="${index < value ? "filled" : (index === value ? "next" : "")}" aria-hidden="true"></i>`
+  ).join("");
+  return `
+    <div class="start-objective-progress ${escapeHTML(mode)}" aria-label="${escapeHTML(label)}">
+      <span>${escapeHTML(label)}</span>
+      <div>${pips}</div>
     </div>
   `;
 }
