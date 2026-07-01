@@ -8184,10 +8184,13 @@ class StarHopperGame {
     const codeLine = this.getScienceDeltaCodeLine(delta, primary);
     const deltaChip = this.getScienceDeltaValueDelta(primary);
     const targetCue = this.getScienceDeltaTargetCue(delta);
+    const predictionCue = this.getScienceDeltaPredictionCue(delta);
     return {
       label: "EVIDENCE",
       title: delta.summary || "What changed",
       codeLine,
+      predictionLine: predictionCue ? predictionCue.line : "",
+      predictionColor: predictionCue ? predictionCue.color : "",
       valueLine: `${primary.label || "Value"}: ${primary.value || "changed"}`,
       reasonLine: primary.cue || "",
       targetLine: targetCue ? targetCue.line : "",
@@ -8203,6 +8206,19 @@ class StarHopperGame {
       color,
       ageMs,
       ttlMs
+    };
+  }
+
+  getScienceDeltaPredictionCue(delta) {
+    const pulse = this.discoveryPulse || null;
+    if (!pulse || !pulse.hypothesisConfirmed || !delta) return null;
+    const pulseCode = String(pulse.code || "").trim();
+    const deltaCode = String(delta.code || "").trim();
+    if (!pulseCode || !deltaCode || deltaCode.slice(0, pulseCode.length) !== pulseCode) return null;
+    const xp = Math.max(0, Math.floor(Number(pulse.hypothesisBonusXP) || 0));
+    return {
+      line: `PREDICT OK${xp > 0 ? ` +${xp} XP` : ""}`,
+      color: "#fef08a"
     };
   }
 
@@ -8310,8 +8326,9 @@ class StarHopperGame {
     const H = this.canvas.height || 448;
     const w = Math.max(178, Math.min(260, W - 24));
     const hasCode = !!cue.codeLine;
+    const hasPrediction = !!cue.predictionLine;
     const hasTarget = !!cue.targetLine;
-    const h = 56 + (hasCode ? 12 : 0) + (hasTarget ? 12 : 0) + (cue.nextLine ? 12 : 0);
+    const h = 56 + (hasCode ? 12 : 0) + (hasPrediction ? 12 : 0) + (hasTarget ? 12 : 0) + (cue.nextLine ? 12 : 0);
     const x = 12;
     const y = Math.max(86, H - h - 18);
     const fade = cue.ageMs > 13000 ? Math.max(0.35, 1 - (cue.ageMs - 13000) / 5000) : 1;
@@ -8376,6 +8393,12 @@ class StarHopperGame {
       ctx.fillStyle = "#93c5fd";
       ctx.font = "bold 7px 'Share Tech Mono', monospace";
       ctx.fillText(this.fitCardText(ctx, cue.codeLine, w - 20), x + 10, textY);
+      textY += 13;
+    }
+    if (hasPrediction) {
+      ctx.fillStyle = cue.predictionColor || "#fef08a";
+      ctx.font = "bold 7px 'Share Tech Mono', monospace";
+      ctx.fillText(this.fitCardText(ctx, cue.predictionLine, w - 20), x + 10, textY);
       textY += 13;
     }
     ctx.fillStyle = "#f8fafc";

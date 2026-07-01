@@ -3153,6 +3153,33 @@ function runEngineTests() {
     assertEquals(true, /LAB PERK UNLOCKED: Hypothesis Bonus/.test(panel.innerHTML), "Discovery pulse should render the lab-perk unlock chip");
     assertEquals(true, bubbleLabels22bb.some(label => /HYPOTHESIS/.test(label)), "Correct prediction should pop a hypothesis cue in the level");
     assertEquals(true, particleColors22bb.some(color => color === "#a7f3d0"), "Correct prediction should spawn a hypothesis burst");
+    game.state = 'playing';
+    game.canvas = { width: 720, height: 448 };
+    game.currentPlanetIndex = 1;
+    game.lastScienceDelta = {
+      code: "hopper.mass = 1.2",
+      summary: "Mass changed",
+      time: Date.now(),
+      changes: [
+        { label: "Mass", value: "2.5 -> 1.2 (-1.3)", direction: "down", cue: "Less mass makes the same force accelerate more." }
+      ]
+    };
+    const predictionCue = game.getScienceDeltaRunCue();
+    assertEquals("PREDICT OK +6 XP", predictionCue.predictionLine, "Evidence ticker should connect the tested code to the confirmed prediction reward");
+    const predictionLabels = [];
+    const predictionCtx = {
+      save() {},
+      restore() {},
+      beginPath() {},
+      roundRect() {},
+      fill() {},
+      stroke() {},
+      fillRect() {},
+      fillText(text) { predictionLabels.push(text); },
+      measureText(text) { return { width: String(text || "").length * 5 }; }
+    };
+    game.drawScienceDeltaRunCue(predictionCtx);
+    assertEquals(true, predictionLabels.includes("PREDICT OK +6 XP"), "Evidence ticker draw should write the prediction verdict chip");
     const afterHypothesisBubbles22bb = bubbleLabels22bb.filter(label => /HYPOTHESIS/.test(label)).length;
     const afterHypothesisBursts22bb = particleColors22bb.filter(color => color === "#a7f3d0").length;
 
