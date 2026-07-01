@@ -5019,6 +5019,27 @@ html {
   line-height: 1.2;
 }
 
+.ai-state-run-crt-action-btn {
+  justify-self: start;
+  border: 1px solid rgba(125, 211, 252, 0.5);
+  border-radius: 4px;
+  background: rgba(8, 47, 73, 0.72);
+  color: #ecfeff;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.53rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0;
+  margin-top: 2px;
+  padding: 5px 7px;
+}
+
+.ai-state-run-crt-action-btn:hover {
+  background: rgba(125, 211, 252, 0.88);
+  color: #082f49;
+}
+
 .village-state-crt-card {
   border: 1px solid rgba(167, 243, 208, 0.3);
   border-radius: 6px;
@@ -9363,6 +9384,7 @@ body.readable-text-mode .ai-state-run-crt-body strong,
 body.readable-text-mode .ai-state-run-crt-body code,
 body.readable-text-mode .ai-state-run-crt-body p,
 body.readable-text-mode .ai-state-run-crt-body em,
+body.readable-text-mode .ai-state-run-crt-action-btn,
 body.readable-text-mode .signal-story-crt-head,
 body.readable-text-mode .signal-story-crt-body strong,
 body.readable-text-mode .signal-story-crt-body code,

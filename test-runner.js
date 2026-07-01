@@ -4319,6 +4319,7 @@ function runEngineTests() {
   const oldGetElementById22h = document.getElementById;
   const oldCreateElement22h = document.createElement;
   const oldWindowGame22h = window.Game;
+  const oldSwitchMainMode22h = switchMainMode;
   try {
     const makeEl = () => {
       let html = "";
@@ -4529,12 +4530,14 @@ function runEngineTests() {
       state: "patrol -> cave -> trade",
       concept: "State machine",
       progress: "2/5",
+      nextCardId: "pet-pact",
       nextTitle: "Pet Pact",
       nextState: "wild -> scared -> pet",
       nextActionLabel: "GET LOTION",
       nextActionBody: "Run Glacies, collect Violet Ice, and trade with Cryo for calming lotion.",
       levelIndex: 1
     };
+    aiRunGame.unlockedTools = new Set(["taming_lotion"]);
     list = makeEl();
     updateMissionList(aiRunGame);
     const aiLoggedCard = findByClass(list, "ai-state-run-crt-card");
@@ -4544,8 +4547,22 @@ function runEngineTests() {
     assertEquals(true, /AI STATE LOGGED/.test(aiLoggedText), "Completed AI proof card should identify itself");
     assertEquals(true, /Shelter Loop -> Pet Pact/.test(aiLoggedText), "Completed AI proof card should point to the next state card");
     assertEquals(true, /next state = wild -&gt; scared -&gt; pet/.test(aiLoggedText), "Completed AI proof card should show the next state formula");
-    assertEquals(true, /GET LOTION/.test(aiLoggedText), "Completed AI proof card should show the next deck action");
+    assertEquals(true, /TAME PET/.test(aiLoggedText), "Completed AI proof card should refresh the next deck action from live progress");
+    assertEquals(true, /Start Survival/.test(aiLoggedText), "Completed AI proof card should refresh the next route body");
+    const aiLoggedButton = findByClass(aiLoggedCard || list, "ai-state-run-crt-action-btn");
+    assertEquals("TAME PET", aiLoggedButton && aiLoggedButton.textContent, "Completed AI proof card should expose the live next route action");
+    const aiRouteStarts = [];
+    const aiRouteModes = [];
+    aiRunGame.startLevel = (level) => { aiRouteStarts.push(level); aiRunGame.currentPlanetIndex = level; };
+    aiRunGame.toggleSurvival = () => { aiRunGame.survivalMode = true; };
+    switchMainMode = (mode) => aiRouteModes.push(mode);
+    aiLoggedButton._events.click();
+    assertEquals(3, aiRouteStarts[0], "Logged AI proof action should launch the next proof world");
+    assertEquals(true, aiRunGame.survivalMode, "Logged AI proof action should enable Survival when the next proof needs mobs");
+    assertEquals("pet-pact", aiRunGame.activeAIStateRun && aiRunGame.activeAIStateRun.cardId, "Logged AI proof action should restore an active route for the next state card");
+    assertEquals("terminal", aiRouteModes[0], "Logged AI proof action should return to the playable terminal");
     aiRunGame.currentPlanetIndex = 2;
+    aiRunGame.activeAIStateRun = null;
     list = makeEl();
     updateMissionList(aiRunGame);
     assertEquals(null, findByClass(list, "ai-state-run-crt-card"), "Completed AI proof card should not persist onto other worlds");
@@ -4908,11 +4925,13 @@ function runEngineTests() {
     document.getElementById = oldGetElementById22h;
     document.createElement = oldCreateElement22h;
     window.Game = oldWindowGame22h;
+    switchMainMode = oldSwitchMainMode22h;
     renderTestResult("engine-suite", "Curriculum: mission panel shows mentor, lab-star, and replay contracts", true);
   } catch (err) {
     document.getElementById = oldGetElementById22h;
     document.createElement = oldCreateElement22h;
     window.Game = oldWindowGame22h;
+    switchMainMode = oldSwitchMainMode22h;
     renderTestResult("engine-suite", "Curriculum: mission panel shows mentor, lab-star, and replay contracts", false, err.message);
   }
 
@@ -6363,6 +6382,7 @@ function runCombatTests() {
     assertEquals("Shelter Loop", g.discoveryPulse && g.discoveryPulse.aiStateRunProof && g.discoveryPulse.aiStateRunProof.title, "AI proof chip names the completed state card");
     assertEquals("2/5", g.discoveryPulse && g.discoveryPulse.aiStateRunProof && g.discoveryPulse.aiStateRunProof.progress, "AI proof chip shows updated deck progress");
     assertEquals("Pet Pact", g.discoveryPulse && g.discoveryPulse.aiStateRunProof && g.discoveryPulse.aiStateRunProof.nextTitle, "AI proof chip points to the next behavior card");
+    assertEquals("pet-pact", g.lastAIStateRunProof && g.lastAIStateRunProof.nextCardId, "Logged rescue proof remembers the next AI card id");
     assertEquals("GET LOTION", g.lastAIStateRunProof && g.lastAIStateRunProof.nextActionLabel, "Logged rescue proof remembers the next AI route action");
     assertEquals("wild -> scared -> pet", g.lastAIStateRunProof && g.lastAIStateRunProof.nextState, "Logged rescue proof remembers the next AI state formula");
     const homeGuard = new NPC({ id: 'home-guard', name: 'Home Guard', profession: 'Guard', type: 'npc', x: 250, y: 60, color: '#cbd5e1', homeX: 250, homeY: 60, caveX: 24, caveY: 60, hiddenInCave: true });
@@ -6847,6 +6867,7 @@ function runCombatTests() {
     assertEquals("Trade Flow", g.discoveryPulse && g.discoveryPulse.aiStateRunProof && g.discoveryPulse.aiStateRunProof.title, "AI proof chip names the completed trade card");
     assertEquals("1/5", g.discoveryPulse && g.discoveryPulse.aiStateRunProof && g.discoveryPulse.aiStateRunProof.progress, "AI proof chip shows trade deck progress");
     assertEquals("Shelter Loop", g.discoveryPulse && g.discoveryPulse.aiStateRunProof && g.discoveryPulse.aiStateRunProof.nextTitle, "AI proof chip points to the next AI card");
+    assertEquals("shelter-loop", g.lastAIStateRunProof && g.lastAIStateRunProof.nextCardId, "Logged trade proof remembers the next AI card id");
     assertEquals("RUN RESCUE", g.lastAIStateRunProof && g.lastAIStateRunProof.nextActionLabel, "Logged trade proof remembers the next AI route action");
     assertEquals("patrol -> cave -> trade", g.lastAIStateRunProof && g.lastAIStateRunProof.nextState, "Logged trade proof remembers the next AI state formula");
     const pulsePanelC24 = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };

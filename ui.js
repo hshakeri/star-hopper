@@ -948,10 +948,14 @@ function appendAIStateLoggedCard(listContainer, game) {
   const proofLevel = Number(proof.levelIndex);
   const currentLevel = Number(game.currentPlanetIndex);
   if (Number.isFinite(proofLevel) && Number.isFinite(currentLevel) && proofLevel !== currentLevel) return;
+  const liveNextAction = !proof.complete && proof.nextCardId && typeof getAIStateDeckAction === 'function'
+    ? getAIStateDeckAction(game, proof.nextCardId)
+    : null;
   const nextTitle = proof.complete ? "Deck complete" : (proof.nextTitle || "Next state");
   const nextAction = proof.complete
     ? "All village behavior cards are logged. Replay them in Daily Signals or mastery runs."
-    : (proof.nextActionBody || "Run the next behavior proof and watch the state change.");
+    : ((liveNextAction && liveNextAction.body) || proof.nextActionBody || "Run the next behavior proof and watch the state change.");
+  const nextActionLabel = (liveNextAction && liveNextAction.label) || proof.nextActionLabel || "RUN STATE";
   const codeLine = proof.complete
     ? "state deck = complete"
     : (proof.nextState ? `next state = ${proof.nextState}` : "state + event -> next state");
@@ -967,9 +971,19 @@ function appendAIStateLoggedCard(listContainer, game) {
       <strong>${escapeHTML(proof.title || "AI state")} -> ${escapeHTML(nextTitle)}</strong>
       <code>${escapeHTML(codeLine)}</code>
       <p>${escapeHTML(nextAction)}</p>
-      <em>${escapeHTML(proof.complete ? "Collection payoff complete" : `${proof.nextActionLabel || "RUN STATE"} · ${proof.concept || "State machine"}`)}</em>
+      <em>${escapeHTML(proof.complete ? "Collection payoff complete" : `${nextActionLabel} · ${proof.concept || "State machine"}`)}</em>
     </div>
   `;
+  if (!proof.complete && proof.nextCardId && typeof runAIStateDeckAction === 'function') {
+    const nextButton = document.createElement("button");
+    nextButton.type = "button";
+    nextButton.className = "ai-state-run-crt-action-btn";
+    nextButton.textContent = nextActionLabel;
+    if (typeof nextButton.addEventListener === "function") {
+      nextButton.addEventListener("click", () => runAIStateDeckAction(proof.nextCardId, game));
+    }
+    cardEl.appendChild(nextButton);
+  }
   listContainer.appendChild(cardEl);
 }
 
