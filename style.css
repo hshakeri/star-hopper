@@ -4240,6 +4240,69 @@ html {
   color: #2e1065;
 }
 
+.frontier-rival-crt-card {
+  border: 1px solid rgba(196, 181, 253, 0.38);
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgba(49, 46, 129, 0.36), rgba(8, 47, 73, 0.28)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.026) 0 1px, transparent 1px 4px);
+  box-shadow: inset 0 0 14px rgba(196, 181, 253, 0.1);
+  display: grid;
+  gap: 5px;
+  padding: 7px 8px;
+}
+
+.frontier-rival-crt-card.leading {
+  border-color: rgba(190, 242, 100, 0.42);
+  background:
+    linear-gradient(180deg, rgba(63, 98, 18, 0.34), rgba(8, 47, 73, 0.26)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.026) 0 1px, transparent 1px 4px);
+}
+
+.frontier-rival-crt-head {
+  align-items: baseline;
+  display: flex;
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  gap: 8px;
+  justify-content: space-between;
+  line-height: 1.2;
+}
+
+.frontier-rival-crt-head span {
+  color: #c4b5fd;
+  font-weight: 900;
+}
+
+.frontier-rival-crt-head strong {
+  color: #fef08a;
+  text-align: right;
+}
+
+.frontier-rival-crt-card.leading .frontier-rival-crt-head span {
+  color: #bef264;
+}
+
+.frontier-rival-crt-body {
+  display: grid;
+  gap: 3px;
+}
+
+.frontier-rival-crt-body p {
+  color: #e0f2fe;
+  font-size: 0.61rem;
+  line-height: 1.28;
+  margin: 0;
+}
+
+.frontier-rival-crt-body em {
+  color: #a7f3d0;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  font-style: normal;
+  line-height: 1.2;
+}
+
 .signal-lab-contract-claimed {
   justify-self: start;
   border: 1px solid rgba(190, 242, 100, 0.42);
@@ -7248,6 +7311,9 @@ body.readable-text-mode .frontier-board-list,
 body.readable-text-mode .frontier-rival-target,
 body.readable-text-mode .frontier-rival-btn,
 body.readable-text-mode .frontier-board-import input,
+body.readable-text-mode .frontier-rival-crt-head,
+body.readable-text-mode .frontier-rival-crt-body p,
+body.readable-text-mode .frontier-rival-crt-body em,
 body.readable-text-mode .signal-chapter p {
   font-size: max(0.8rem, 1em);
   line-height: 1.45;

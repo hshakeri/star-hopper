@@ -2998,6 +2998,7 @@ function runEngineTests() {
     assertEquals(true, /Numeric friction target/.test(signalLabText), "Signal lab card should show the replay focus title");
     assertEquals(true, /friction = 8/.test(signalLabText), "Signal lab card should show the sample command");
     assertEquals(true, /Standard Gravity|Friction/.test(signalLabText), "Signal lab card should show the science concept");
+    assertEquals(null, findByClass(list, "frontier-rival-crt-card"), "Daily Signal runs should not show Frontier rival targets");
     const signalStageButton = findByClass(signalLab || list, "signal-lab-contract-stage-btn");
     assertEquals("STAGE SIGNAL", signalStageButton && signalStageButton.textContent, "Signal lab card should expose a stage action");
     signalStageButton._events.click();
@@ -3037,16 +3038,37 @@ function runEngineTests() {
     list = makeEl();
     game.dailyInfo = {
       isFrontier: true,
+      dateStr: "2026-06-30",
       tier: 4,
       shareCode: "FRONTIER-ICE-4242",
       concept: signalFocus.concept,
       labContract: signalFocus
     };
+    game.frontierBoard = {
+      "FRONTIER-ICE-4242": {
+        dateStr: "2026-06-30",
+        shareCode: "FRONTIER-ICE-4242",
+        pilot: "Grace",
+        tier: 4,
+        stars: 3,
+        bestTime: 35.5,
+        planetName: "Glacies",
+        variantLabel: "Numeric friction target"
+      }
+    };
     updateMissionList(game);
     const frontierSignalLab = findByClass(list, "signal-lab-contract-card");
     const frontierSignalText = flattenText(frontierSignalLab || list);
+    const frontierRival = findByClass(list, "frontier-rival-crt-card");
+    const frontierRivalText = flattenText(frontierRival || list);
     assertEquals(true, /FRONTIER LAB/.test(frontierSignalText), "Signal lab card should identify Frontier runs");
     assertEquals(true, /T4/.test(frontierSignalText), "Frontier signal lab card should show the tier");
+    assertEquals(true, !!frontierRival, "Frontier runs should pin the imported rival target in the mission panel");
+    assertEquals(true, /FRONTIER RIVAL/.test(frontierRivalText), "Frontier rival card should identify itself");
+    assertEquals(true, /Chase Grace/.test(frontierRivalText), "Frontier rival card should name the classmate rival");
+    assertEquals(true, /Beat Grace/.test(frontierRivalText), "Frontier rival card should show the chase target");
+    assertEquals(true, /3\/3 Lab Stars/.test(frontierRivalText), "Frontier rival card should show target lab stars");
+    assertEquals(true, /35\.5s/.test(frontierRivalText), "Frontier rival card should show target time");
     assertEquals(true, !!scienceDelta, "Mission panel should show the latest science delta");
     assertEquals(true, /WHAT CHANGED/.test(scienceDeltaText), "Science delta card should identify itself");
     assertEquals(true, /Mass/.test(scienceDeltaText), "Science delta should list changed values");

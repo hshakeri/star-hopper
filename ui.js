@@ -422,6 +422,7 @@ function updateMissionList(game) {
   appendWorldMasteryCrtCard(listContainer, game);
   appendSignalStoryCrtCard(listContainer, game);
   appendSignalLabContractCard(listContainer, game);
+  appendFrontierRivalCrtCard(listContainer, game);
   appendMissionMentorSignal(listContainer, game);
   appendStagedExperimentCard(listContainer, game);
   appendScienceDeltaCard(listContainer, game);
@@ -757,6 +758,43 @@ function appendSignalLabContractCard(listContainer, game) {
       card.appendChild(stage);
     }
   }
+
+  listContainer.appendChild(card);
+}
+
+function appendFrontierRivalCrtCard(listContainer, game) {
+  if (!listContainer || !game || game.remixContext !== 'daily') return;
+  const frontier = game.dailyInfo && game.dailyInfo.isFrontier ? game.dailyInfo : null;
+  if (!frontier || typeof game.getFrontierRivalTarget !== 'function') return;
+  const target = game.getFrontierRivalTarget(frontier);
+  if (!target || target.state === "empty" || !target.entry) return;
+
+  const entry = target.entry;
+  const card = document.createElement("div");
+  card.className = `frontier-rival-crt-card ${target.state === "leading" ? "leading" : "chase"}`;
+
+  const head = document.createElement("div");
+  head.className = "frontier-rival-crt-head";
+  const label = document.createElement("span");
+  label.textContent = "FRONTIER RIVAL";
+  const title = document.createElement("strong");
+  title.textContent = target.state === "leading"
+    ? `You lead ${entry.pilot || "rival"}`
+    : `Chase ${entry.pilot || "rival"}`;
+  head.appendChild(label);
+  head.appendChild(title);
+  card.appendChild(head);
+
+  const body = document.createElement("div");
+  body.className = "frontier-rival-crt-body";
+  const copy = document.createElement("p");
+  copy.textContent = target.label || "Beat the imported Frontier record.";
+  const best = document.createElement("em");
+  const timeText = Number.isFinite(entry.bestTime) ? ` · ${entry.bestTime.toFixed(1)}s` : "";
+  best.textContent = `Target: ${entry.stars || 0}/3 Lab Stars${timeText} · ${entry.shareCode || frontier.shareCode || "Frontier"}`;
+  body.appendChild(copy);
+  body.appendChild(best);
+  card.appendChild(body);
 
   listContainer.appendChild(card);
 }
