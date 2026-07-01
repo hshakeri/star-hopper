@@ -995,6 +995,7 @@ function getStagedExperimentSourceLabel(source) {
     "formula-focus": "Formula Deck",
     "formula-target": "Formula target",
     "signal-lab-contract": "Signal Lab",
+    "start-anomaly-trace": "Anomaly Trace",
     "staged-reminder": "Mission CRT"
   };
   return labels[source] || "Mission CRT";
@@ -2232,6 +2233,20 @@ function getActiveLabQuest(game) {
     };
   }
 
+  if (typeof hasClearedFullStarMap === 'function' && typeof hasFrontierStoryCredit === 'function' &&
+      hasClearedFullStarMap(game) && hasFrontierStoryCredit(game)) {
+    return {
+      kicker: "NEXT LAB QUEST",
+      title: "Trace hidden force",
+      body: "Dark Matter Echo is decoded. Use Mag-Net as a prototype: a touch event reveals how an unseen field bends motion.",
+      reward: "Reward: Dark Matter prep + Frontier practice",
+      action: "anomaly",
+      levelIndex: 4,
+      kind: "anomaly",
+      command: "use_hopper()\nwhen player.touching('magnet'): hopper.pole = 'south'"
+    };
+  }
+
   const daily = game && typeof game.getDailySignal === 'function' ? game.getDailySignal() : null;
   if (daily) {
     const focus = daily.labContract && daily.labContract.title
@@ -2377,6 +2392,9 @@ function updateStartMissionRadar(game = window.Game) {
     button.title = action.title;
     button.dataset.action = action.action;
     button.dataset.level = String(action.levelIndex);
+    button.dataset.command = action.command || "";
+    button.dataset.kind = action.kind || "";
+    button.dataset.stageTitle = action.stageTitle || "";
   }
 }
 
@@ -2401,6 +2419,17 @@ function getStartMissionRadarAction(game = window.Game, quest = null) {
       label: "ACCEPT SIGNAL",
       title: "Start today's date-seeded remix.",
       levelIndex: currentLevel
+    };
+  }
+  if (q && q.action === "anomaly") {
+    return {
+      action: "anomaly",
+      label: "TRACE FORCE",
+      title: "Stage the hidden-force event and launch Mag-Net.",
+      levelIndex: Number.isFinite(Number(q.levelIndex)) ? Number(q.levelIndex) : 4,
+      command: q.command || "",
+      kind: q.kind || "anomaly",
+      stageTitle: q.title || "Trace hidden force"
     };
   }
   if (q && /^Reach\s+/i.test(q.title)) {
@@ -2430,6 +2459,23 @@ function runStartMissionRadarAction() {
   if (action === "log") {
     if (typeof switchMainMode === 'function') switchMainMode('notebook');
     return true;
+  }
+  if (action === "anomaly") {
+    const command = button && button.dataset ? String(button.dataset.command || "").trim() : "";
+    const staged = command && typeof stageScienceDeltaCommand === 'function'
+      ? stageScienceDeltaCommand(command, {
+        title: button.dataset.stageTitle || "Trace hidden force",
+        kind: button.dataset.kind || "anomaly",
+        source: "start-anomaly-trace",
+        color: "#818cf8"
+      })
+      : false;
+    const level = button && button.dataset ? Number(button.dataset.level) : 4;
+    if (game && typeof game.startLevel === 'function') {
+      game.startLevel(Number.isFinite(level) ? level : 4);
+      return true;
+    }
+    return !!staged;
   }
   if (game && typeof game.startLevel === 'function') {
     const level = button && button.dataset ? Number(button.dataset.level) : NaN;

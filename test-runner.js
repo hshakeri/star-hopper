@@ -2317,6 +2317,26 @@ function runEngineTests() {
     assertEquals("Star-map restored", els["start-story-preview-title"].textContent, "Complete story should show finale copy on start radar");
     assertEquals(true, /Daily Signals and Frontier/.test(els["start-story-preview-body"].textContent), "Complete story should point into ongoing signal practice");
     assertEquals("11/11 decoded", els["start-story-preview-progress"].textContent, "Complete story should show all chapters decoded");
+    assertEquals("Trace hidden force", els["start-mission-radar-title"].textContent, "Decoded anomaly should become the next start-radar lab quest");
+    assertEquals(true, /unseen field bends motion/.test(els["start-mission-radar-body"].textContent), "Anomaly quest should frame hidden-force inference");
+    assertEquals(true, /Dark Matter prep/.test(els["start-mission-radar-reward"].textContent), "Anomaly quest should name the future-world payoff");
+    assertEquals("TRACE FORCE", els["start-mission-radar-btn"].textContent, "Anomaly quest should expose a force-trace action");
+    assertEquals("anomaly", els["start-mission-radar-btn"].dataset.action, "Anomaly quest button should use the anomaly action");
+    assertEquals("4", els["start-mission-radar-btn"].dataset.level, "Anomaly quest should launch the Mag-Net prototype lab");
+    assertEquals(true, /player\.touching\('magnet'\)/.test(els["start-mission-radar-btn"].dataset.command), "Anomaly quest should stage a magnet event command");
+
+    const anomalyStarted = [];
+    game.startLevel = (level) => { anomalyStarted.push(level); };
+    window.Game = game;
+    assertEquals(true, runStartMissionRadarAction(), "Anomaly radar action should execute");
+    assertEquals(4, anomalyStarted[0], "Anomaly radar action should launch Mag-Net");
+    assertEquals(els["start-mission-radar-btn"].dataset.command, els["console-input"].value, "Anomaly radar action should stage the hidden-force command");
+    assertEquals(true, els["console-input"].focused, "Anomaly radar action should focus the terminal");
+    assertEquals("start-anomaly-trace", game.lastStagedExperiment && game.lastStagedExperiment.source, "Anomaly staging should remember the start-radar source");
+
+    game.frontierRecords = {};
+    updateStartMissionRadar(game);
+    assertEquals("Clear today's signal", els["start-mission-radar-title"].textContent, "Without a decoded anomaly, complete progress should surface the daily practice loop");
     assertEquals("ACCEPT SIGNAL", els["start-mission-radar-btn"].textContent, "Daily quest should get a direct accept button");
     assertEquals("daily", els["start-mission-radar-btn"].dataset.action, "Daily quest button should use the daily action");
 
