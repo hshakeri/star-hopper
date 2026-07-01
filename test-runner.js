@@ -2433,9 +2433,16 @@ function runEngineTests() {
     assertEquals(true, /Village Pact/.test(els["signal-story-panel"].innerHTML), "Village rescue chapter should render");
     storyContract = getSignalStoryContract(complete);
     assertEquals("DARK MATTER PREP", storyContract.kicker, "Complete traced story should keep a future-lab prep contract instead of ending cold");
+    let sourceScene = getSignalSourceScene(complete, storyContract);
+    assertEquals("CASE FILE", sourceScene && sourceScene.label, "Trace proof should surface a Dark Matter source scene");
+    assertEquals("VECTOR", sourceScene && sourceScene.speaker, "Dark Matter source scene should use Vector as the speaker");
+    assertEquals("Hidden-force case file", sourceScene && sourceScene.title, "Dark Matter source scene should name the hidden-force payoff");
     assertEquals(true, /DARK MATTER PREP/.test(els["signal-story-panel"].innerHTML), "Complete story panel should show the future-lab prep loop");
     assertEquals(true, /Bank curve evidence/.test(els["signal-story-panel"].innerHTML), "Complete story loop should name the next hidden-force evidence target");
     assertEquals(true, /Daily Signal, Frontier run, or mastery remix/.test(els["signal-story-panel"].innerHTML), "Complete story loop should point to replay practice");
+    assertEquals(true, /SOURCE SCENE|CASE FILE/.test(els["signal-story-panel"].innerHTML), "Complete story panel should render a future-lab scene card");
+    assertEquals(true, /Hidden-force case file/.test(els["signal-story-panel"].innerHTML), "Dark Matter scene should render its payoff title");
+    assertEquals(true, /infer an unseen force from visible motion/.test(els["signal-story-panel"].innerHTML), "Dark Matter scene should render the science takeaway");
 
     const quantumPrepComplete = {
       ...complete,
@@ -2447,9 +2454,13 @@ function runEngineTests() {
     storyContract = getSignalStoryContract(quantumPrepComplete);
     assertEquals("QUANTUM PREP", storyContract.kicker, "Dark Matter evidence should hand the complete story into Quantum prep");
     assertEquals("Test a branch condition", storyContract.title, "Quantum prep should ask for one branch prototype");
+    sourceScene = getSignalSourceScene(quantumPrepComplete, storyContract);
+    assertEquals("GATE SCENE", sourceScene && sourceScene.label, "Dark Matter evidence should surface a Quantum Gate scene");
+    assertEquals("Quantum Gate wakes", sourceScene && sourceScene.title, "Quantum prep scene should name the waking gate");
     updateSignalStoryPanel(quantumPrepComplete);
     assertEquals(true, /QUANTUM PREP/.test(els["signal-story-panel"].innerHTML), "Story panel should show the Quantum prep loop after Dark Matter evidence");
     assertEquals(true, /Quantum Gate will build probability from branches/.test(els["signal-story-panel"].innerHTML), "Quantum prep should connect branches to probability");
+    assertEquals(true, /Quantum Gate wakes/.test(els["signal-story-panel"].innerHTML), "Quantum prep scene should render in the story panel");
 
     const quantumSeededComplete = {
       ...quantumPrepComplete,
@@ -2461,9 +2472,14 @@ function runEngineTests() {
     storyContract = getSignalStoryContract(quantumSeededComplete);
     assertEquals("QUANTUM CHANCE", storyContract.kicker, "Quantum branch proof should ask for one probability branch");
     assertEquals("Test chance branch", storyContract.title, "Branch proof should introduce the chance variable");
+    sourceScene = getSignalSourceScene(quantumSeededComplete, storyContract);
+    assertEquals("HOPPER-ZERO", sourceScene && sourceScene.speaker, "Quantum branch scene should introduce Hopper-Zero");
+    assertEquals("Two paths detected", sourceScene && sourceScene.title, "Quantum branch scene should name the path split");
     updateSignalStoryPanel(quantumSeededComplete);
     assertEquals(true, /QUANTUM CHANCE/.test(els["signal-story-panel"].innerHTML), "Story panel should show the Quantum chance loop");
     assertEquals(true, /Probability turns branching/.test(els["signal-story-panel"].innerHTML), "Quantum chance loop should connect branch code to probability");
+    assertEquals(true, /HOPPER-ZERO/.test(els["signal-story-panel"].innerHTML), "Quantum branch scene should render Hopper-Zero as speaker");
+    assertEquals(true, /a branch chooses; probability tells how often/.test(els["signal-story-panel"].innerHTML), "Quantum branch scene should render the coding takeaway");
 
     const quantumChanceComplete = {
       ...quantumSeededComplete,
@@ -2475,8 +2491,12 @@ function runEngineTests() {
     storyContract = getSignalStoryContract(quantumChanceComplete);
     assertEquals("QUANTUM SOURCE", storyContract.kicker, "Quantum chance proof should mark the future source seed as logged");
     assertEquals("Probability seed logged", storyContract.title, "Chance proof should show the probability seed payoff");
+    sourceScene = getSignalSourceScene(quantumChanceComplete, storyContract);
+    assertEquals("The waiting probe answers", sourceScene && sourceScene.title, "Quantum source scene should answer the teaser");
     updateSignalStoryPanel(quantumChanceComplete);
     assertEquals(true, /QUANTUM SOURCE/.test(els["signal-story-panel"].innerHTML), "Story panel should show the logged Quantum source");
+    assertEquals(true, /The waiting probe answers/.test(els["signal-story-panel"].innerHTML), "Quantum source scene should render the payoff title");
+    assertEquals(true, /probability is a pattern measured over many trials/.test(els["signal-story-panel"].innerHTML), "Quantum source scene should render the science takeaway");
 
     document.getElementById = oldGetElementById22cb;
     ComicBubbles.pop = oldBubblePop22cb;
@@ -2735,6 +2755,7 @@ function runEngineTests() {
     assertEquals("DARK MATTER PREP", els["start-story-preview-label"].textContent, "Trace proof should turn complete story into future-lab prep");
     assertEquals("Source traced", els["start-story-preview-title"].textContent, "Complete traced story should show the source-traced payoff on start radar");
     assertEquals(true, /Bank curve evidence/.test(els["start-story-preview-body"].textContent), "Complete traced story should point into curve-evidence practice");
+    assertEquals(true, /Hidden-force case file/.test(els["start-story-preview-body"].textContent), "Start story preview should include the Dark Matter source scene");
     assertEquals("12/12 decoded", els["start-story-preview-progress"].textContent, "Complete story should show all chapters decoded");
     assertEquals("Bank curve evidence", els["start-mission-radar-title"].textContent, "After trace proof, the radar should surface the Dark Matter prep quest");
     assertEquals(true, /path curve, speed, and force/.test(els["start-mission-radar-body"].textContent), "Prep quest should frame the next replay as evidence gathering");
@@ -2758,6 +2779,7 @@ function runEngineTests() {
     assertEquals("QUANTUM PREP", els["start-story-preview-label"].textContent, "Banked Dark Matter evidence should turn the story preview toward Quantum prep");
     assertEquals("Branch source warming", els["start-story-preview-title"].textContent, "Quantum prep should show a source-warming story title");
     assertEquals(true, /Test a branch condition/.test(els["start-story-preview-body"].textContent), "Quantum prep story should name the branch prototype");
+    assertEquals(true, /Quantum Gate wakes/.test(els["start-story-preview-body"].textContent), "Quantum prep story should include a source scene");
     assertEquals("12/12 decoded", els["start-story-preview-progress"].textContent, "Quantum prep should keep the decoded story count complete");
     assertEquals("Test a branch condition", els["start-mission-radar-title"].textContent, "After Dark Matter evidence, the radar should surface Quantum Branch prep");
     assertEquals(true, /if rule/.test(els["start-mission-radar-body"].textContent), "Quantum prep should frame the next code action as a conditional");
@@ -2783,6 +2805,7 @@ function runEngineTests() {
     assertEquals("QUANTUM CHANCE", els["start-story-preview-label"].textContent, "Branch proof should turn the story preview toward probability");
     assertEquals("Probability path warming", els["start-story-preview-title"].textContent, "Branch proof should show the chance payoff on the story preview");
     assertEquals(true, /Test chance branch/.test(els["start-story-preview-body"].textContent), "Chance story preview should name the next prototype");
+    assertEquals(true, /HOPPER-ZERO - Two paths detected/.test(els["start-story-preview-body"].textContent), "Chance story preview should introduce the Hopper-Zero scene");
     assertEquals("Test chance branch", els["start-mission-radar-title"].textContent, "After the branch proof, the radar should surface Quantum Chance prep");
     assertEquals(true, /chance\(50\)/.test(els["start-mission-radar-body"].textContent), "Quantum chance prep should frame the next code action as probability");
     assertEquals(true, /Probability Lab card/.test(els["start-mission-radar-reward"].textContent), "Quantum chance prep should name the Probability Lab payoff");
@@ -2804,6 +2827,7 @@ function runEngineTests() {
     updateStartMissionRadar(game);
     assertEquals("QUANTUM SOURCE", els["start-story-preview-label"].textContent, "Chance proof should mark the Quantum source as logged");
     assertEquals("Probability seed logged", els["start-story-preview-title"].textContent, "Chance proof should show the probability seed payoff");
+    assertEquals(true, /The waiting probe answers/.test(els["start-story-preview-body"].textContent), "Quantum source preview should answer the future-world teaser");
     assertEquals("Clear today's signal", els["start-mission-radar-title"].textContent, "After the Quantum source seed, complete progress should return to daily practice");
 
     game.frontierRecords = {};

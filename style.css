@@ -6589,6 +6589,51 @@ body.navigator-active .coach-bubble { display: none !important; }
   color: #67e8f9;
 }
 
+.signal-story-scene {
+  border: 1px solid rgba(34, 211, 238, 0.28);
+  border-radius: 8px;
+  background:
+    repeating-linear-gradient(0deg, rgba(34, 211, 238, 0.05), rgba(34, 211, 238, 0.05) 1px, transparent 1px, transparent 4px),
+    linear-gradient(135deg, rgba(34, 211, 238, 0.12), rgba(168, 85, 247, 0.08)),
+    rgba(2, 6, 23, 0.66);
+  padding: 9px;
+  box-shadow: inset 0 0 14px rgba(34, 211, 238, 0.08);
+}
+
+.signal-story-scene span,
+.signal-story-scene em {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.signal-story-scene span {
+  color: #67e8f9;
+}
+
+.signal-story-scene strong {
+  display: block;
+  margin-top: 4px;
+  color: #fef08a;
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+
+.signal-story-scene p {
+  margin: 5px 0;
+  color: var(--text-primary);
+  font-size: 0.66rem;
+  line-height: 1.3;
+}
+
+.signal-story-scene em {
+  color: #c4b5fd;
+}
+
 .signal-story-track {
   display: grid;
   gap: 7px;
@@ -7655,6 +7700,8 @@ body.readable-text-mode .frontier-board-import input,
 body.readable-text-mode .frontier-rival-crt-head,
 body.readable-text-mode .frontier-rival-crt-body p,
 body.readable-text-mode .frontier-rival-crt-body em,
+body.readable-text-mode .signal-story-scene p,
+body.readable-text-mode .signal-story-scene em,
 body.readable-text-mode .signal-chapter p {
   font-size: max(0.8rem, 1em);
   line-height: 1.45;

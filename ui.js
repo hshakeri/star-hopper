@@ -1913,6 +1913,54 @@ function getSignalStoryContract(game = window.Game, story = null) {
   };
 }
 
+function getSignalSourceScene(game = window.Game, contract = null) {
+  if (!game) return null;
+  const active = contract || getSignalStoryContract(game);
+  const kicker = active && active.kicker ? String(active.kicker) : "";
+  if (kicker === "QUANTUM SOURCE" || hasQuantumChanceProofCredit(game)) {
+    return {
+      label: "SOURCE SCENE",
+      speaker: "HOPPER-ZERO",
+      title: "The waiting probe answers",
+      body: "I split one command into possible paths. Your chance proof gives the gate a probability seed instead of a guess.",
+      lesson: "Science payoff: probability is a pattern measured over many trials."
+    };
+  }
+  if (kicker === "QUANTUM CHANCE" || hasQuantumBranchProofCredit(game)) {
+    return {
+      label: "SOURCE SCENE",
+      speaker: "HOPPER-ZERO",
+      title: "Two paths detected",
+      body: "Your branch condition made code choose path A or path B. The next signal needs chance so uncertainty becomes measurable.",
+      lesson: "Coding payoff: a branch chooses; probability tells how often."
+    };
+  }
+  if (kicker === "QUANTUM PREP" || hasDarkMatterPrepEvidenceCredit(game)) {
+    return {
+      label: "GATE SCENE",
+      speaker: "VECTOR",
+      title: "Quantum Gate wakes",
+      body: "Curve evidence is banked. A simple if rule can now tell the source when to open one path and when to hold.",
+      lesson: "Coding payoff: one condition can change the route through the same world."
+    };
+  }
+  if (kicker === "DARK MATTER PREP" || hasAnomalyTraceStoryCredit(game)) {
+    return {
+      label: "CASE FILE",
+      speaker: "VECTOR",
+      title: "Hidden-force case file",
+      body: "The Mag-Net trace proved an invisible field can be tested. Now bank curve, speed, and force evidence before Dark Matter Lab opens.",
+      lesson: "Science payoff: infer an unseen force from visible motion."
+    };
+  }
+  return null;
+}
+
+function appendSourceSceneToStoryBody(body, scene) {
+  if (!scene) return body;
+  return `${body} Scene: ${scene.speaker} - ${scene.title}. ${scene.lesson}`;
+}
+
 function getStartSignalStoryPreview(game = window.Game) {
   const story = getSignalStoryProgress(game);
   if (story.nextChapter) {
@@ -1926,11 +1974,12 @@ function getStartSignalStoryPreview(game = window.Game) {
     };
   }
   const contract = getSignalStoryContract(game, story);
+  const sourceScene = getSignalSourceScene(game, contract);
   if (contract && contract.kicker === "DARK MATTER PREP") {
     return {
       label: "DARK MATTER PREP",
       title: "Source traced",
-      body: `${contract.title}. ${contract.body}`,
+      body: appendSourceSceneToStoryBody(`${contract.title}. ${contract.body}`, sourceScene),
       progress: `${story.total}/${story.total} decoded`
     };
   }
@@ -1938,7 +1987,7 @@ function getStartSignalStoryPreview(game = window.Game) {
     return {
       label: "QUANTUM PREP",
       title: "Branch source warming",
-      body: `${contract.title}. ${contract.body}`,
+      body: appendSourceSceneToStoryBody(`${contract.title}. ${contract.body}`, sourceScene),
       progress: `${story.total}/${story.total} decoded`
     };
   }
@@ -1946,7 +1995,7 @@ function getStartSignalStoryPreview(game = window.Game) {
     return {
       label: "QUANTUM SEED",
       title: "Branch seed logged",
-      body: contract.body,
+      body: appendSourceSceneToStoryBody(contract.body, sourceScene),
       progress: `${story.total}/${story.total} decoded`
     };
   }
@@ -1954,7 +2003,7 @@ function getStartSignalStoryPreview(game = window.Game) {
     return {
       label: "QUANTUM CHANCE",
       title: "Probability path warming",
-      body: `${contract.title}. ${contract.body}`,
+      body: appendSourceSceneToStoryBody(`${contract.title}. ${contract.body}`, sourceScene),
       progress: `${story.total}/${story.total} decoded`
     };
   }
@@ -1962,7 +2011,7 @@ function getStartSignalStoryPreview(game = window.Game) {
     return {
       label: "QUANTUM SOURCE",
       title: "Probability seed logged",
-      body: contract.body,
+      body: appendSourceSceneToStoryBody(contract.body, sourceScene),
       progress: `${story.total}/${story.total} decoded`
     };
   }
@@ -2068,6 +2117,7 @@ function updateSignalStoryPanel(game = window.Game) {
   const story = getSignalStoryProgress(game);
   const next = story.nextChapter;
   const contract = getSignalStoryContract(game, story);
+  const sourceScene = getSignalSourceScene(game, contract);
   panel.innerHTML = `
     <div class="signal-story-head">
       <div>
@@ -2082,6 +2132,14 @@ function updateSignalStoryPanel(game = window.Game) {
       <p>${escapeHTML(contract.body)}</p>
       <em>${escapeHTML(contract.reward)}</em>
     </div>
+    ${sourceScene ? `
+    <div class="signal-story-scene">
+      <span>${escapeHTML(sourceScene.label)}</span>
+      <strong>${escapeHTML(sourceScene.speaker)} // ${escapeHTML(sourceScene.title)}</strong>
+      <p>${escapeHTML(sourceScene.body)}</p>
+      <em>${escapeHTML(sourceScene.lesson)}</em>
+    </div>
+    ` : ""}
     <div class="signal-story-track">
       ${story.chapters.map(chapter => `
       <div class="signal-chapter ${chapter.unlocked ? "unlocked" : "locked"}">
