@@ -107,7 +107,11 @@ function createEmptyCodeRunStats() {
     functionCalls: {},
     spawnTypes: {},
     repeatSpawnTypes: {},
-    loopSpawnTypes: {}
+    loopSpawnTypes: {},
+    bridgeAliasCount: 0,
+    bridgeAliasCalls: {},
+    bridgeAliasVariables: {},
+    bridgeAliasEvents: {}
   };
 }
 
@@ -849,6 +853,140 @@ class StarHopperGame {
       }
     }
     return result;
+  }
+
+  getSyntaxBridgeProofSourceKey() {
+    return "syntax-bridge:first-alias";
+  }
+
+  getSyntaxBridgeAliasExamples(stats = null) {
+    const source = stats || {};
+    const maps = [source.bridgeAliasCalls, source.bridgeAliasVariables, source.bridgeAliasEvents];
+    const examples = [];
+    maps.forEach((map) => {
+      if (!map || typeof map !== "object") return;
+      Object.keys(map).forEach((key) => {
+        const raw = String(key || "").split("->")[0].trim();
+        if (raw && !examples.includes(raw)) examples.push(raw);
+      });
+    });
+    return examples.slice(0, 3);
+  }
+
+  grantSyntaxBridgeProof(stats = null) {
+    const aliasCount = Math.max(0, Math.floor(Number(stats && stats.bridgeAliasCount) || 0));
+    if (aliasCount <= 0) return null;
+    this.discoveryPassCounts = this.discoveryPassCounts || {};
+    const sourceKey = this.getSyntaxBridgeProofSourceKey();
+    let masterySources = null;
+    if (typeof this.normalizeWorldMasteryMeter === "function") {
+      const meter = this.normalizeWorldMasteryMeter(this.currentPlanetIndex);
+      masterySources = meter && meter.sources ? meter.sources : null;
+    }
+    if (this.discoveryPassCounts[sourceKey] || (masterySources && masterySources[sourceKey])) {
+      this.discoveryPassCounts[sourceKey] = 1;
+      return null;
+    }
+
+    const rewardXP = 3;
+    const masteryXP = 6;
+    const color = "#67e8f9";
+    const examples = this.getSyntaxBridgeAliasExamples(stats);
+    const example = examples[0] || "bridge syntax";
+    const beforeRank = (typeof getResearchRank === "function") ? getResearchRank(this.researchXP || 0) : null;
+    const mastery = typeof this.awardWorldMasteryXP === "function"
+      ? this.awardWorldMasteryXP(masteryXP, "syntax bridge proof", { sourceKey, silent: true })
+      : { addedXP: 0, duplicate: false };
+    if (mastery && mastery.duplicate) {
+      this.discoveryPassCounts[sourceKey] = 1;
+      return null;
+    }
+
+    this.discoveryPassCounts[sourceKey] = 1;
+    this.researchXP = Math.max(0, (this.researchXP || 0) + rewardXP);
+    const afterRank = (typeof getResearchRank === "function") ? getResearchRank(this.researchXP || 0) : null;
+    const rankUp = !!(beforeRank && afterRank && afterRank.level > beforeRank.level);
+    const planetName = this.currentPlanet && this.currentPlanet.name ? this.currentPlanet.name : "World";
+    const result = {
+      label: "SYNTAX BRIDGE",
+      title: "Syntax Bridge Proof",
+      rewardXP,
+      worldMasteryAddedXP: mastery && Number.isFinite(mastery.addedXP) ? mastery.addedXP : 0,
+      count: aliasCount,
+      example,
+      examples,
+      sourceKey
+    };
+    const pulse = {
+      kind: "code-bridge",
+      title: "Syntax Bridge Proof",
+      formula: "KidCode -> real syntax",
+      insight: `You used ${example} as bridge syntax. The game translated it to KidCode's canonical command, the same idea programmers use when APIs expose friendly aliases.`,
+      cue: "Try one bridge helper from Mission Coach, then compare it to the canonical KidCode name.",
+      missionId: sourceKey,
+      missionTitle: planetName,
+      passed: 1,
+      total: 1,
+      progressLabel: `${aliasCount} bridge alias${aliasCount === 1 ? "" : "es"} used`,
+      openedGems: 0,
+      rewardXP,
+      combo: this.discoveryCombo || 0,
+      rankUp,
+      rankTitle: afterRank ? afterRank.title : null,
+      rankPerk: rankUp && afterRank ? afterRank.perk : null,
+      worldMasteryAddedXP: result.worldMasteryAddedXP,
+      sourceKey,
+      syntaxBridgeProof: result,
+      nextLabUnlock: {
+        label: "CODE BRIDGE LOGGED",
+        title: "Bridge syntax became runnable code",
+        body: "Copying a friendly alias like spawnSpring() into a test now counts as a real coding proof.",
+        progress: 1
+      }
+    };
+    this.discoveryPulse = pulse;
+    this.discoveryLog = [pulse].concat(Array.isArray(this.discoveryLog) ? this.discoveryLog : []).slice(0, 8);
+
+    if (typeof ui_log_output === "function") {
+      const masteryText = result.worldMasteryAddedXP > 0 ? `, +${result.worldMasteryAddedXP} world mastery XP` : "";
+      ui_log_output(`Syntax Bridge Proof: +${rewardXP} Research XP${masteryText}.`, "success");
+    }
+    if (typeof logMissionBriefing === "function") {
+      logMissionBriefing(`${pulse.title}: ${pulse.insight}`);
+    }
+    if (this.player && typeof ComicBubbles !== "undefined" && ComicBubbles.pop) {
+      const px = (Number.isFinite(this.player.x) ? this.player.x : 0) + (this.player.w || 24) / 2;
+      const py = Number.isFinite(this.player.y) ? this.player.y : 0;
+      ComicBubbles.pop(px, py - 58, "SYNTAX BRIDGE!", color, 0.92);
+      ComicBubbles.pop(px, py - 39, `+${rewardXP} LAB XP`, "#a7f3d0", 0.72);
+    }
+    if (this.player && typeof Particles !== "undefined" && Particles.spawnBurst) {
+      const px = (Number.isFinite(this.player.x) ? this.player.x : 0) + (this.player.w || 24) / 2;
+      const py = (Number.isFinite(this.player.y) ? this.player.y : 0) + (this.player.h || 32) / 2;
+      Particles.spawnBurst(px, py, color, 12, 2.0, 1.9, "glow");
+      Particles.spawnBurst(px, py, "#a7f3d0", 8, 1.5, 1.5, "glow");
+    }
+    if (rankUp && typeof showBadgeToast === "function" && afterRank) {
+      showBadgeToast({
+        icon: "JS",
+        label: `Research Rank: ${afterRank.title}`,
+        description: `Syntax Bridge Proof unlocked ${afterRank.perk.label}.`
+      });
+    }
+    if (rankUp && typeof this.spawnResearchRankEffect === "function") {
+      pulse.rankEffect = this.spawnResearchRankEffect(pulse);
+    }
+    if (typeof this.showMissionBalloon === "function") {
+      this.showMissionBalloon(`SYNTAX BRIDGE: +${rewardXP} Research XP`, {
+        title: "CODE BRIDGE",
+        color,
+        timer: 230
+      });
+    }
+    if (typeof updateDiscoveryPulse === "function") updateDiscoveryPulse(this);
+    if (typeof updateResearchProgress === "function") updateResearchProgress(this);
+    if (typeof saveLocalProgress === "function" && typeof window !== "undefined" && window.Game === this) saveLocalProgress();
+    return pulse;
   }
 
   getDiscoveryComboMilestoneSourceKey(combo) {
@@ -3231,10 +3369,15 @@ class StarHopperGame {
     this.codeRunStats.forLoops += stats.forLoops || 0;
     this.codeRunStats.repeatIterations += stats.repeatIterations || 0;
     this.codeRunStats.forIterations += stats.forIterations || 0;
+    this.codeRunStats.bridgeAliasCount = (this.codeRunStats.bridgeAliasCount || 0) + (stats.bridgeAliasCount || 0);
     mergeCountMap('functionCalls');
     mergeCountMap('spawnTypes');
     mergeCountMap('repeatSpawnTypes');
     mergeCountMap('loopSpawnTypes');
+    mergeCountMap('bridgeAliasCalls');
+    mergeCountMap('bridgeAliasVariables');
+    mergeCountMap('bridgeAliasEvents');
+    this.grantSyntaxBridgeProof(stats);
   }
 
   hasRepeatSpawned(type, minCount = 1) {

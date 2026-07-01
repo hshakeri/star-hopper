@@ -401,7 +401,11 @@ function createKidCodeRunStats() {
     functionCalls: {},
     spawnTypes: {},
     repeatSpawnTypes: {},
-    loopSpawnTypes: {}
+    loopSpawnTypes: {},
+    bridgeAliasCount: 0,
+    bridgeAliasCalls: {},
+    bridgeAliasVariables: {},
+    bridgeAliasEvents: {}
   };
 }
 
@@ -523,6 +527,10 @@ class KidCodeInterpreter {
       }
 
       case 'when': {
+        const normalizedTarget = normalizeKidCodeIdentifier(node.target);
+        if (normalizedTarget !== node.target) {
+          this.recordBridgeAlias('event', node.target, normalizedTarget);
+        }
         // Register the event hook
         Compiler.registerEventHook(node);
         return `Registered when-rule trigger: ${node.target}`;
@@ -581,6 +589,9 @@ class KidCodeInterpreter {
 
         // Call the sandboxed runtime functions
         if (fnName in runtimeContext.functions) {
+          if (fnName !== rawFnName) {
+            this.recordBridgeAlias('call', rawFnName, fnName);
+          }
           this.recordFunctionCall(fnName, resolvedArgs);
           // Safeguard item spawning limits
           if (fnName === 'spawn' || fnName.startsWith('spawn_')) {
@@ -612,6 +623,19 @@ class KidCodeInterpreter {
     }
   }
 
+  recordBridgeAlias(kind, rawName, canonicalName) {
+    const raw = String(rawName || "");
+    const canonical = String(canonicalName || "");
+    if (!raw || !canonical || raw === canonical) return;
+    const mapKey = kind === 'call'
+      ? 'bridgeAliasCalls'
+      : (kind === 'event' ? 'bridgeAliasEvents' : 'bridgeAliasVariables');
+    const key = `${raw}->${canonical}`;
+    this.stats.bridgeAliasCount = (this.stats.bridgeAliasCount || 0) + 1;
+    this.stats[mapKey] = this.stats[mapKey] || {};
+    this.stats[mapKey][key] = (this.stats[mapKey][key] || 0) + 1;
+  }
+
   recordFunctionCall(fnName, args) {
     this.stats.functionCalls[fnName] = (this.stats.functionCalls[fnName] || 0) + 1;
     const spawnType = this.getSpawnTypeFromCall(fnName, args);
@@ -640,6 +664,9 @@ class KidCodeInterpreter {
   getVariable(name) {
     const resolvedName = normalizeKidCodeIdentifier(name);
     if (resolvedName in runtimeContext.variables) {
+      if (resolvedName !== name) {
+        this.recordBridgeAlias('variable', name, resolvedName);
+      }
       return runtimeContext.variables[resolvedName].get(this.game);
     }
     // Check spelling
@@ -650,6 +677,9 @@ class KidCodeInterpreter {
   setVariable(name, value) {
     const resolvedName = normalizeKidCodeIdentifier(name);
     if (resolvedName in runtimeContext.variables) {
+      if (resolvedName !== name) {
+        this.recordBridgeAlias('variable', name, resolvedName);
+      }
       runtimeContext.variables[resolvedName].set(this.game, value);
     } else {
       const suggestion = getSpellingSuggestion(name, getKidCodeVariableSuggestionList());

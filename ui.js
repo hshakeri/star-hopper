@@ -6577,6 +6577,9 @@ function updateDiscoveryPulse(game) {
   const codeConceptDeckMastery = pulse.codeConceptDeckMastery
     ? `<div class="discovery-hypothesis discovery-code-concept">${escapeHTML(pulse.codeConceptDeckMastery.label || "CODE DECK MASTERED")} +${escapeHTML(String(pulse.codeConceptDeckMastery.rewardXP || 0))} XP · ${escapeHTML(String(pulse.codeConceptDeckMastery.count || 0))}/${escapeHTML(String(pulse.codeConceptDeckMastery.total || 0))} ideas</div>`
     : "";
+  const syntaxBridgeProof = pulse.syntaxBridgeProof
+    ? `<div class="discovery-hypothesis discovery-code-concept"><strong>${escapeHTML(pulse.syntaxBridgeProof.label || "SYNTAX BRIDGE")} +${escapeHTML(String(pulse.syntaxBridgeProof.rewardXP || 0))} XP</strong><span>${escapeHTML(pulse.syntaxBridgeProof.example || "bridge syntax")} · ${escapeHTML(String(pulse.syntaxBridgeProof.count || 1))} alias${Number(pulse.syntaxBridgeProof.count || 1) === 1 ? "" : "es"} translated</span></div>`
+    : "";
   const formulaProgress = pulse.cardUnlocked && pulse.formulaDeckProgress ? pulse.formulaDeckProgress : null;
   const formulaNextCommand = formulaProgress && formulaProgress.nextCommand
     ? String(formulaProgress.nextCommand).trim()
@@ -6673,6 +6676,7 @@ function updateDiscoveryPulse(game) {
     ${scienceProof}
     ${codeConcept}
     ${codeConceptDeckMastery}
+    ${syntaxBridgeProof}
     ${lessonPhase}
     ${lessonPathMastery}
     ${passportStamp}

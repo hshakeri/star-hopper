@@ -187,21 +187,28 @@ function runCompilerTests() {
     assertEquals(1, mockGame.spawnedBoxes.length, "spawnBlock alias maps to the box helper");
     assertEquals(1, Compiler.lastRunStats.functionCalls.use_hopper, "Alias calls are recorded under canonical names");
     assertEquals(1, Compiler.lastRunStats.functionCalls.spawn_box, "Block alias keeps canonical spawn stats");
+    assertEquals(4, Compiler.lastRunStats.bridgeAliasCount, "Bridge aliases are counted for reward/proof hooks");
+    assertEquals(1, Compiler.lastRunStats.bridgeAliasCalls["useHopper->use_hopper"], "useHopper alias records its canonical target");
+    assertEquals(1, Compiler.lastRunStats.bridgeAliasCalls["spawnBlock->spawn_box"], "spawnBlock alias records its canonical target");
+    assertEquals(1, Compiler.lastRunStats.bridgeAliasVariables["hopper.jumpPower->hopper.jump_power"], "Bridge variable aliases are tracked");
 
     const repeat = Compiler.runCommand("repeat 2: spawnSpring()", mockGame);
     assertEquals(true, repeat.success, "Bridge-style loop helper should run");
     assertEquals(2, mockGame.spawnedSprings.length, "spawnSpring alias spawns springs");
     assertEquals(2, Compiler.lastRunStats.functionCalls.spawn_spring, "Looped alias spawns keep canonical stats");
     assertEquals(2, Compiler.lastRunStats.repeatSpawnTypes.spring, "Repeat spawn stats still recognize springs");
+    assertEquals(2, Compiler.lastRunStats.bridgeAliasCalls["spawnSpring->spawn_spring"], "Looped bridge aliases are counted per execution");
 
     const branch = Compiler.runCommand("if hopper.jumpPower >= 18: player.say('bridge')", mockGame);
     assertEquals(true, branch.success, "Bridge-style variable aliases should read in expressions");
     assertEquals("bridge", said, "Expression read from hopper.jumpPower should trigger branch");
+    assertEquals(1, Compiler.lastRunStats.bridgeAliasVariables["hopper.jumpPower->hopper.jump_power"], "Bridge variable reads are tracked");
 
     Compiler.reset();
     const eventRes = Compiler.runCommand("when hopper.rocketOn: bounceUp()", mockGame);
     assertEquals(true, eventRes.success, "Bridge-style event alias should register");
     assertEquals("hopper.rocket_on", Compiler.activeRules[0] && Compiler.activeRules[0].target, "Event alias normalizes to the existing rocket trigger");
+    assertEquals(1, Compiler.lastRunStats.bridgeAliasEvents["hopper.rocketOn->hopper.rocket_on"], "Bridge event aliases are tracked");
     assertEquals(true, Compiler.autocomplete.choices.includes("spawnSpring()"), "Bridge helper is offered in autocomplete");
     assertEquals(true, Compiler.autocomplete.choices.includes("hopper.jumpPower"), "Bridge variable is offered in autocomplete");
     renderTestResult("compiler-suite", "KidCode: Code Bridge aliases execute + autocomplete", true);
@@ -1448,7 +1455,50 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Objectives: mastery remix gates require extra coding rules", false, err.message);
   }
 
-  // Test 17e: village NPCs are placed away from locked/required gem tiles.
+  // Test 17e: Bridge syntax grants a one-time learning proof after a successful run.
+  try {
+    Compiler.reset();
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[0];
+    game.currentPlanetIndex = 0;
+    game.currentVariant = { map: PLANETS[0].map };
+    game.player = {
+      x: 64,
+      y: 96,
+      w: 24,
+      h: 32,
+      charType: 'star',
+      jumpPower: 10,
+      rocketPower: 40,
+      mass: 1,
+      spikes: false,
+      pole: 'north'
+    };
+    game.researchXP = 0;
+    game.discoveryPassCounts = {};
+    game.masteryMeters = {};
+    game.discoveryLog = [];
+    game.codeRunStats = createEmptyCodeRunStats();
+
+    const res = Compiler.runCommand("useHopper()\nhopper.jumpPower = 18", game);
+    assertEquals(true, res.success, "Bridge syntax command should run through the compiler");
+    assertEquals(2, game.codeRunStats.bridgeAliasCount, "Game stats should merge bridge alias usage");
+    assertEquals(3, game.researchXP, "First bridge alias run should award the proof XP");
+    assertEquals("Syntax Bridge Proof", game.discoveryPulse && game.discoveryPulse.title, "Bridge proof should become the active Discovery Pulse");
+    assertEquals("SYNTAX BRIDGE", game.discoveryPulse && game.discoveryPulse.syntaxBridgeProof && game.discoveryPulse.syntaxBridgeProof.label, "Pulse should carry the bridge proof chip data");
+    assertEquals(1, game.discoveryPassCounts[game.getSyntaxBridgeProofSourceKey()], "Bridge proof should be source-key gated");
+
+    const repeat = Compiler.runCommand("hopper.rocketPower = 70", game);
+    assertEquals(true, repeat.success, "A later bridge alias should still run");
+    assertEquals(3, game.codeRunStats.bridgeAliasCount, "Game stats should keep accumulating bridge alias usage");
+    assertEquals(3, game.researchXP, "Bridge proof should not be farmable");
+    renderTestResult("engine-suite", "Rewards: Code Bridge syntax grants one-time proof", true);
+  } catch (err) {
+    Compiler.reset();
+    renderTestResult("engine-suite", "Rewards: Code Bridge syntax grants one-time proof", false, err.message);
+  }
+
+  // Test 17f: village NPCs are placed away from locked/required gem tiles.
   try {
     const game = new StarHopperGame();
     for (let i = 0; i < PLANETS.length; i++) {
