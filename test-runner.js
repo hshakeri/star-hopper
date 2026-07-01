@@ -2277,6 +2277,7 @@ function runEngineTests() {
   try {
     let formulaRewardClick = null;
     let scienceProofClick = null;
+    let codeConceptClick = null;
     const formulaRewardButton = {
       dataset: { formulaNextCommand: "hopper.engine = 7", formulaNextTitle: "Engine Lab" },
       addEventListener(event, handler) { if (event === "click") formulaRewardClick = handler; }
@@ -2285,12 +2286,21 @@ function runEngineTests() {
       dataset: { scienceProofCommand: "hopper.engine = 7", scienceProofTitle: "Agility 30+ reached" },
       addEventListener(event, handler) { if (event === "click") scienceProofClick = handler; }
     };
+    const codeConceptButton = {
+      dataset: {
+        codeConceptNextCommand: "repeat 3 { spawn_block() }",
+        codeConceptNextTitle: "Loop",
+        codeConceptNextKind: "LOOP"
+      },
+      addEventListener(event, handler) { if (event === "click") codeConceptClick = handler; }
+    };
     const pulsePanel22b = {
       classList: { add: () => {}, remove: () => {} },
       innerHTML: "",
       querySelectorAll(selector) {
         if (selector === "[data-formula-next-command]" && /data-formula-next-command/.test(this.innerHTML)) return [formulaRewardButton];
         if (selector === "[data-science-proof-command]" && /data-science-proof-command/.test(this.innerHTML)) return [scienceProofButton];
+        if (selector === "[data-code-concept-next-command]" && /data-code-concept-next-command/.test(this.innerHTML)) return [codeConceptButton];
         return [];
       }
     };
@@ -2359,6 +2369,8 @@ function runEngineTests() {
     assertEquals("CODE CONCEPT", firstPulse.codeConceptProof && firstPulse.codeConceptProof.label, "Discovery pulse should carry the code concept proof");
     assertEquals("ASSIGN", firstPulse.codeConceptProof && firstPulse.codeConceptProof.concept, "Code concept proof should identify the assignment");
     assertEquals("1/4", firstPulse.codeConceptProof && firstPulse.codeConceptProof.progress, "Code concept proof should show deck progress");
+    assertEquals("LOOP", firstPulse.codeConceptProof && firstPulse.codeConceptProof.nextConcept, "Code concept proof should identify the next idea");
+    assertEquals("repeat 3 { spawn_block() }", firstPulse.codeConceptProof && firstPulse.codeConceptProof.nextCommand, "Code concept proof should carry the next runnable idea");
     assertEquals(true, game.discoveredFormulaKinds.has("mass"), "Mass formula should be collected");
     assertEquals(1, game.formulaCardEffects.length, "Formula card unlock should spawn an in-world card effect");
     assertEquals("Mass Lab", game.formulaCardEffects[0].title, "Formula card effect should name the collected card");
@@ -2390,6 +2402,9 @@ function runEngineTests() {
     assertEquals(true, /SCIENCE/.test(pulsePanel22b.innerHTML) && /F\/m=a/.test(pulsePanel22b.innerHTML), "Science proof should show the formula relation");
     assertEquals(true, /WIN/.test(pulsePanel22b.innerHTML) && /(NEXT Agility 30\+ reached|TARGET Agility)/.test(pulsePanel22b.innerHTML), "Science proof should show the next game target");
     assertEquals(true, /CODE CONCEPT/.test(pulsePanel22b.innerHTML) && /ASSIGN/.test(pulsePanel22b.innerHTML), "Discovery Pulse should show the collected coding concept");
+    assertEquals(true, /data-code-concept-next-command/.test(pulsePanel22b.innerHTML), "Code Concept proof should carry a next-idea stage command");
+    assertEquals(true, /STAGE IDEA/.test(pulsePanel22b.innerHTML), "Code Concept proof should expose a next-idea stage action");
+    assertEquals(true, typeof codeConceptClick === "function", "Discovery Pulse Code Concept action should attach a click handler");
     assertEquals(true, /STAGE NEXT/.test(pulsePanel22b.innerHTML), "Science proof should expose a next-experiment stage action");
     assertEquals(true, typeof scienceProofClick === "function", "Discovery Pulse science proof action should attach a click handler");
     assertEquals(true, /Try <code>hopper\.engine = 7<\/code>/.test(pulsePanel22b.innerHTML), "Discovery Pulse should show the next runnable formula command");
@@ -2421,6 +2436,10 @@ function runEngineTests() {
     assertEquals("hopper.engine = 7", input22b.value, "Science proof stage button should write the next command to the console");
     assertEquals("science-proof", game.lastStagedExperiment && game.lastStagedExperiment.source, "Science proof stage button should preserve its source");
     assertEquals("Science proof", getStagedExperimentSourceLabel(game.lastStagedExperiment.source), "Science proof staged reminder should name the reward source");
+    codeConceptClick();
+    assertEquals("repeat 3 { spawn_block() }", input22b.value, "Code Concept reward stage button should write the next idea to the console");
+    assertEquals("code-concept-reward", game.lastStagedExperiment && game.lastStagedExperiment.source, "Code Concept reward stage button should preserve its source");
+    assertEquals("Code concept", getStagedExperimentSourceLabel(game.lastStagedExperiment.source), "Code Concept reward staged reminder should name the reward source");
     formulaRewardClick();
     assertEquals("hopper.engine = 7", input22b.value, "Formula reward stage button should write the next command to the console");
     assertEquals(true, input22b.focused, "Formula reward stage button should focus the console");

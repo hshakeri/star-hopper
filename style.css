@@ -4223,6 +4223,26 @@ html {
   color: #eff6ff;
   font-size: 0.54rem;
 }
+.discovery-code-concept-next {
+  color: #dbeafe;
+  font-size: 0.54rem;
+}
+.discovery-code-concept-stage-btn {
+  border: 1px solid rgba(147, 197, 253, 0.58);
+  border-radius: 4px;
+  background: rgba(30, 64, 175, 0.62);
+  color: #eff6ff;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  font-weight: 900;
+  margin-left: 6px;
+  padding: 2px 5px;
+}
+.discovery-code-concept-stage-btn:hover {
+  background: rgba(37, 99, 235, 0.72);
+  box-shadow: 0 0 8px rgba(147, 197, 253, 0.2);
+}
 .discovery-phase-stage-btn {
   border: 1px solid rgba(251, 191, 36, 0.48);
   border-radius: 4px;
@@ -10557,6 +10577,7 @@ body.readable-text-mode .discovery-pulse-body,
 body.readable-text-mode .discovery-pulse-foot,
 body.readable-text-mode .discovery-hypothesis,
 body.readable-text-mode .discovery-phase-stage-btn,
+body.readable-text-mode .discovery-code-concept-stage-btn,
 body.readable-text-mode .discovery-formula-stage-btn,
 body.readable-text-mode .discovery-chain-next span,
 body.readable-text-mode .discovery-chain-next p,

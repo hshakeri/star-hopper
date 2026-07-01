@@ -1934,6 +1934,7 @@ function getStagedExperimentSourceLabel(source) {
     "formula-target": "Formula target",
     "code-concept-deck": "Code concept",
     "code-concept-target": "Code concept",
+    "code-concept-reward": "Code concept",
     "failure-lab": "Crash Lab",
     "signal-lab-contract": "Signal Lab",
     "start-anomaly-trace": "Anomaly Trace",
@@ -3937,7 +3938,10 @@ function grantCodeConceptProgress(game, pulse) {
     body: card.body,
     progress: `${progress.count}/${progress.total}`,
     complete: progress.complete,
-    nextTitle: progress.next ? progress.next.title : "Code deck complete"
+    nextConcept: progress.next ? progress.next.concept : "",
+    nextTitle: progress.next ? progress.next.title : "Code deck complete",
+    nextBody: progress.next ? progress.next.body : "",
+    nextCommand: progress.next && progress.next.sampleCode ? progress.next.sampleCode : ""
   };
   if (game.player && typeof ComicBubbles !== "undefined" && ComicBubbles.pop) {
     const baseX = Number.isFinite(game.player.x) ? game.player.x : 0;
@@ -6289,8 +6293,13 @@ function updateDiscoveryPulse(game) {
   const scienceCheckpoint = pulse.scienceCheckpointProof
     ? `<div class="discovery-hypothesis discovery-science-checkpoint"><strong>${escapeHTML(pulse.scienceCheckpointProof.label || "TARGET CHECKPOINT")} +${escapeHTML(String(pulse.scienceCheckpointProof.rewardXP || 0))} XP</strong><span>${escapeHTML(pulse.scienceCheckpointProof.title || "Target step")} · ${escapeHTML(pulse.scienceCheckpointProof.statLine || "")}</span><em>${escapeHTML(pulse.scienceCheckpointProof.checkpoint || "science checkpoint")}${pulse.scienceCheckpointProof.worldMasteryAddedXP ? ` · +${escapeHTML(String(pulse.scienceCheckpointProof.worldMasteryAddedXP))} world XP` : ""}</em></div>`
     : "";
+  const codeConceptProof = pulse.codeConceptProof || null;
+  const codeConceptNextCommand = codeConceptProof && codeConceptProof.nextCommand
+    ? String(codeConceptProof.nextCommand).trim()
+    : "";
+  const codeConceptNextCommandLabel = codeConceptNextCommand.replace(/\s+/g, " ");
   const codeConcept = pulse.codeConceptProof
-    ? `<div class="discovery-hypothesis discovery-code-concept"><strong>${escapeHTML(pulse.codeConceptProof.label || "CODE CONCEPT")} · ${escapeHTML(pulse.codeConceptProof.concept || "")}</strong><span>${escapeHTML(pulse.codeConceptProof.title || "Coding idea")} · ${escapeHTML(pulse.codeConceptProof.progress || "")}${pulse.codeConceptProof.nextTitle ? ` · Next: ${escapeHTML(pulse.codeConceptProof.nextTitle)}` : ""}</span></div>`
+    ? `<div class="discovery-hypothesis discovery-code-concept"><strong>${escapeHTML(pulse.codeConceptProof.label || "CODE CONCEPT")} · ${escapeHTML(pulse.codeConceptProof.concept || "")}</strong><span>${escapeHTML(pulse.codeConceptProof.title || "Coding idea")} · ${escapeHTML(pulse.codeConceptProof.progress || "")}${pulse.codeConceptProof.nextTitle ? ` · Next: ${escapeHTML(pulse.codeConceptProof.nextTitle)}` : ""}</span>${codeConceptNextCommand ? `<div class="discovery-code-concept-next">Try <code>${escapeHTML(codeConceptNextCommandLabel)}</code><button type="button" class="discovery-code-concept-stage-btn" data-code-concept-next-command="${escapeHTML(codeConceptNextCommand)}" data-code-concept-next-title="${escapeHTML(pulse.codeConceptProof.nextTitle || "Next coding idea")}" data-code-concept-next-kind="${escapeHTML(pulse.codeConceptProof.nextConcept || "code-concept")}">STAGE IDEA</button></div>` : ""}</div>`
     : "";
   const codeConceptDeckMastery = pulse.codeConceptDeckMastery
     ? `<div class="discovery-hypothesis discovery-code-concept">${escapeHTML(pulse.codeConceptDeckMastery.label || "CODE DECK MASTERED")} +${escapeHTML(String(pulse.codeConceptDeckMastery.rewardXP || 0))} XP · ${escapeHTML(String(pulse.codeConceptDeckMastery.count || 0))}/${escapeHTML(String(pulse.codeConceptDeckMastery.total || 0))} ideas</div>`
@@ -6471,6 +6480,28 @@ function attachDiscoveryPulseStageButtons(panel, game, pulse) {
         kind: "science-proof",
         source: "science-proof",
         color: "#67e8f9"
+      });
+    });
+  });
+  const codeConcept = pulse && pulse.codeConceptProof ? pulse.codeConceptProof : null;
+  panel.querySelectorAll("[data-code-concept-next-command]").forEach(button => {
+    if (!button || typeof button.addEventListener !== "function") return;
+    button.addEventListener("click", () => {
+      const command = button.dataset && button.dataset.codeConceptNextCommand
+        ? button.dataset.codeConceptNextCommand
+        : (codeConcept && codeConcept.nextCommand ? codeConcept.nextCommand : "");
+      if (!String(command || "").trim()) return false;
+      const title = button.dataset && button.dataset.codeConceptNextTitle
+        ? button.dataset.codeConceptNextTitle
+        : (codeConcept && codeConcept.nextTitle ? codeConcept.nextTitle : "Next coding idea");
+      const kind = button.dataset && button.dataset.codeConceptNextKind
+        ? button.dataset.codeConceptNextKind
+        : (codeConcept && codeConcept.nextConcept ? codeConcept.nextConcept : "code-concept");
+      return stageScienceDeltaCommand(command, {
+        title,
+        kind,
+        source: "code-concept-reward",
+        color: "#93c5fd"
       });
     });
   });
