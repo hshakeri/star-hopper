@@ -4314,6 +4314,18 @@ function runEngineTests() {
       assertEquals(true, actionGame.runClearExplainPrompt({ preserveReflectionContext: repairPrompt.preserveReflectionContext }), "Repair explain action should complete successfully");
       assertEquals(repairContext, actionGame.reflectionContext, "Repair explain action should preserve the proof context for notebook saving");
       assertEquals(true, responseEl.focused, "Repair explain action should focus the reflection textbox");
+      actionGame.masteryMeters = {
+        0: {
+          sources: {
+            "reflection-proof:repair-reflection:failure-repair-proof:0:fix-the-jump-arc:abc123": 9
+          }
+        }
+      };
+      const completedRepairPrompt = actionGame.getClearExplainPrompt();
+      assertEquals("EXPLAIN THE EVIDENCE", completedRepairPrompt.kicker, "Completed repair reflections should stop showing the repair-proof prompt");
+      assertEquals("WRITE EXPLANATION", completedRepairPrompt.cta, "Completed repair reflections should fall back to the normal explain action");
+      assertEquals("Reward: notebook proof + Research XP", completedRepairPrompt.reward, "Completed repair reflections should hand off to the normal notebook reward");
+      assertEquals(undefined, completedRepairPrompt.preserveReflectionContext, "Completed repair prompt should not preserve stale repair context");
     } finally {
       if (oldSwitchMainMode22fg) switchMainMode = oldSwitchMainMode22fg;
       if (oldUpdateNotebook22fg) updateNotebook = oldUpdateNotebook22fg;
@@ -9111,6 +9123,7 @@ function runExperimentLogTests() {
     assertEquals(true, /crash lab: Crash Lab/.test(repairEntry.evidence), "Repair entry should preserve Crash Lab evidence");
     assertEquals(true, /repair prediction: higher/.test(repairEntry.evidence), "Repair entry should preserve the repair hypothesis");
     assertEquals(11, cloudSaves, "Saving a repair reflection should persist the new entry");
+    assertEquals(true, hasRepairReflectionCredit(game, repairProofKey), "Repair reflection helper should recognize a saved notebook repair proof");
 
     response.value = "The revised repair explanation still should not farm XP.";
     saveNotebookReflection();
@@ -9118,6 +9131,15 @@ function runExperimentLogTests() {
     assertEquals("The revised repair explanation still should not farm XP.", notebookEntries[repairEntryKey].answer, "Repair re-save should update the answer");
     assertEquals(5, notebookEntries[repairEntryKey].reflectionRewardXP, "Repair re-save should preserve the original proof badge");
     assertEquals(12, cloudSaves, "Repair re-save should still persist the revised answer");
+    const masteryOnlyRepair = new StarHopperGame();
+    masteryOnlyRepair.masteryMeters = {
+      0: {
+        sources: {
+          [`reflection-proof:repair-reflection:${repairProofKey}`]: 9
+        }
+      }
+    };
+    assertEquals(true, hasRepairReflectionCredit(masteryOnlyRepair, repairProofKey), "Repair reflection helper should recognize world mastery repair credit");
 
     document.getElementById = oldGetElementByIdE6;
     Object.keys(notebookEntries).forEach(key => delete notebookEntries[key]);

@@ -4434,11 +4434,14 @@ class StarHopperGame {
       : null;
     const context = this.reflectionContext || null;
     const repairProof = context && context.kind === "repair-proof" && context.proofSourceKey ? context : null;
+    const repairAlreadyExplained = repairProof && typeof hasRepairReflectionCredit === 'function'
+      ? hasRepairReflectionCredit(this, repairProof.proofSourceKey)
+      : false;
     const question = (lessonPhase && lessonPhase.question) || reflection[0] || "Explain what changed, what evidence you saw, and why the physics behaved that way.";
     const evidence = typeof buildReflectionEvidenceStarter === 'function'
       ? buildReflectionEvidenceStarter(this, activeMission)
       : "Evidence starter - describe the code you tried, what changed, and why the physics behaved that way.";
-    if (repairProof) {
+    if (repairProof && !repairAlreadyExplained) {
       const repairTitle = repairProof.title || "Crash repair proof";
       const repairCommand = repairProof.command ? ` Code: ${repairProof.command}.` : "";
       const prediction = repairProof.prediction ? ` Prediction: ${repairProof.prediction}.` : "";

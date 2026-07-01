@@ -371,14 +371,42 @@ function buildNotebookStageCall(cue) {
   return `stageScienceDeltaCommand(decodeNotebookStageArg('${command}'), { title: decodeNotebookStageArg('${title}'), kind: decodeNotebookStageArg('${kind}'), source: 'reflection-proof', color: '#bef264' })`;
 }
 
+function getRepairReflectionEntryKey(proofSourceKey) {
+  const key = String(proofSourceKey || "").trim();
+  return key ? `repair-reflection:${key}` : "";
+}
+
+function getRepairReflectionRewardSourceKey(proofSourceKey) {
+  const entryKey = getRepairReflectionEntryKey(proofSourceKey);
+  return entryKey ? `reflection-proof:${entryKey}` : "";
+}
+
+function sourceMapHasRepairReflection(sourceMap, proofSourceKey = "") {
+  if (!sourceMap || typeof sourceMap !== "object") return false;
+  const exact = getRepairReflectionRewardSourceKey(proofSourceKey);
+  if (exact) return !!sourceMap[exact];
+  return Object.keys(sourceMap).some(source => source.indexOf("reflection-proof:repair-reflection:") === 0 && !!sourceMap[source]);
+}
+
+function hasRepairReflectionCredit(game, proofSourceKey = "") {
+  const entryKey = getRepairReflectionEntryKey(proofSourceKey);
+  if (entryKey && typeof notebookEntries !== "undefined") {
+    const entry = notebookEntries[entryKey];
+    if (entry && (entry.reflectionRewardXP || entry.reflectionRewardLabel)) return true;
+  }
+  if (sourceMapHasRepairReflection(game && game.discoveryPassCounts, proofSourceKey)) return true;
+  const meters = game && game.masteryMeters && typeof game.masteryMeters === "object" ? game.masteryMeters : {};
+  return Object.keys(meters).some(key => sourceMapHasRepairReflection(meters[key] && meters[key].sources, proofSourceKey));
+}
+
 function getNotebookReflectionSaveContext(game, missionId, missionTitle) {
   const context = game && game.reflectionContext;
   if (context && context.kind === "repair-proof" && context.proofSourceKey) {
-    const key = `repair-reflection:${context.proofSourceKey}`;
+    const key = getRepairReflectionEntryKey(context.proofSourceKey);
     return {
       entryKey: key,
       rewardId: key,
-      sourceKey: `reflection-proof:${key}`,
+      sourceKey: getRepairReflectionRewardSourceKey(context.proofSourceKey),
       missionTitle: context.title || missionTitle || "Crash repair proof",
       rewardTitle: "Repair Reflection Proof",
       rewardFormula: "fix = failure + prediction + evidence",
