@@ -1514,6 +1514,22 @@ class StarHopperGame {
     return `frontier-rival:${state}:${share}:${pilot}:t${tier}:s${stars}:time${time}`;
   }
 
+  getFrontierRivalProofRewards(result) {
+    const entry = (result && result.entry) || {};
+    const local = (result && result.local) || {};
+    const tier = Math.max(1, Math.floor(Number(entry.tier || local.tier) || 1));
+    const tierBonusXP = Math.min(6, Math.max(0, tier - 1));
+    const beaten = result && result.state === "beaten";
+    const baseRewardXP = beaten ? 8 : 5;
+    const baseMasteryXP = beaten ? 12 : 8;
+    return {
+      tier,
+      tierBonusXP,
+      rewardXP: baseRewardXP + tierBonusXP,
+      masteryXP: baseMasteryXP + tierBonusXP * 2
+    };
+  }
+
   grantFrontierRivalProof(result) {
     if (!result || (result.state !== "beaten" && result.state !== "matched")) return null;
     this.discoveryPassCounts = this.discoveryPassCounts || {};
@@ -1529,8 +1545,9 @@ class StarHopperGame {
       }
     }
 
-    const rewardXP = result.state === "beaten" ? 8 : 5;
-    const masteryXP = result.state === "beaten" ? 12 : 8;
+    const proofRewards = this.getFrontierRivalProofRewards(result);
+    const rewardXP = proofRewards.rewardXP;
+    const masteryXP = proofRewards.masteryXP;
     const label = result.state === "beaten" ? "RIVAL PROOF" : "RIVAL MATCH";
     const pilot = result.entry && result.entry.pilot ? result.entry.pilot : "classmate";
     const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
@@ -1554,17 +1571,20 @@ class StarHopperGame {
       sourceKey,
       state: result.state,
       pilot,
+      tier: proofRewards.tier,
+      tierBonusXP: proofRewards.tierBonusXP,
+      masteryXP,
       shareCode: result.shareCode || ""
     };
     result.rivalProof = proof;
     result.monitorText = `${result.monitorText || result.label} · +${rewardXP} Research XP`;
-    result.body = `${result.body} Rival proof banked: +${rewardXP} Research XP.`;
+    result.body = `${result.body} Rival proof banked: +${rewardXP} Research XP for a Tier ${proof.tier} target.`;
 
     const pulse = {
       kind: "frontier",
       title: proof.title,
-      formula: "rival proof = same seed + stars + time",
-      insight: `${pilot}'s Frontier line became a measurable target. Same seed, same rules, better evidence proves the improvement.`,
+      formula: "rival proof = same seed + tier + stars + time",
+      insight: `${pilot}'s Tier ${proof.tier} Frontier line became a measurable target. Same seed, same rules, better evidence proves the improvement.`,
       cue: "Share the updated Frontier line, then chase the next rival with one variable at a time.",
       missionId: sourceKey,
       missionTitle: "Frontier Challenge",
