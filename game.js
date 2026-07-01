@@ -7982,6 +7982,12 @@ class StarHopperGame {
     }
     if (!Array.isArray(queue) || !queue.length) return null;
     const item = queue[0] || {};
+    const trail = queue.slice(1, 4).map(next => ({
+      priority: next && next.priority ? next.priority : 1,
+      label: next && next.label ? String(next.label) : "NEXT",
+      color: next && next.color ? next.color : "#94a3b8",
+      disabled: !!(next && next.disabled)
+    }));
     const commandLine = String(item.command || "")
       .split(/\n/)
       .map(line => line.trim())
@@ -7997,7 +8003,12 @@ class StarHopperGame {
       kind: item.kind || "objective",
       source: item.source || "run-objective-queue",
       color: item.color || "#67e8f9",
-      disabled: !!item.disabled
+      disabled: !!item.disabled,
+      queueCount: queue.length,
+      trail,
+      trailLabel: trail.length
+        ? `NEXT ${trail.map(next => `#${next.priority} ${next.label}`).join(" -> ")}`
+        : ""
     };
   }
 
@@ -8010,7 +8021,7 @@ class StarHopperGame {
     const px = (Number.isFinite(p.x) ? p.x : 0) + (Number.isFinite(p.w) ? p.w : 24) / 2 - (this.cameraX || 0);
     const py = Number.isFinite(p.y) ? p.y : H / 2;
     const w = Math.max(124, Math.min(176, W - 24));
-    const h = 48;
+    const h = cue.trail && cue.trail.length ? 60 : 48;
     const x = Math.max(12, Math.min(W - w - 12, px - w / 2));
     const y = Math.max(64, Math.min(H - h - 16, py - 62));
     const color = cue.color || "#67e8f9";
@@ -8049,6 +8060,21 @@ class StarHopperGame {
     ctx.fillStyle = cue.disabled ? "#e2e8f0" : "#bbf7d0";
     ctx.font = "7px 'Share Tech Mono', monospace";
     ctx.fillText(this.fitCardText(ctx, cue.body, w - 18), x + 9, y + 39);
+
+    if (cue.trail && cue.trail.length) {
+      const trailY = y + h - 10;
+      ctx.globalAlpha = 0.86;
+      cue.trail.forEach((next, index) => {
+        const dotX = x + 10 + index * 14;
+        ctx.fillStyle = next.disabled ? "rgba(148, 163, 184, 0.52)" : (next.color || "#94a3b8");
+        ctx.beginPath();
+        ctx.roundRect(dotX, trailY - 3, 9, 5, 2);
+        ctx.fill();
+      });
+      ctx.fillStyle = "#cbd5e1";
+      ctx.font = "bold 6.5px 'Share Tech Mono', monospace";
+      ctx.fillText(this.fitCardText(ctx, cue.trailLabel, w - 54), x + 52, trailY);
+    }
 
     ctx.globalAlpha = cue.disabled ? 0.35 : 0.62;
     ctx.strokeStyle = color;
