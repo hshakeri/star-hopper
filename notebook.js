@@ -279,6 +279,16 @@ function getNotebookReflectionSaveContext(game, missionId, missionTitle) {
   const context = game && game.reflectionContext;
   if (context && context.kind === "signal-lab" && context.proofSourceKey) {
     const key = `signal-reflection:${context.proofSourceKey}`;
+    const proofText = `${context.source || ""} ${context.proofLabel || ""}`;
+    const darkMatterPrep = /dark\s*matter/i.test(proofText);
+    const frontier = !darkMatterPrep && /frontier/i.test(proofText);
+    const rewardXP = darkMatterPrep ? 7 : (frontier ? 6 : 5);
+    const rewardMasteryXP = darkMatterPrep ? 12 : (frontier ? 10 : 9);
+    const rewardCue = darkMatterPrep
+      ? "Use this proof to compare the hidden-force prototype against a real replay."
+      : (frontier
+        ? "Use this proof to chase the next Frontier rival with evidence, not luck."
+        : "Use this proof to compare the next Daily or Frontier signal.");
     return {
       entryKey: key,
       rewardId: key,
@@ -286,7 +296,9 @@ function getNotebookReflectionSaveContext(game, missionId, missionTitle) {
       missionTitle: context.title || missionTitle || "Signal Lab proof",
       rewardTitle: "Signal Reflection Proof",
       rewardFormula: "claim = signal + evidence + why",
-      rewardCue: "Use this proof to compare the next Daily or Frontier signal."
+      rewardCue,
+      rewardXP,
+      rewardMasteryXP
     };
   }
   return {
@@ -304,9 +316,11 @@ function awardNotebookReflectionReward(game, missionId, missionTitle, alreadyRew
   if (!game || !missionId || alreadyRewarded) return null;
   const sourceKey = options.sourceKey || `reflection-proof:${missionId}`;
   const title = options.rewardTitle || "Reflection Proof";
+  const xp = Math.max(1, Math.floor(Number(options.rewardXP) || 4));
+  const masteryXP = Math.max(1, Math.floor(Number(options.rewardMasteryXP) || 8));
   let masteryAward = null;
   if (typeof game.awardWorldMasteryXP === 'function') {
-    masteryAward = game.awardWorldMasteryXP(8, "evidence explanation", {
+    masteryAward = game.awardWorldMasteryXP(masteryXP, "evidence explanation", {
       sourceKey,
       silent: true
     });
@@ -314,7 +328,6 @@ function awardNotebookReflectionReward(game, missionId, missionTitle, alreadyRew
   }
 
   const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(game.researchXP || 0) : null;
-  const xp = 4;
   game.researchXP = Math.max(0, (game.researchXP || 0) + xp);
   const afterRank = (typeof getResearchRank === 'function') ? getResearchRank(game.researchXP || 0) : null;
   const rankUp = !!(beforeRank && afterRank && afterRank.level > beforeRank.level);

@@ -706,13 +706,14 @@ function setSignalLabReflectionContext(game, proofStatus) {
   if (!game || !proofStatus) return null;
   const contract = proofStatus.contract || {};
   const signal = proofStatus.signal || {};
+  const darkMatterPrep = !!signal.darkMatterPrep;
   const context = {
     kind: "signal-lab",
-    source: proofStatus.isFrontier ? "Frontier Signal Lab" : "Daily Signal Lab",
+    source: darkMatterPrep ? "Dark Matter Prep" : (proofStatus.isFrontier ? "Frontier Signal Lab" : "Daily Signal Lab"),
     title: proofStatus.title || contract.title || "Signal Lab proof",
     concept: contract.concept || signal.concept || "Replay physics",
     command: proofStatus.command || contract.command || "",
-    proofLabel: proofStatus.isFrontier ? "FRONTIER LAB TESTED" : "SIGNAL LAB TESTED",
+    proofLabel: darkMatterPrep ? "DARK MATTER EVIDENCE" : (proofStatus.isFrontier ? "FRONTIER LAB TESTED" : "SIGNAL LAB TESTED"),
     proofSourceKey: proofStatus.sourceKey || ""
   };
   game.reflectionContext = context;

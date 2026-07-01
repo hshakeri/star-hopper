@@ -3848,6 +3848,13 @@ function runEngineTests() {
     assertEquals("signal-lab", game.reflectionContext && game.reflectionContext.kind, "Signal Lab explain action should set notebook reflection context");
     assertEquals("Numeric friction target", game.reflectionContext && game.reflectionContext.title, "Signal Lab reflection context should preserve the replay focus");
     assertEquals("friction = 8", game.reflectionContext && game.reflectionContext.command, "Signal Lab reflection context should preserve the tested command");
+    const darkMatterReflection = setSignalLabReflectionContext(game, {
+      ...proofStatus,
+      signal: { darkMatterPrep: true },
+      isFrontier: true
+    });
+    assertEquals("Dark Matter Prep", darkMatterReflection && darkMatterReflection.source, "Dark Matter prep explains as its own notebook source");
+    assertEquals("DARK MATTER EVIDENCE", darkMatterReflection && darkMatterReflection.proofLabel, "Dark Matter prep explanation preserves the stronger proof label");
 
     list = makeEl();
     game.dailyInfo = {
@@ -7449,24 +7456,85 @@ function runExperimentLogTests() {
     saveNotebookReflection();
     const signalEntryKey = `signal-reflection:${signalProofKey}`;
     const signalEntry = notebookEntries[signalEntryKey];
-    assertEquals(24, game.researchXP, "Signal Lab reflection should award its own +4 Research XP");
+    assertEquals(25, game.researchXP, "Daily Signal reflection should award its stronger +5 Research XP");
     assertEquals("Signal Reflection Proof", game.discoveryPulse.title, "Signal Lab reflection should create a specific discovery pulse");
+    assertEquals(9, game.discoveryPulse.worldMasteryAddedXP, "Daily Signal reflection should add stronger world mastery proof XP");
     assertEquals("SIGNAL PROOF!", game.discoveryPulse.reflectionEffect && game.discoveryPulse.reflectionEffect.label, "Signal Lab reflection should use the stronger proof cue");
-    assertEquals("SIGNAL PROOF: +4 Research XP", game.missionBalloon && game.missionBalloon.text, "Signal Lab reflection should write a signal-specific CRT reward line");
+    assertEquals("SIGNAL PROOF: +5 Research XP", game.missionBalloon && game.missionBalloon.text, "Daily Signal reflection should write a signal-specific CRT reward line");
     assertEquals(true, reflectionLabels.includes("SIGNAL PROOF!"), "Signal Lab reflection should call the signal proof bubble");
     assertEquals(true, reflectionBursts > 0, "Reflection proof saves should spawn reward particles");
     assertEquals("Mass remix proof", signalEntry.title, "Signal Lab notebook entry should use the replay focus title");
-    assertEquals(4, signalEntry.reflectionRewardXP, "Signal Lab notebook entry should remember its proof reward");
+    assertEquals(5, signalEntry.reflectionRewardXP, "Daily Signal notebook entry should remember its proof reward");
     assertEquals("Signal Reflection Proof", signalEntry.reflectionRewardLabel, "Signal Lab notebook entry should label the specific proof");
     assertEquals(true, /signal lab: Daily Signal Lab/.test(signalEntry.evidence), "Signal Lab entry should preserve contextual evidence");
     assertEquals(3, cloudSaves, "Saving a Signal Lab reflection should persist the new entry");
 
     response.value = "A revised Daily Signal explanation still should not farm XP.";
     saveNotebookReflection();
-    assertEquals(24, game.researchXP, "Re-saving the same Signal Lab reflection should not farm XP");
+    assertEquals(25, game.researchXP, "Re-saving the same Daily Signal reflection should not farm XP");
     assertEquals("A revised Daily Signal explanation still should not farm XP.", notebookEntries[signalEntryKey].answer, "Signal Lab re-save should update the answer");
-    assertEquals(4, notebookEntries[signalEntryKey].reflectionRewardXP, "Signal Lab re-save should preserve the original proof badge");
+    assertEquals(5, notebookEntries[signalEntryKey].reflectionRewardXP, "Daily Signal re-save should preserve the original proof badge");
     assertEquals(4, cloudSaves, "Signal Lab re-save should still persist the revised answer");
+
+    const frontierProofKey = "signal-lab-proof:frontier:frontier-earth-1234:t2:0:mass-remix-proof:def456";
+    game.reflectionContext = {
+      kind: "signal-lab",
+      source: "Frontier Signal Lab",
+      title: "Frontier mass proof",
+      concept: "Replay force evidence",
+      command: "hopper.mass = 1.1",
+      proofLabel: "FRONTIER LAB TESTED",
+      proofSourceKey: frontierProofKey
+    };
+    question.dataset.evidenceStarter = buildReflectionEvidenceStarter(game, PLANETS[0].missions.find(mission => mission.id === "earth-gravity-wall"));
+    response.value = "The Frontier proof uses the same mass idea against a tougher rival route.";
+    saveNotebookReflection();
+    const frontierEntryKey = `signal-reflection:${frontierProofKey}`;
+    const frontierEntry = notebookEntries[frontierEntryKey];
+    assertEquals(31, game.researchXP, "Frontier Signal reflection should award the strongest replay +6 Research XP");
+    assertEquals(10, game.discoveryPulse.worldMasteryAddedXP, "Frontier Signal reflection should add stronger world mastery proof XP");
+    assertEquals("SIGNAL PROOF: +6 Research XP", game.missionBalloon && game.missionBalloon.text, "Frontier Signal reflection should write the stronger CRT reward line");
+    assertEquals("Frontier mass proof", frontierEntry.title, "Frontier notebook entry should use the replay focus title");
+    assertEquals(6, frontierEntry.reflectionRewardXP, "Frontier notebook entry should remember its proof reward");
+    assertEquals(true, /signal lab: Frontier Signal Lab/.test(frontierEntry.evidence), "Frontier entry should preserve contextual evidence");
+    assertEquals(5, cloudSaves, "Saving a Frontier reflection should persist the new entry");
+
+    response.value = "The revised Frontier explanation keeps the same evidence.";
+    saveNotebookReflection();
+    assertEquals(31, game.researchXP, "Re-saving the same Frontier reflection should not farm XP");
+    assertEquals("The revised Frontier explanation keeps the same evidence.", notebookEntries[frontierEntryKey].answer, "Frontier re-save should update the answer");
+    assertEquals(6, notebookEntries[frontierEntryKey].reflectionRewardXP, "Frontier re-save should preserve the original proof badge");
+    assertEquals(6, cloudSaves, "Frontier re-save should still persist the revised answer");
+
+    const darkMatterProofKey = "signal-lab-proof:frontier:frontier-earth-1234:t2:0:dark-matter-prep:fed789";
+    game.reflectionContext = {
+      kind: "signal-lab",
+      source: "Dark Matter Prep",
+      title: "Hidden force evidence",
+      concept: "Infer hidden forces",
+      command: "antigravity = 3",
+      proofLabel: "DARK MATTER EVIDENCE",
+      proofSourceKey: darkMatterProofKey
+    };
+    question.dataset.evidenceStarter = buildReflectionEvidenceStarter(game, PLANETS[0].missions.find(mission => mission.id === "earth-gravity-wall"));
+    response.value = "The hidden-force prep proof compares the same route with a new invisible push.";
+    saveNotebookReflection();
+    const darkMatterEntryKey = `signal-reflection:${darkMatterProofKey}`;
+    const darkMatterEntry = notebookEntries[darkMatterEntryKey];
+    assertEquals(38, game.researchXP, "Dark Matter prep reflection should award +7 Research XP");
+    assertEquals(12, game.discoveryPulse.worldMasteryAddedXP, "Dark Matter prep reflection should add the strongest world mastery proof XP");
+    assertEquals("SIGNAL PROOF: +7 Research XP", game.missionBalloon && game.missionBalloon.text, "Dark Matter prep reflection should write the strongest CRT reward line");
+    assertEquals("Hidden force evidence", darkMatterEntry.title, "Dark Matter prep notebook entry should use the replay focus title");
+    assertEquals(7, darkMatterEntry.reflectionRewardXP, "Dark Matter prep notebook entry should remember its proof reward");
+    assertEquals(true, /signal lab: Dark Matter Prep/.test(darkMatterEntry.evidence), "Dark Matter prep entry should preserve contextual evidence");
+    assertEquals(7, cloudSaves, "Saving a Dark Matter prep reflection should persist the new entry");
+
+    response.value = "The revised hidden-force explanation still uses the same proof.";
+    saveNotebookReflection();
+    assertEquals(38, game.researchXP, "Re-saving the same Dark Matter prep reflection should not farm XP");
+    assertEquals("The revised hidden-force explanation still uses the same proof.", notebookEntries[darkMatterEntryKey].answer, "Dark Matter prep re-save should update the answer");
+    assertEquals(7, notebookEntries[darkMatterEntryKey].reflectionRewardXP, "Dark Matter prep re-save should preserve the original proof badge");
+    assertEquals(8, cloudSaves, "Dark Matter prep re-save should still persist the revised answer");
 
     document.getElementById = oldGetElementByIdE6;
     Object.keys(notebookEntries).forEach(key => delete notebookEntries[key]);
