@@ -888,6 +888,35 @@ function getSciencePassportAction(game = window.Game) {
   };
 }
 
+function getSciencePassportNextStampAction(game = window.Game) {
+  const worlds = getPassportWorlds();
+  if (!worlds.length) return null;
+  const stamped = worlds.filter(({ index }) => isPassportWorldStamped(game, index));
+  const nextWorld = worlds.find(({ index }) => !isPassportWorldStamped(game, index));
+  if (!nextWorld) return null;
+  const planet = nextWorld.planet || {};
+  const mission = getPassportMission(planet);
+  const concept = getPassportConcept(mission, planet);
+  const codeCue = getPassportCodeCue(mission);
+  const planetName = planet.name || `World ${nextWorld.index + 1}`;
+  const shortName = planetName.split("(")[0].trim() || planetName;
+  const label = stamped.length > 0 ? "RUN NEXT STAMP" : "RUN FIRST STAMP";
+  return {
+    label,
+    actionLabel: label,
+    levelIndex: nextWorld.index,
+    title: shortName,
+    planetName,
+    concept,
+    codeCue,
+    progress: `${stamped.length}/${worlds.length}`,
+    body: `Stamp ${shortName} by clearing tasks, samples, and a proof.`,
+    learn: concept,
+    code: codeCue,
+    win: "Passport stamp"
+  };
+}
+
 function runSciencePassportAction(levelIndex = null, game = window.Game) {
   const action = Number.isFinite(Number(levelIndex))
     ? { levelIndex: Number(levelIndex) }

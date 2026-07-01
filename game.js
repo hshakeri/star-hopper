@@ -5651,6 +5651,9 @@ class StarHopperGame {
       this.discoveryLog = [pulse].concat(Array.isArray(this.discoveryLog) ? this.discoveryLog : []).slice(0, 8);
     }
     pulse.passportStampProof = result;
+    pulse.passportNextStamp = typeof getSciencePassportNextStampAction === 'function'
+      ? getSciencePassportNextStampAction(this)
+      : null;
     pulse.rewardXP = Math.max(0, (pulse.rewardXP || 0) + rewardXP);
     pulse.rankUp = !!(pulse.rankUp || rankUp);
     pulse.rankTitle = pulse.rankTitle || (rankUp && afterRank ? afterRank.title : null);

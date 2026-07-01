@@ -7001,6 +7001,19 @@ function updateDiscoveryPulse(game) {
   const passportStamp = pulse.passportStampProof
     ? `<div class="discovery-hypothesis discovery-passport-stamp"><strong>${escapeHTML(pulse.passportStampProof.label || "PASSPORT STAMP")} +${escapeHTML(String(pulse.passportStampProof.rewardXP || 0))} XP</strong><span>${escapeHTML(pulse.passportStampProof.planetName || "World")} · ${escapeHTML(String(pulse.passportStampProof.stampCount || 1))}/${escapeHTML(String(pulse.passportStampProof.total || 1))} stamps</span><em>${escapeHTML(pulse.passportStampProof.concept || "Science concept logged")} · ${escapeHTML(String(pulse.passportStampProof.stars || 0))}/${escapeHTML(String(pulse.passportStampProof.maxStars || 3))} Lab Stars</em></div>`
     : "";
+  const passportNextStamp = pulse.passportNextStamp || null;
+  const passportNextLevel = passportNextStamp && Number.isFinite(Number(passportNextStamp.levelIndex))
+    ? Number(passportNextStamp.levelIndex)
+    : null;
+  const passportNextLesson = passportNextStamp
+    ? `<div class="discovery-passport-lesson"><span><b>LEARN</b>${escapeHTML(passportNextStamp.learn || passportNextStamp.concept || "Next planet science")}</span><span><b>CODE</b>${escapeHTML(passportNextStamp.code || passportNextStamp.codeCue || "Run one focused experiment")}</span><span><b>WIN</b>${escapeHTML(passportNextStamp.win || "Passport stamp")}</span></div>`
+    : "";
+  const passportNextRoute = passportNextStamp && passportNextLevel !== null
+    ? `<div class="discovery-passport-next-route">Next stamp <code>${escapeHTML(passportNextStamp.title || passportNextStamp.planetName || "World")}</code><button type="button" class="discovery-passport-next-btn" data-passport-next-level="${escapeHTML(String(passportNextLevel))}">${escapeHTML(passportNextStamp.actionLabel || passportNextStamp.label || "RUN NEXT STAMP")}</button></div>`
+    : "";
+  const passportNext = passportNextStamp
+    ? `<div class="discovery-hypothesis discovery-passport-next-card"><strong>${escapeHTML(passportNextStamp.label || "NEXT PASSPORT STAMP")} · ${escapeHTML(passportNextStamp.planetName || passportNextStamp.title || "World")}</strong><span>${escapeHTML(passportNextStamp.progress || "")} stamps · ${escapeHTML(passportNextStamp.body || "Clear the next planet to stamp your Passport.")}</span>${passportNextLesson}${passportNextRoute}</div>`
+    : "";
   const formulaDeckMastery = pulse.formulaDeckMastery
     ? `<div class="discovery-hypothesis discovery-perk">${escapeHTML(pulse.formulaDeckMastery.label || "DECK MASTERED")} +${escapeHTML(String(pulse.formulaDeckMastery.rewardXP || 0))} XP · ${escapeHTML(String(pulse.formulaDeckMastery.count || 0))}/${escapeHTML(String(pulse.formulaDeckMastery.total || 0))} cards</div>`
     : "";
@@ -7148,6 +7161,7 @@ function updateDiscoveryPulse(game) {
     ${lessonPhase}
     ${lessonPathMastery}
     ${passportStamp}
+    ${passportNext}
     ${formulaDeckMastery}
     ${formulaDeckNext}
     ${aiStateDeckMastery}
@@ -7300,6 +7314,21 @@ function attachDiscoveryPulseStageButtons(panel, game, pulse) {
   panel.querySelectorAll("[data-daily-signal-next]").forEach(button => {
     if (!button || typeof button.addEventListener !== "function" || typeof runDailySignalAction !== "function") return;
     button.addEventListener("click", () => runDailySignalAction(game));
+  });
+  const passportNextStamp = pulse && pulse.passportNextStamp ? pulse.passportNextStamp : null;
+  panel.querySelectorAll("[data-passport-next-level]").forEach(button => {
+    if (!button || typeof button.addEventListener !== "function" || typeof runSciencePassportAction !== "function") return;
+    button.addEventListener("click", () => {
+      const dataLevel = button.dataset && button.dataset.passportNextLevel
+        ? Number(button.dataset.passportNextLevel)
+        : NaN;
+      const fallbackLevel = passportNextStamp && Number.isFinite(Number(passportNextStamp.levelIndex))
+        ? Number(passportNextStamp.levelIndex)
+        : NaN;
+      const levelIndex = Number.isFinite(dataLevel) ? dataLevel : fallbackLevel;
+      if (!Number.isFinite(levelIndex)) return false;
+      return runSciencePassportAction(levelIndex, game);
+    });
   });
 }
 

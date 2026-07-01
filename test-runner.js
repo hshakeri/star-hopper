@@ -1847,10 +1847,26 @@ function runEngineTests() {
   const oldSwitchMainMode22passport = switchMainMode;
   try {
     const panel = { innerHTML: "" };
+    let passportNextClick22passport = null;
+    const passportNextButton22passport = {
+      dataset: { passportNextLevel: "3" },
+      addEventListener(event, handler) {
+        if (event === "click") passportNextClick22passport = handler;
+      }
+    };
     const pulsePanel = {
       classList: { add: () => {}, remove: () => {} },
       innerHTML: "",
-      querySelectorAll() { return []; }
+      querySelectorAll(selector) {
+        if (selector === "[data-passport-next-level]") {
+          const match = this.innerHTML.match(/data-passport-next-level="([^"]+)"/);
+          if (match) {
+            passportNextButton22passport.dataset.passportNextLevel = match[1];
+            return [passportNextButton22passport];
+          }
+        }
+        return [];
+      }
     };
     document.getElementById = (id) => {
       if (id === "science-passport-panel") return panel;
@@ -1897,6 +1913,8 @@ function runEngineTests() {
     assertEquals(true, runSciencePassportAction(2), "Passport action helper should launch the target world");
     assertEquals(2, startedLevels22passport[0], "Passport action helper should call startLevel with the target world");
     assertEquals("terminal", modeSwitches22passport[0], "Passport action should return the UI to the playable terminal");
+    startedLevels22passport.length = 0;
+    modeSwitches22passport.length = 0;
     game.planetClears[2] = 1;
     const stamp = game.grantSciencePassportStamp(2, { stars: 2, maxStars: 3 }, { previousClears: 0 });
     assertEquals("PASSPORT STAMP", stamp && stamp.label, "First campaign clear should grant a Passport Stamp reward");
@@ -1907,6 +1925,21 @@ function runEngineTests() {
     assertEquals(true, !!game.lastSciencePassportStampEffect, "Passport Stamp should create an inspectable visual effect");
     assertEquals(true, /PASSPORT STAMP \+5 XP/.test(pulsePanel.innerHTML), "Discovery Pulse should render the Passport Stamp chip");
     assertEquals(true, /3\/6 stamps/.test(pulsePanel.innerHTML), "Discovery Pulse should show passport progress after the stamp");
+    const nextStampPulse22passport = game.discoveryPulse.passportNextStamp || null;
+    const nextStampConcept22passport = escapeHTML(String(nextStampPulse22passport && (nextStampPulse22passport.learn || nextStampPulse22passport.concept) || ""));
+    const nextStampCode22passport = escapeHTML(String(nextStampPulse22passport && (nextStampPulse22passport.code || nextStampPulse22passport.codeCue) || ""));
+    assertEquals(3, nextStampPulse22passport && nextStampPulse22passport.levelIndex, "Passport Stamp pulse should target the next unstamped world");
+    assertEquals("Glacies", nextStampPulse22passport && nextStampPulse22passport.title, "Passport Stamp pulse should name the next world");
+    assertEquals(true, /discovery-passport-lesson/.test(pulsePanel.innerHTML), "Passport Stamp pulse should render LEARN/CODE/WIN chips");
+    assertEquals(true, !!nextStampConcept22passport && /LEARN/.test(pulsePanel.innerHTML) && pulsePanel.innerHTML.includes(nextStampConcept22passport), "Passport Stamp pulse should preview the next science concept");
+    assertEquals(true, !!nextStampCode22passport && /CODE/.test(pulsePanel.innerHTML) && pulsePanel.innerHTML.includes(nextStampCode22passport), "Passport Stamp pulse should preview the next coding move");
+    assertEquals(true, /WIN/.test(pulsePanel.innerHTML) && /Passport stamp/.test(pulsePanel.innerHTML), "Passport Stamp pulse should preview the next win condition");
+    assertEquals(true, /data-passport-next-level="3"/.test(pulsePanel.innerHTML), "Passport Stamp pulse should render a direct next-world route");
+    assertEquals(true, typeof passportNextClick22passport === "function", "Passport Stamp pulse route should attach a click handler");
+    game.startLevel = (level) => { startedLevels22passport.push(level); };
+    assertEquals(true, passportNextClick22passport(), "Passport Stamp pulse route should launch through the passport helper");
+    assertEquals(3, startedLevels22passport[0], "Passport Stamp pulse route should start the next unstamped world");
+    assertEquals("terminal", modeSwitches22passport[0], "Passport Stamp pulse route should return to the playable terminal");
     assertEquals("PASSPORT STAMP: Jupiter (Gas Giant Core) +5 Research XP", game.missionBalloon && game.missionBalloon.text, "Passport Stamp should write a Mission CRT reward line");
     assertEquals(null, game.grantSciencePassportStamp(2, { stars: 2, maxStars: 3 }, { previousClears: 0 }), "Passport Stamp should not repeat for the same world");
     const replayStamp = new StarHopperGame();
