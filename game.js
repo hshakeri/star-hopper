@@ -7949,6 +7949,9 @@ class StarHopperGame {
     const deltaChip = typeof this.getScienceDeltaValueDelta === 'function'
       ? this.getScienceDeltaValueDelta(change)
       : "";
+    const predictionCue = typeof this.getScienceDeltaPredictionCue === 'function'
+      ? this.getScienceDeltaPredictionCue(delta)
+      : null;
     const valueLabel = String(change.label || "Value");
     const valueText = String(change.value || "changed");
     const effect = {
@@ -7961,6 +7964,8 @@ class StarHopperGame {
       codeLine: codeLine || "CODE run",
       relation,
       deltaChip,
+      predictionLabel: predictionCue && predictionCue.line ? predictionCue.line : "",
+      predictionColor: predictionCue && predictionCue.color ? predictionCue.color : "",
       valueLabel,
       valueText,
       valueLine: `${valueLabel} ${valueText}`,
@@ -8054,11 +8059,13 @@ class StarHopperGame {
       const color = fx.color || "#67e8f9";
       const resultColor = fx.direction === "down" ? "#bfdbfe" : (fx.direction === "up" ? "#bbf7d0" : "#fde68a");
       const deltaLabel = fx.deltaChip ? `DELTA ${fx.deltaChip}` : "";
+      const predictionLabel = fx.predictionLabel || "";
       drawn.push({
         codeLine: fx.codeLine,
         relation: fx.relation,
         valueLine: fx.valueLine,
-        deltaLabel
+        deltaLabel,
+        predictionLabel
       });
 
       ctx.save();
@@ -8087,6 +8094,20 @@ class StarHopperGame {
       ctx.roundRect(26, -25, 124, 42, 6);
       ctx.fill();
       ctx.stroke();
+
+      if (predictionLabel) {
+        const predictionChipW = Math.max(56, Math.min(108, 18 + predictionLabel.length * 5.2));
+        ctx.fillStyle = "rgba(15, 23, 42, 0.76)";
+        ctx.strokeStyle = fx.predictionColor || "#fef08a";
+        ctx.beginPath();
+        ctx.roundRect(-predictionChipW / 2, -40, predictionChipW, 11, 4);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = fx.predictionColor || "#fef08a";
+        ctx.font = "bold 5.8px 'Share Tech Mono', monospace";
+        ctx.textAlign = "center";
+        ctx.fillText(this.fitCardText(ctx, predictionLabel, predictionChipW - 8), 0, -34.5);
+      }
 
       ctx.shadowBlur = 0;
       ctx.strokeStyle = "#fef08a";

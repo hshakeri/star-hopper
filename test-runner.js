@@ -3068,6 +3068,7 @@ function runEngineTests() {
     assertEquals("F/m=a", breadcrumb22ba.relation, "Experiment breadcrumb should name the science relation");
     assertEquals("Mass 2.5 -> 1.2 (-1.3)", breadcrumb22ba.valueLine, "Experiment breadcrumb should keep the changed value");
     assertEquals("-1.3", breadcrumb22ba.deltaChip, "Experiment breadcrumb should expose the numeric delta");
+    assertEquals("", breadcrumb22ba.predictionLabel, "Experiment breadcrumb should stay prediction-free without a selected hypothesis");
     assertEquals("Agility 30+ reached", nextCue.title, "Next experiment cue should name the first failing mission check");
     assertEquals(true, /Lower mass/.test(nextCue.body), "Next experiment cue should reuse the mission waiting message");
     assertEquals(true, /use_hopper\(\)/.test(nextCue.command), "Next experiment cue should include runnable scaffold code");
@@ -3134,6 +3135,7 @@ function runEngineTests() {
     assertEquals("F/m=a", drawnBreadcrumbs[0].relation, "Drawn breadcrumb should expose the science relation");
     assertEquals("Mass 2.5 -> 1.2 (-1.3)", drawnBreadcrumbs[0].valueLine, "Drawn breadcrumb should expose the changed value");
     assertEquals("DELTA -1.3", drawnBreadcrumbs[0].deltaLabel, "Drawn breadcrumb should expose the signed delta label");
+    assertEquals("", drawnBreadcrumbs[0].predictionLabel, "Drawn breadcrumb should omit prediction chip without a selected hypothesis");
     assertEquals(true, breadcrumbLabels.includes("CODE"), "Breadcrumb draw should label the code side");
     assertEquals(true, breadcrumbLabels.includes("RESULT"), "Breadcrumb draw should label the result side");
     assertEquals(true, breadcrumbLabels.includes("F/m=a"), "Breadcrumb draw should write the formula relation");
@@ -3410,6 +3412,27 @@ function runEngineTests() {
     };
     game.drawScienceDeltaRunCue(predictionCtx);
     assertEquals(true, predictionLabels.includes("PREDICT OK +6 XP"), "Evidence ticker draw should write the prediction verdict chip");
+    game.scienceBreadcrumbEffects = [];
+    const predictionBreadcrumb = game.spawnScienceBreadcrumbEffect(game.lastScienceDelta, game.lastScienceDelta.changes[0], { x: 120, y: 96, color: "#93c5fd" });
+    assertEquals("PREDICT OK +6 XP", predictionBreadcrumb.predictionLabel, "Experiment breadcrumb should carry rewarded prediction verdicts");
+    assertEquals("#fef08a", predictionBreadcrumb.predictionColor, "Confirmed prediction breadcrumb chip should use the prediction color");
+    const predictionBreadcrumbLabels = [];
+    const predictionBreadcrumbCtx = {
+      save() {},
+      restore() {},
+      beginPath() {},
+      roundRect() {},
+      fill() {},
+      stroke() {},
+      moveTo() {},
+      lineTo() {},
+      translate() {},
+      fillText(text) { predictionBreadcrumbLabels.push(text); },
+      measureText(text) { return { width: String(text || "").length * 5 }; }
+    };
+    const drawnPredictionBreadcrumb = game.drawScienceBreadcrumbEffects(predictionBreadcrumbCtx);
+    assertEquals("PREDICT OK +6 XP", drawnPredictionBreadcrumb[0].predictionLabel, "Drawn breadcrumb should expose the rewarded prediction verdict");
+    assertEquals(true, predictionBreadcrumbLabels.includes("PREDICT OK +6 XP"), "Breadcrumb draw should write the rewarded prediction chip");
     const afterHypothesisBubbles22bb = bubbleLabels22bb.filter(label => /HYPOTHESIS/.test(label)).length;
     const afterHypothesisBursts22bb = particleColors22bb.filter(color => color === "#a7f3d0").length;
 
@@ -3420,6 +3443,9 @@ function runEngineTests() {
     assertEquals(true, game.researchXP > firstXP, "Regular progress XP should still apply after the one-time bonus");
     const repeatPredictionCue = game.getScienceDeltaRunCue();
     assertEquals("PREDICT OK", repeatPredictionCue.predictionLine, "Evidence ticker should still show correct repeated predictions without another XP bonus");
+    game.scienceBreadcrumbEffects = [];
+    const repeatBreadcrumb = game.spawnScienceBreadcrumbEffect(game.lastScienceDelta, game.lastScienceDelta.changes[0], { x: 128, y: 98, color: "#93c5fd" });
+    assertEquals("PREDICT OK", repeatBreadcrumb.predictionLabel, "Experiment breadcrumb should carry repeat prediction verdicts without XP");
     assertEquals(afterHypothesisBubbles22bb, bubbleLabels22bb.filter(label => /HYPOTHESIS/.test(label)).length, "Repeat mission progress should not spawn another hypothesis cue");
     assertEquals(afterHypothesisBursts22bb, particleColors22bb.filter(color => color === "#a7f3d0").length, "Repeat mission progress should not spawn another hypothesis burst");
 
@@ -3445,6 +3471,10 @@ function runEngineTests() {
     const wrongPredictionCue = wrong.getScienceDeltaRunCue();
     assertEquals("PREDICT SURPRISE", wrongPredictionCue.predictionLine, "Evidence ticker should mark wrong predictions as useful surprise evidence");
     assertEquals("#fca5a5", wrongPredictionCue.predictionColor, "Surprise prediction cue should use the compare/warning color without reward");
+    wrong.scienceBreadcrumbEffects = [];
+    const wrongBreadcrumb = wrong.spawnScienceBreadcrumbEffect(wrong.lastScienceDelta, wrong.lastScienceDelta.changes[0], { x: 112, y: 108, color: "#93c5fd" });
+    assertEquals("PREDICT SURPRISE", wrongBreadcrumb.predictionLabel, "Experiment breadcrumb should carry surprise prediction verdicts");
+    assertEquals("#fca5a5", wrongBreadcrumb.predictionColor, "Surprise breadcrumb chip should use the prediction color");
     const wrongPredictionLabels = [];
     const wrongPredictionCtx = {
       save() {},
@@ -3459,6 +3489,23 @@ function runEngineTests() {
     };
     wrong.drawScienceDeltaRunCue(wrongPredictionCtx);
     assertEquals(true, wrongPredictionLabels.includes("PREDICT SURPRISE"), "Evidence ticker draw should write the surprise prediction verdict");
+    const wrongBreadcrumbLabels = [];
+    const wrongBreadcrumbCtx = {
+      save() {},
+      restore() {},
+      beginPath() {},
+      roundRect() {},
+      fill() {},
+      stroke() {},
+      moveTo() {},
+      lineTo() {},
+      translate() {},
+      fillText(text) { wrongBreadcrumbLabels.push(text); },
+      measureText(text) { return { width: String(text || "").length * 5 }; }
+    };
+    const drawnWrongBreadcrumb = wrong.drawScienceBreadcrumbEffects(wrongBreadcrumbCtx);
+    assertEquals("PREDICT SURPRISE", drawnWrongBreadcrumb[0].predictionLabel, "Drawn breadcrumb should expose the surprise prediction verdict");
+    assertEquals(true, wrongBreadcrumbLabels.includes("PREDICT SURPRISE"), "Breadcrumb draw should write the surprise prediction chip");
 
     document.getElementById = oldGetElementById22bb;
     ComicBubbles.pop = oldBubblePop22bb;
