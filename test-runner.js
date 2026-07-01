@@ -3169,6 +3169,37 @@ function runEngineTests() {
     assertEquals(true, Number(targetReadyCue.targetProgressBefore) < 1, "Ready ticker should preserve the before-target progress");
     assertEquals(1, targetReadyCue.targetProgress, "Ready ticker should clamp after-target progress to the complete rail");
 
+    const targetCloserLabels = [];
+    let targetCloserBursts = 0;
+    ComicBubbles.pop = (x, y, text) => { targetCloserLabels.push(text); };
+    Particles.spawnBurst = () => { targetCloserBursts++; };
+    const targetCloserGame = new StarHopperGame();
+    targetCloserGame.player = { charType: 'hopper', x: 54, y: 92, w: 24, h: 32, mass: 1, fuel: 100 };
+    targetCloserGame.spawnedBoxes = [];
+    targetCloserGame.interactiveObjects = [];
+    targetCloserGame.targetTestAgility = 1;
+    targetCloserGame.getActiveMass = () => 1;
+    targetCloserGame.getEngineForce = () => 4;
+    targetCloserGame.getJumpForce = () => 10;
+    targetCloserGame.getDesignGravity = () => 1;
+    targetCloserGame.getCurrentFriction = () => 0;
+    targetCloserGame.getMissionStat = function () {
+      return { key: 'agility', label: 'Agility', value: this.targetTestAgility, target: 10 };
+    };
+    const targetCloserBefore = captureScienceDeltaSnapshot(targetCloserGame);
+    targetCloserGame.targetTestAgility = 3;
+    const targetCloserDelta = recordScienceDelta(targetCloserGame, targetCloserBefore, captureScienceDeltaSnapshot(targetCloserGame), "hopper.engine = 5");
+    assertEquals(false, targetCloserDelta.missionTarget && targetCloserDelta.missionTarget.crossed, "Closer target movement should not mark the target complete");
+    assertEquals(null, targetCloserDelta.missionTarget && targetCloserDelta.missionTarget.milestone, "Closer target movement should not invent a checkpoint milestone");
+    assertEquals(null, targetCloserDelta.scienceCheckpointProof || null, "Closer target movement should not create a checkpoint proof");
+    assertEquals(0, targetCloserGame.researchXP || 0, "Closer target movement should not award Research XP");
+    assertEquals(null, targetCloserGame.discoveryPulse || null, "Closer target movement should not create a Discovery Pulse");
+    assertEquals(true, targetCloserLabels.includes("CLOSER +20%"), "Closer target movement should pop a non-XP progress cue");
+    assertEquals(true, targetCloserLabels.includes("AGILITY 3/10"), "Closer cue should show the updated target stat");
+    assertEquals("TARGET CLOSER: Agility 3/10", targetCloserGame.missionBalloon && targetCloserGame.missionBalloon.text, "Mission CRT should announce non-XP target momentum");
+    assertEquals("CLOSER +20%", targetCloserGame.lastScienceDeltaEffect && targetCloserGame.lastScienceDeltaEffect.targetCloser && targetCloserGame.lastScienceDeltaEffect.targetCloser.label, "Closer target movement should be inspectable as a visual effect");
+    assertEquals(true, targetCloserBursts >= 4, "Closer target movement should still get lightweight particles");
+
     const targetStepLabels = [];
     let targetStepBursts = 0;
     ComicBubbles.pop = (x, y, text) => { targetStepLabels.push(text); };

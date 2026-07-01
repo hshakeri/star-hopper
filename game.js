@@ -7565,6 +7565,7 @@ class StarHopperGame {
     const target = delta.missionTarget || null;
     const targetReady = !!(target && target.crossed);
     let targetMilestone = null;
+    let targetCloser = null;
     const fmt = (value) => typeof this.formatScienceDeltaTargetNumber === 'function'
       ? this.formatScienceDeltaTargetNumber(value)
       : (Math.abs(Number(value)) >= 10 ? String(Math.round(Number(value))) : Number(value).toFixed(1));
@@ -7606,8 +7607,35 @@ class StarHopperGame {
           timer: 190
         });
       }
+    } else if (target && Number.isFinite(Number(target.progressBefore)) && Number.isFinite(Number(target.progressAfter))) {
+      const progressBefore = Math.max(0, Math.min(1, Number(target.progressBefore)));
+      const progressAfter = Math.max(0, Math.min(1, Number(target.progressAfter)));
+      const progressGain = Math.max(0, progressAfter - progressBefore);
+      if (progressGain >= 0.02) {
+        const targetLabel = String(target.label || "Target");
+        const targetLine = `${targetLabel} ${fmt(target.after)}/${fmt(target.target)}`;
+        const gainLabel = `CLOSER +${Math.max(1, Math.round(progressGain * 100))}%`;
+        targetCloser = { label: gainLabel, progressGain, targetLine };
+        if (typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+          ComicBubbles.pop(px, baseY - 34, gainLabel, "#bef264", 0.86);
+          ComicBubbles.pop(px, baseY - 52, targetLine.toUpperCase(), "#a7f3d0", 0.68);
+        }
+        if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+          Particles.spawnBurst(px, py - 4, '#bef264', 8, 1.9, 1.8, 'glow');
+          Particles.spawnBurst(px, py - 4, '#67e8f9', 5, 1.4, 1.4, 'glow');
+        }
+        if (typeof this.showMissionBalloon === 'function') {
+          this.showMissionBalloon(`TARGET CLOSER: ${targetLine}`, {
+            title: "MISSION CRT",
+            color: "#bef264",
+            timer: 150
+          });
+        }
+      }
     }
-    return { label, color, x: px, y: py, targetReady, targetMilestone };
+    const effect = { label, color, x: px, y: py, targetReady, targetMilestone, targetCloser };
+    this.lastScienceDeltaEffect = effect;
+    return effect;
   }
 
   spawnHypothesisEffect(pulse) {
