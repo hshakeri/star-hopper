@@ -433,6 +433,7 @@ function updateMissionList(game) {
   appendMissionMentorSignal(listContainer, game);
   appendStagedExperimentCard(listContainer, game);
   appendScienceDeltaCard(listContainer, game);
+  appendScienceCheckpointTargetCard(listContainer, game);
   appendLabChainTargetCard(listContainer, game);
   currentPlanet.missions.forEach(mission => {
     const isCompleted = game.completedMissions.has(mission.id);
@@ -2083,6 +2084,72 @@ function appendLabChainTargetCard(listContainer, game) {
         kind: target.kind,
         source: "lab-chain-target",
         color: "#67e8f9"
+      }));
+    }
+    card.appendChild(stage);
+  }
+
+  listContainer.appendChild(card);
+}
+
+function appendScienceCheckpointTargetCard(listContainer, game) {
+  const target = getScienceCheckpointPreview(game);
+  if (!listContainer || !target) return;
+
+  const card = document.createElement("div");
+  card.className = `science-checkpoint-target-card${target.claimed ? " claimed" : ""}`;
+
+  const head = document.createElement("div");
+  head.className = "science-checkpoint-target-head";
+  const label = document.createElement("span");
+  label.textContent = target.label;
+  const reward = document.createElement("strong");
+  reward.textContent = target.reward;
+  head.appendChild(label);
+  head.appendChild(reward);
+  card.appendChild(head);
+
+  const title = document.createElement("strong");
+  title.className = "science-checkpoint-target-title";
+  title.textContent = target.title;
+  card.appendChild(title);
+
+  const rail = document.createElement("div");
+  rail.className = "science-checkpoint-target-rail";
+  if (typeof rail.setAttribute === "function") {
+    rail.setAttribute("aria-label", `${Math.round(target.progress * 100)}% toward ${target.checkpoint}`);
+  }
+  const fill = document.createElement("span");
+  fill.style.width = `${Math.round(target.progress * 100)}%`;
+  const marker = document.createElement("i");
+  marker.style.left = `${Math.round(target.checkpointProgress * 100)}%`;
+  rail.appendChild(fill);
+  rail.appendChild(marker);
+  card.appendChild(rail);
+
+  const body = document.createElement("p");
+  body.textContent = `${target.statLine} · ${target.gapLine}`;
+  card.appendChild(body);
+
+  const checkpoint = document.createElement("em");
+  checkpoint.textContent = `Checkpoint: ${target.checkpoint}`;
+  card.appendChild(checkpoint);
+
+  if (target.command) {
+    const code = document.createElement("code");
+    code.textContent = target.command;
+    card.appendChild(code);
+
+    const stage = document.createElement("button");
+    stage.type = "button";
+    stage.className = "science-checkpoint-target-stage-btn";
+    stage.textContent = "STAGE CHECKPOINT";
+    if (typeof stage.addEventListener === "function") {
+      stage.addEventListener("click", () => stageScienceDeltaCommand(target.command, {
+        title: target.commandTitle,
+        kind: "science-checkpoint",
+        source: "science-checkpoint",
+        color: "#bef264"
       }));
     }
     card.appendChild(stage);
@@ -4816,14 +4883,61 @@ function buildDiscoveryScienceDeltaProof(game, pulse) {
   };
 }
 
+function getScienceCheckpointSourceKey(game, statKey, thresholdValue) {
+  if (!statKey || !Number.isFinite(Number(thresholdValue))) return "";
+  const index = game && Number.isFinite(Number(game.currentPlanetIndex)) ? Math.floor(Number(game.currentPlanetIndex)) : 0;
+  const threshold = Number(thresholdValue) >= 1 ? "ready" : String(Math.round(Number(thresholdValue) * 100));
+  return `science-checkpoint:${index}:${String(statKey).replace(/[^a-z0-9_-]+/gi, "-").toLowerCase()}:${threshold}`;
+}
+
 function getScienceCheckpointProofSourceKey(game, delta) {
   const target = delta && delta.missionTarget ? delta.missionTarget : null;
   if (!target || !target.key) return "";
-  const index = game && Number.isFinite(Number(game.currentPlanetIndex)) ? Math.floor(Number(game.currentPlanetIndex)) : 0;
   const rawThreshold = target.crossed ? 1 : (target.milestone && Number.isFinite(Number(target.milestone.threshold)) ? Number(target.milestone.threshold) : null);
   if (!Number.isFinite(rawThreshold)) return "";
-  const threshold = rawThreshold >= 1 ? "ready" : String(Math.round(rawThreshold * 100));
-  return `science-checkpoint:${index}:${String(target.key).replace(/[^a-z0-9_-]+/gi, "-").toLowerCase()}:${threshold}`;
+  return getScienceCheckpointSourceKey(game, target.key, rawThreshold);
+}
+
+function getScienceCheckpointPreview(game) {
+  const stat = game && typeof game.getMissionStat === "function" ? game.getMissionStat() : null;
+  if (!stat || !stat.key || !Number.isFinite(Number(stat.value)) || !Number.isFinite(Number(stat.target)) || Number(stat.target) <= 0) return null;
+  const value = Number(stat.value);
+  const target = Number(stat.target);
+  const progress = Math.max(0, Math.min(1, value / target));
+  const passCounts = game && game.discoveryPassCounts && typeof game.discoveryPassCounts === "object" ? game.discoveryPassCounts : {};
+  const steps = [
+    { threshold: 0.5, label: "50% TARGET", title: "Halfway checkpoint", rewardXP: 3 },
+    { threshold: 0.75, label: "75% TARGET", title: "Three-quarter checkpoint", rewardXP: 3 },
+    { threshold: 0.9, label: "90% TARGET", title: "Almost-ready checkpoint", rewardXP: 3 },
+    { threshold: 1, label: "TARGET READY", title: "Target ready proof", rewardXP: 5 }
+  ];
+  const next = steps.find(step => progress < step.threshold - 0.001) || null;
+  if (!next) return null;
+  const sourceKey = getScienceCheckpointSourceKey(game, stat.key, next.threshold);
+  const claimed = !!(sourceKey && passCounts[sourceKey]);
+  const checkpointValue = target * next.threshold;
+  const gap = Math.max(0, checkpointValue - value);
+  const fmt = typeof formatScienceDeltaValue === "function" ? formatScienceDeltaValue : (n => String(Math.round(Number(n) || 0)));
+  const activeMission = typeof getActivePlatformerMission === "function" ? getActivePlatformerMission(game) : null;
+  const resultState = activeMission && activeMission.fullMission && typeof evaluateMissionResultChecks === "function"
+    ? evaluateMissionResultChecks(game, activeMission.fullMission)
+    : null;
+  const cue = typeof buildNextExperimentCue === "function" ? buildNextExperimentCue(game, resultState, activeMission) : null;
+  return {
+    label: claimed ? "CHECKPOINT LOGGED" : "NEXT CHECKPOINT",
+    title: next.title,
+    reward: claimed ? "Proof saved" : `+${next.rewardXP} XP proof`,
+    statLabel: stat.label || "Target",
+    statLine: `${stat.label || "Target"} ${fmt(value)}/${fmt(target)}`,
+    checkpoint: next.label,
+    gapLine: gap > 0.05 ? `Need +${fmt(gap)} to ${next.label}` : `Ready for ${next.label}`,
+    progress,
+    checkpointProgress: next.threshold,
+    sourceKey,
+    claimed,
+    command: cue && cue.command ? String(cue.command).trim() : "",
+    commandTitle: cue && cue.title ? cue.title : `Reach ${next.label}`
+  };
 }
 
 function buildScienceCheckpointProof(game, delta) {

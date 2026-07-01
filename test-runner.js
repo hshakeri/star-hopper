@@ -5961,6 +5961,7 @@ function runEngineTests() {
     list = makeEl();
     game.lastStagedExperiment = null;
     game.coachPredictions = { "earth-gravity-wall": "lighter-longer" };
+    game.getMissionStat = () => ({ key: "agility", label: "Agility", value: 12, target: 30 });
     updateMissionList(game);
     const activeLens = findByClass(list, "lesson-lens-card");
     const activeLensButton = findByClass(activeLens || list, "lesson-lens-stage-btn");
@@ -5969,6 +5970,8 @@ function runEngineTests() {
     const activeLabQuestionButton = findByClass(activeLabQuestion || list, "mission-lab-question-stage-btn");
     const activeRunQueue = findByClass(list, "run-objective-queue-card");
     const activeRunQueueText = flattenText(activeRunQueue || list);
+    const activeCheckpoint = findByClass(list, "science-checkpoint-target-card");
+    const activeCheckpointText = flattenText(activeCheckpoint || list);
     assertEquals("STAGE LESSON CODE", activeLensButton && activeLensButton.textContent, "Lesson lens should stage code after prediction");
     assertEquals(false, !!activeLensButton.disabled, "Lesson lens staging should enable after prediction");
     assertEquals(true, /NEXT TEST/.test(activeLabQuestionText), "After prediction, lab question should move to the next test");
@@ -5977,6 +5980,12 @@ function runEngineTests() {
     assertEquals(false, !!activeLabQuestionButton.disabled, "Next-test staging should be enabled");
     assertEquals(true, /#1 NEXT TEST/.test(activeRunQueueText), "In-run objective queue should switch from prediction gate to next-test action after predicting");
     assertEquals(true, /STAGE TEST/.test(activeRunQueueText), "In-run objective queue should expose the next-test stage action");
+    assertEquals(true, !!activeCheckpoint, "Mission panel should preview the next science checkpoint");
+    assertEquals(true, /NEXT CHECKPOINT/.test(activeCheckpointText), "Science checkpoint card should identify the next target");
+    assertEquals(true, /\+3 XP proof/.test(activeCheckpointText), "Science checkpoint card should show the checkpoint reward");
+    assertEquals(true, /Agility 12\/30/.test(activeCheckpointText), "Science checkpoint card should show the live target stat");
+    assertEquals(true, /Need \+3\.0 to 50% TARGET/.test(activeCheckpointText), "Science checkpoint card should show the gap to the next checkpoint");
+    assertEquals(true, /STAGE CHECKPOINT/.test(activeCheckpointText), "Science checkpoint card should expose a stage action");
     const inputEl22j = {
       value: "",
       focused: false,
@@ -6006,6 +6015,13 @@ function runEngineTests() {
     assertEquals(false, /hopper\.mass/.test(inputEl22j.value), "Lab question should stage the focused setup fix for the active failed check");
     assertEquals(true, inputEl22j.focused, "Lab question stage action should focus the terminal");
     assertEquals("mission-lab-question", game.lastStagedExperiment && game.lastStagedExperiment.source, "Lab question staging should remember its source");
+    const activeCheckpointButton = findByClass(activeCheckpoint || list, "science-checkpoint-target-stage-btn");
+    inputEl22j.value = "";
+    inputEl22j.focused = false;
+    activeCheckpointButton._events.click();
+    assertEquals(true, /use_hopper\(\)/.test(inputEl22j.value), "Science checkpoint card should stage the next target experiment");
+    assertEquals(true, inputEl22j.focused, "Science checkpoint card should focus the terminal");
+    assertEquals("science-checkpoint", game.lastStagedExperiment && game.lastStagedExperiment.source, "Science checkpoint staging should remember its source");
     const activeMentor = findByClass(list, "mentor-signal-card");
     const activeMentorButton = findByClass(activeMentor || list, "mentor-signal-stage-btn");
     inputEl22j.value = "";

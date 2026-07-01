@@ -5187,6 +5187,125 @@ html {
   gap: 5px;
 }
 
+.science-checkpoint-target-card {
+  border: 1px solid rgba(190, 242, 100, 0.36);
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgba(63, 98, 18, 0.34), rgba(15, 23, 42, 0.74)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.03) 0 1px, transparent 1px 4px);
+  box-shadow: inset 0 0 14px rgba(190, 242, 100, 0.1);
+  display: grid;
+  gap: 5px;
+  padding: 7px 8px;
+}
+
+.science-checkpoint-target-card.claimed {
+  border-color: rgba(148, 163, 184, 0.3);
+  background:
+    linear-gradient(180deg, rgba(30, 41, 59, 0.52), rgba(15, 23, 42, 0.68)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.024) 0 1px, transparent 1px 4px);
+}
+
+.science-checkpoint-target-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  line-height: 1.2;
+}
+
+.science-checkpoint-target-head span {
+  color: #bef264;
+  font-weight: 900;
+}
+
+.science-checkpoint-target-head strong {
+  color: #fef08a;
+  text-align: right;
+}
+
+.science-checkpoint-target-title {
+  color: #ecfeff;
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  line-height: 1.2;
+}
+
+.science-checkpoint-target-rail {
+  position: relative;
+  height: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(190, 242, 100, 0.2);
+  border-radius: 999px;
+  background: rgba(2, 6, 23, 0.46);
+}
+
+.science-checkpoint-target-rail span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #67e8f9, #bef264);
+}
+
+.science-checkpoint-target-rail i {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 14px;
+  border-radius: 999px;
+  background: #fef08a;
+  box-shadow: 0 0 6px rgba(254, 240, 138, 0.52);
+}
+
+.science-checkpoint-target-card p,
+.science-checkpoint-target-card em {
+  margin: 0;
+  color: #dff6ff;
+  font-size: 0.61rem;
+  line-height: 1.28;
+}
+
+.science-checkpoint-target-card em {
+  color: #fde68a;
+  font-style: normal;
+}
+
+.science-checkpoint-target-card code {
+  display: block;
+  max-height: 54px;
+  overflow: hidden;
+  color: #bbf7d0;
+  background: rgba(2, 6, 23, 0.42);
+  border: 1px solid rgba(190, 242, 100, 0.18);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  line-height: 1.28;
+  padding: 4px 5px;
+  white-space: pre-wrap;
+}
+
+.science-checkpoint-target-stage-btn {
+  justify-self: start;
+  border: 1px solid rgba(190, 242, 100, 0.48);
+  border-radius: 4px;
+  background: rgba(63, 98, 18, 0.72);
+  color: #f7fee7;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.53rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0;
+  padding: 5px 7px;
+}
+
+.science-checkpoint-target-stage-btn:hover {
+  background: rgba(190, 242, 100, 0.84);
+  color: #1a2e05;
+}
+
 .science-delta-head {
   display: flex;
   justify-content: space-between;
@@ -10266,6 +10385,12 @@ body.readable-text-mode .science-delta-chain-badge span,
 body.readable-text-mode .science-delta-chain-badge strong,
 body.readable-text-mode .science-delta-chain-badge p,
 body.readable-text-mode .science-delta-tested-stage-btn,
+body.readable-text-mode .science-checkpoint-target-head,
+body.readable-text-mode .science-checkpoint-target-title,
+body.readable-text-mode .science-checkpoint-target-card p,
+body.readable-text-mode .science-checkpoint-target-card em,
+body.readable-text-mode .science-checkpoint-target-card code,
+body.readable-text-mode .science-checkpoint-target-stage-btn,
 body.readable-text-mode .discovery-science-proof,
 body.readable-text-mode .discovery-science-proof-grid span,
 body.readable-text-mode .discovery-science-proof p,
@@ -10573,6 +10698,7 @@ body.readable-text-mode :is(
   .mission-lab-question-card,
   .staged-experiment-card,
   .science-delta-card,
+  .science-checkpoint-target-card,
   .lab-chain-target-card,
   .run-replay-contract,
   .mentor-signal-card,
@@ -10627,6 +10753,8 @@ body.readable-text-mode :is(
   .mission-lab-question-card p,
   .staged-experiment-card p,
   .science-delta-card p,
+  .science-checkpoint-target-card p,
+  .science-checkpoint-target-card em,
   .lab-chain-target-body p,
   .signal-story-crt-body p,
   .signal-lab-contract-body p,
@@ -10667,6 +10795,7 @@ body.readable-text-mode :is(
   .staged-experiment-card code,
   .science-delta-next code,
   .lab-chain-target-card code,
+  .science-checkpoint-target-card code,
   .signal-story-crt-body code,
   .signal-lab-contract-card code,
   .village-state-crt-body code,
