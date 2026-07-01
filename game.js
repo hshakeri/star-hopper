@@ -8137,6 +8137,7 @@ class StarHopperGame {
     const next = delta.nextExperiment || null;
     const formulaChip = this.getScienceDeltaFormulaChip(primary);
     const codeLine = this.getScienceDeltaCodeLine(delta, primary);
+    const deltaChip = this.getScienceDeltaValueDelta(primary);
     return {
       label: "EVIDENCE",
       title: delta.summary || "What changed",
@@ -8146,6 +8147,7 @@ class StarHopperGame {
       nextLine: next && next.title ? `NEXT ${next.title}` : "",
       direction,
       formulaChip,
+      deltaChip,
       color,
       ageMs,
       ttlMs
@@ -8164,6 +8166,16 @@ class StarHopperGame {
     if (/event/.test(label)) return "if->then";
     if (/spring|block|gem|suit/.test(label)) return "code->world";
     return "code->evidence";
+  }
+
+  getScienceDeltaValueDelta(change) {
+    const value = String((change && change.value) || "");
+    const match = value.match(/\(([+-]\d+(?:\.\d+)?)\)/);
+    if (!match) return "";
+    const n = Number(match[1]);
+    if (!Number.isFinite(n) || Math.abs(n) < 0.05) return "";
+    const magnitude = Math.abs(n) >= 10 ? String(Math.round(Math.abs(n))) : Math.abs(n).toFixed(1);
+    return `${n > 0 ? "+" : "-"}${magnitude}`;
   }
 
   getScienceDeltaCodeLine(delta, change) {
@@ -8226,6 +8238,22 @@ class StarHopperGame {
     ctx.fillText(cue.label, x + 10, y + 10);
     const chipW = Math.max(48, Math.min(82, 12 + String(cue.formulaChip || "").length * 5));
     const chipX = x + w - chipW - 8;
+    const deltaChipText = cue.deltaChip ? `DELTA ${cue.deltaChip}` : "";
+    const deltaChipW = deltaChipText ? Math.max(54, Math.min(78, 12 + String(deltaChipText).length * 5)) : 0;
+    const deltaChipX = chipX - deltaChipW - 6;
+    if (deltaChipText && deltaChipX > x + 66) {
+      ctx.fillStyle = cue.direction === "down" ? "rgba(127, 29, 29, 0.48)" : "rgba(6, 95, 70, 0.48)";
+      ctx.strokeStyle = cue.direction === "down" ? "#fca5a5" : "#86efac";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(deltaChipX, y + 4, deltaChipW, 13, 4);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = cue.direction === "down" ? "#fecaca" : "#bbf7d0";
+      ctx.font = "bold 6.5px 'Share Tech Mono', monospace";
+      ctx.textAlign = "center";
+      ctx.fillText(this.fitCardText(ctx, deltaChipText, deltaChipW - 8), deltaChipX + deltaChipW / 2, y + 10.5);
+    }
     ctx.fillStyle = "rgba(15, 23, 42, 0.66)";
     ctx.strokeStyle = color;
     ctx.lineWidth = 1;

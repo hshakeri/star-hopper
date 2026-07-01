@@ -2973,6 +2973,7 @@ function runEngineTests() {
     assertEquals(true, /Mass:/.test(runCue.valueLine), "In-run evidence ticker should name the changed science value");
     assertEquals(true, /Less mass/.test(runCue.reasonLine), "In-run evidence ticker should preserve the science cue");
     assertEquals("F/m=a", runCue.formulaChip, "In-run evidence ticker should name the science relation behind the changed value");
+    assertEquals("-1.3", runCue.deltaChip, "In-run evidence ticker should expose the numeric size of the changed value");
     assertEquals("NEXT Agility 30+ reached", runCue.nextLine, "In-run evidence ticker should show the next experiment title");
     const deltaLabels = [];
     const fakeDeltaCtx = {
@@ -2991,6 +2992,7 @@ function runEngineTests() {
     assertEquals(true, deltaLabels.includes("EVIDENCE"), "Drawing should write the evidence ticker label");
     assertEquals(true, deltaLabels.includes("CODE hopper.mass = 1.2"), "Drawing should write the causal code line");
     assertEquals(true, deltaLabels.includes("F/m=a"), "Drawing should write the science relation chip");
+    assertEquals(true, deltaLabels.includes("DELTA -1.3"), "Drawing should write the numeric delta chip");
     assertEquals(true, deltaLabels.some(text => /Mass:/.test(text)), "Drawing should write the changed science value");
     assertEquals(true, deltaLabels.includes("NEXT Agility 30+ reached"), "Drawing should write the next experiment title");
     assertEquals(true, drawnDeltaCue.h > 68, "Evidence ticker should reserve compact space for code plus next experiment rows");
