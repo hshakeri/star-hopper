@@ -4375,6 +4375,27 @@ html {
 .lesson-phase-step em { color: #cbd5e1; }
 .lesson-phase-step code { color: #bbf7d0; }
 
+.lesson-phase-stage-btn {
+  justify-self: start;
+  min-height: 22px;
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  border-radius: 4px;
+  background: rgba(120, 53, 15, 0.58);
+  color: #fef3c7;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  font-weight: 900;
+  line-height: 1;
+  margin-top: 2px;
+  padding: 4px 7px;
+}
+
+.lesson-phase-stage-btn:hover {
+  background: rgba(251, 191, 36, 0.86);
+  color: #451a03;
+}
+
 .lesson-phase-step.active {
   border-color: rgba(103, 232, 249, 0.5);
   background: rgba(8, 47, 73, 0.6);
@@ -9675,6 +9696,7 @@ body.readable-text-mode .lesson-phase-step > span,
 body.readable-text-mode .lesson-phase-step strong,
 body.readable-text-mode .lesson-phase-step em,
 body.readable-text-mode .lesson-phase-step code,
+body.readable-text-mode .lesson-phase-stage-btn,
 body.readable-text-mode .mentor-signal-head,
 body.readable-text-mode .mentor-signal-copy strong,
 body.readable-text-mode .mentor-signal-copy p,

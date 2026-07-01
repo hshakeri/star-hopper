@@ -865,6 +865,7 @@ function runEngineTests() {
     const phaseHTMLBefore = renderMissionLessonPhaseLadder(game, forgeMission);
     assertEquals(true, /NOW/.test(phaseHTMLBefore) && /LOCKED/.test(phaseHTMLBefore), "Forge phase ladder should show active and locked states");
     assertEquals(false, /elasticity = 1\.0/.test(phaseHTMLBefore), "Forge phase ladder should hide elasticity code before mass proof");
+    assertEquals(true, /data-lesson-phase-stage="0"/.test(phaseHTMLBefore), "Active Forge mass phase should expose a stage button");
 
     const phaseOne = scaffoldWithActiveSlots(forgeMission.scaffold, game, forgeMission);
     assertEquals(1, phaseOne.slots.length, "Forge phase one should expose only one scaffold slot");
@@ -887,6 +888,8 @@ function runEngineTests() {
     const phaseHTMLAfter = renderMissionLessonPhaseLadder(game, forgeMission);
     assertEquals(true, /DONE/.test(phaseHTMLAfter) && /NOW/.test(phaseHTMLAfter), "Forge phase ladder should show complete and active states after mass");
     assertEquals(true, /elasticity = 1\.0/.test(phaseHTMLAfter), "Forge phase ladder should reveal elasticity after mass proof");
+    assertEquals(false, /data-lesson-phase-stage="0"/.test(phaseHTMLAfter), "Completed Forge mass phase should stop exposing the stage action");
+    assertEquals(true, /data-lesson-phase-stage="1"/.test(phaseHTMLAfter), "Active Forge bounce phase should expose a stage button");
 
     const phaseTwo = scaffoldWithActiveSlots(forgeMission.scaffold, game, forgeMission);
     assertEquals(2, phaseTwo.slots.length, "Forge phase two reveals the bounce slot after mass passes");
@@ -895,6 +898,42 @@ function runEngineTests() {
     const phaseTwoState = evaluateMissionResultChecks(game, forgeMission);
     const phaseTwoCue = buildNextExperimentCue(game, phaseTwoState, activeMission);
     assertEquals("elasticity = 1.0", phaseTwoCue.command, "Forge next cue should stage elasticity after the mass proof");
+
+    const oldGetElementById17c1 = document.getElementById;
+    const oldWindowGame17c1 = window.Game;
+    const input17c1 = {
+      value: "",
+      focused: false,
+      style: {},
+      focus() { this.focused = true; },
+      setSelectionRange() {}
+    };
+    let phaseClick = null;
+    const phaseButton = {
+      dataset: { lessonPhaseStage: "1" },
+      addEventListener(event, handler) { if (event === "click") phaseClick = handler; }
+    };
+    const phaseRoot = {
+      querySelectorAll(selector) { return selector === "[data-lesson-phase-stage]" ? [phaseButton] : []; }
+    };
+    const restoredPlanet = game.currentPlanet;
+    try {
+      document.getElementById = (id) => id === "console-input" ? input17c1 : null;
+      game.currentPlanet = null;
+      window.Game = game;
+      attachLessonPhaseStageButtons(phaseRoot, game, forgeMission);
+      assertEquals(true, typeof phaseClick === "function", "Lesson phase stage helper should attach a click handler");
+      phaseClick();
+      assertEquals("elasticity = 1.0", input17c1.value, "Active Forge phase button should stage the exact next phase command");
+      assertEquals(true, input17c1.focused, "Active Forge phase button should focus Mission Coach");
+      assertEquals("lesson-phase", game.lastStagedExperiment && game.lastStagedExperiment.source, "Phase stage button should enter the shared staged-experiment loop");
+      assertEquals("2 Bounce control", game.lastStagedExperiment && game.lastStagedExperiment.title, "Phase stage button should preserve the phase title");
+      assertEquals("Lesson phase", getStagedExperimentSourceLabel(game.lastStagedExperiment.source), "Phase staged reminder should name the lesson phase source");
+    } finally {
+      game.currentPlanet = restoredPlanet;
+      window.Game = oldWindowGame17c1;
+      document.getElementById = oldGetElementById17c1;
+    }
     renderTestResult("engine-suite", "Curriculum: Forge coach phases mass before elasticity", true);
   } catch (err) {
     renderTestResult("engine-suite", "Curriculum: Forge coach phases mass before elasticity", false, err.message);

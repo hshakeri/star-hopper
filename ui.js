@@ -537,11 +537,32 @@ function renderMissionLessonPhaseLadder(game, fullMission, label = "LESSON PATH"
             <strong>${escapeHTML(row.label || `Phase ${row.index + 1}`)}</strong>
             <em>${escapeHTML(row.detail || "")}</em>
             ${row.command ? `<code>${escapeHTML(row.command)}</code>` : ""}
+            ${row.status === "active" && row.command ? `<button type="button" class="lesson-phase-stage-btn" data-lesson-phase-stage="${escapeHTML(String(row.index))}">STAGE</button>` : ""}
           </div>
         `).join("")}
       </div>
     </div>
   `;
+}
+
+function attachLessonPhaseStageButtons(root, game, fullMission) {
+  if (!root || typeof root.querySelectorAll !== "function" || !game || !fullMission) return;
+  const rows = getMissionLessonPhaseRows(game, fullMission);
+  root.querySelectorAll("[data-lesson-phase-stage]").forEach(button => {
+    if (!button || typeof button.addEventListener !== "function") return;
+    button.addEventListener("click", () => {
+      const index = button.dataset ? Number(button.dataset.lessonPhaseStage) : NaN;
+      const row = Number.isFinite(index) ? rows[index] : null;
+      const command = row && row.status === "active" ? String(row.command || "").trim() : "";
+      if (!command || typeof stageScienceDeltaCommand !== "function") return false;
+      return stageScienceDeltaCommand(command, {
+        title: row.label || fullMission.title || "Lesson phase",
+        kind: "lesson-phase",
+        source: "lesson-phase",
+        color: "#fbbf24"
+      });
+    });
+  });
 }
 
 function recordLessonPhaseAdvance(game, activeMission, resultState, pulse = null) {
@@ -637,6 +658,7 @@ function appendLessonLensCard(listContainer, game) {
   }
 
   appendHTML(card, renderMissionLessonPhaseLadder(game, fullMission));
+  attachLessonPhaseStageButtons(card, game, fullMission);
 
   const selectedPrediction = game.coachPredictions ? game.coachPredictions[activeMission.id] : null;
   const needsPrediction = !!(fullMission.prediction && !selectedPrediction);
@@ -1541,6 +1563,7 @@ function getCompletedStagedExperiment(game) {
 function getStagedExperimentSourceLabel(source) {
   const labels = {
     "lesson-lens": "Lesson Lens",
+    "lesson-phase": "Lesson phase",
     "mentor-signal": "Village mentor",
     "science-delta": "What Changed",
     "tested-result": "Tested result",
@@ -5366,6 +5389,7 @@ function renderScaffoldEditor(game, mission) {
   if (!scaffold) { container.innerHTML = ""; return; }
   container.innerHTML = "";
   appendHTML(container, renderMissionLessonPhaseLadder(game, fullMission, "MISSION PHASES"));
+  attachLessonPhaseStageButtons(container, game, fullMission);
 
   // 1. Prediction gate — show ONLY the guess until it's picked.
   const selectedPrediction = game.coachPredictions ? game.coachPredictions[mission.id] : null;
