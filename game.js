@@ -550,6 +550,10 @@ class StarHopperGame {
     this.activeAIStateRun = null;
     this.lastAIStateRunProof = result;
     if (pulse) pulse.aiStateRunProof = result;
+    if (result.complete) {
+      const deckMastery = this.grantAIStateDeckMastery(progress, pulse);
+      if (deckMastery) result.deckMastery = deckMastery;
+    }
     if (typeof ui_log_output === 'function') {
       ui_log_output(`AI proof logged: ${result.title} (${result.progress}). Next: ${result.nextTitle}.`, "success");
     }
@@ -558,6 +562,99 @@ class StarHopperGame {
       const py = Number.isFinite(this.player.y) ? this.player.y : 0;
       ComicBubbles.pop(px, py - 62, "AI PROOF!", "#facc15", 0.92);
       ComicBubbles.pop(px, py - 43, result.complete ? "DECK COMPLETE" : `NEXT: ${String(result.nextTitle).toUpperCase()}`, "#7dd3fc", 0.66);
+    }
+    return result;
+  }
+
+  grantAIStateDeckMastery(progress = null, pulse = null) {
+    if (typeof getAIStateDeckProgress !== 'function') return null;
+    const deck = progress || getAIStateDeckProgress(this);
+    if (!deck || !deck.complete || !Array.isArray(deck.cards) || deck.cards.length === 0) return null;
+    this.discoveryPassCounts = this.discoveryPassCounts || {};
+    const sourceKey = "ai-state-deck-mastery";
+    let masterySources = null;
+    if (typeof this.normalizeWorldMasteryMeter === 'function') {
+      const meter = this.normalizeWorldMasteryMeter(this.currentPlanetIndex);
+      masterySources = meter && meter.sources ? meter.sources : null;
+    }
+    if (this.discoveryPassCounts[sourceKey] || (masterySources && masterySources[sourceKey])) {
+      this.discoveryPassCounts[sourceKey] = 1;
+      return null;
+    }
+
+    const rewardXP = 9;
+    const masteryXP = 12;
+    const color = "#7dd3fc";
+    const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+    const mastery = typeof this.awardWorldMasteryXP === 'function'
+      ? this.awardWorldMasteryXP(masteryXP, "AI state deck mastery", { sourceKey, silent: true })
+      : { addedXP: 0, duplicate: false };
+    if (mastery && mastery.duplicate) {
+      this.discoveryPassCounts[sourceKey] = 1;
+      return null;
+    }
+
+    this.discoveryPassCounts[sourceKey] = 1;
+    this.researchXP = Math.max(0, (this.researchXP || 0) + rewardXP);
+    const afterRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+    const rankUp = !!(beforeRank && afterRank && afterRank.level > beforeRank.level);
+    const result = {
+      label: "AI DECK MASTERED",
+      title: "AI State Deck Mastery",
+      rewardXP,
+      worldMasteryAddedXP: mastery && Number.isFinite(mastery.addedXP) ? mastery.addedXP : 0,
+      count: deck.earnedCount,
+      total: deck.total,
+      sourceKey
+    };
+
+    if (pulse) {
+      pulse.aiStateDeckMastery = result;
+      pulse.rewardXP = Math.max(0, (pulse.rewardXP || 0) + rewardXP);
+      pulse.worldMasteryAddedXP = Math.max(0, (pulse.worldMasteryAddedXP || 0) + result.worldMasteryAddedXP);
+      pulse.nextLabUnlock = {
+        label: "AI STATE DECK COMPLETE",
+        title: "All behavior states logged",
+        body: "Use trade, cave, pet, guard, and guardian states in Daily Signals, remixes, and village rescues.",
+        progress: 1
+      };
+      if (rankUp && afterRank) {
+        pulse.rankUp = true;
+        pulse.rankTitle = afterRank.title;
+        pulse.rankPerk = afterRank.perk;
+      }
+    }
+
+    if (rankUp && afterRank && typeof showBadgeToast === 'function') {
+      showBadgeToast({
+        icon: "AI",
+        label: `Research Rank: ${afterRank.title}`,
+        description: `AI State Deck Mastery unlocked ${afterRank.perk.label}.`
+      });
+    }
+    if (rankUp && pulse && typeof this.spawnResearchRankEffect === 'function') {
+      pulse.rankEffect = this.spawnResearchRankEffect(pulse);
+    }
+    if (typeof ui_log_output === 'function') {
+      const masteryText = result.worldMasteryAddedXP > 0 ? `, +${result.worldMasteryAddedXP} world mastery XP` : "";
+      ui_log_output(`AI State Deck mastered: +${rewardXP} Research XP${masteryText}.`, "success");
+    }
+    if (typeof this.showMissionBalloon === 'function') {
+      this.showMissionBalloon(`AI DECK MASTERED: +${rewardXP} Research XP`, {
+        title: "AI STATE DECK",
+        color,
+        timer: 260
+      });
+    }
+    if (this.player && typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+      const px = (Number.isFinite(this.player.x) ? this.player.x : 0) + (this.player.w || 24) / 2;
+      const py = Number.isFinite(this.player.y) ? this.player.y : 0;
+      ComicBubbles.pop(px, py - 78, "AI DECK!", color, 1.0);
+      ComicBubbles.pop(px, py - 58, `${result.count}/${result.total} STATES`, "#fde68a", 0.76);
+      if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+        Particles.spawnBurst(px, py - 10, color, 16, 2.3, 2.0, "glow");
+        Particles.spawnBurst(px, py - 10, "#fde68a", 10, 1.7, 1.6, "glow");
+      }
     }
     return result;
   }

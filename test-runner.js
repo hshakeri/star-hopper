@@ -1552,7 +1552,12 @@ function runEngineTests() {
   const oldSwitchMainMode22aiDeck = switchMainMode;
   try {
     const panel = { innerHTML: "" };
-    document.getElementById = (id) => id === "ai-state-deck-panel" ? panel : null;
+    const pulsePanel = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };
+    document.getElementById = (id) => {
+      if (id === "ai-state-deck-panel") return panel;
+      if (id === "discovery-pulse") return pulsePanel;
+      return null;
+    };
 
     const partialGame = new StarHopperGame();
     partialGame.villageTrust = {
@@ -1629,6 +1634,59 @@ function runEngineTests() {
     assertEquals(true, /Guard Mode/.test(panel.innerHTML) && /follow -&gt; protect/.test(panel.innerHTML), "AI State Deck should include the pet guard behavior card");
     assertEquals(true, /Guardian Pact/.test(panel.innerHTML) && /trust -&gt; guardian/.test(panel.innerHTML), "AI State Deck should include the long village arc card");
     assertEquals(false, /ai-state-deck-btn/.test(panel.innerHTML), "Complete AI State Deck should not render an unnecessary launch button");
+
+    const masteryGame = new StarHopperGame();
+    masteryGame.currentPlanetIndex = 3;
+    masteryGame.currentPlanet = PLANETS[3];
+    masteryGame.researchXP = 0;
+    masteryGame.villageTrust = {
+      3: {
+        points: 12,
+        sources: {
+          "village-trade:3:cryo:glacies_ice_spikes": 3,
+          "village-rescue:3:cryo": 4
+        }
+      }
+    };
+    masteryGame.masteryMeters = {
+      3: {
+        xp: 40,
+        sources: {
+          "pet:tame:3": 7,
+          "pet:guard:3": 10
+        }
+      }
+    };
+    masteryGame.discoveryPassCounts = { "village-pact:3:guardian": 1 };
+    masteryGame.activeAIStateRun = { cardId: "guardian-pact", levelIndex: 3, label: "BUILD TRUST" };
+    const masteryPulse = {
+      formula: "state deck = complete",
+      insight: "All village behavior states are logged as evidence.",
+      missionTitle: "AI State Deck",
+      passed: 1,
+      total: 1,
+      progressLabel: "5/5 states",
+      rewardXP: 0
+    };
+    const completedProof = masteryGame.completeActiveAIStateRun("guardian-pact", masteryPulse);
+    assertEquals(true, completedProof && completedProof.complete, "Completing the final active AI proof should mark the deck complete");
+    assertEquals("AI DECK MASTERED", completedProof && completedProof.deckMastery && completedProof.deckMastery.label, "Final AI proof should add the deck mastery capstone");
+    assertEquals("AI DECK MASTERED", masteryPulse.aiStateDeckMastery && masteryPulse.aiStateDeckMastery.label, "Deck mastery should attach a Discovery Pulse chip");
+    assertEquals(9, masteryGame.researchXP, "AI State Deck mastery should grant Research XP once");
+    assertEquals(52, masteryGame.getWorldMasteryProgress(3).xp, "AI State Deck mastery should feed world mastery once");
+    assertEquals(1, masteryGame.discoveryPassCounts["ai-state-deck-mastery"], "AI deck mastery stores a duplicate guard source");
+    assertEquals("AI STATE DECK", masteryGame.missionBalloon && masteryGame.missionBalloon.title, "AI deck mastery should write a Mission CRT reward line");
+    masteryGame.discoveryPulse = masteryPulse;
+    updateDiscoveryPulse(masteryGame);
+    assertEquals(true, /AI DECK MASTERED \+9 XP/.test(pulsePanel.innerHTML), "Discovery Pulse should render the AI deck mastery chip");
+    assertEquals(true, /AI STATE DECK COMPLETE/.test(pulsePanel.innerHTML), "Discovery Pulse should show the AI deck completion unlock card");
+    masteryGame.activeAIStateRun = { cardId: "guardian-pact", levelIndex: 3, label: "BUILD TRUST" };
+    const repeatPulse = { formula: "state deck = complete", insight: "Repeat proof.", missionTitle: "AI State Deck", passed: 1, total: 1, rewardXP: 0 };
+    const repeatProof = masteryGame.completeActiveAIStateRun("guardian-pact", repeatPulse);
+    assertEquals(undefined, repeatProof && repeatProof.deckMastery, "Repeated final AI proof should not repeat the deck mastery capstone");
+    assertEquals(undefined, repeatPulse.aiStateDeckMastery, "Repeated final AI proof should not add a second mastery chip");
+    assertEquals(9, masteryGame.researchXP, "Repeated AI deck mastery should not farm Research XP");
+
     switchMainMode = oldSwitchMainMode22aiDeck;
     document.getElementById = oldGetElementById22aiDeck;
     renderTestResult("engine-suite", "Curriculum: AI State Deck collects village behavior proofs", true);

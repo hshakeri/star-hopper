@@ -4653,6 +4653,9 @@ function updateDiscoveryPulse(game) {
   const formulaDeckMastery = pulse.formulaDeckMastery
     ? `<div class="discovery-hypothesis discovery-perk">${escapeHTML(pulse.formulaDeckMastery.label || "DECK MASTERED")} +${escapeHTML(String(pulse.formulaDeckMastery.rewardXP || 0))} XP · ${escapeHTML(String(pulse.formulaDeckMastery.count || 0))}/${escapeHTML(String(pulse.formulaDeckMastery.total || 0))} cards</div>`
     : "";
+  const aiStateDeckMastery = pulse.aiStateDeckMastery
+    ? `<div class="discovery-hypothesis discovery-ai-state">${escapeHTML(pulse.aiStateDeckMastery.label || "AI DECK MASTERED")} +${escapeHTML(String(pulse.aiStateDeckMastery.rewardXP || 0))} XP · ${escapeHTML(String(pulse.aiStateDeckMastery.count || 0))}/${escapeHTML(String(pulse.aiStateDeckMastery.total || 0))} states</div>`
+    : "";
   const signalLabProof = pulse.signalLabProof
     ? `<div class="discovery-hypothesis discovery-signal-lab">${escapeHTML(pulse.signalLabProof.label)} +${escapeHTML(String(pulse.signalLabProof.rewardXP || 0))} XP</div>`
     : "";
@@ -4721,6 +4724,7 @@ function updateDiscoveryPulse(game) {
     ${hypothesis}
     ${lessonPhase}
     ${formulaDeckMastery}
+    ${aiStateDeckMastery}
     ${signalLabProof}
     ${anomalyTraceProof}
     ${quantumBranchProof}
