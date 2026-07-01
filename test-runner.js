@@ -4201,6 +4201,27 @@ function runEngineTests() {
     game.villageTrust = { 0: { points: 3, badges: ["friend"], sources: { "village-trade:0:geary:engine_1": 3 } } };
     game.planetClears = { 0: 1, 1: 1 };
     game.discoveredFormulaKinds = new Set(["antigravity"]);
+    const villageNpc22h = new NPC({
+      id: "geary",
+      name: "Machinist Geary",
+      profession: "Machinist",
+      type: "npc",
+      x: 82,
+      y: 60,
+      homeX: 140,
+      homeY: 60,
+      caveX: 72,
+      caveY: 60,
+      color: "#4ade80",
+      hiddenInCave: true,
+      rescuePending: true,
+      shelterReason: "nearby mob"
+    });
+    const villageMob22h = new Mob(148, 60, "hog", "#9a6b4f", 1);
+    villageMob22h.speed = 0;
+    villageMob22h.behaviorTimer = 999;
+    game.interactiveObjects = [villageNpc22h];
+    game.mobs = [villageMob22h];
     window.Game = game;
     game.lastStagedExperiment = {
       title: "Mass Lab",
@@ -4233,6 +4254,8 @@ function runEngineTests() {
     const worldMasteryText = flattenText(worldMastery || list);
     const villageTrust = findByClass(list, "village-trust-crt-card");
     const villageTrustText = flattenText(villageTrust || list);
+    const villageState = findByClass(list, "village-state-crt-card");
+    const villageStateText = flattenText(villageState || list);
     const signalStory = findByClass(list, "signal-story-crt-card");
     const signalStoryText = flattenText(signalStory || list);
     const mentor = findByClass(list, "mentor-signal-card");
@@ -4268,6 +4291,12 @@ function runEngineTests() {
     assertEquals(true, /4 trust to Cave Ally/.test(villageTrustText), "Village trust card should show the next relationship tier gap");
     assertEquals(true, /Cave Rescue Pact/.test(villageTrustText), "Village trust card should name the next relationship pact");
     assertEquals(true, /State machine: danger -&gt; cave -&gt; safe/.test(villageTrustText), "Village trust card should frame helpful play as a game-AI lesson");
+    assertEquals(true, !!villageState, "Mission panel should show the live village state monitor");
+    assertEquals(true, /VILLAGE STATE/.test(villageStateText), "Village state card should identify itself");
+    assertEquals(true, /DANGER/.test(villageStateText), "Village state card should show mob danger");
+    assertEquals(true, /mob\.close -&gt; cave/.test(villageStateText), "Village state card should name the mob-to-cave transition");
+    assertEquals(true, /state \+ event -&gt; next state/.test(villageStateText), "Village state card should teach the state-machine formula");
+    assertEquals(true, /Clear mobs/.test(villageStateText), "Village state card should give the actionable rescue condition");
     assertEquals(true, !!signalStory, "Mission panel should show the active Signal Story contract");
     assertEquals(true, /STAR-MAP SIGNAL/.test(signalStoryText), "Signal Story card should identify itself");
     assertEquals(true, /2\/12 decoded/.test(signalStoryText), "Signal Story card should show decoded progress");
@@ -4292,6 +4321,20 @@ function runEngineTests() {
     assertEquals(true, /hopper\.mass = 1\.0/.test(stagedText), "Staged experiment card should preserve the staged command");
     const stagedRestageButton = findByClass(staged || list, "staged-experiment-stage-btn");
     assertEquals("RESTAGE", stagedRestageButton && stagedRestageButton.textContent, "Staged experiment card should expose a restage action");
+
+    list = makeEl();
+    game.mobs = [];
+    villageNpc22h.hiddenInCave = true;
+    villageNpc22h.rescuePending = false;
+    villageNpc22h.shelterReason = "night";
+    game.getEarthDayNightPhase = () => ({ t: 0, daylight: 0.1, isDay: false, sunX: 0.1, sunY: 0.2 });
+    updateMissionList(game);
+    const nightVillageState = findByClass(list, "village-state-crt-card");
+    const nightVillageStateText = flattenText(nightVillageState || list);
+    assertEquals(true, /NIGHT/.test(nightVillageStateText), "Village state card should switch to the night shelter event");
+    assertEquals(true, /night -&gt; cave/.test(nightVillageStateText), "Village state card should name the night-to-cave transition");
+    assertEquals(true, /daylight/.test(nightVillageStateText), "Night state should explain when villagers return");
+    game.getEarthDayNightPhase = () => ({ t: 0.5, daylight: 1, isDay: true, sunX: 0.5, sunY: 0.34 });
 
     list = makeEl();
     game.lastStagedExperiment = null;

@@ -4667,6 +4667,107 @@ html {
   line-height: 1.28;
 }
 
+.village-state-crt-card {
+  border: 1px solid rgba(167, 243, 208, 0.3);
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgba(5, 46, 22, 0.3), rgba(15, 23, 42, 0.58)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.026) 0 1px, transparent 1px 4px);
+  box-shadow: inset 0 0 14px rgba(167, 243, 208, 0.08);
+  display: grid;
+  gap: 5px;
+  padding: 7px 8px;
+}
+
+.village-state-crt-card.danger {
+  border-color: rgba(250, 204, 21, 0.4);
+  background:
+    linear-gradient(180deg, rgba(120, 53, 15, 0.34), rgba(69, 10, 10, 0.3)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.028) 0 1px, transparent 1px 4px);
+  box-shadow: inset 0 0 14px rgba(250, 204, 21, 0.1);
+}
+
+.village-state-crt-card.night {
+  border-color: rgba(147, 197, 253, 0.36);
+  background:
+    linear-gradient(180deg, rgba(30, 41, 59, 0.52), rgba(15, 23, 42, 0.68)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.026) 0 1px, transparent 1px 4px);
+  box-shadow: inset 0 0 14px rgba(147, 197, 253, 0.08);
+}
+
+.village-state-crt-card.wait {
+  border-color: rgba(251, 191, 36, 0.34);
+}
+
+.village-state-crt-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+  font-family: var(--font-mono);
+  line-height: 1.2;
+}
+
+.village-state-crt-head span {
+  color: #bbf7d0;
+  font-size: 0.55rem;
+  font-weight: 900;
+}
+
+.village-state-crt-card.danger .village-state-crt-head span,
+.village-state-crt-card.danger .village-state-crt-body strong {
+  color: #fef08a;
+}
+
+.village-state-crt-card.night .village-state-crt-head span,
+.village-state-crt-card.night .village-state-crt-body strong {
+  color: #bfdbfe;
+}
+
+.village-state-crt-head strong {
+  color: #ecfeff;
+  font-size: 0.62rem;
+  text-align: right;
+}
+
+.village-state-crt-body strong {
+  display: block;
+  color: #a7f3d0;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  line-height: 1.25;
+}
+
+.village-state-crt-body code {
+  display: inline-block;
+  margin-top: 3px;
+  border: 1px solid rgba(167, 243, 208, 0.18);
+  border-radius: 4px;
+  background: rgba(2, 6, 23, 0.4);
+  color: #d9f99d;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  line-height: 1.2;
+  padding: 2px 5px;
+}
+
+.village-state-crt-body p {
+  margin: 4px 0 0;
+  color: #dff6ff;
+  font-size: 0.6rem;
+  line-height: 1.28;
+}
+
+.village-state-crt-body em {
+  display: block;
+  margin-top: 3px;
+  color: #cbd5e1;
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  font-style: normal;
+  line-height: 1.2;
+}
+
 .signal-story-crt-card {
   border: 1px solid rgba(103, 232, 249, 0.28);
   border-radius: 6px;
@@ -8532,6 +8633,11 @@ body.readable-text-mode .world-mastery-crt-body p,
 body.readable-text-mode .village-trust-crt-head,
 body.readable-text-mode .village-trust-crt-body strong,
 body.readable-text-mode .village-trust-crt-body p,
+body.readable-text-mode .village-state-crt-head,
+body.readable-text-mode .village-state-crt-body strong,
+body.readable-text-mode .village-state-crt-body code,
+body.readable-text-mode .village-state-crt-body p,
+body.readable-text-mode .village-state-crt-body em,
 body.readable-text-mode .signal-story-crt-head,
 body.readable-text-mode .signal-story-crt-body strong,
 body.readable-text-mode .signal-story-crt-body code,

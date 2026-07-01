@@ -421,6 +421,7 @@ function updateMissionList(game) {
   appendMissionLabQuestionCard(listContainer, game);
   appendWorldMasteryCrtCard(listContainer, game);
   appendVillageTrustCrtCard(listContainer, game);
+  appendVillageStateCrtCard(listContainer, game);
   appendSignalStoryCrtCard(listContainer, game);
   appendSignalLabContractCard(listContainer, game);
   appendFrontierRivalCrtCard(listContainer, game);
@@ -779,6 +780,99 @@ function appendVillageTrustCrtCard(listContainer, game) {
     <div class="village-trust-crt-body">
       <strong>${escapeHTML(preview.nextText)} · ${escapeHTML(preview.action)}</strong>
       <p>${escapeHTML(preview.body)}</p>
+    </div>
+  `;
+  listContainer.appendChild(card);
+}
+
+function getVillageStateCrtPreview(game) {
+  if (!game || !Array.isArray(game.interactiveObjects) || typeof NPC === 'undefined') return null;
+  const villagers = game.interactiveObjects.filter(obj => obj instanceof NPC);
+  if (!villagers.length) return null;
+
+  let danger = 0;
+  let night = 0;
+  let hidden = 0;
+  let rescueWait = 0;
+  villagers.forEach(npc => {
+    if (npc.hiddenInCave) hidden++;
+    if (npc.rescuePending) rescueWait++;
+    const signal = typeof game.getVillagerShelterSignal === 'function'
+      ? game.getVillagerShelterSignal(npc, { radius: 128 })
+      : null;
+    if ((signal && signal.threat) || npc.shelterReason === "nearby mob") danger++;
+    else if ((signal && signal.reason === "night") || npc.shelterReason === "night") night++;
+  });
+
+  const petGuards = Array.isArray(game.mobs)
+    ? game.mobs.filter(mob => mob && mob.pet).length
+    : 0;
+  const outside = Math.max(0, villagers.length - hidden);
+  const countLine = `${hidden} cave · ${outside} outside · ${petGuards} pet guard${petGuards === 1 ? "" : "s"}`;
+
+  if (danger > 0) {
+    return {
+      stateClass: "danger",
+      label: "DANGER",
+      title: `${danger}/${villagers.length} shelter signal${danger === 1 ? "" : "s"}`,
+      transition: "mob.close -> cave",
+      formula: "state + event -> next state",
+      body: petGuards > 0
+        ? "A pet can intercept the hostile mob; once danger clears, villagers return to trading."
+        : "Clear mobs, tame a pet guard, or end Survival so villagers can safely return.",
+      countLine
+    };
+  }
+  if (night > 0) {
+    return {
+      stateClass: "night",
+      label: "NIGHT",
+      title: `${night}/${villagers.length} night shelter${night === 1 ? "" : "s"}`,
+      transition: "night -> cave",
+      formula: "state + event -> next state",
+      body: "Earth villagers wait in caves during night, then switch back to trading at daylight.",
+      countLine
+    };
+  }
+  if (hidden > 0 || rescueWait > 0) {
+    return {
+      stateClass: "wait",
+      label: "WAIT",
+      title: `${hidden}/${villagers.length} checking safety`,
+      transition: "danger.clear -> trade",
+      formula: "state + event -> next state",
+      body: "The cave and trading spot both need to be safe before the villager leaves shelter.",
+      countLine
+    };
+  }
+  return {
+    stateClass: "safe",
+    label: "SAFE",
+    title: `${villagers.length}/${villagers.length} trading`,
+    transition: "clear -> trade",
+    formula: "state + event -> next state",
+    body: "The village is open. Trades, rescues, and pet guards build the relationship state.",
+    countLine
+  };
+}
+
+function appendVillageStateCrtCard(listContainer, game) {
+  if (!listContainer || !game) return;
+  const preview = getVillageStateCrtPreview(game);
+  if (!preview) return;
+
+  const card = document.createElement("div");
+  card.className = `village-state-crt-card ${preview.stateClass || "safe"}`;
+  card.innerHTML = `
+    <div class="village-state-crt-head">
+      <span>VILLAGE STATE</span>
+      <strong>${escapeHTML(preview.label)} · ${escapeHTML(preview.title)}</strong>
+    </div>
+    <div class="village-state-crt-body">
+      <strong>${escapeHTML(preview.transition)}</strong>
+      <code>${escapeHTML(preview.formula)}</code>
+      <p>${escapeHTML(preview.body)}</p>
+      <em>${escapeHTML(preview.countLine)}</em>
     </div>
   `;
   listContainer.appendChild(card);
