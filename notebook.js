@@ -1102,6 +1102,17 @@ function updateVillageAlmanac(game = window.Game) {
         const trusted = trust.points > 0;
         const npcList = (planet.npcs || []).map(npc => `${npc.name || "Villager"} // ${npc.profession || "Mentor"}`).join(" · ");
         const pactText = pact ? `${pact.title}: ${pact.action} (${pact.concept})` : "Village mentor status online";
+        const chain = typeof getVillageQuestChainPreview === 'function' ? getVillageQuestChainPreview(game, index) : null;
+        const chainSteps = chain && Array.isArray(chain.steps)
+          ? chain.steps.map(step => `<span class="${step.done ? "done" : ""}">${escapeHTML(`${step.done ? "OK" : "NEXT"} ${step.label}`)}<em>${escapeHTML(step.concept)}</em></span>`).join("")
+          : "";
+        const chainBlock = chain ? `
+          <div class="village-almanac-chain ${chain.stateClass || "new"}">
+            <div><span>QUEST ${escapeHTML(String(chain.doneCount))}/${escapeHTML(String(chain.total))}</span><strong>${escapeHTML(chain.title)}</strong></div>
+            <code>${escapeHTML(chain.formula)}</code>
+            <div class="village-almanac-chain-steps">${chainSteps}</div>
+          </div>
+        ` : "";
         return `
         <div class="village-almanac-card ${trusted ? "trusted" : ""} ${active ? "active" : ""}">
           <div class="village-almanac-card-head">
@@ -1117,6 +1128,7 @@ function updateVillageAlmanac(game = window.Game) {
             <p>${escapeHTML(request.body || "Help this village with a trade, rescue, or pet guard.")}</p>
             <em>${escapeHTML(request.reward || "Payoff: relationship progress")}</em>
           </div>
+          ${chainBlock}
           <code>${escapeHTML(pactText)}</code>
         </div>`;
       }).join("")}

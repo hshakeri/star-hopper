@@ -803,15 +803,18 @@ function getVillageProofSources(game, index) {
   return Array.from(new Set(Object.keys(trustSources).concat(Object.keys(discovery))));
 }
 
-function getVillageQuestChainPreview(game) {
+function getVillageQuestChainPreview(game, indexOverride = null) {
   if (!game || typeof game.getVillageTrustProgress !== "function") return null;
-  const index = Number.isFinite(Number(game.currentPlanetIndex)) ? Number(game.currentPlanetIndex) : 0;
+  const index = Number.isFinite(Number(indexOverride))
+    ? Number(indexOverride)
+    : (Number.isFinite(Number(game.currentPlanetIndex)) ? Number(game.currentPlanetIndex) : 0);
   const progress = game.getVillageTrustProgress(index);
   if (!progress) return null;
-  const hasVillageHere = Array.isArray(game.interactiveObjects)
+  const hasActiveVillage = index === Number(game.currentPlanetIndex) && Array.isArray(game.interactiveObjects)
     ? game.interactiveObjects.some(obj => obj && (obj.profession || (Array.isArray(obj.trades) && obj.trades.length)))
     : false;
-  if (!hasVillageHere && !(progress.points > 0)) return null;
+  const planetVillage = typeof PLANETS !== "undefined" && PLANETS[index] && Array.isArray(PLANETS[index].npcs) && PLANETS[index].npcs.length > 0;
+  if (!hasActiveVillage && !planetVillage && !(progress.points > 0)) return null;
 
   const planetKey = String(index);
   const sources = getVillageProofSources(game, index);

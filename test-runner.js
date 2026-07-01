@@ -1534,6 +1534,10 @@ function runEngineTests() {
     assertEquals(true, /Cave Ally · 7 trust/.test(panel.innerHTML), "Village card should show the trust tier and points");
     assertEquals(true, /Collect 1 more Violet Ice/.test(panel.innerHTML), "Village request should show the missing gemstone target");
     assertEquals(true, /calming lotion unlocked/.test(panel.innerHTML), "Village request should show the tool payoff");
+    assertEquals(true, /QUEST 2\/3/.test(panel.innerHTML), "Village Almanac should show per-world village quest-chain progress");
+    assertEquals(true, /Next: Guard pact/.test(panel.innerHTML), "Village Almanac should show the next village quest-chain step");
+    assertEquals(true, /scared -&gt; pet -&gt; guard/.test(panel.innerHTML), "Village Almanac should show the next quest formula");
+    assertEquals(true, /OK Trade/.test(panel.innerHTML) && /OK Rescue/.test(panel.innerHTML) && /NEXT Guard/.test(panel.innerHTML), "Village Almanac should mark completed and pending chain steps");
     assertEquals(true, /Guardian Pact: train a pet guard or protect the village \(AI state: scared -&gt; pet -&gt; guard\)/.test(panel.innerHTML), "Village card should show the next relationship pact and coding concept");
     assertEquals(true, /VILLAGE WATCH/.test(panel.innerHTML), "Village worlds without trades should fall back to safety-state story copy");
     document.getElementById = oldGetElementById22village;

@@ -7841,6 +7841,85 @@ body.navigator-active .coach-bubble { display: none !important; }
   color: #bbf7d0;
 }
 
+.village-almanac-chain {
+  border: 1px solid rgba(196, 181, 253, 0.24);
+  border-radius: 6px;
+  background:
+    linear-gradient(135deg, rgba(49, 46, 129, 0.18), rgba(8, 47, 73, 0.14)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.02) 0 1px, transparent 1px 4px);
+  display: grid;
+  gap: 5px;
+  padding: 7px;
+}
+
+.village-almanac-chain.complete {
+  border-color: rgba(74, 222, 128, 0.3);
+  background:
+    linear-gradient(135deg, rgba(20, 83, 45, 0.2), rgba(8, 47, 73, 0.14)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.02) 0 1px, transparent 1px 4px);
+}
+
+.village-almanac-chain div:first-child {
+  align-items: baseline;
+  display: flex;
+  gap: 6px;
+  justify-content: space-between;
+}
+
+.village-almanac-chain span,
+.village-almanac-chain em {
+  font-family: var(--font-mono);
+  letter-spacing: 0;
+}
+
+.village-almanac-chain span {
+  color: #c4b5fd;
+  font-size: 0.52rem;
+  font-weight: 900;
+}
+
+.village-almanac-chain.complete span {
+  color: #86efac;
+}
+
+.village-almanac-chain strong {
+  color: #ecfeff;
+  font-size: 0.62rem;
+  line-height: 1.18;
+  text-align: right;
+}
+
+.village-almanac-chain-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.village-almanac-chain-steps span {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 4px;
+  background: rgba(2, 6, 23, 0.3);
+  color: #cbd5e1;
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  padding: 4px;
+}
+
+.village-almanac-chain-steps span.done {
+  border-color: rgba(74, 222, 128, 0.28);
+  background: rgba(20, 83, 45, 0.18);
+  color: #ecfeff;
+}
+
+.village-almanac-chain-steps em {
+  color: #c4b5fd;
+  font-size: 0.48rem;
+  font-style: normal;
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+}
+
 .village-almanac-card code {
   display: block;
   color: #c4b5fd;
@@ -9009,6 +9088,8 @@ body.readable-text-mode .village-almanac-card-head span,
 body.readable-text-mode .village-almanac-roles,
 body.readable-text-mode .village-almanac-request p,
 body.readable-text-mode .village-almanac-request em,
+body.readable-text-mode .village-almanac-chain,
+body.readable-text-mode .village-almanac-chain-steps span,
 body.readable-text-mode .village-almanac-card code,
 body.readable-text-mode .research-rank-kicker,
 body.readable-text-mode .research-rank-xp,
