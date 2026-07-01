@@ -8031,6 +8031,16 @@ class StarHopperGame {
     return "";
   }
 
+  getCommandCodeSkillChip(commandLine = "") {
+    const line = String(commandLine || "").trim();
+    if (!line) return "";
+    if (/^(if|else\s+if)\b|\.touching\s*\(|\bwhen\b/i.test(line)) return "IF";
+    if (/\brepeat\s*\(|\bfor\s*\(|\bwhile\s*\(|spawn_/i.test(line)) return "LOOP";
+    if (/=/.test(line)) return "ASSIGN";
+    if (/^[a-z_$][\w$]*(?:\.[a-z_$][\w$]*)?\s*\(/i.test(line)) return "CALL";
+    return "CODE";
+  }
+
   getObjectiveRewardChip(reward = "") {
     const raw = String(reward || "").replace(/^Reward:\s*/i, "").replace(/\s+/g, " ").trim();
     if (!raw) return "";
@@ -8389,6 +8399,7 @@ class StarHopperGame {
     const commandContext = `${item.title || ""} ${itemBody} ${item.reward || ""}`;
     const commandLine = this.getSalientCommandLine(item.command || "", commandContext);
     const formulaChip = this.getCommandFormulaChip(commandLine, commandContext);
+    const codeSkillChip = this.getCommandCodeSkillChip(commandLine);
     const rewardChip = this.getObjectiveRewardChip(item.reward || "");
     const reasonLine = commandLine && itemBody && itemBody !== commandLine ? itemBody : "";
     const progressInfo = item.progress && typeof item.progress === "object" ? item.progress : null;
@@ -8410,6 +8421,7 @@ class StarHopperGame {
       rewardChip,
       commandLine,
       formulaChip,
+      codeSkillChip,
       kind: item.kind || "objective",
       source: item.source || "run-objective-queue",
       color: item.color || "#67e8f9",
@@ -8517,7 +8529,26 @@ class StarHopperGame {
     ctx.fillText(this.fitCardText(ctx, cue.title, hasFormulaChip ? w - formulaChipW - 26 : w - 18), x + 9, y + 26);
     ctx.fillStyle = cue.disabled ? "#e2e8f0" : "#bbf7d0";
     ctx.font = "7px 'Share Tech Mono', monospace";
-    ctx.fillText(this.fitCardText(ctx, cue.body, w - 18), x + 9, y + 39);
+    const hasCodeSkill = !!cue.codeSkillChip;
+    const codeChipW = hasCodeSkill ? Math.max(34, Math.min(56, Math.ceil(12 + String(cue.codeSkillChip).length * 6))) : 0;
+    const bodyX = hasCodeSkill ? x + 14 + codeChipW : x + 9;
+    if (hasCodeSkill) {
+      ctx.fillStyle = "rgba(14, 165, 233, 0.18)";
+      ctx.strokeStyle = cue.disabled ? "rgba(203, 213, 225, 0.34)" : "#67e8f9";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(x + 9, y + 34, codeChipW, 9, 4);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = cue.disabled ? "#cbd5e1" : "#67e8f9";
+      ctx.font = "bold 5.8px 'Share Tech Mono', monospace";
+      ctx.textAlign = "center";
+      ctx.fillText(this.fitCardText(ctx, cue.codeSkillChip, codeChipW - 8), x + 9 + codeChipW / 2, y + 38.5);
+      ctx.textAlign = "left";
+      ctx.fillStyle = cue.disabled ? "#e2e8f0" : "#bbf7d0";
+      ctx.font = "7px 'Share Tech Mono', monospace";
+    }
+    ctx.fillText(this.fitCardText(ctx, cue.body, hasCodeSkill ? w - 23 - codeChipW : w - 18), bodyX, y + 39);
     if (hasReason) {
       ctx.fillStyle = cue.disabled ? "#cbd5e1" : "#fde68a";
       ctx.font = "6.5px 'Share Tech Mono', monospace";
