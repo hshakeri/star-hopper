@@ -1157,13 +1157,14 @@ class StarHopperGame {
 
   startDailySignal() {
     const daily = this.getDailySignal();
-    if (!daily) return;
+    if (!daily) return false;
     this.dailyInfo = daily;
     this._pendingAttemptOverride = daily.attempt; // consumed by loadPlanet
     this.startLevel(daily.planetIndex);
     if (typeof ui_log_output === 'function') {
       ui_log_output(`📡 Daily Signal accepted — beat it and share your code: ${daily.shareCode}`, "success");
     }
+    return true;
   }
 
   getFrontierPlayableCount() {

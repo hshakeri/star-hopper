@@ -2971,7 +2971,18 @@ function runStartMissionRadarAction() {
 
 function runReturnStreakAction(game = window.Game || (typeof Game !== 'undefined' ? Game : null)) {
   if (game && typeof game.startDailySignal === 'function') {
-    game.startDailySignal();
+    const focus = typeof game.getReturnStreakDailyFocus === 'function' ? game.getReturnStreakDailyFocus() : null;
+    const started = game.startDailySignal();
+    if (started === false) return false;
+    const command = focus && focus.command ? String(focus.command).trim() : "";
+    if (command && typeof stageScienceDeltaCommand === 'function') {
+      stageScienceDeltaCommand(command, {
+        title: focus.title || "Daily Signal",
+        source: "signal-lab-contract",
+        color: "#67e8f9",
+        kind: "daily-signal"
+      });
+    }
     return true;
   }
   return false;

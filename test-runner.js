@@ -6519,6 +6519,7 @@ function runRetryRemixTests() {
 
   // Test R12b: returning on a later local day grants a small, once-per-day Research XP pulse.
   const oldGetElementByIdR12b = document.getElementById;
+  const oldWindowGameR12b = window.Game;
   const oldSaveLocalProgressR12b = (typeof saveLocalProgress === "function") ? saveLocalProgress : null;
   const oldLogMissionBriefingR12b = (typeof logMissionBriefing === "function") ? logMissionBriefing : null;
   const oldBubblePopR12b = ComicBubbles.pop;
@@ -6538,6 +6539,15 @@ function runRetryRemixTests() {
     const focus = { textContent: "" };
     const code = { textContent: "", title: "", style: {} };
     const action = { textContent: "", title: "", dataset: {}, style: {} };
+    const input = {
+      value: "",
+      focused: false,
+      selection: null,
+      style: {},
+      scrollHeight: 20,
+      focus() { this.focused = true; },
+      setSelectionRange(start, end) { this.selection = [start, end]; }
+    };
     document.getElementById = (id) => ({
       "discovery-pulse": panel,
       "return-streak-banner": banner,
@@ -6545,7 +6555,8 @@ function runRetryRemixTests() {
       "return-streak-reward": reward,
       "return-streak-focus": focus,
       "return-streak-code": code,
-      "return-streak-action": action
+      "return-streak-action": action,
+      "console-input": input
     }[id] || null);
 
     const g = new StarHopperGame();
@@ -6603,8 +6614,14 @@ function runRetryRemixTests() {
     g.refreshStreakBanner();
     assertEquals("Next daily experiment: +6 Research XP", reward.textContent, "Start chip should show the next consecutive reward after today's pulse is gone");
     let dailyCalls = 0;
-    assertEquals(true, runReturnStreakAction({ startDailySignal: () => { dailyCalls++; } }), "Streak action should launch the Daily Signal");
+    g.startDailySignal = () => { dailyCalls++; g.dailyInfo = g.getDailySignal(); return true; };
+    window.Game = g;
+    assertEquals(true, runReturnStreakAction(g), "Streak action should launch the Daily Signal");
     assertEquals(1, dailyCalls, "Streak action should call the Daily Signal starter once");
+    assertEquals("hopper.mass = 1.5\nhopper.engine = 6", input.value, "Streak action should stage the full Daily Signal contract command");
+    assertEquals(true, input.focused, "Streak action should focus the terminal after staging");
+    assertEquals("signal-lab-contract", g.lastStagedExperiment && g.lastStagedExperiment.source, "Streak action should stage through the Signal Lab proof source");
+    assertEquals("Mass remix proof", g.lastStagedExperiment && g.lastStagedExperiment.title, "Streak action should preserve the Daily Signal focus title");
     g.streakCount = 0;
     g.refreshStreakBanner();
     assertEquals("", focus.textContent, "Streak focus should clear when the streak chip is hidden");
@@ -6618,6 +6635,7 @@ function runRetryRemixTests() {
     assertEquals(2, saveCalls, "Only real date rollovers should save");
 
     document.getElementById = oldGetElementByIdR12b;
+    window.Game = oldWindowGameR12b;
     if (oldSaveLocalProgressR12b) saveLocalProgress = oldSaveLocalProgressR12b;
     if (oldLogMissionBriefingR12b) logMissionBriefing = oldLogMissionBriefingR12b;
     ComicBubbles.pop = oldBubblePopR12b;
@@ -6625,6 +6643,7 @@ function runRetryRemixTests() {
     renderTestResult(SUITE, "Daily Signal/Streak: return streak grants daily Research XP", true);
   } catch (err) {
     document.getElementById = oldGetElementByIdR12b;
+    window.Game = oldWindowGameR12b;
     if (oldSaveLocalProgressR12b) saveLocalProgress = oldSaveLocalProgressR12b;
     if (oldLogMissionBriefingR12b) logMissionBriefing = oldLogMissionBriefingR12b;
     ComicBubbles.pop = oldBubblePopR12b;
