@@ -858,6 +858,14 @@ function runEngineTests() {
     const forgeMission = PlatformerMissions.find(mission => mission.id === "asteroid-forge-momentum");
     const activeMission = { id: "asteroid-forge-momentum", fullMission: forgeMission };
 
+    const phaseRowsOne = getMissionLessonPhaseRows(game, forgeMission);
+    assertEquals("active", phaseRowsOne[0].status, "Forge phase ladder starts on the mass shove");
+    assertEquals("locked", phaseRowsOne[1].status, "Forge phase ladder locks bounce before mass passes");
+    assertEquals("", phaseRowsOne[1].command, "Locked Forge phase should not reveal the elasticity command");
+    const phaseHTMLBefore = renderMissionLessonPhaseLadder(game, forgeMission);
+    assertEquals(true, /NOW/.test(phaseHTMLBefore) && /LOCKED/.test(phaseHTMLBefore), "Forge phase ladder should show active and locked states");
+    assertEquals(false, /elasticity = 1\.0/.test(phaseHTMLBefore), "Forge phase ladder should hide elasticity code before mass proof");
+
     const phaseOne = scaffoldWithActiveSlots(forgeMission.scaffold, game, forgeMission);
     assertEquals(1, phaseOne.slots.length, "Forge phase one should expose only one scaffold slot");
     assertEquals("mass", phaseOne.slots[0].id, "Forge phase one should expose mass first");
@@ -872,6 +880,14 @@ function runEngineTests() {
 
     game.player.mass = 4.0;
     game.hopperMass = 4.0;
+    const phaseRowsTwo = getMissionLessonPhaseRows(game, forgeMission);
+    assertEquals("complete", phaseRowsTwo[0].status, "Forge phase ladder marks mass complete after proof");
+    assertEquals("active", phaseRowsTwo[1].status, "Forge phase ladder activates bounce after mass proof");
+    assertEquals("elasticity = 1.0", phaseRowsTwo[1].command, "Unlocked Forge phase reveals the elasticity command");
+    const phaseHTMLAfter = renderMissionLessonPhaseLadder(game, forgeMission);
+    assertEquals(true, /DONE/.test(phaseHTMLAfter) && /NOW/.test(phaseHTMLAfter), "Forge phase ladder should show complete and active states after mass");
+    assertEquals(true, /elasticity = 1\.0/.test(phaseHTMLAfter), "Forge phase ladder should reveal elasticity after mass proof");
+
     const phaseTwo = scaffoldWithActiveSlots(forgeMission.scaffold, game, forgeMission);
     assertEquals(2, phaseTwo.slots.length, "Forge phase two reveals the bounce slot after mass passes");
     assertEquals("elasticity", phaseTwo.slots[1].id, "Forge phase two exposes elasticity second");

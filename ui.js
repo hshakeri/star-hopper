@@ -487,6 +487,58 @@ function updateMissionList(game) {
   appendLabStarContract(listContainer, game);
 }
 
+function appendHTML(parent, html) {
+  if (!parent || !html) return;
+  if (typeof parent.insertAdjacentHTML === 'function') {
+    parent.insertAdjacentHTML('beforeend', html);
+  } else {
+    parent.innerHTML = `${parent.innerHTML || ""}${html}`;
+  }
+}
+
+function getMissionLessonPhaseRows(game, fullMission) {
+  const phases = fullMission && Array.isArray(fullMission.lessonPhases) ? fullMission.lessonPhases : [];
+  if (!phases.length) return [];
+  return phases.map((phase, index) => {
+    const locked = !!(phase.unlockAfterCheck && !missionResultCheckPassed(game, fullMission, phase.unlockAfterCheck));
+    const complete = !locked && !!(phase.checkId && missionResultCheckPassed(game, fullMission, phase.checkId));
+    const status = locked ? "locked" : (complete ? "complete" : "active");
+    return {
+      ...phase,
+      index,
+      status,
+      statusLabel: status === "complete" ? "DONE" : (status === "locked" ? "LOCKED" : "NOW"),
+      detail: status === "locked"
+        ? (phase.lockedHint || "Finish the previous phase to reveal this code.")
+        : (phase.formula || phase.payoff || ""),
+      command: status === "locked" ? "" : (phase.command || "")
+    };
+  });
+}
+
+function renderMissionLessonPhaseLadder(game, fullMission, label = "LESSON PATH") {
+  const rows = getMissionLessonPhaseRows(game, fullMission);
+  if (!rows.length) return "";
+  return `
+    <div class="lesson-phase-ladder">
+      <div class="lesson-phase-head">
+        <span>${escapeHTML(label)}</span>
+        <strong>${escapeHTML(String(rows.filter(row => row.status === "complete").length))}/${escapeHTML(String(rows.length))}</strong>
+      </div>
+      <div class="lesson-phase-steps">
+        ${rows.map(row => `
+          <div class="lesson-phase-step ${escapeHTML(row.status)}">
+            <span>${escapeHTML(row.statusLabel)}</span>
+            <strong>${escapeHTML(row.label || `Phase ${row.index + 1}`)}</strong>
+            <em>${escapeHTML(row.detail || "")}</em>
+            ${row.command ? `<code>${escapeHTML(row.command)}</code>` : ""}
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
+
 function appendLessonLensCard(listContainer, game) {
   if (!listContainer || !game) return;
   const activeMission = getActivePlatformerMission(game);
@@ -520,6 +572,8 @@ function appendLessonLensCard(listContainer, game) {
     cue.textContent = cueText;
     card.appendChild(cue);
   }
+
+  appendHTML(card, renderMissionLessonPhaseLadder(game, fullMission));
 
   const selectedPrediction = game.coachPredictions ? game.coachPredictions[activeMission.id] : null;
   const needsPrediction = !!(fullMission.prediction && !selectedPrediction);
@@ -4282,6 +4336,7 @@ function renderScaffoldEditor(game, mission) {
   const scaffold = rootScaffold ? scaffoldWithActiveSlots(rootScaffold, game, fullMission) : null;
   if (!scaffold) { container.innerHTML = ""; return; }
   container.innerHTML = "";
+  appendHTML(container, renderMissionLessonPhaseLadder(game, fullMission, "MISSION PHASES"));
 
   // 1. Prediction gate — show ONLY the guess until it's picked.
   const selectedPrediction = game.coachPredictions ? game.coachPredictions[mission.id] : null;

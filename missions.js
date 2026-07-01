@@ -428,6 +428,26 @@ const PlatformerMissions = [
       "First success: hopper.mass = 4.0 makes momentum larger (p = m * v), so the same drift shoves harder.",
       "Second variable: elasticity = 1.0 makes the later collisions bounce instead of feeling sticky."
     ],
+    lessonPhases: [
+      {
+        id: "forge-momentum-shove",
+        label: "1 Momentum shove",
+        checkId: "asteroid-mass-check",
+        formula: "p = m * v",
+        command: "hopper.mass = 4.0",
+        payoff: "First Forge gem opens"
+      },
+      {
+        id: "forge-bounce-control",
+        label: "2 Bounce control",
+        checkId: "asteroid-elasticity-check",
+        unlockAfterCheck: "asteroid-mass-check",
+        lockedHint: "First prove the mass shove.",
+        formula: "bounce = elasticity * speed",
+        command: "elasticity = 1.0",
+        payoff: "Later asteroid route opens"
+      }
+    ],
     scaffold: {
       mode: "fill-values",
       template: "use_hopper()\nhopper.mass = {mass}\nelasticity = {elasticity}",
