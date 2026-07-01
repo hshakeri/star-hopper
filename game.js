@@ -7497,10 +7497,14 @@ class StarHopperGame {
       ? collection.cards.length
       : (typeof DISCOVERY_RULES !== 'undefined' && Array.isArray(DISCOVERY_RULES) ? DISCOVERY_RULES.length : Math.max(deckCount, 1));
     const deckLabel = `CARD ${deckCount}/${Math.max(1, deckTotal)}`;
+    const nextCard = collection && collection.nextLocked ? collection.nextLocked : null;
+    const nextLabel = nextCard && nextCard.title ? `NEXT ${nextCard.title}` : (deckCount >= deckTotal ? "DECK COMPLETE" : "");
     pulse.formulaDeckProgress = {
       count: deckCount,
       total: deckTotal,
-      label: deckLabel
+      label: deckLabel,
+      nextTitle: nextCard && nextCard.title ? nextCard.title : "",
+      complete: deckCount >= deckTotal
     };
     const effect = {
       x: px,
@@ -7513,6 +7517,7 @@ class StarHopperGame {
       deckCount,
       deckTotal,
       deckLabel,
+      nextLabel,
       color: "#facc15"
     };
     this.formulaCardEffects = (this.formulaCardEffects || []).slice(-2);
@@ -7891,7 +7896,7 @@ class StarHopperGame {
       ctx.strokeStyle = fx.color || "#facc15";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.roundRect(-70, -28, 140, 56, 7);
+      ctx.roundRect(-76, -32, 152, 66, 7);
       ctx.fill();
       ctx.stroke();
       ctx.shadowBlur = 0;
@@ -7899,17 +7904,22 @@ class StarHopperGame {
       ctx.font = "bold 9px 'Share Tech Mono', monospace";
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
-      ctx.fillText("NEW FORMULA", -58, -17);
+      ctx.fillText("NEW FORMULA", -64, -21);
       ctx.fillStyle = "#67e8f9";
       ctx.textAlign = "right";
-      ctx.fillText(this.fitCardText(ctx, fx.deckLabel || "CARD", 54), 58, -17);
+      ctx.fillText(this.fitCardText(ctx, fx.deckLabel || "CARD", 60), 64, -21);
       ctx.fillStyle = "#f8fafc";
       ctx.font = "bold 10px 'Share Tech Mono', monospace";
       ctx.textAlign = "center";
-      ctx.fillText(this.fitCardText(ctx, fx.title, 112), 0, 1);
+      ctx.fillText(this.fitCardText(ctx, fx.title, 126), 0, -2);
       ctx.fillStyle = "#67e8f9";
       ctx.font = "8px 'Share Tech Mono', monospace";
-      ctx.fillText(this.fitCardText(ctx, fx.formula, 116), 0, 14);
+      ctx.fillText(this.fitCardText(ctx, fx.formula, 128), 0, 12);
+      if (fx.nextLabel) {
+        ctx.fillStyle = fx.nextLabel === "DECK COMPLETE" ? "#facc15" : "#bbf7d0";
+        ctx.font = "bold 7px 'Share Tech Mono', monospace";
+        ctx.fillText(this.fitCardText(ctx, fx.nextLabel, 126), 0, 25);
+      }
       ctx.restore();
     }
   }

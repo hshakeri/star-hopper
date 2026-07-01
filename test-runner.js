@@ -2150,6 +2150,18 @@ function runEngineTests() {
     assertEquals("Mass Lab", game.formulaCardEffects[0].title, "Formula card effect should name the collected card");
     assertEquals(`CARD 1/${formulaDeckTotal22b}`, game.formulaCardEffects[0].deckLabel, "Formula card should show deck collection progress");
     assertEquals(`CARD 1/${formulaDeckTotal22b}`, firstPulse.formulaDeckProgress.label, "Discovery pulse should expose deck progress");
+    assertEquals("NEXT Engine Lab", game.formulaCardEffects[0].nextLabel, "Formula card effect should preview the next deck target");
+    assertEquals("Engine Lab", firstPulse.formulaDeckProgress.nextTitle, "Discovery pulse should expose the next formula card target");
+    const formulaLabels22b = [];
+    game.canvas = { width: 720, height: 448 };
+    const formulaCtx22b = {
+      save() {}, restore() {}, translate() {}, rotate() {}, beginPath() {},
+      roundRect() {}, fill() {}, stroke() {},
+      measureText(text) { return { width: String(text || "").length * 5 }; },
+      fillText(text) { formulaLabels22b.push(text); }
+    };
+    game.drawFormulaCardEffects(formulaCtx22b);
+    assertEquals(true, formulaLabels22b.includes("NEXT Engine Lab"), "Formula card draw should write the next deck target");
     assertEquals(true, firstXP > 0, "New check/gem progress should award Research XP");
     const firstWorldXP = game.getWorldMasteryProgress(0).xp;
     assertEquals(true, firstWorldXP > 0, "Science progress should also feed the world mastery meter");
@@ -2188,6 +2200,7 @@ function runEngineTests() {
     assertEquals(true, game.discoveredFormulaKinds.has("engine"), "Engine formula should be collected");
     assertEquals(2, game.formulaCardEffects.length, "A second new formula should spawn a second card effect");
     assertEquals(`CARD 2/${formulaDeckTotal22b}`, game.formulaCardEffects[1].deckLabel, "Second formula card should advance deck collection progress");
+    assertEquals(true, /^NEXT /.test(game.formulaCardEffects[1].nextLabel), "Second formula card should still point to the next deck target");
     assertEquals(true, bubbleLabels22b.some(label => /LAB CHAIN x2/.test(label)), "Second real discovery should pop the lab-chain cue");
     assertEquals(true, bubbleLabels22b.some(label => /LAB RANK UP!/.test(label)), "Rank-up should pop a visible lab-rank cue");
     assertEquals(true, particleBursts22b > firstBurstCount, "Second real discovery should add a visual burst");
