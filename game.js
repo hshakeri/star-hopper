@@ -8170,6 +8170,7 @@ class StarHopperGame {
       valueLine: `${primary.label || "Value"}: ${primary.value || "changed"}`,
       reasonLine: primary.cue || "",
       targetLine: targetCue ? targetCue.line : "",
+      targetProgressBefore: targetCue ? targetCue.progressBefore : null,
       targetProgress: targetCue ? targetCue.progress : null,
       targetReady: targetCue ? targetCue.ready : false,
       nextLine: next && next.title ? `NEXT ${next.title}` : "",
@@ -8214,8 +8215,9 @@ class StarHopperGame {
 
   getScienceDeltaTargetCue(delta) {
     const stat = typeof this.getMissionStat === 'function' ? this.getMissionStat() : null;
-    const value = stat ? Number(stat.value) : NaN;
-    const target = stat ? Number(stat.target) : NaN;
+    const tracked = delta && delta.missionTarget && stat && delta.missionTarget.key === stat.key ? delta.missionTarget : null;
+    const value = tracked ? Number(tracked.after) : (stat ? Number(stat.value) : NaN);
+    const target = tracked ? Number(tracked.target) : (stat ? Number(stat.target) : NaN);
     const label = stat && stat.label ? String(stat.label) : "";
     if (!label || !Number.isFinite(value) || !Number.isFinite(target) || target <= 0) return null;
     const changes = delta && Array.isArray(delta.changes) ? delta.changes : [];
@@ -8224,13 +8226,18 @@ class StarHopperGame {
       ? `${delta.nextExperiment.title || ""} ${delta.nextExperiment.body || ""}`
       : "";
     if (!changedStat && !new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i").test(nextText)) return null;
-    const progress = Math.max(0, Math.min(1, value / target));
+    const progress = tracked && Number.isFinite(Number(tracked.progressAfter))
+      ? Math.max(0, Math.min(1, Number(tracked.progressAfter)))
+      : Math.max(0, Math.min(1, value / target));
+    const progressBefore = tracked && Number.isFinite(Number(tracked.progressBefore))
+      ? Math.max(0, Math.min(1, Number(tracked.progressBefore)))
+      : null;
     const gap = Math.max(0, target - value);
     const ready = gap <= 0.05;
     const line = ready
       ? `TARGET ${label} ${this.formatScienceDeltaTargetNumber(value)}/${this.formatScienceDeltaTargetNumber(target)} READY`
       : `TARGET ${label} ${this.formatScienceDeltaTargetNumber(value)}/${this.formatScienceDeltaTargetNumber(target)} GAP ${this.formatScienceDeltaTargetNumber(gap)}`;
-    return { line, progress, ready };
+    return { line, progress, progressBefore, ready };
   }
 
   getScienceDeltaCodeLine(delta, change) {
@@ -8344,8 +8351,21 @@ class StarHopperGame {
         ctx.globalAlpha = 0.35 * fade;
         ctx.fillStyle = "rgba(148, 163, 184, 0.72)";
         ctx.fillRect(barX, textY + 5, barW, 3);
+        const afterProgress = Math.max(0, Math.min(1, Number(cue.targetProgress) || 0));
+        const beforeProgress = Number.isFinite(Number(cue.targetProgressBefore))
+          ? Math.max(0, Math.min(1, Number(cue.targetProgressBefore)))
+          : 0;
+        ctx.fillStyle = "rgba(125, 211, 252, 0.78)";
+        ctx.fillRect(barX, textY + 5, Math.max(2, barW * Math.min(beforeProgress, afterProgress)), 3);
+        const movedStart = Math.min(beforeProgress, afterProgress);
+        const movedEnd = Math.max(beforeProgress, afterProgress);
+        if (movedEnd > movedStart + 0.01) {
+          ctx.fillStyle = afterProgress >= beforeProgress ? (cue.targetReady ? "#86efac" : "#facc15") : "#fca5a5";
+          ctx.fillRect(barX + barW * movedStart, textY + 4, Math.max(2, barW * (movedEnd - movedStart)), 5);
+        }
         ctx.fillStyle = cue.targetReady ? "#86efac" : "#c4b5fd";
-        ctx.fillRect(barX, textY + 5, Math.max(2, barW * Math.max(0, Math.min(1, Number(cue.targetProgress) || 0))), 3);
+        const markerX = barX + Math.max(0, Math.min(barW - 2, barW * afterProgress - 1));
+        ctx.fillRect(markerX, textY + 2, 2, 8);
         ctx.globalAlpha = 0.95 * fade;
         targetTextW = Math.max(72, barX - x - 14);
       }
