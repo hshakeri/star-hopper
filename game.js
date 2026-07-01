@@ -284,14 +284,36 @@ class StarHopperGame {
     return baseRadius + (options && options.waiting ? 32 : 0);
   }
 
-  getVillagerShelterSignal(npc, options = {}) {
+  getVillageNPCs(extraNpc = null) {
+    const villagers = [];
+    const seen = new Set();
+    const add = (npc) => {
+      if (!(typeof NPC !== 'undefined' && npc instanceof NPC) || seen.has(npc)) return;
+      seen.add(npc);
+      villagers.push(npc);
+    };
+    for (const obj of this.interactiveObjects || []) add(obj);
+    add(extraNpc);
+    return villagers;
+  }
+
+  getVillageShelterSignal(options = {}) {
+    const villagers = this.getVillageNPCs(options.npc);
     const radius = Number.isFinite(options.radius) ? options.radius : this.getVillagerThreatRadius(options);
-    const threat = this.findThreateningMobForNPC(npc, radius);
-    if (threat) return { active: true, reason: "nearby mob", threat };
-    if (this.shouldVillagersShelterForNight(options.nowMs)) {
-      return { active: true, reason: "night", threat: null };
+    for (const villager of villagers) {
+      const threat = this.findThreateningMobForNPC(villager, radius);
+      if (threat) {
+        return { active: true, reason: "nearby mob", threat, villagers: villagers.length };
+      }
     }
-    return { active: false, reason: null, threat: null };
+    if (this.shouldVillagersShelterForNight(options.nowMs)) {
+      return { active: true, reason: "night", threat: null, villagers: villagers.length };
+    }
+    return { active: false, reason: null, threat: null, villagers: villagers.length };
+  }
+
+  getVillagerShelterSignal(npc, options = {}) {
+    return this.getVillageShelterSignal({ ...options, npc });
   }
 
   shouldNPCWaitInCave(npc, signal = null) {
@@ -1291,6 +1313,9 @@ class StarHopperGame {
     const keepSheltered = Object.prototype.hasOwnProperty.call(options, "keepSheltered")
       ? !!options.keepSheltered
       : this.shouldVillagersShelterForNight();
+    const villageSignal = typeof this.getVillageShelterSignal === 'function'
+      ? this.getVillageShelterSignal()
+      : null;
     let villagers = 0;
     let released = 0;
     let sheltered = 0;
@@ -1300,9 +1325,9 @@ class StarHopperGame {
       if (!(typeof NPC !== 'undefined' && obj instanceof NPC)) continue;
       villagers++;
       const hadShelterState = !!(obj.hiddenInCave || obj.returningFromCave || obj.rescuePending || obj.shelterReason || (obj.panicTimer || 0) > 0);
-      const shelter = typeof this.getVillagerShelterSignal === 'function'
+      const shelter = villageSignal || (typeof this.getVillagerShelterSignal === 'function'
         ? this.getVillagerShelterSignal(obj)
-        : { active: keepSheltered, reason: keepSheltered ? "night" : null };
+        : { active: keepSheltered, reason: keepSheltered ? "night" : null });
       const keepNpcSheltered = keepSheltered || !!(shelter && shelter.active);
       obj.panicTimer = 0;
       obj.caveCooldown = 0;
@@ -1450,9 +1475,12 @@ class StarHopperGame {
   updateVillagerShelterStates() {
     if (!(this.interactiveObjects && typeof NPC !== 'undefined')) return;
     let touchNeedsSync = false;
+    const villageSignal = typeof this.getVillageShelterSignal === 'function'
+      ? this.getVillageShelterSignal()
+      : null;
     for (const obj of this.interactiveObjects) {
       if (!(obj instanceof NPC)) continue;
-      const shelter = this.getVillagerShelterSignal(obj);
+      const shelter = villageSignal || this.getVillagerShelterSignal(obj);
       const threat = shelter.threat;
       if (threat) {
         if (this.markNPCShelterThreat(obj, "nearby mob", { bubble: true, panicTimer: 150 })) touchNeedsSync = true;

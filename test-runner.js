@@ -9147,15 +9147,21 @@ function runCombatTests() {
     villageAlarm.mobs = [alarmMob];
     const farOwnDistance = Math.hypot((alarmMob.x + alarmMob.w / 2) - (farTrader.x + farTrader.w / 2), (alarmMob.y + alarmMob.h / 2) - (farTrader.y + farTrader.h / 2));
     assertEquals(true, farOwnDistance > villageAlarm.getVillagerThreatRadius(), "Far villager fixture starts outside its own personal mob radius");
+    const sharedAlarmSignal = villageAlarm.getVillageShelterSignal();
+    assertEquals("nearby mob", sharedAlarmSignal && sharedAlarmSignal.reason, "Shared village shelter signal treats one close hostile mob as a village alarm");
+    assertEquals(2, sharedAlarmSignal && sharedAlarmSignal.villagers, "Shared village shelter signal sees the whole village roster");
     assertEquals(true, !!villageAlarm.getVillagerShelterSignal(farTrader).threat, "Village-wide alarm sends every villager to caves when one mob reaches the village");
     const beforeFarAlarmX = farTrader.x;
     villageAlarm.updateVillagerShelterStates();
     assertEquals(true, nearTrader.x < 96, "Near villager starts retreating from the alarm mob");
     assertEquals(true, farTrader.x < beforeFarAlarmX, "Far villager also starts retreating because the village alarm is active");
+    assertEquals("nearby mob", nearTrader.shelterReason, "Village-wide alarm marks the near villager as sheltering from a mob");
+    assertEquals("nearby mob", farTrader.shelterReason, "Village-wide alarm marks the far villager as sheltering from the same mob");
     for (let i = 0; i < 40 && !(nearTrader.hiddenInCave && farTrader.hiddenInCave); i++) villageAlarm.updateVillagerShelterStates();
     assertEquals(true, nearTrader.hiddenInCave, "Near villager reaches the cave during village alarm");
     assertEquals(true, farTrader.hiddenInCave, "Far villager reaches the cave during village alarm");
     villageAlarm.mobs = [];
+    assertEquals(false, villageAlarm.getVillageShelterSignal().active, "Shared village shelter signal clears after the hostile mob leaves");
     nearTrader.panicTimer = 0;
     farTrader.panicTimer = 0;
     villageAlarm.updateVillagerShelterStates();
@@ -9337,8 +9343,10 @@ function runCombatTests() {
     const releaseSummary = g.toggleSurvival();
     assertEquals(false, g.survivalMode, "Survival mode turns off");
     assertEquals(0, g.mobs.length, "Survival mobs are cleared");
+    assertEquals(false, g.getVillageShelterSignal().active, "Shared village shelter signal clears when Survival-off removes the mob");
     assertEquals(1, releaseSummary && releaseSummary.released, "Survival-off reports one daylight villager release");
     assertEquals(0, releaseSummary && releaseSummary.sheltered, "Survival-off daylight release does not keep villagers sheltered");
+    assertEquals(true, g.lastVillageShelterSync && g.lastVillageShelterSync.allClear, "Survival-off records a clear village shelter sync");
     assertEquals(false, g.getVillagerShelterSignal(npc).active, "Daylight shelter signal clears after Survival turns off");
     assertEquals(false, npc.hiddenInCave, "Villager reappears after survival danger ends");
     assertEquals(82, npc.x, "Daylight release shows the villager exiting at the cave mouth");
@@ -9530,9 +9538,11 @@ function runCombatTests() {
     rosterNight.mobs = [new Mob(90, 60, 'hog', '#9a6b4f', 1)];
     const nightRosterSummary = rosterNight.toggleSurvival();
     const nightRoster = rosterNight.interactiveObjects.filter(obj => obj instanceof NPC);
+    assertEquals("night", rosterNight.getVillageShelterSignal().reason, "Shared village shelter signal switches to night after Survival mobs clear on Earth");
     assertEquals(2, nightRoster.length, "Survival-off night keeps every villager object in the village roster");
     assertEquals(0, nightRosterSummary && nightRosterSummary.released, "Survival-off night reports no daylight villager release");
     assertEquals(2, nightRosterSummary && nightRosterSummary.sheltered, "Survival-off night keeps every villager sheltered");
+    assertEquals("night", rosterNight.lastVillageShelterSync && rosterNight.lastVillageShelterSync.caveState, "Survival-off night records a night cave sync instead of a disappearance");
     assertEquals("night", nightRosterSummary && nightRosterSummary.caveState, "Survival-off night reports the night cave state");
     assertEquals(false, nightRosterSummary && nightRosterSummary.allClear, "Survival-off night does not claim all caves are clear");
     assertEquals(true, nightRoster.every(npc => npc.hiddenInCave), "Earth night sends all villagers into caves after Survival danger ends");
@@ -9675,6 +9685,7 @@ function runCombatTests() {
     nightGame.survivalMode = true;
     nightGame.mobs = [new Mob(90, 60, 'hog', '#9a6b4f', 1)];
     const nightSummary = nightGame.toggleSurvival();
+    assertEquals("night", nightGame.getVillageShelterSignal().reason, "Earth night remains the active village shelter signal after Survival ends");
     assertEquals(true, nightNpc.hiddenInCave, "Earth night keeps villagers sheltered after survival danger ends");
     assertEquals(0, nightNpc.caveExitTimer || 0, "Earth night does not show a false cave-exit cue while the villager stays hidden");
     assertEquals(0, nightSummary && nightSummary.released, "Survival-off night release reports no daylight villagers");
@@ -9698,6 +9709,7 @@ function runCombatTests() {
     assertEquals(null, nightGame.activeNPC, "Night-cave villager clears stale trade focus");
     nightGame.getEarthDayNightPhase = () => ({ t: 0.5, daylight: 1, isDay: true, sunX: 0.5, sunY: 0.34 });
     nightGame.updateVillagerShelterStates();
+    assertEquals(false, nightGame.getVillageShelterSignal().active, "Daylight clears the shared night shelter signal");
     assertEquals(false, nightNpc.hiddenInCave, "Daylight after survival-off brings the villager back out");
     assertEquals(82, nightNpc.x, "Daylight after survival-off shows the villager at the cave mouth first");
     assertEquals(true, (nightNpc.caveExitTimer || 0) > 0, "Daylight release after night shows a cave-exit cue");
@@ -9728,6 +9740,7 @@ function runCombatTests() {
     g.getEarthDayNightPhase = () => ({ t: 0, daylight: 0.1, isDay: false, sunX: 0.1, sunY: 0.2 });
     const npc = new NPC({ id: 'nightwatch', name: 'Nightwatch', profession: 'Miner', type: 'npc', x: 100, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60 });
     g.interactiveObjects = [npc];
+    assertEquals("night", g.getVillageShelterSignal().reason, "Earth night shared shelter signal sends the village to caves");
     assertEquals("night", g.getVillagerShelterSignal(npc).reason, "Earth night shelter signal points villagers to caves");
     const beforeNightX = npc.x;
     g.updateVillagerShelterStates();
@@ -9744,6 +9757,7 @@ function runCombatTests() {
     assertEquals(false, npc.proximity, "Night-sheltered villagers cannot open trades");
     assertEquals(null, g.activeNPC, "Night shelter clears active trade target");
     g.getEarthDayNightPhase = () => ({ t: 0.5, daylight: 1, isDay: true, sunX: 0.5, sunY: 0.34 });
+    assertEquals(false, g.getVillageShelterSignal().active, "Earth daylight clears the shared night shelter signal");
     g.updateVillagerShelterStates();
     assertEquals(false, npc.hiddenInCave, "Villager comes out in daylight");
     assertEquals(82, npc.x, "Daylight shows the villager exiting at the cave mouth");
