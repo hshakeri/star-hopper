@@ -3745,6 +3745,46 @@ function runDailySignalAction(game = window.Game || (typeof Game !== 'undefined'
   return false;
 }
 
+function getFrontierChallengeActionFocus(game = window.Game || (typeof Game !== 'undefined' ? Game : null)) {
+  const frontier = game && game.dailyInfo && game.dailyInfo.isFrontier
+    ? game.dailyInfo
+    : (game && typeof game.getFrontierChallenge === 'function' ? game.getFrontierChallenge() : null);
+  const contract = frontier && frontier.labContract ? frontier.labContract : null;
+  const title = (contract && contract.title) || (frontier && frontier.concept) || (frontier && frontier.planetName) || "Frontier Challenge";
+  const command = contract && contract.command ? String(contract.command).trim() : "";
+  const firstCommand = command.split(/\n/).map(line => line.trim()).find(Boolean) || "";
+  const kind = frontier && frontier.futureSourcePrep
+    ? "future-source"
+    : (frontier && frontier.darkMatterPrep
+      ? "dark-matter-prep"
+      : (frontier && frontier.darkMatterEcho ? "dark-matter-echo" : "frontier-signal"));
+  return {
+    title,
+    command,
+    firstCommand,
+    kind
+  };
+}
+
+function runFrontierChallengeAction(game = window.Game || (typeof Game !== 'undefined' ? Game : null), options = undefined) {
+  if (game && typeof game.startFrontierChallenge === 'function') {
+    const started = game.startFrontierChallenge(options);
+    if (started === false) return false;
+    const focus = getFrontierChallengeActionFocus(game);
+    const command = focus && focus.command ? String(focus.command).trim() : "";
+    if (command && typeof stageScienceDeltaCommand === 'function') {
+      stageScienceDeltaCommand(command, {
+        title: focus.title || "Frontier Challenge",
+        source: "signal-lab-contract",
+        color: "#c4b5fd",
+        kind: focus.kind || "frontier-signal"
+      });
+    }
+    return true;
+  }
+  return false;
+}
+
 function getStartMissionRadarAction(game = window.Game, quest = null) {
   const q = quest || getActiveLabQuest(game);
   const currentLevel = game && Number.isFinite(Number(game.currentPlanetIndex)) ? Number(game.currentPlanetIndex) : 0;
@@ -3844,8 +3884,7 @@ function runStartMissionRadarAction() {
     const options = kind === "dark-matter-prep"
       ? { source: "dark-matter-prep" }
       : (kind === "future-source" ? { source: "future-source" } : undefined);
-    game.startFrontierChallenge(options);
-    return true;
+    return runFrontierChallengeAction(game, options);
   }
   if (action === "log") {
     if (typeof switchMainMode === 'function') switchMainMode('notebook');

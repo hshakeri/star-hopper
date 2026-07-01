@@ -3831,11 +3831,26 @@ function runEngineTests() {
     assertEquals("dark-matter-prep", els["start-mission-radar-btn"].dataset.kind, "Prep quest should tag the Frontier launch as Dark Matter prep");
     let prepCalls = 0;
     let prepOptions = null;
-    game.startFrontierChallenge = (options) => { prepCalls++; prepOptions = options || null; return true; };
+    game.startFrontierChallenge = (options) => {
+      prepCalls++;
+      prepOptions = options || null;
+      game.dailyInfo = {
+        isFrontier: true,
+        darkMatterPrep: true,
+        labContract: {
+          title: "Dark Matter Prep: curve evidence",
+          command: "hopper.engine = 7\nhopper.mass = 1.8"
+        }
+      };
+      return true;
+    };
     window.Game = game;
     assertEquals(true, runStartMissionRadarAction(), "Prep radar action should execute");
     assertEquals(1, prepCalls, "Prep radar action should start the Frontier challenge");
     assertEquals("dark-matter-prep", prepOptions && prepOptions.source, "Prep radar action should pass the Dark Matter prep source");
+    assertEquals("hopper.engine = 7\nhopper.mass = 1.8", els["console-input"].value, "Prep radar action should stage the Frontier prep contract");
+    assertEquals("dark-matter-prep", game.lastStagedExperiment && game.lastStagedExperiment.kind, "Prep radar staging should preserve the Future Lab route kind");
+    assertEquals("signal-lab-contract", game.lastStagedExperiment && game.lastStagedExperiment.source, "Prep radar staging should use the Signal Lab proof source");
 
     game.discoveryPassCounts = {
       "anomaly-trace-proof:4:trace-hidden-force:test": 1,
@@ -3902,11 +3917,25 @@ function runEngineTests() {
     assertEquals("future-source", els["start-mission-radar-btn"].dataset.kind, "Source rehearsal should tag the Frontier launch");
     let sourceCalls = 0;
     let sourceOptions = null;
-    game.startFrontierChallenge = (options) => { sourceCalls++; sourceOptions = options || null; return true; };
+    game.startFrontierChallenge = (options) => {
+      sourceCalls++;
+      sourceOptions = options || null;
+      game.dailyInfo = {
+        isFrontier: true,
+        futureSourcePrep: true,
+        labContract: {
+          title: "Future Source Key: source rehearsal",
+          command: "hopper.pole = -1\nif chance(50): player.say('source')"
+        }
+      };
+      return true;
+    };
     window.Game = game;
     assertEquals(true, runStartMissionRadarAction(), "Source radar action should execute");
     assertEquals(1, sourceCalls, "Source radar action should start one Frontier challenge");
     assertEquals("future-source", sourceOptions && sourceOptions.source, "Source radar action should pass the Future Source tag");
+    assertEquals("hopper.pole = -1\nif chance(50): player.say('source')", els["console-input"].value, "Source radar action should stage the Future Source contract");
+    assertEquals("future-source", game.lastStagedExperiment && game.lastStagedExperiment.kind, "Source radar staging should preserve the Future Source kind");
 
     game.discoveryPassCounts = {
       ...game.discoveryPassCounts,

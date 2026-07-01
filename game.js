@@ -4619,18 +4619,26 @@ class StarHopperGame {
   runClearReplayContract(contract = this.lastClearReplayContract) {
     const action = contract && contract.action ? contract.action : "replay";
     if (action === "frontier" && typeof this.startFrontierChallenge === 'function') {
+      if (typeof runFrontierChallengeAction === 'function') return runFrontierChallengeAction(this);
       return this.startFrontierChallenge();
     }
     if (action === "dark-matter-echo" && typeof this.startFrontierChallenge === 'function') {
-      return this.startFrontierChallenge({ source: "dark-matter-echo" });
+      const options = { source: "dark-matter-echo" };
+      if (typeof runFrontierChallengeAction === 'function') return runFrontierChallengeAction(this, options);
+      return this.startFrontierChallenge(options);
     }
     if (action === "dark-matter-prep" && typeof this.startFrontierChallenge === 'function') {
-      return this.startFrontierChallenge({ source: "dark-matter-prep" });
+      const options = { source: "dark-matter-prep" };
+      if (typeof runFrontierChallengeAction === 'function') return runFrontierChallengeAction(this, options);
+      return this.startFrontierChallenge(options);
     }
     if (action === "future-source" && typeof this.startFrontierChallenge === 'function') {
-      return this.startFrontierChallenge({ source: "future-source" });
+      const options = { source: "future-source" };
+      if (typeof runFrontierChallengeAction === 'function') return runFrontierChallengeAction(this, options);
+      return this.startFrontierChallenge(options);
     }
     if (action === "daily" && typeof this.startDailySignal === 'function') {
+      if (typeof runDailySignalAction === 'function') return runDailySignalAction(this);
       return this.startDailySignal();
     }
     if (action === "launch" && typeof this.beginNextPlanetNavigation === 'function') {
@@ -7102,7 +7110,10 @@ class StarHopperGame {
           dailyBtn.textContent = `◆ FRONTIER T${frontier.tier}`;
           dailyBtn.style.background = "#facc15";
           dailyBtn.style.color = "#030712";
-          dailyBtn.onclick = () => this.startFrontierChallenge();
+          dailyBtn.onclick = () => {
+            if (typeof runFrontierChallengeAction === 'function') return runFrontierChallengeAction(this);
+            return this.startFrontierChallenge();
+          };
         } else if (daily) {
           dailyBtn.textContent = `📡 TODAY'S SIGNAL`;
           dailyBtn.style.background = "var(--neon-cyan)";
