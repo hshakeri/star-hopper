@@ -417,6 +417,7 @@ function updateMissionList(game) {
   }
 
   listContainer.innerHTML = "";
+  appendRunObjectiveQueueCard(listContainer, game);
   appendLessonLensCard(listContainer, game);
   appendMissionLabQuestionCard(listContainer, game);
   appendWorldMasteryCrtCard(listContainer, game);
@@ -503,6 +504,195 @@ function appendHTML(parent, html) {
   } else {
     parent.innerHTML = `${parent.innerHTML || ""}${html}`;
   }
+}
+
+function addRunObjectiveQueueItem(queue, seen, item) {
+  if (!queue || !seen || !item || !item.title) return;
+  const commandKey = item.command ? String(item.command).trim() : "";
+  const key = item.key || (commandKey ? `cmd:${commandKey}` : `${item.label || "goal"}:${item.title}`);
+  if (seen.has(key)) return;
+  seen.add(key);
+  queue.push({
+    label: item.label || "NEXT",
+    title: item.title,
+    body: item.body || "",
+    reward: item.reward || "",
+    cta: item.cta || "",
+    command: commandKey,
+    kind: item.kind || null,
+    source: item.source || "run-objective-queue",
+    color: item.color || "#67e8f9",
+    prediction: item.prediction || null,
+    disabled: !!item.disabled,
+    priority: queue.length + 1
+  });
+}
+
+function getRunObjectiveQueue(game) {
+  const queue = [];
+  const seen = new Set();
+  if (!game) return queue;
+
+  const staged = getActiveStagedExperiment(game);
+  if (staged) {
+    const isFailureLab = staged.source === "failure-lab";
+    addRunObjectiveQueueItem(queue, seen, {
+      key: `staged:${staged.command}`,
+      label: isFailureLab ? "REPAIR READY" : "READY TO TEST",
+      title: staged.title || "Experiment staged",
+      body: getStagedExperimentBody(staged),
+      reward: getStagedExperimentSourceLabel(staged.source),
+      cta: "RESTAGE",
+      command: staged.command,
+      kind: staged.kind || null,
+      source: staged.source || (isFailureLab ? "failure-lab" : "staged-reminder"),
+      color: isFailureLab ? "#facc15" : "#a7f3d0",
+      prediction: staged.prediction || null
+    });
+  }
+
+  const labQuestion = typeof getAttemptLogNextQuestion === "function" ? getAttemptLogNextQuestion(game) : null;
+  if (labQuestion) {
+    const command = labQuestion.kind === "prediction" ? "" : (labQuestion.command || "");
+    addRunObjectiveQueueItem(queue, seen, {
+      key: `lab-question:${labQuestion.kind || "mission"}:${labQuestion.title || ""}`,
+      label: labQuestion.label || (command ? "NEXT TEST" : "PREDICT"),
+      title: labQuestion.title || "Next lab question",
+      body: labQuestion.body || "Run one focused experiment, then compare the evidence.",
+      reward: command ? "Predict -> code -> test" : "Choose a hypothesis first",
+      cta: command ? "STAGE TEST" : "PREDICT FIRST",
+      command,
+      kind: labQuestion.kind || "mission",
+      source: "mission-lab-question",
+      color: labQuestion.kind === "prediction" ? "#facc15" : "#67e8f9",
+      disabled: !command
+    });
+  }
+
+  const activeMission = typeof getActivePlatformerMission === "function" ? getActivePlatformerMission(game) : null;
+  const fullMission = activeMission && activeMission.fullMission ? activeMission.fullMission : null;
+  const lessonRows = fullMission ? getMissionLessonPhaseRows(game, fullMission) : [];
+  const activePhase = Array.isArray(lessonRows) ? lessonRows.find(row => row && row.status === "active" && row.command) : null;
+  if (activePhase) {
+    addRunObjectiveQueueItem(queue, seen, {
+      key: `lesson:${activeMission && activeMission.id ? activeMission.id : fullMission.id}:${activePhase.index}`,
+      label: "LESSON PATH",
+      title: activePhase.label || fullMission.title || "Lesson phase",
+      body: activePhase.formula || activePhase.payoff || "Stage the focused lesson command and test the result.",
+      reward: `${lessonRows.filter(row => row.status === "complete").length}/${lessonRows.length} phases`,
+      cta: "STAGE LESSON",
+      command: activePhase.command,
+      kind: "lesson-phase",
+      source: "lesson-phase",
+      color: "#fbbf24"
+    });
+  }
+
+  const signal = game.dailyInfo && game.dailyInfo.labContract ? game.dailyInfo : null;
+  const signalCommand = signal && signal.labContract && signal.labContract.command ? String(signal.labContract.command).trim() : "";
+  const signalProof = signalCommand && typeof getSignalLabProofStatus === "function" ? getSignalLabProofStatus(game, signalCommand) : null;
+  if (signal && signalCommand && !(signalProof && signalProof.claimed)) {
+    addRunObjectiveQueueItem(queue, seen, {
+      key: `signal:${signalCommand}`,
+      label: signal.isFrontier ? "FRONTIER LAB" : "DAILY SIGNAL",
+      title: signal.labContract.title || signal.concept || "Signal Lab proof",
+      body: signal.labContract.body || signal.concept || "Run the signal command and compare what changed.",
+      reward: signal.isFrontier ? "Frontier proof + share code" : "Daily proof + share code",
+      cta: signal.isFrontier ? "STAGE FRONTIER" : "STAGE SIGNAL",
+      command: signalCommand,
+      kind: signal.isFrontier ? "frontier-signal" : "daily-signal",
+      source: "signal-lab-contract",
+      color: signal.isFrontier ? "#c4b5fd" : "#67e8f9"
+    });
+  }
+
+  const labChain = typeof getLabChainTarget === "function" ? getLabChainTarget(game) : null;
+  if (labChain && labChain.command) {
+    addRunObjectiveQueueItem(queue, seen, {
+      key: `lab-chain:${labChain.command}`,
+      label: labChain.label || "LAB CHAIN",
+      title: labChain.title || "Make one fresh change",
+      body: labChain.body || "Change one variable, run it, and compare the new result.",
+      reward: labChain.reward || "Next new progress keeps the chain alive",
+      cta: "STAGE CHAIN",
+      command: labChain.command,
+      kind: labChain.kind || "lab-chain",
+      source: "lab-chain-target",
+      color: labChain.state === "paused" ? "#cbd5e1" : "#67e8f9"
+    });
+  }
+
+  return queue.slice(0, 4).map((item, index) => ({
+    ...item,
+    priority: index + 1
+  }));
+}
+
+function appendRunObjectiveQueueCard(listContainer, game) {
+  if (!listContainer || !game) return;
+  const queue = getRunObjectiveQueue(game);
+  if (!queue.length) return;
+
+  const card = document.createElement("div");
+  card.className = "run-objective-queue-card";
+  const head = document.createElement("div");
+  head.className = "run-objective-queue-head";
+  const label = document.createElement("span");
+  label.textContent = "RUN OBJECTIVE QUEUE";
+  const action = document.createElement("strong");
+  action.textContent = queue[0].cta || "RUN NEXT";
+  head.appendChild(label);
+  head.appendChild(action);
+  card.appendChild(head);
+
+  const list = document.createElement("div");
+  list.className = "run-objective-queue-list";
+  queue.forEach(item => {
+    const row = document.createElement("div");
+    row.className = `run-objective-queue-item${item.disabled ? " disabled" : ""}`;
+
+    const itemLabel = document.createElement("span");
+    itemLabel.textContent = `#${item.priority} ${item.label}`;
+    const title = document.createElement("strong");
+    title.textContent = item.title;
+    const body = document.createElement("p");
+    body.textContent = item.body;
+    row.appendChild(itemLabel);
+    row.appendChild(title);
+    row.appendChild(body);
+
+    if (item.reward || item.cta) {
+      const reward = document.createElement("em");
+      reward.textContent = `${item.reward || "Reward ready"}${item.cta ? ` · ${item.cta}` : ""}`;
+      row.appendChild(reward);
+    }
+
+    if (item.command && !item.disabled) {
+      const code = document.createElement("code");
+      code.textContent = item.command;
+      row.appendChild(code);
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "run-objective-queue-action-btn";
+      button.textContent = item.cta || "STAGE";
+      if (typeof button.addEventListener === "function") {
+        button.addEventListener("click", () => stageScienceDeltaCommand(item.command, {
+          title: item.title,
+          kind: item.kind || null,
+          source: item.source || "run-objective-queue",
+          prediction: item.prediction || null,
+          color: item.color || "#67e8f9",
+          game
+        }));
+      }
+      row.appendChild(button);
+    }
+
+    list.appendChild(row);
+  });
+  card.appendChild(list);
+  listContainer.appendChild(card);
 }
 
 function getMissionLessonPhaseRows(game, fullMission) {
@@ -1690,6 +1880,7 @@ function getStagedExperimentSourceLabel(source) {
     "lesson-phase": "Lesson phase",
     "phase-reward": "Phase reward",
     "cadet-lesson-path": "Cadet lesson",
+    "run-objective-queue": "Objective queue",
     "mentor-signal": "Village mentor",
     "science-delta": "What Changed",
     "tested-result": "Tested result",

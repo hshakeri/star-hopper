@@ -5775,6 +5775,8 @@ class StarHopperGame {
       }
       ui_log_output("Mob Survival off — back to engineering.", "info");
     }
+    if (typeof updateMissionList === 'function') updateMissionList(this);
+    if (typeof updateHUD === 'function') updateHUD(this);
     return shelterSync;
   }
 

@@ -4440,6 +4440,139 @@ html {
   overflow-y: auto;
 }
 
+.run-objective-queue-card {
+  border: 1px solid rgba(45, 212, 191, 0.36);
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgba(15, 118, 110, 0.26), rgba(15, 23, 42, 0.68)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.032) 0 1px, transparent 1px 4px);
+  box-shadow: inset 0 0 14px rgba(45, 212, 191, 0.1);
+  display: grid;
+  gap: 5px;
+  padding: 7px 8px;
+}
+
+.run-objective-queue-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  line-height: 1.2;
+}
+
+.run-objective-queue-head span {
+  color: #99f6e4;
+  font-weight: 900;
+}
+
+.run-objective-queue-head strong {
+  color: #fef08a;
+  text-align: right;
+}
+
+.run-objective-queue-list {
+  display: grid;
+  gap: 5px;
+}
+
+.run-objective-queue-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 6px;
+  min-width: 0;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 5px;
+  background: rgba(2, 6, 23, 0.42);
+  padding: 5px 6px;
+}
+
+.run-objective-queue-item.disabled {
+  border-color: rgba(250, 204, 21, 0.24);
+  background: rgba(71, 47, 11, 0.26);
+}
+
+.run-objective-queue-item span,
+.run-objective-queue-item em {
+  display: block;
+  font-size: 0.53rem;
+  line-height: 1.18;
+}
+
+.run-objective-queue-item span {
+  color: #99f6e4;
+  font-weight: 900;
+}
+
+.run-objective-queue-item.disabled span {
+  color: #fef08a;
+}
+
+.run-objective-queue-item strong,
+.run-objective-queue-item p,
+.run-objective-queue-item em,
+.run-objective-queue-item code {
+  grid-column: 1;
+  min-width: 0;
+}
+
+.run-objective-queue-item strong {
+  color: #ecfeff;
+  font-size: 0.62rem;
+  line-height: 1.18;
+}
+
+.run-objective-queue-item p {
+  margin: 0;
+  color: #dff6ff;
+  font-size: 0.56rem;
+  line-height: 1.22;
+}
+
+.run-objective-queue-item em {
+  color: #fef08a;
+  font-style: normal;
+}
+
+.run-objective-queue-item code {
+  display: block;
+  max-height: 42px;
+  overflow: hidden;
+  color: #bbf7d0;
+  background: rgba(2, 6, 23, 0.48);
+  border: 1px solid rgba(45, 212, 191, 0.18);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  line-height: 1.22;
+  padding: 3px 5px;
+  white-space: pre-wrap;
+}
+
+.run-objective-queue-action-btn {
+  grid-column: 2;
+  grid-row: 1 / span 5;
+  align-self: center;
+  border: 1px solid rgba(45, 212, 191, 0.48);
+  border-radius: 4px;
+  background: rgba(15, 118, 110, 0.58);
+  color: #ecfeff;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0;
+  padding: 5px 7px;
+  white-space: nowrap;
+}
+
+.run-objective-queue-action-btn:hover {
+  background: rgba(45, 212, 191, 0.82);
+  color: #042f2e;
+}
+
 .lesson-lens-card {
   border: 1px solid rgba(103, 232, 249, 0.38);
   border-radius: 6px;
@@ -9953,6 +10086,13 @@ body.readable-text-mode .mode-tab .mode-lbl,
 body.readable-text-mode .mission-panel-title,
 body.readable-text-mode .mission-briefing-item,
 body.readable-text-mode .mission-item,
+body.readable-text-mode .run-objective-queue-head,
+body.readable-text-mode .run-objective-queue-item span,
+body.readable-text-mode .run-objective-queue-item strong,
+body.readable-text-mode .run-objective-queue-item p,
+body.readable-text-mode .run-objective-queue-item em,
+body.readable-text-mode .run-objective-queue-item code,
+body.readable-text-mode .run-objective-queue-action-btn,
 body.readable-text-mode .lesson-lens-head,
 body.readable-text-mode .lesson-lens-card p,
 body.readable-text-mode .lesson-lens-card code,
@@ -10280,6 +10420,8 @@ body.readable-text-mode :is(
   .bash-shell,
   .mission-list,
   .mission-briefing-log,
+  .run-objective-queue-card,
+  .run-objective-queue-item,
   .lesson-lens-card,
   .lesson-phase-ladder,
   .mission-lab-question-card,
@@ -10349,6 +10491,7 @@ body.readable-text-mode :is(
   .village-request-crt-body p,
   .village-chain-crt-body p,
   .ai-state-run-crt-body p,
+  .run-objective-queue-item p,
   .start-mission-radar p,
   .start-rank-preview span,
   .start-world-preview span,
@@ -10384,6 +10527,7 @@ body.readable-text-mode :is(
   .village-request-crt-body code,
   .village-chain-crt-body code,
   .ai-state-run-crt-body code,
+  .run-objective-queue-item code,
   .start-story-preview code,
   .start-resume-test code,
   .formula-target-code,
@@ -10412,6 +10556,7 @@ body.readable-text-mode :is(
   .staged-experiment-stage-btn,
   .science-delta-stage-btn,
   .lab-chain-target-stage-btn,
+  .run-objective-queue-action-btn,
   .signal-lab-contract-stage-btn,
   .signal-lab-contract-explain-btn,
   .formula-target-stage-btn,

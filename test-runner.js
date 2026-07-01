@@ -5316,6 +5316,12 @@ function runEngineTests() {
       }
       return null;
     };
+    const collectByClass = (el, className, out = []) => {
+      if (!el) return out;
+      if ((el.className || "").split(/\s+/).includes(className)) out.push(el);
+      (el.children || []).forEach(child => collectByClass(child, className, out));
+      return out;
+    };
     let list = makeEl();
     document.getElementById = (id) => id === "mission-list" ? list : null;
     document.createElement = () => makeEl();
@@ -5396,9 +5402,19 @@ function runEngineTests() {
     const mentorText = flattenText(mentor || list);
     const staged = findByClass(list, "staged-experiment-card");
     const stagedText = flattenText(staged || list);
+    const runQueue = findByClass(list, "run-objective-queue-card");
+    const runQueueText = flattenText(runQueue || list);
     const contract = findByClass(list, "lab-star-contract");
     const replayBeforeProgress = findByClass(list, "run-replay-contract");
     const text = flattenText(contract || list);
+    assertEquals(true, !!runQueue, "Mission panel should pin a compact in-run objective queue");
+    assertEquals(true, /RUN OBJECTIVE QUEUE/.test(runQueueText), "In-run objective queue should identify itself");
+    assertEquals(true, /#1 READY TO TEST/.test(runQueueText), "In-run objective queue should rank staged code first");
+    assertEquals(true, /Mass Lab/.test(runQueueText), "In-run objective queue should name the ready staged experiment");
+    assertEquals(true, /#2 PREDICT/.test(runQueueText), "In-run objective queue should include the prediction gate before code");
+    assertEquals(true, /Choose a hypothesis first/.test(runQueueText), "Prediction queue item should explain why it has no stage button");
+    assertEquals(true, /#3 LESSON PATH/.test(runQueueText), "In-run objective queue should include the active lesson phase");
+    assertEquals(true, /STAGE LESSON/.test(runQueueText), "Lesson queue item should expose a stage action");
     assertEquals(true, !!lens, "Mission panel should pin the active lesson lens");
     assertEquals(true, /LESSON LENS/.test(lensText), "Lesson lens should identify itself");
     assertEquals(true, /Variable assignment and parameter tuning/.test(lensText), "Lesson lens should show the coding concept");
@@ -5609,12 +5625,16 @@ function runEngineTests() {
     const activeLabQuestion = findByClass(list, "mission-lab-question-card");
     const activeLabQuestionText = flattenText(activeLabQuestion || list);
     const activeLabQuestionButton = findByClass(activeLabQuestion || list, "mission-lab-question-stage-btn");
+    const activeRunQueue = findByClass(list, "run-objective-queue-card");
+    const activeRunQueueText = flattenText(activeRunQueue || list);
     assertEquals("STAGE LESSON CODE", activeLensButton && activeLensButton.textContent, "Lesson lens should stage code after prediction");
     assertEquals(false, !!activeLensButton.disabled, "Lesson lens staging should enable after prediction");
     assertEquals(true, /NEXT TEST/.test(activeLabQuestionText), "After prediction, lab question should move to the next test");
     assertEquals(true, /Hopper activated|Agility 30\+ reached/.test(activeLabQuestionText), "Next test should name a live mission check");
     assertEquals("STAGE TEST", activeLabQuestionButton && activeLabQuestionButton.textContent, "Next-test card should stage its code");
     assertEquals(false, !!activeLabQuestionButton.disabled, "Next-test staging should be enabled");
+    assertEquals(true, /#1 NEXT TEST/.test(activeRunQueueText), "In-run objective queue should switch from prediction gate to next-test action after predicting");
+    assertEquals(true, /STAGE TEST/.test(activeRunQueueText), "In-run objective queue should expose the next-test stage action");
     const inputEl22j = {
       value: "",
       focused: false,
@@ -5624,6 +5644,14 @@ function runEngineTests() {
       setSelectionRange() {}
     };
     document.getElementById = (id) => id === "console-input" ? inputEl22j : (id === "mission-list" ? list : null);
+    const queueButtons = collectByClass(activeRunQueue, "run-objective-queue-action-btn");
+    assertEquals(true, queueButtons.length >= 2, "In-run objective queue should expose stage buttons for actionable items");
+    queueButtons[0]._events.click();
+    assertEquals(true, /use_hopper\(\)/.test(inputEl22j.value), "In-run queue next-test action should stage the focused lab question command");
+    assertEquals("mission-lab-question", game.lastStagedExperiment && game.lastStagedExperiment.source, "In-run queue next-test action should preserve lab-question source");
+    assertEquals(true, inputEl22j.focused, "In-run queue next-test action should focus the terminal");
+    inputEl22j.value = "";
+    inputEl22j.focused = false;
     activeLensButton._events.click();
     assertEquals(true, /use_hopper\(\)/.test(inputEl22j.value), "Lesson lens stage action should include mission setup code");
     assertEquals(true, /antigravity = 4\.9/.test(inputEl22j.value), "Lesson lens stage action should include the first one-variable tweak");
@@ -5690,6 +5718,10 @@ function runEngineTests() {
     updateMissionList(game);
     const signalLab = findByClass(list, "signal-lab-contract-card");
     const signalLabText = flattenText(signalLab || list);
+    const signalRunQueue = findByClass(list, "run-objective-queue-card");
+    const signalRunQueueText = flattenText(signalRunQueue || list);
+    assertEquals(true, /DAILY SIGNAL/.test(signalRunQueueText), "In-run objective queue should include Daily Signal contracts");
+    assertEquals(true, /STAGE SIGNAL/.test(signalRunQueueText), "In-run objective queue should expose the signal stage action");
     assertEquals(true, !!signalLab, "Daily/Frontier runs should pin the signal lab contract in the mission panel");
     assertEquals(true, /DAILY SIGNAL LAB/.test(signalLabText), "Signal lab card should identify Daily Signal runs");
     assertEquals(true, /Numeric friction target/.test(signalLabText), "Signal lab card should show the replay focus title");
