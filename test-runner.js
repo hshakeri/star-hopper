@@ -5321,6 +5321,24 @@ function runRetryRemixTests() {
     assertEquals("chase", target.state, "A stronger classmate record becomes a chase target");
     assertEquals("Grace", target.entry.pilot, "Rival target names the classmate to beat");
     assertEquals(true, /under 35\.0s/.test(target.label), "Rival target names the time to beat");
+    const behindResult = g.getFrontierRivalClearResult({
+      frontierInfo: frontier,
+      labStars: { stars: 3 },
+      clearTime: { elapsed: 36.0 }
+    });
+    assertEquals("behind", behindResult.state, "A slower same-star clear remains behind the imported rival");
+    assertEquals(true, /Grace still leads/.test(behindResult.body), "Behind result should name the remaining class target");
+    const beatenResult = g.getFrontierRivalClearResult({
+      frontierInfo: frontier,
+      labStars: { stars: 3 },
+      clearTime: { elapsed: 34.0 }
+    });
+    assertEquals("beaten", beatenResult.state, "A faster same-star clear beats the imported rival");
+    assertEquals(true, /RIVAL BEATEN: Grace/.test(beatenResult.label), "Beaten result should label the classmate win");
+    g.player = { x: 80, y: 90, w: 24, h: 32 };
+    const rivalEffect = g.spawnFrontierRivalClearEffect(beatenResult);
+    assertEquals("RIVAL BEATEN!", rivalEffect.label, "Beating a rival should create an in-level payoff cue");
+    assertEquals("FRONTIER CRT", g.missionBalloon && g.missionBalloon.title, "Rival payoff should write to the mission CRT");
 
     const els = {
       "daily-signal-label": { textContent: "" },
@@ -5333,7 +5351,8 @@ function runRetryRemixTests() {
       "frontier-board-list": { innerHTML: "" },
       "frontier-rival-target": { classList: { toggle: () => {} } },
       "frontier-rival-copy": { textContent: "" },
-      "frontier-rival-btn": { style: {} }
+      "frontier-rival-btn": { style: {} },
+      "clear-lab-report": { innerHTML: "" }
     };
     document.getElementById = (id) => els[id] || null;
     const bannerDaily = g.getDailySignal();
@@ -5352,6 +5371,28 @@ function runRetryRemixTests() {
     assertEquals(true, /Grace/.test(els["frontier-board-list"].innerHTML), "Frontier board should render the leading imported pilot");
     assertEquals(true, /Beat Grace/.test(els["frontier-rival-copy"].textContent), "Frontier board should render a specific rival target");
     assertEquals("inline-flex", els["frontier-rival-btn"].style.display, "Rival chase target should expose a direct start button");
+    g.renderClearLabReport({
+      isDailyRun: true,
+      isFrontierRun: true,
+      nextIndex: null,
+      labStars: {
+        stars: 3,
+        maxStars: 3,
+        checks: [
+          { id: "missions", label: "Mission tasks", earned: true },
+          { id: "gems", label: "Mission gems", earned: true },
+          { id: "science", label: "Science proof", earned: true }
+        ],
+        previousBest: 2,
+        best: 3,
+        isNewBest: true
+      },
+      clearTime: { elapsed: 34.0, best: 34.0, isNewBest: true },
+      frontierRivalResult: beatenResult
+    });
+    assertEquals(true, /FRONTIER RIVAL/.test(els["clear-lab-report"].innerHTML), "Clear report should add a Frontier rival card");
+    assertEquals(true, /RIVAL BEATEN: Grace/.test(els["clear-lab-report"].innerHTML), "Clear report should celebrate the beaten classmate");
+    assertEquals(true, /Share your updated Frontier line/.test(els["clear-lab-report"].innerHTML), "Clear report should turn the win into a share loop");
     g.recordFrontierClear({
       frontierInfo: frontier,
       labStars: { stars: 3 },

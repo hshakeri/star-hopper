@@ -1007,6 +1007,91 @@ class StarHopperGame {
     };
   }
 
+  getFrontierRivalClearResult({ frontierInfo = this.dailyInfo, labStars = null, clearTime = null } = {}) {
+    const challenge = frontierInfo || this.dailyInfo;
+    if (!challenge || !challenge.isFrontier || !challenge.shareCode) return null;
+    const rivals = Object.values(this.frontierBoard || {})
+      .map(entry => this.normalizeFrontierBoardEntry(entry))
+      .filter(entry => entry && entry.shareCode === challenge.shareCode)
+      .sort((a, b) => this.compareFrontierRecords(b, a));
+    const leader = rivals[0] || null;
+    if (!leader) return null;
+
+    const planet = (typeof PLANETS !== 'undefined' && PLANETS[challenge.planetIndex]) || null;
+    const local = this.normalizeFrontierRecord({
+      dateStr: challenge.dateStr || this.getTodayDateStr(),
+      shareCode: challenge.shareCode,
+      tier: challenge.tier || 1,
+      planetIndex: challenge.planetIndex,
+      planetName: planet ? planet.name : "Frontier world",
+      variantLabel: challenge.variant ? challenge.variant.variantLabel : "",
+      stars: labStars ? labStars.stars : 0,
+      bestTime: clearTime ? clearTime.elapsed : null
+    });
+    if (!local) return null;
+
+    const comparison = this.compareFrontierRecords(local, leader);
+    const state = comparison > 0 ? "beaten" : (comparison === 0 ? "matched" : "behind");
+    const localTime = Number.isFinite(local.bestTime) ? ` · ${local.bestTime.toFixed(1)}s` : "";
+    const targetTime = Number.isFinite(leader.bestTime) ? ` · ${leader.bestTime.toFixed(1)}s` : "";
+    const pilot = leader.pilot || "classmate";
+    const label = state === "beaten"
+      ? `RIVAL BEATEN: ${pilot}`
+      : (state === "matched" ? `RIVAL MATCHED: ${pilot}` : `RIVAL AHEAD: ${pilot}`);
+    const body = state === "behind"
+      ? `${pilot} still leads with ${leader.stars}/3 Lab Stars${targetTime}. Replay one focused variable and chase the proof target.`
+      : `Your ${local.stars}/3 Lab Stars${localTime} reached the class target from ${pilot} (${leader.stars}/3${targetTime}). Share your updated Frontier line.`;
+
+    return {
+      state,
+      label,
+      body,
+      monitorText: `${label} · ${local.stars}/3${localTime}`,
+      local,
+      entry: leader,
+      shareCode: challenge.shareCode
+    };
+  }
+
+  spawnFrontierRivalClearEffect(result) {
+    if (!result || (result.state !== "beaten" && result.state !== "matched")) return null;
+    const px = this.player
+      ? (Number.isFinite(this.player.x) ? this.player.x : 0) + (Number.isFinite(this.player.w) ? this.player.w : 24) / 2
+      : 0;
+    const py = this.player
+      ? (Number.isFinite(this.player.y) ? this.player.y : 0) + (Number.isFinite(this.player.h) ? this.player.h : 32) / 2
+      : 0;
+    const color = result.state === "beaten" ? "#facc15" : "#c4b5fd";
+    const label = result.state === "beaten" ? "RIVAL BEATEN!" : "RIVAL MATCHED!";
+    const effect = {
+      label,
+      state: result.state,
+      pilot: result.entry ? result.entry.pilot : "",
+      shareCode: result.shareCode || "",
+      x: px,
+      y: py
+    };
+    this.lastFrontierRivalEffect = effect;
+    if (typeof ui_log_output === 'function') {
+      ui_log_output(`${label} ${result.body}`, "success");
+    }
+    if (typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+      ComicBubbles.pop(px, py - 36, label, color, 1.12);
+    }
+    if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+      Particles.spawnBurst(px, py - 6, color, 18, 2.8, 2.4, "glow");
+      Particles.spawnBurst(px, py - 6, "#67e8f9", 8, 1.9, 1.8, "glow");
+    }
+    if (typeof this.showMissionBalloon === 'function') {
+      this.showMissionBalloon(result.monitorText, {
+        title: "FRONTIER CRT",
+        color,
+        timer: 300
+      });
+    }
+    return effect;
+  }
+
   escapeFrontierHTML(value) {
     return String(value == null ? "" : value)
       .replace(/&/g, "&amp;")
@@ -4822,7 +4907,14 @@ class StarHopperGame {
       this.spawnSignalStoryUnlockEffect(this.lastSignalStoryUnlocks[0]);
     }
     const clearTime = this.recordClearTime({ isDailyRun, isFrontierRun });
+    const frontierRivalResult = isFrontierRun ? this.getFrontierRivalClearResult({ labStars, clearTime }) : null;
     const frontierRecord = isFrontierRun ? this.recordFrontierClear({ labStars, clearTime }) : null;
+    if (frontierRivalResult) {
+      this.lastFrontierRivalResult = frontierRivalResult;
+      this.spawnFrontierRivalClearEffect(frontierRivalResult);
+    } else {
+      this.lastFrontierRivalResult = null;
+    }
     this.refreshGalaxyMapProgress();
     if (typeof saveLocalProgress === 'function') saveLocalProgress();
     this.refreshDailySignalBanner();
@@ -4884,13 +4976,13 @@ class StarHopperGame {
       if (nextBtn) nextBtn.textContent = "RUN LAUNCH PLAN";
       if (dailyBtn) dailyBtn.style.display = "none";
     }
-    this.renderClearLabReport({ isDailyRun, isFrontierRun, nextIndex, earnedGems, gemKey: clearGemKey, labStars, clearTime });
+    this.renderClearLabReport({ isDailyRun, isFrontierRun, nextIndex, earnedGems, gemKey: clearGemKey, labStars, clearTime, frontierRivalResult });
     ui_log_output(`✓ Level cleared! Target coordinates secured.`, "success");
     ui_log_output(`Rover returning to spacecraft docking bay...`, "info");
     if (typeof updateCertificateState === 'function') updateCertificateState();
   }
 
-  renderClearLabReport({ isDailyRun = false, isFrontierRun = false, nextIndex = null, earnedGems = 0, gemKey = "gem", labStars = null, clearTime = null } = {}) {
+  renderClearLabReport({ isDailyRun = false, isFrontierRun = false, nextIndex = null, earnedGems = 0, gemKey = "gem", labStars = null, clearTime = null, frontierRivalResult = null } = {}) {
     if (typeof document === 'undefined') return;
     const report = document.getElementById("clear-lab-report");
     if (!report) return;
@@ -4927,6 +5019,17 @@ class StarHopperGame {
     const timeBadge = timeSummary && timeSummary.isNewBest
       ? `<div class="clear-lab-time new"><span>NEW LAB TIME</span><strong>${safe(elapsedText)} personal best</strong></div>`
       : (timeSummary ? `<div class="clear-lab-time"><span>LAB TIME</span><strong>${safe(elapsedText)} · best ${safe(bestTimeText)}</strong></div>` : "");
+    const rivalResult = frontierRivalResult || (isFrontierRun ? this.lastFrontierRivalResult : null);
+    const rivalBlock = rivalResult && (rivalResult.state === "beaten" || rivalResult.state === "matched") ? `
+      <div class="clear-frontier-rival ${rivalResult.state === "beaten" ? "beaten" : "matched"}">
+        <div class="clear-frontier-rival-head">
+          <span>FRONTIER RIVAL</span>
+          <strong>${safe(rivalResult.label)}</strong>
+        </div>
+        <p>${safe(rivalResult.body)}</p>
+        <em>${safe(rivalResult.shareCode || "Frontier share code ready")}</em>
+      </div>
+    ` : "";
     const replayContract = this.getClearReplayContract({ labStars: starSummary, clearTime: timeSummary, isDailyRun, isFrontierRun, nextIndex });
     this.lastClearReplayContract = replayContract;
     const replayContractBlock = replayContract ? `
@@ -5030,6 +5133,7 @@ class StarHopperGame {
       ${worldMasteryBlock}
       ${unlockBlock}
       ${timeBadge}
+      ${rivalBlock}
       ${storyUnlockBlock}
       ${storyPreviewBlock}
       ${explainBlock}
