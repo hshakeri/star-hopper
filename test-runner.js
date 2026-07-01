@@ -1719,6 +1719,46 @@ function runEngineTests() {
     assertEquals(masteryAfterFirst, game.getWorldMasteryProgress(0).xp, "Repeated Signal Lab proofs should not farm world mastery");
     assertEquals(1, game.discoveryCombo, "Repeated Signal Lab proofs should not extend the chain");
 
+    const chain = new StarHopperGame();
+    chain.currentPlanet = PLANETS[0];
+    chain.currentPlanetIndex = 0;
+    chain.player = { x: 80, y: 100, w: 24, h: 32 };
+    chain.masteryMeters = {};
+    chain.researchXP = 0;
+    chain.discoveryPassCounts = {};
+    chain.discoveryCombo = 2;
+    chain.remixContext = 'daily';
+    chain.dailyInfo = {
+      dateStr: "2026-06-30",
+      shareCode: "DAILY-EARTH-3030",
+      labContract: {
+        title: "Chain mass proof",
+        body: "Prove the mass lever as the third fresh experiment.",
+        concept: "Force and mass",
+        command: "hopper.mass = 1.2"
+      }
+    };
+    chain.lastStagedExperiment = {
+      title: "Chain mass proof",
+      source: "signal-lab-contract",
+      command: "hopper.mass = 1.2",
+      time: Date.now()
+    };
+    const chainLabelStart = labels.length;
+    const chainOutcome = finishSuccessfulCodeRunDiscovery(chain, activeMission, "hopper.mass = 1.2", noProgress, 0, []);
+    assertEquals("SIGNAL LAB TESTED", chainOutcome.signalLabProof && chainOutcome.signalLabProof.label, "Chained Daily proof still earns its proof reward");
+    assertEquals(3, chain.discoveryCombo, "Chained Daily proof should extend the lab chain");
+    assertEquals("TRIPLE TEST", chain.discoveryPulse.comboMilestone && chain.discoveryPulse.comboMilestone.label, "Replay proofs should trigger combo milestones");
+    assertEquals(10, chain.researchXP, "Daily proof plus Triple Test should add combined Research XP");
+    assertEquals(14, chain.getWorldMasteryProgress(0).xp, "Daily proof plus Triple Test should add combined world mastery");
+    assertEquals(1, chain.discoveryPassCounts[chain.getDiscoveryComboMilestoneSourceKey(3)], "Replay milestone should store the same one-time source");
+    assertEquals("TRIPLE TEST: +6 Research XP", chain.missionBalloon && chain.missionBalloon.text, "Replay milestone should own the Mission CRT when it fires");
+    assertEquals(true, /TRIPLE TEST \+6 XP/.test(panel.innerHTML), "Discovery pulse should render replay combo milestones");
+    assertEquals(true, labels.slice(chainLabelStart).includes("TRIPLE TEST!"), "Replay combo milestone should pop in-level feedback");
+    const chainXPAfterFirst = chain.researchXP;
+    assertEquals(null, chain.grantDiscoveryComboMilestone(chain.discoveryPulse), "Replay combo milestone should not repeat");
+    assertEquals(chainXPAfterFirst, chain.researchXP, "Repeated replay combo milestone should not farm Research XP");
+
     const frontier = new StarHopperGame();
     frontier.currentPlanet = PLANETS[0];
     frontier.currentPlanetIndex = 0;

@@ -3266,9 +3266,11 @@ function awardSignalLabContractProof(game, code, pulse = null) {
 
   game.discoveryPassCounts[sourceKey] = 1;
   game.researchXP = Math.max(0, (game.researchXP || 0) + rewardXP);
+  let comboAdvanced = false;
   if (pulse && !existingReward) {
     game.discoveryCombo = Math.min(99, (game.discoveryCombo || 0) + 1);
     pulse.combo = game.discoveryCombo;
+    comboAdvanced = true;
     if (pulse.combo === 1 && typeof game.spawnDiscoveryComboPrimerEffect === 'function') {
       pulse.comboPrimer = game.spawnDiscoveryComboPrimerEffect(pulse);
     } else if (pulse.combo > 1 && typeof game.spawnDiscoveryComboEffect === 'function') {
@@ -3327,6 +3329,9 @@ function awardSignalLabContractProof(game, code, pulse = null) {
       Particles.spawnBurst(px, py - 10, color, proof.isFrontier ? 14 : 10, 2.2, 2.0, "glow");
       Particles.spawnBurst(px, py - 10, "#fef08a", proof.isFrontier ? 7 : 5, 1.6, 1.5, "glow");
     }
+  }
+  if (comboAdvanced && typeof game.grantDiscoveryComboMilestone === 'function') {
+    game.grantDiscoveryComboMilestone(pulse);
   }
   if (typeof updateDiscoveryPulse === 'function') updateDiscoveryPulse(game);
   if (typeof updateResearchProgress === 'function') updateResearchProgress(game);
@@ -3391,9 +3396,11 @@ function awardAnomalyTraceProof(game, code, pulse = null) {
 
   game.discoveryPassCounts[proof.sourceKey] = 1;
   game.researchXP = Math.max(0, (game.researchXP || 0) + rewardXP);
+  let comboAdvanced = false;
   if (pulse && !existingReward) {
     game.discoveryCombo = Math.min(99, (game.discoveryCombo || 0) + 1);
     pulse.combo = game.discoveryCombo;
+    comboAdvanced = true;
     if (pulse.combo === 1 && typeof game.spawnDiscoveryComboPrimerEffect === 'function') {
       pulse.comboPrimer = game.spawnDiscoveryComboPrimerEffect(pulse);
     } else if (pulse.combo > 1 && typeof game.spawnDiscoveryComboEffect === 'function') {
@@ -3461,6 +3468,9 @@ function awardAnomalyTraceProof(game, code, pulse = null) {
       Particles.spawnBurst(px, py - 10, "#67e8f9", 6, 1.6, 1.5, "glow");
     }
   }
+  if (comboAdvanced && typeof game.grantDiscoveryComboMilestone === 'function') {
+    game.grantDiscoveryComboMilestone(pulse);
+  }
   if (typeof updateDiscoveryPulse === 'function') updateDiscoveryPulse(game);
   if (typeof updateResearchProgress === 'function') updateResearchProgress(game);
   if (typeof game.checkLabStarProgress === 'function') game.checkLabStarProgress("science");
@@ -3521,9 +3531,11 @@ function awardQuantumBranchProof(game, code, pulse = null) {
 
   game.discoveryPassCounts[proof.sourceKey] = 1;
   game.researchXP = Math.max(0, (game.researchXP || 0) + rewardXP);
+  let comboAdvanced = false;
   if (pulse && !existingReward) {
     game.discoveryCombo = Math.min(99, (game.discoveryCombo || 0) + 1);
     pulse.combo = game.discoveryCombo;
+    comboAdvanced = true;
     if (pulse.combo === 1 && typeof game.spawnDiscoveryComboPrimerEffect === 'function') {
       pulse.comboPrimer = game.spawnDiscoveryComboPrimerEffect(pulse);
     } else if (pulse.combo > 1 && typeof game.spawnDiscoveryComboEffect === 'function') {
@@ -3589,6 +3601,9 @@ function awardQuantumBranchProof(game, code, pulse = null) {
       Particles.spawnBurst(px, py - 10, "#fef08a", 6, 1.6, 1.5, "glow");
     }
   }
+  if (comboAdvanced && typeof game.grantDiscoveryComboMilestone === 'function') {
+    game.grantDiscoveryComboMilestone(pulse);
+  }
   if (typeof updateDiscoveryPulse === 'function') updateDiscoveryPulse(game);
   if (typeof updateResearchProgress === 'function') updateResearchProgress(game);
   if (typeof game.checkLabStarProgress === 'function') game.checkLabStarProgress("science");
@@ -3649,9 +3664,11 @@ function awardQuantumChanceProof(game, code, pulse = null) {
 
   game.discoveryPassCounts[proof.sourceKey] = 1;
   game.researchXP = Math.max(0, (game.researchXP || 0) + rewardXP);
+  let comboAdvanced = false;
   if (pulse && !existingReward) {
     game.discoveryCombo = Math.min(99, (game.discoveryCombo || 0) + 1);
     pulse.combo = game.discoveryCombo;
+    comboAdvanced = true;
     if (pulse.combo === 1 && typeof game.spawnDiscoveryComboPrimerEffect === 'function') {
       pulse.comboPrimer = game.spawnDiscoveryComboPrimerEffect(pulse);
     } else if (pulse.combo > 1 && typeof game.spawnDiscoveryComboEffect === 'function') {
@@ -3716,6 +3733,9 @@ function awardQuantumChanceProof(game, code, pulse = null) {
       Particles.spawnBurst(px, py - 10, color, 12, 2.2, 2.0, "glow");
       Particles.spawnBurst(px, py - 10, "#fef08a", 6, 1.6, 1.5, "glow");
     }
+  }
+  if (comboAdvanced && typeof game.grantDiscoveryComboMilestone === 'function') {
+    game.grantDiscoveryComboMilestone(pulse);
   }
   if (typeof updateDiscoveryPulse === 'function') updateDiscoveryPulse(game);
   if (typeof updateResearchProgress === 'function') updateResearchProgress(game);
