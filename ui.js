@@ -421,6 +421,7 @@ function updateMissionList(game) {
   appendMissionLabQuestionCard(listContainer, game);
   appendWorldMasteryCrtCard(listContainer, game);
   appendVillageTrustCrtCard(listContainer, game);
+  appendVillageQuestChainCrtCard(listContainer, game);
   appendVillageStateCrtCard(listContainer, game);
   appendVillageRequestCrtCard(listContainer, game);
   appendSignalStoryCrtCard(listContainer, game);
@@ -781,6 +782,108 @@ function appendVillageTrustCrtCard(listContainer, game) {
     <div class="village-trust-crt-body">
       <strong>${escapeHTML(preview.nextText)} · ${escapeHTML(preview.action)}</strong>
       <p>${escapeHTML(preview.body)}</p>
+    </div>
+  `;
+  listContainer.appendChild(card);
+}
+
+function getVillageProofSources(game, index) {
+  const key = String(Number.isFinite(index) ? index : 0);
+  let trustSources = {};
+  if (game && typeof game.normalizeVillageTrust === "function") {
+    const meter = game.normalizeVillageTrust(Number(key));
+    trustSources = meter && meter.sources && typeof meter.sources === "object" ? meter.sources : {};
+  } else if (game && game.villageTrust) {
+    const meter = game.villageTrust[key] || game.villageTrust[Number(key)] || {};
+    trustSources = meter.sources && typeof meter.sources === "object" ? meter.sources : {};
+  }
+  const discovery = game && game.discoveryPassCounts && typeof game.discoveryPassCounts === "object"
+    ? game.discoveryPassCounts
+    : {};
+  return Array.from(new Set(Object.keys(trustSources).concat(Object.keys(discovery))));
+}
+
+function getVillageQuestChainPreview(game) {
+  if (!game || typeof game.getVillageTrustProgress !== "function") return null;
+  const index = Number.isFinite(Number(game.currentPlanetIndex)) ? Number(game.currentPlanetIndex) : 0;
+  const progress = game.getVillageTrustProgress(index);
+  if (!progress) return null;
+  const hasVillageHere = Array.isArray(game.interactiveObjects)
+    ? game.interactiveObjects.some(obj => obj && (obj.profession || (Array.isArray(obj.trades) && obj.trades.length)))
+    : false;
+  if (!hasVillageHere && !(progress.points > 0)) return null;
+
+  const planetKey = String(index);
+  const sources = getVillageProofSources(game, index);
+  const hasSource = (prefix) => sources.some(source => String(source).indexOf(prefix) === 0);
+  const steps = [
+    {
+      id: "trade",
+      label: "Trade",
+      concept: "Resource flow",
+      formula: "samples -> trade -> tool",
+      body: "Spend one local sample with a villager, then test the new tool or upgrade.",
+      done: hasSource(`village-trade:${planetKey}:`)
+    },
+    {
+      id: "rescue",
+      label: "Rescue",
+      concept: "State machine",
+      formula: "danger -> cave -> safe",
+      body: "Clear danger so a hidden villager can leave the cave and return to trading.",
+      done: hasSource(`village-rescue:${planetKey}:`)
+    },
+    {
+      id: "guard",
+      label: "Guard",
+      concept: "Pet AI",
+      formula: "scared -> pet -> guard",
+      body: "Train a pet or let a pet intercept a hostile mob to prove an AI state change.",
+      done: hasSource(`pet:guard:${planetKey}`)
+    }
+  ];
+  const doneCount = steps.filter(step => step.done).length;
+  const next = steps.find(step => !step.done) || null;
+  const guardianPactDone = hasSource(`village-pact:${planetKey}:guardian`);
+  return {
+    doneCount,
+    total: steps.length,
+    stateClass: doneCount >= steps.length ? "complete" : (doneCount > 0 ? "active" : "new"),
+    title: next ? `Next: ${next.label} pact` : "Guardian village complete",
+    body: next
+      ? next.body
+      : (guardianPactDone
+        ? "This world has a complete village arc. Replay it in Daily Signals or mastery remixes."
+        : "All three village proofs are ready. Build enough trust to trigger the Guardian Pact."),
+    formula: next ? next.formula : "trade + rescue + guard",
+    steps
+  };
+}
+
+function appendVillageQuestChainCrtCard(listContainer, game) {
+  if (!listContainer || !game) return;
+  const preview = getVillageQuestChainPreview(game);
+  if (!preview) return;
+
+  const stepHTML = preview.steps.map(step => `
+    <span class="${step.done ? "done" : "pending"}">
+      <b>${step.done ? "OK" : "--"}</b>
+      ${escapeHTML(step.label)}
+      <em>${escapeHTML(step.concept)}</em>
+    </span>
+  `).join("");
+  const card = document.createElement("div");
+  card.className = `village-chain-crt-card ${preview.stateClass || "new"}`;
+  card.innerHTML = `
+    <div class="village-chain-crt-head">
+      <span>VILLAGE QUEST CHAIN</span>
+      <strong>${escapeHTML(String(preview.doneCount))}/${escapeHTML(String(preview.total))}</strong>
+    </div>
+    <div class="village-chain-crt-body">
+      <strong>${escapeHTML(preview.title)}</strong>
+      <code>${escapeHTML(preview.formula)}</code>
+      <p>${escapeHTML(preview.body)}</p>
+      <div class="village-chain-steps">${stepHTML}</div>
     </div>
   `;
   listContainer.appendChild(card);

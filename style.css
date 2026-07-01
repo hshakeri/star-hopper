@@ -4667,6 +4667,124 @@ html {
   line-height: 1.28;
 }
 
+.village-chain-crt-card {
+  border: 1px solid rgba(196, 181, 253, 0.3);
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgba(49, 46, 129, 0.3), rgba(15, 23, 42, 0.6)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.026) 0 1px, transparent 1px 4px);
+  box-shadow: inset 0 0 14px rgba(196, 181, 253, 0.08);
+  display: grid;
+  gap: 5px;
+  padding: 7px 8px;
+}
+
+.village-chain-crt-card.active {
+  border-color: rgba(125, 211, 252, 0.34);
+}
+
+.village-chain-crt-card.complete {
+  border-color: rgba(167, 243, 208, 0.36);
+  background:
+    linear-gradient(180deg, rgba(6, 78, 59, 0.34), rgba(15, 23, 42, 0.58)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.026) 0 1px, transparent 1px 4px);
+}
+
+.village-chain-crt-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+  font-family: var(--font-mono);
+  line-height: 1.2;
+}
+
+.village-chain-crt-head span {
+  color: #c4b5fd;
+  font-size: 0.55rem;
+  font-weight: 900;
+}
+
+.village-chain-crt-card.complete .village-chain-crt-head span,
+.village-chain-crt-card.complete .village-chain-crt-body strong {
+  color: #a7f3d0;
+}
+
+.village-chain-crt-head strong {
+  color: #ecfeff;
+  font-size: 0.62rem;
+  text-align: right;
+}
+
+.village-chain-crt-body strong {
+  display: block;
+  color: #ddd6fe;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  line-height: 1.25;
+}
+
+.village-chain-crt-body code {
+  display: inline-block;
+  margin-top: 3px;
+  border: 1px solid rgba(196, 181, 253, 0.18);
+  border-radius: 4px;
+  background: rgba(2, 6, 23, 0.4);
+  color: #d9f99d;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  line-height: 1.2;
+  padding: 2px 5px;
+}
+
+.village-chain-crt-body p {
+  margin: 4px 0 0;
+  color: #dff6ff;
+  font-size: 0.6rem;
+  line-height: 1.28;
+}
+
+.village-chain-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.village-chain-steps span {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 4px;
+  background: rgba(2, 6, 23, 0.34);
+  color: #cbd5e1;
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  padding: 4px 5px;
+}
+
+.village-chain-steps span.done {
+  border-color: rgba(167, 243, 208, 0.32);
+  background: rgba(6, 78, 59, 0.26);
+  color: #ecfeff;
+}
+
+.village-chain-steps b {
+  color: #bef264;
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.village-chain-steps em {
+  color: #c4b5fd;
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  font-style: normal;
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+}
+
 .village-state-crt-card {
   border: 1px solid rgba(167, 243, 208, 0.3);
   border-radius: 6px;

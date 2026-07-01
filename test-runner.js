@@ -4254,6 +4254,8 @@ function runEngineTests() {
     const worldMasteryText = flattenText(worldMastery || list);
     const villageTrust = findByClass(list, "village-trust-crt-card");
     const villageTrustText = flattenText(villageTrust || list);
+    const villageChain = findByClass(list, "village-chain-crt-card");
+    const villageChainText = flattenText(villageChain || list);
     const villageState = findByClass(list, "village-state-crt-card");
     const villageStateText = flattenText(villageState || list);
     const signalStory = findByClass(list, "signal-story-crt-card");
@@ -4291,6 +4293,12 @@ function runEngineTests() {
     assertEquals(true, /4 trust to Cave Ally/.test(villageTrustText), "Village trust card should show the next relationship tier gap");
     assertEquals(true, /Cave Rescue Pact/.test(villageTrustText), "Village trust card should name the next relationship pact");
     assertEquals(true, /State machine: danger -&gt; cave -&gt; safe/.test(villageTrustText), "Village trust card should frame helpful play as a game-AI lesson");
+    assertEquals(true, !!villageChain, "Mission panel should show the village quest chain");
+    assertEquals(true, /VILLAGE QUEST CHAIN/.test(villageChainText), "Village quest chain should identify itself");
+    assertEquals(true, /1\/3/.test(villageChainText), "Village quest chain should count completed pacts");
+    assertEquals(true, /Next: Rescue pact/.test(villageChainText), "Village quest chain should name the next village story step");
+    assertEquals(true, /danger -&gt; cave -&gt; safe/.test(villageChainText), "Village quest chain should teach the next AI-state formula");
+    assertEquals(true, /Trade/.test(villageChainText) && /Resource flow/.test(villageChainText), "Village quest chain should remember completed trade proof");
     assertEquals(true, !!villageState, "Mission panel should show the live village state monitor");
     assertEquals(true, /VILLAGE STATE/.test(villageStateText), "Village state card should identify itself");
     assertEquals(true, /DANGER/.test(villageStateText), "Village state card should show mob danger");
@@ -4364,6 +4372,25 @@ function runEngineTests() {
     assertEquals(null, findByClass(list, "village-request-crt-card"), "Mission panel should hide trade requests while the villager is sheltered");
     villageNpc22h.hiddenInCave = false;
     villageNpc22h.shelterReason = null;
+    game.villageTrust = {
+      0: {
+        points: 12,
+        badges: ["friend", "ally", "guardian"],
+        sources: {
+          "village-trade:0:geary:engine_1": 3,
+          "village-rescue:0:geary": 4,
+          "pet:guard:0": 3
+        }
+      }
+    };
+    game.discoveryPassCounts["village-pact:0:guardian"] = 1;
+    list = makeEl();
+    updateMissionList(game);
+    const completeVillageChain = findByClass(list, "village-chain-crt-card");
+    const completeVillageChainText = flattenText(completeVillageChain || list);
+    assertEquals(true, /3\/3/.test(completeVillageChainText), "Village quest chain should show a complete arc");
+    assertEquals(true, /Guardian village complete/.test(completeVillageChainText), "Complete chain should name the village arc payoff");
+    assertEquals(true, /trade \+ rescue \+ guard/.test(completeVillageChainText), "Complete chain should summarize the three-system loop");
 
     list = makeEl();
     game.lastStagedExperiment = null;
