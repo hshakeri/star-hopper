@@ -3018,6 +3018,32 @@ function runEngineTests() {
     const chanceRunCue = game.getScienceDeltaRunCue();
     assertEquals("", chanceRunCue.targetLine, "Probability-only experiments should not show an unrelated mission target line");
 
+    const targetReadyLabels = [];
+    let targetReadyBursts = 0;
+    ComicBubbles.pop = (x, y, text) => { targetReadyLabels.push(text); };
+    Particles.spawnBurst = () => { targetReadyBursts++; };
+    const targetGame = new StarHopperGame();
+    targetGame.player = { charType: 'hopper', x: 40, y: 84, w: 24, h: 32, mass: 1, fuel: 100 };
+    targetGame.spawnedBoxes = [];
+    targetGame.interactiveObjects = [];
+    targetGame.targetTestAgility = 8;
+    targetGame.getActiveMass = () => 1;
+    targetGame.getEngineForce = () => 4;
+    targetGame.getJumpForce = () => 10;
+    targetGame.getDesignGravity = () => 1;
+    targetGame.getCurrentFriction = () => 0;
+    targetGame.getMissionStat = function () {
+      return { key: 'agility', label: 'Agility', value: this.targetTestAgility, target: 10 };
+    };
+    const targetBefore = captureScienceDeltaSnapshot(targetGame);
+    targetGame.targetTestAgility = 11;
+    const targetDelta = recordScienceDelta(targetGame, targetBefore, captureScienceDeltaSnapshot(targetGame), "hopper.engine = 8");
+    assertEquals(true, targetDelta.missionTarget && targetDelta.missionTarget.crossed, "Science delta should mark a mission stat crossing");
+    assertEquals(true, targetReadyLabels.includes("TARGET READY!"), "Crossing the mission target should pop a visible ready cue");
+    assertEquals(true, targetReadyLabels.includes("AGILITY 11/10"), "Ready cue should show the live stat over the target");
+    assertEquals("TARGET READY: Agility 11/10", targetGame.missionBalloon && targetGame.missionBalloon.text, "Mission CRT should announce the target-ready payoff");
+    assertEquals(true, targetReadyBursts >= 4, "Target-ready payoff should add extra particle feedback");
+
     const inputEl = {
       value: "",
       focused: false,

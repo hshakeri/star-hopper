@@ -6523,6 +6523,7 @@ function buildScienceDelta(game, before, after, code) {
   if (!game || !before || !after) return null;
   const changes = [];
   const add = (change) => { if (change) changes.push(change); };
+  let missionTarget = null;
 
   if (before.suit !== after.suit && after.suit) {
     changes.push({
@@ -6548,6 +6549,22 @@ function buildScienceDelta(game, before, after, code) {
 
   if (before.missionStat && after.missionStat && before.missionStat.key === after.missionStat.key) {
     add(makeScienceDeltaChange(after.missionStat.label, before.missionStat.value, after.missionStat.value, `Target ${Math.round(after.missionStat.target)} is closer.`, "The target moved farther away.", { epsilon: 0.4 }));
+    const beforeValue = scienceDeltaNumber(before.missionStat.value);
+    const afterValue = scienceDeltaNumber(after.missionStat.value);
+    const targetValue = scienceDeltaNumber(after.missionStat.target);
+    if (beforeValue !== null && afterValue !== null && targetValue !== null && targetValue > 0) {
+      missionTarget = {
+        key: after.missionStat.key || "",
+        label: after.missionStat.label || "Target",
+        before: beforeValue,
+        after: afterValue,
+        target: targetValue,
+        progressBefore: Math.max(0, Math.min(1, beforeValue / targetValue)),
+        progressAfter: Math.max(0, Math.min(1, afterValue / targetValue)),
+        ready: afterValue >= targetValue,
+        crossed: beforeValue < targetValue && afterValue >= targetValue
+      };
+    }
   }
 
   const countSpecs = [
@@ -6592,6 +6609,7 @@ function buildScienceDelta(game, before, after, code) {
     title: "What changed",
     summary: strongest ? `${strongest.label} changed` : "Experiment changed",
     changes,
+    missionTarget,
     code: String(code || "").slice(0, 160),
     time: Date.now()
   };

@@ -7548,7 +7548,31 @@ class StarHopperGame {
       Particles.spawnBurst(px, py, color, 12, 2.1, 2.0, 'glow');
       Particles.spawnBurst(px, py, '#fef08a', 6, 1.5, 1.5, 'glow');
     }
-    return { label, color, x: px, y: py };
+    const target = delta.missionTarget || null;
+    const targetReady = !!(target && target.crossed);
+    if (targetReady) {
+      const fmt = (value) => typeof this.formatScienceDeltaTargetNumber === 'function'
+        ? this.formatScienceDeltaTargetNumber(value)
+        : (Math.abs(Number(value)) >= 10 ? String(Math.round(Number(value))) : Number(value).toFixed(1));
+      const targetLabel = String(target.label || "Target");
+      const targetLine = `${targetLabel} ${fmt(target.after)}/${fmt(target.target)}`;
+      if (typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+        ComicBubbles.pop(px, baseY - 34, "TARGET READY!", "#facc15", 1.08);
+        ComicBubbles.pop(px, baseY - 52, targetLine.toUpperCase(), "#a7f3d0", 0.78);
+      }
+      if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+        Particles.spawnBurst(px, py - 4, '#facc15', 16, 2.5, 2.4, 'glow');
+        Particles.spawnBurst(px, py - 4, '#a7f3d0', 9, 1.8, 1.7, 'glow');
+      }
+      if (typeof this.showMissionBalloon === 'function') {
+        this.showMissionBalloon(`TARGET READY: ${targetLine}`, {
+          title: "MISSION CRT",
+          color: "#facc15",
+          timer: 220
+        });
+      }
+    }
+    return { label, color, x: px, y: py, targetReady };
   }
 
   spawnHypothesisEffect(pulse) {
