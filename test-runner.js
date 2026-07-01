@@ -4411,6 +4411,9 @@ function runEngineTests() {
     assertEquals(1, cue && cue.conceptProgress && cue.conceptProgress.current, "Objective compass should carry Code Concept pip current count");
     assertEquals(2, cue && cue.conceptProgress && cue.conceptProgress.next, "Objective compass should carry Code Concept next pip");
     assertEquals(5, cue && cue.conceptProgress && cue.conceptProgress.total, "Objective compass should carry Code Concept pip total");
+    assertEquals("Repeat count makes tools", cue && cue.lessonSteps && cue.lessonSteps.learn, "Objective compass should carry Code Concept learn step");
+    assertEquals("Repeat a helper", cue && cue.lessonSteps && cue.lessonSteps.code, "Objective compass should carry Code Concept code step");
+    assertEquals("Build the route", cue && cue.lessonSteps && cue.lessonSteps.win, "Objective compass should carry Code Concept win step");
 
     const pipRects = [];
     const labels = [];
@@ -4431,8 +4434,10 @@ function runEngineTests() {
     assertEquals("CODE CONCEPT", drawn && drawn.label, "Compass draw should return the Code Concept cue");
     assertEquals(true, labels.includes("LOOP"), "Compass draw should write the Code Concept chip");
     assertEquals(true, labels.some(text => /repeat 3/.test(text)), "Compass draw should write the Code Concept command");
+    assertEquals(true, labels.includes("LEARN") && labels.includes("CODE") && labels.includes("WIN"), "Compass draw should write the Code Concept learning strip");
     assertEquals(true, labels.some(text => /^1\/5/.test(text)), "Compass draw should write the Code Concept pip label");
     assertEquals(true, pipRects.length >= 5, "Compass draw should render one compact pip per Code Concept card");
+    assertEquals(true, drawn && drawn.h > 72, "Compass should reserve room for Code Concept learning chips");
 
     getAttemptLogNextQuestion = oldGetAttemptLogNextQuestion22bc4;
     getLabChainTarget = oldGetLabChainTarget22bc4;

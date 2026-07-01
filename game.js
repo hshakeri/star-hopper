@@ -9092,6 +9092,17 @@ class StarHopperGame {
         ? Math.max(0, Math.min(1, rawProgressTarget))
         : progressValue;
     }
+    const rawLessonSteps = item.lessonSteps && typeof item.lessonSteps === "object" ? item.lessonSteps : null;
+    const learnStep = rawLessonSteps ? String(rawLessonSteps.learn || "").trim() : "";
+    const codeStep = rawLessonSteps ? String(rawLessonSteps.code || rawLessonSteps.codeMove || "").trim() : "";
+    const winStep = rawLessonSteps ? String(rawLessonSteps.win || rawLessonSteps.payoff || "").trim() : "";
+    const lessonSteps = (learnStep || codeStep || winStep)
+      ? {
+          learn: learnStep || "Next concept",
+          code: codeStep || "Try the command",
+          win: winStep || "Collect the reward"
+        }
+      : null;
     return {
       key: `${item.label || "NEXT"}:${item.title || "Next objective"}:${commandLine || item.body || item.reward || ""}:${item.source || "run-objective-queue"}`,
       priority: item.priority || 1,
@@ -9114,6 +9125,7 @@ class StarHopperGame {
         label: progressInfo && progressInfo.label ? String(progressInfo.label) : ""
       } : null,
       conceptProgress,
+      lessonSteps,
       disabled: !!item.disabled,
       queueCount: queue.length,
       trail,
@@ -9140,7 +9152,8 @@ class StarHopperGame {
     const hasTrail = !!(cue.trail && cue.trail.length);
     const hasProgress = !!(cue.progress && Number.isFinite(Number(cue.progress.value)));
     const hasConceptProgress = !!(cue.conceptProgress && Number.isFinite(Number(cue.conceptProgress.total)) && cue.conceptProgress.total > 1);
-    const h = 48 + (hasReason ? 12 : 0) + (hasReward ? 12 : 0) + (hasProgress ? 12 : 0) + (hasTrail ? 12 : 0);
+    const hasLessonSteps = !!(cue.lessonSteps && (cue.lessonSteps.learn || cue.lessonSteps.code || cue.lessonSteps.win));
+    const h = 48 + (hasLessonSteps ? 14 : 0) + (hasReason ? 12 : 0) + (hasReward ? 12 : 0) + (hasProgress ? 12 : 0) + (hasTrail ? 12 : 0);
     const x = Math.max(12, Math.min(W - w - 12, px - w / 2));
     const y = Math.max(64, Math.min(H - h - 16, py - 62));
     const color = cue.color || "#67e8f9";
@@ -9234,14 +9247,44 @@ class StarHopperGame {
       ctx.font = "7px 'Share Tech Mono', monospace";
     }
     ctx.fillText(this.fitCardText(ctx, cue.body, hasCodeSkill ? w - 23 - codeChipW : w - 18), bodyX, y + 39);
+    if (hasLessonSteps) {
+      const lessonY = y + 50;
+      const gap = 3;
+      const chipW = Math.max(34, (w - 18 - gap * 2) / 3);
+      const chips = [
+        ["LEARN", cue.lessonSteps.learn || "Next concept"],
+        ["CODE", cue.lessonSteps.code || "Try command"],
+        ["WIN", cue.lessonSteps.win || "Collect reward"]
+      ];
+      chips.forEach(([label, text], index) => {
+        const chipX = x + 9 + index * (chipW + gap);
+        ctx.globalAlpha = cue.disabled ? 0.5 : 0.78;
+        ctx.fillStyle = "rgba(15, 23, 42, 0.72)";
+        ctx.strokeStyle = cue.disabled ? "rgba(203, 213, 225, 0.28)" : "rgba(147, 197, 253, 0.46)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(chipX, lessonY - 6, chipW, 11, 3);
+        ctx.fill();
+        ctx.stroke();
+        ctx.globalAlpha = cue.disabled ? 0.68 : 0.95;
+        ctx.fillStyle = index === 2 ? "#bbf7d0" : (index === 1 ? "#bfdbfe" : "#fef08a");
+        ctx.font = "bold 4.8px 'Share Tech Mono', monospace";
+        ctx.fillText(label, chipX + 4, lessonY - 1.5);
+        ctx.fillStyle = cue.disabled ? "#cbd5e1" : "#f8fafc";
+        ctx.font = "5px 'Share Tech Mono', monospace";
+        ctx.fillText(this.fitCardText(ctx, text, chipW - 8), chipX + 4, lessonY + 4);
+      });
+      ctx.globalAlpha = cue.disabled ? 0.76 : 0.94;
+    }
+    const detailBaseY = y + 50 + (hasLessonSteps ? 14 : 0);
     if (hasReason) {
       ctx.fillStyle = cue.disabled ? "#cbd5e1" : "#fde68a";
       ctx.font = "6.5px 'Share Tech Mono', monospace";
-      ctx.fillText(this.fitCardText(ctx, cue.reasonLine, w - 18), x + 9, y + 50);
+      ctx.fillText(this.fitCardText(ctx, cue.reasonLine, w - 18), x + 9, detailBaseY);
     }
 
     if (hasReward) {
-      const rewardY = y + 50 + (hasReason ? 12 : 0);
+      const rewardY = detailBaseY + (hasReason ? 12 : 0);
       ctx.globalAlpha = cue.disabled ? 0.5 : 0.78;
       ctx.fillStyle = "rgba(15, 23, 42, 0.74)";
       ctx.strokeStyle = cue.disabled ? "rgba(203, 213, 225, 0.34)" : "#86efac";
@@ -9257,7 +9300,7 @@ class StarHopperGame {
     }
 
     if (hasProgress) {
-      const railY = y + 50 + (hasReason ? 12 : 0) + (hasReward ? 12 : 0);
+      const railY = detailBaseY + (hasReason ? 12 : 0) + (hasReward ? 12 : 0);
       if (hasConceptProgress) {
         const total = Math.max(1, Math.floor(Number(cue.conceptProgress.total) || 1));
         const current = Math.max(0, Math.min(total, Math.floor(Number(cue.conceptProgress.current) || 0)));
