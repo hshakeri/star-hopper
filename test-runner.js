@@ -4560,6 +4560,9 @@ function runCombatTests() {
     g.currentVariant = { map };
     g.player = new Player(100, 128);
     g.unlockedTools = new Set(['taming_lotion']);
+    g.researchXP = 0;
+    g.masteryMeters = {};
+    g.discoveryPassCounts = {};
     const tameable = new Mob(134, 128, 'blob', '#a78bfa', 1);
     tameable.speed = 0; tameable.behaviorTimer = 999;
     g.mobs = [tameable];
@@ -4567,6 +4570,15 @@ function runCombatTests() {
     g.updateMobs();
     assertEquals(1, g.mobs.length, "Taming keeps the mob in the scene");
     assertEquals(true, g.mobs[0].pet, "Calming lotion tames the scared small mob");
+    assertEquals(3, g.researchXP, "First pet tame awards Research XP");
+    assertEquals(7, g.getWorldMasteryProgress(0).xp, "First pet tame adds world mastery XP");
+    assertEquals("Pet Pact", g.discoveryPulse && g.discoveryPulse.title, "Taming creates a pet pact pulse");
+    assertEquals("PET PACT", g.discoveryPulse && g.discoveryPulse.petProof && g.discoveryPulse.petProof.label, "Taming exposes a pet proof chip");
+    assertEquals("PET LAB", g.missionBalloon && g.missionBalloon.title, "Pet proof uses the mission monitor");
+    assertEquals("PET PACT: +3 Research XP", g.missionBalloon && g.missionBalloon.text, "Pet proof announces the XP payoff");
+    assertEquals(1, g.discoveryPassCounts[g.getPetBondProofSourceKey('tame')], "Pet pact stores its one-time source");
+    assertEquals(null, g.grantPetBondProof('tame', g.mobs[0]), "Repeating the pet pact is blocked");
+    assertEquals(3, g.researchXP, "Repeated pet pact does not farm Research XP");
 
     const beforeHealth = g.player.health;
     const pet = g.mobs[0];
@@ -4579,6 +4591,14 @@ function runCombatTests() {
     assertEquals(1, g.mobs.length, "Pet removes the nearby hostile mob");
     assertEquals(true, g.mobs[0].pet, "The surviving mob is the trained pet");
     assertEquals(beforeHealth, g.player.health, "Pet protection prevents contact damage");
+    assertEquals(7, g.researchXP, "First pet guard awards Research XP");
+    assertEquals(21, g.getWorldMasteryProgress(0).xp, "Pet guard proof and woken-mob practice add mastery XP");
+    assertEquals("Pet Guard Proof", g.discoveryPulse && g.discoveryPulse.title, "Pet protection creates a guard proof pulse");
+    assertEquals("GUARD PROOF", g.discoveryPulse && g.discoveryPulse.petProof && g.discoveryPulse.petProof.label, "Pet protection exposes a guard proof chip");
+    assertEquals("GUARD PROOF: +4 Research XP", g.missionBalloon && g.missionBalloon.text, "Guard proof announces the XP payoff");
+    assertEquals(1, g.discoveryPassCounts[g.getPetBondProofSourceKey('guard')], "Guard proof stores its one-time source");
+    assertEquals(null, g.grantPetBondProof('guard', pet), "Repeating the guard proof is blocked");
+    assertEquals(7, g.researchXP, "Repeated guard proof does not farm Research XP");
     renderTestResult(SUITE, "Mobs: lotion tames pets that protect the cadet", true);
   } catch (err) {
     renderTestResult(SUITE, "Mobs: lotion tames pets that protect the cadet", false, err.message);

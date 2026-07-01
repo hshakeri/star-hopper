@@ -4223,6 +4223,110 @@ class StarHopperGame {
     if (typeof ui_log_output === 'function') {
       ui_log_output("🧴 Calming lotion worked — a small mob joined your crew!", "success");
     }
+    this.grantPetBondProof('tame', m);
+  }
+
+  getPetBondProofSourceKey(kind, index = this.currentPlanetIndex) {
+    const planetKey = Number.isFinite(index) ? index : 0;
+    return `pet:${kind || 'tame'}:${planetKey}`;
+  }
+
+  grantPetBondProof(kind = 'tame', mob = null) {
+    const action = kind === 'guard' ? 'guard' : 'tame';
+    const sourceKey = this.getPetBondProofSourceKey(action);
+    this.discoveryPassCounts = this.discoveryPassCounts || {};
+    if (this.discoveryPassCounts[sourceKey]) return null;
+
+    const rewardXP = action === 'guard' ? 4 : 3;
+    const masteryXP = action === 'guard' ? 10 : 7;
+    const label = action === 'guard' ? 'GUARD PROOF' : 'PET PACT';
+    const species = mob && mob.species ? String(mob.species) : 'small mob';
+    const formula = action === 'guard' ? 'pet state -> protect cadet' : 'scared mob + lotion -> pet state';
+    const insight = action === 'guard'
+      ? `A trained ${species} protected the cadet. That is game AI changing state from follow to guard when danger gets close.`
+      : `Calming lotion changed a scared ${species} into a pet. The hidden rule is a state change: wild -> scared -> friend.`;
+    const cue = action === 'guard'
+      ? 'Keep pets near the cadet or villagers so they can intercept hostile mobs.'
+      : 'Use rave mode to scare a small mob, then let calming lotion turn it into a helper.';
+    const color = action === 'guard' ? '#22c55e' : '#4ade80';
+    const mastery = typeof this.awardWorldMasteryXP === 'function'
+      ? this.awardWorldMasteryXP(masteryXP, action === 'guard' ? 'pet guard proof' : 'pet bond proof', { sourceKey, silent: true })
+      : { addedXP: 0, duplicate: false };
+    if (mastery && mastery.duplicate) {
+      this.discoveryPassCounts[sourceKey] = 1;
+      return null;
+    }
+
+    const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+    this.discoveryPassCounts[sourceKey] = 1;
+    this.researchXP = Math.max(0, (this.researchXP || 0) + rewardXP);
+    const afterRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+    const rankUp = !!(beforeRank && afterRank && afterRank.level > beforeRank.level);
+    const pulse = {
+      kind: 'pet',
+      title: action === 'guard' ? 'Pet Guard Proof' : 'Pet Pact',
+      formula,
+      insight,
+      cue,
+      missionId: sourceKey,
+      missionTitle: this.currentPlanet ? this.currentPlanet.name : 'Pet Lab',
+      passed: 1,
+      total: 1,
+      progressLabel: action === 'guard' ? 'pet protected cadet' : `${species} trained`,
+      openedGems: 0,
+      rewardXP,
+      combo: this.discoveryCombo || 0,
+      rankUp,
+      rankTitle: afterRank ? afterRank.title : null,
+      rankPerk: rankUp && afterRank ? afterRank.perk : null,
+      worldMasteryAddedXP: mastery && Number.isFinite(mastery.addedXP) ? mastery.addedXP : 0,
+      sourceKey,
+      petProof: {
+        label,
+        rewardXP,
+        action,
+        sourceKey
+      }
+    };
+    this.discoveryPulse = pulse;
+    this.discoveryLog = [pulse].concat(Array.isArray(this.discoveryLog) ? this.discoveryLog : []).slice(0, 8);
+
+    if (typeof ui_log_output === 'function') {
+      ui_log_output(`${label}: +${rewardXP} Research XP, +${pulse.worldMasteryAddedXP} world mastery XP.`, 'success');
+    }
+    if (typeof logMissionBriefing === 'function') {
+      logMissionBriefing(`${pulse.title}: ${pulse.insight}`);
+    }
+    const fx = mob || this.player;
+    if (fx && typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+      ComicBubbles.pop(fx.x + (fx.w || 24) / 2, fx.y - 24, label, color, 0.9);
+      ComicBubbles.pop(fx.x + (fx.w || 24) / 2, fx.y - 6, `+${rewardXP} LAB XP`, '#a7f3d0', 0.72);
+    }
+    if (fx && typeof Particles !== 'undefined' && Particles.spawnBurst) {
+      Particles.spawnBurst(fx.x + (fx.w || 24) / 2, fx.y + (fx.h || 24) / 2, color, 12, 2.0, 2.1, 'glow');
+      Particles.spawnBurst(fx.x + (fx.w || 24) / 2, fx.y + (fx.h || 24) / 2, '#a7f3d0', 8, 1.6, 1.7, 'glow');
+    }
+    if (rankUp && typeof showBadgeToast === 'function') {
+      showBadgeToast({
+        icon: 'P',
+        label: `Research Rank: ${afterRank.title}`,
+        description: `Pet lab unlocked ${afterRank.perk.label}.`
+      });
+    }
+    if (rankUp && typeof this.spawnResearchRankEffect === 'function') {
+      pulse.rankEffect = this.spawnResearchRankEffect(pulse);
+    }
+    if (typeof this.showMissionBalloon === 'function') {
+      this.showMissionBalloon(`${label}: +${rewardXP} Research XP`, {
+        title: 'PET LAB',
+        color,
+        timer: 230
+      });
+    }
+    if (typeof updateDiscoveryPulse === 'function') updateDiscoveryPulse(this);
+    if (typeof updateResearchProgress === 'function') updateResearchProgress(this);
+    if (typeof saveLocalProgress === 'function' && typeof window !== 'undefined' && window.Game === this) saveLocalProgress();
+    return pulse;
   }
 
   petFollowTarget(pet) {
@@ -4277,6 +4381,7 @@ class StarHopperGame {
     if (typeof SFX !== 'undefined' && SFX.playStomp) SFX.playStomp();
     if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(m.x + m.w / 2, m.y - 4, "PROTECT!", "#4ade80", 0.85);
     if (typeof Particles !== 'undefined') Particles.spawnBurst(m.x + m.w / 2, m.y + m.h / 2, '#4ade80', 8, 2.0, 2.1, 'glow');
+    this.grantPetBondProof('guard', pet);
     if (m.hp <= 0) {
       const wasWoken = !!m.woken;
       this.killMob(index, 'pet');

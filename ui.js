@@ -3166,6 +3166,9 @@ function updateDiscoveryPulse(game) {
   const villageTradeProof = pulse.villageTradeProof
     ? `<div class="discovery-hypothesis discovery-signal-lab">${escapeHTML(pulse.villageTradeProof.label)} +${escapeHTML(String(pulse.villageTradeProof.rewardXP || 0))} XP</div>`
     : "";
+  const petProof = pulse.petProof
+    ? `<div class="discovery-hypothesis discovery-signal-lab">${escapeHTML(pulse.petProof.label)} +${escapeHTML(String(pulse.petProof.rewardXP || 0))} XP</div>`
+    : "";
   const rankPerk = pulse.rankPerk
     ? `<div class="discovery-hypothesis discovery-perk">LAB PERK UNLOCKED: ${escapeHTML(pulse.rankPerk.label)}</div>`
     : "";
@@ -3193,6 +3196,7 @@ function updateDiscoveryPulse(game) {
     ${anomalyTraceProof}
     ${drillProof}
     ${villageTradeProof}
+    ${petProof}
     ${rankPerk}
     ${unlockCard}
     <div class="discovery-pulse-body">${escapeHTML(pulse.insight)}</div>
