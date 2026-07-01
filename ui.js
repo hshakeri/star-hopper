@@ -1572,7 +1572,7 @@ const RESEARCH_RANKS = [
   {
     level: 4,
     title: "Loop Engineer",
-    min: 100,
+    min: 115,
     perk: {
       label: "Combo Amplifier",
       description: "New checklist progress keeps a discovery combo moving."
@@ -1581,7 +1581,7 @@ const RESEARCH_RANKS = [
   {
     level: 5,
     title: "Orbit Scientist",
-    min: 170,
+    min: 190,
     perk: {
       label: "Daily Signal Lab",
       description: "Daily remixes turn practice into a fresh signal chase."
@@ -1590,7 +1590,7 @@ const RESEARCH_RANKS = [
   {
     level: 6,
     title: "Star Mentor",
-    min: 260,
+    min: 300,
     perk: {
       label: "Mastery Mentor",
       description: "A complete lab record points toward mastery clears."

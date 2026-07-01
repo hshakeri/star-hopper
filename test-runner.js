@@ -2317,7 +2317,13 @@ function runEngineTests() {
     assertEquals("Physics Tinkerer", rank.title, "60 Research XP should reach the third rank");
     assertEquals("Formula Deck", rank.perk.label, "Rank should carry the current lab perk");
     assertEquals("Combo Amplifier", rank.nextPerk.label, "Rank should preview the next lab perk");
-    assertEquals(40, rank.remaining, "Remaining XP should point to the next rank");
+    assertEquals(55, rank.remaining, "Remaining XP should point to the tuned next-rank gap");
+    assertEquals("Physics Tinkerer", getResearchRank(114).title, "Tuned curve should keep Combo Amplifier locked until 115 XP");
+    assertEquals("Loop Engineer", getResearchRank(115).title, "Tuned curve should unlock Combo Amplifier at 115 XP");
+    assertEquals("Loop Engineer", getResearchRank(189).title, "Tuned curve should keep Daily Signal Lab locked until 190 XP");
+    assertEquals("Orbit Scientist", getResearchRank(190).title, "Tuned curve should unlock Daily Signal Lab at 190 XP");
+    assertEquals("Orbit Scientist", getResearchRank(299).title, "Tuned curve should keep Star Mentor locked until 300 XP");
+    assertEquals("Star Mentor", getResearchRank(300).title, "Tuned curve should unlock Star Mentor at 300 XP");
 
     const focusStageButton = {
       _events: {},
@@ -2775,10 +2781,10 @@ function runEngineTests() {
     assertEquals(`1/${DISCOVERY_RULES.length} formulas · 60 XP`, els["start-mission-radar-progress"].textContent, "Start radar should show formula and XP progress");
     assertEquals(true, /formula card/.test(els["start-mission-radar-reward"].textContent), "Start radar should show the quest reward");
     assertEquals("NEXT LAB UNLOCK", els["start-rank-preview-label"].textContent, "Start radar should label the next rank unlock");
-    assertEquals("Combo Amplifier in 40 XP", els["start-rank-preview-title"].textContent, "Start radar should name the next perk and remaining XP");
+    assertEquals("Combo Amplifier in 55 XP", els["start-rank-preview-title"].textContent, "Start radar should name the next perk and tuned remaining XP");
     assertEquals(true, /Reach Loop Engineer/.test(els["start-rank-preview-body"].textContent), "Start radar should connect the perk to the next rank");
     assertEquals(true, /Lab chain: Next milestone: TRIPLE TEST at x3 \(\+6 XP\)\./.test(els["start-rank-preview-body"].textContent), "Start radar should preserve the next lab-chain milestone");
-    assertEquals("11%", els["start-rank-preview-bar"].style.width, "Start radar should show rank progress toward the next unlock");
+    assertEquals("8%", els["start-rank-preview-bar"].style.width, "Start radar should show tuned rank progress toward the next unlock");
     assertEquals("WORLD MASTERY", els["start-world-preview-label"].textContent, "Start radar should label world mastery preview");
     assertEquals("Signal Scout · 80 XP", els["start-world-preview-title"].textContent, "Start radar should show current world mastery tier and XP");
     assertEquals(true, /30 XP to World Engineer/.test(els["start-world-preview-body"].textContent), "Start radar should show next world mastery gap");
@@ -3088,8 +3094,8 @@ function runEngineTests() {
     assertEquals(true, /Village Guardian at 12 trust/.test(report.innerHTML), "Clear report should show the next village trust tier");
     assertEquals(true, /Next: rescue, trade, or pet guard/.test(report.innerHTML), "Clear report should name the next relationship action");
     assertEquals(true, /NEXT LAB UNLOCK/.test(report.innerHTML), "Clear report should show the next research unlock target");
-    assertEquals(true, /Combo Amplifier in 15 XP/.test(report.innerHTML), "Clear report should show the post-run XP gap to the next perk");
-    assertEquals(true, /67% toward next lab unlock/.test(report.innerHTML), "Clear report should render research unlock progress");
+    assertEquals(true, /Combo Amplifier in 30 XP/.test(report.innerHTML), "Clear report should show the post-run tuned XP gap to the next perk");
+    assertEquals(true, /50% toward next lab unlock/.test(report.innerHTML), "Clear report should render tuned research unlock progress");
     assertEquals(true, /OK Mission tasks/.test(report.innerHTML), "Clear report should credit completed mission tasks");
     assertEquals(true, /OK Science proof/.test(report.innerHTML), "Clear report should credit the science-proof action");
     assertEquals(true, /222px/.test(report.innerHTML), "Clear report should include max height");
