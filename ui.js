@@ -422,6 +422,7 @@ function updateMissionList(game) {
   appendWorldMasteryCrtCard(listContainer, game);
   appendVillageTrustCrtCard(listContainer, game);
   appendVillageStateCrtCard(listContainer, game);
+  appendVillageRequestCrtCard(listContainer, game);
   appendSignalStoryCrtCard(listContainer, game);
   appendSignalLabContractCard(listContainer, game);
   appendFrontierRivalCrtCard(listContainer, game);
@@ -873,6 +874,69 @@ function appendVillageStateCrtCard(listContainer, game) {
       <code>${escapeHTML(preview.formula)}</code>
       <p>${escapeHTML(preview.body)}</p>
       <em>${escapeHTML(preview.countLine)}</em>
+    </div>
+  `;
+  listContainer.appendChild(card);
+}
+
+function isVillageRequestVisible(game, npc) {
+  if (!npc || npc.hiddenInCave || npc.rescuePending || npc.shelterReason) return false;
+  const shelter = game && typeof game.getVillagerShelterSignal === 'function'
+    ? game.getVillagerShelterSignal(npc, { radius: 128 })
+    : null;
+  return !(shelter && shelter.active);
+}
+
+function getVillageRequestCrtPreview(game) {
+  if (!game || !Array.isArray(game.interactiveObjects)) return null;
+  const playerX = game.player && Number.isFinite(game.player.x) ? game.player.x : null;
+  const candidates = game.interactiveObjects
+    .filter(npc => npc && Array.isArray(npc.trades) && npc.trades.length && isVillageRequestVisible(game, npc))
+    .map(npc => {
+      const request = getVillageTradeRequest(game, npc);
+      if (!request) return null;
+      const missing = Math.max(0, Math.floor(Number(request.missing) || 0));
+      const distance = playerX === null || !Number.isFinite(npc.x) ? 0 : Math.abs(npc.x - playerX);
+      const rank = request.ready ? 0 : (request.complete ? 20000 : 100 + missing);
+      return { npc, request, missing, distance, rank };
+    })
+    .filter(Boolean)
+    .sort((a, b) => (a.rank - b.rank) || (a.distance - b.distance));
+  const best = candidates[0];
+  if (!best) return null;
+
+  const npcName = best.npc.name || "Village mentor";
+  const request = best.request;
+  const status = request.complete ? "COMPLETE" : (request.ready ? "READY TRADE" : "NEED SAMPLES");
+  const stateClass = request.complete ? "complete" : (request.ready ? "ready" : "need");
+  const formula = request.complete ? "sample -> tool -> replay" : "sample -> trade -> tool";
+  return {
+    stateClass,
+    status,
+    title: `${npcName}: ${request.title || "Village upgrade"}`,
+    body: request.body || "Collect samples, trade with a villager, then test the new tool.",
+    reward: request.reward || "Payoff: village upgrade",
+    formula
+  };
+}
+
+function appendVillageRequestCrtCard(listContainer, game) {
+  if (!listContainer || !game) return;
+  const preview = getVillageRequestCrtPreview(game);
+  if (!preview) return;
+
+  const card = document.createElement("div");
+  card.className = `village-request-crt-card ${preview.stateClass || "need"}`;
+  card.innerHTML = `
+    <div class="village-request-crt-head">
+      <span>VILLAGE REQUEST</span>
+      <strong>${escapeHTML(preview.status)}</strong>
+    </div>
+    <div class="village-request-crt-body">
+      <strong>${escapeHTML(preview.title)}</strong>
+      <code>${escapeHTML(preview.formula)}</code>
+      <p>${escapeHTML(preview.body)}</p>
+      <em>${escapeHTML(preview.reward)}</em>
     </div>
   `;
   listContainer.appendChild(card);

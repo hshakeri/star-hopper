@@ -4768,6 +4768,102 @@ html {
   line-height: 1.2;
 }
 
+.village-request-crt-card {
+  border: 1px solid rgba(253, 230, 138, 0.32);
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgba(69, 26, 3, 0.34), rgba(15, 23, 42, 0.6)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.028) 0 1px, transparent 1px 4px);
+  box-shadow: inset 0 0 14px rgba(253, 230, 138, 0.08);
+  display: grid;
+  gap: 5px;
+  padding: 7px 8px;
+}
+
+.village-request-crt-card.ready {
+  border-color: rgba(52, 211, 153, 0.38);
+  background:
+    linear-gradient(180deg, rgba(6, 78, 59, 0.38), rgba(15, 23, 42, 0.58)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.028) 0 1px, transparent 1px 4px);
+  box-shadow: inset 0 0 14px rgba(52, 211, 153, 0.1);
+}
+
+.village-request-crt-card.complete {
+  border-color: rgba(125, 211, 252, 0.34);
+  background:
+    linear-gradient(180deg, rgba(12, 74, 110, 0.34), rgba(15, 23, 42, 0.58)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.028) 0 1px, transparent 1px 4px);
+}
+
+.village-request-crt-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+  font-family: var(--font-mono);
+  line-height: 1.2;
+}
+
+.village-request-crt-head span {
+  color: #fde68a;
+  font-size: 0.55rem;
+  font-weight: 900;
+}
+
+.village-request-crt-card.ready .village-request-crt-head span,
+.village-request-crt-card.ready .village-request-crt-body strong {
+  color: #a7f3d0;
+}
+
+.village-request-crt-card.complete .village-request-crt-head span,
+.village-request-crt-card.complete .village-request-crt-body strong {
+  color: #7dd3fc;
+}
+
+.village-request-crt-head strong {
+  color: #ecfeff;
+  font-size: 0.62rem;
+  text-align: right;
+}
+
+.village-request-crt-body strong {
+  display: block;
+  color: #fef08a;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  line-height: 1.25;
+}
+
+.village-request-crt-body code {
+  display: inline-block;
+  margin-top: 3px;
+  border: 1px solid rgba(253, 230, 138, 0.18);
+  border-radius: 4px;
+  background: rgba(2, 6, 23, 0.4);
+  color: #d9f99d;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  line-height: 1.2;
+  padding: 2px 5px;
+}
+
+.village-request-crt-body p {
+  margin: 4px 0 0;
+  color: #dff6ff;
+  font-size: 0.6rem;
+  line-height: 1.28;
+}
+
+.village-request-crt-body em {
+  display: block;
+  margin-top: 3px;
+  color: #cbd5e1;
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  font-style: normal;
+  line-height: 1.2;
+}
+
 .signal-story-crt-card {
   border: 1px solid rgba(103, 232, 249, 0.28);
   border-radius: 6px;

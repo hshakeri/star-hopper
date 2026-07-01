@@ -4336,6 +4336,35 @@ function runEngineTests() {
     assertEquals(true, /daylight/.test(nightVillageStateText), "Night state should explain when villagers return");
     game.getEarthDayNightPhase = () => ({ t: 0.5, daylight: 1, isDay: true, sunX: 0.5, sunY: 0.34 });
 
+    villageNpc22h.trades = [
+      { id: "engine_1", cost: { type: "emerald", amount: 1 }, desc: "Reinforce Engine", reward: { type: "cap", key: "engine", amount: 3 } },
+      { id: "pricey", cost: { type: "emerald", amount: 4 }, desc: "Overclock Engine", reward: { type: "cap", key: "engine", amount: 5 } }
+    ];
+    game.gemsWallet = { emerald: 1, quartz: 0, amber: 0, ice: 0, flux: 0 };
+    game.purchasedTrades = new Set();
+    villageNpc22h.hiddenInCave = false;
+    villageNpc22h.rescuePending = false;
+    villageNpc22h.shelterReason = null;
+    villageNpc22h.x = villageNpc22h.homeX;
+    villageNpc22h.y = villageNpc22h.homeY;
+    list = makeEl();
+    updateMissionList(game);
+    const villageRequest = findByClass(list, "village-request-crt-card");
+    const villageRequestText = flattenText(villageRequest || list);
+    assertEquals(true, !!villageRequest, "Mission panel should show the current village trade request");
+    assertEquals(true, /VILLAGE REQUEST/.test(villageRequestText), "Village request card should identify itself");
+    assertEquals(true, /READY TRADE/.test(villageRequestText), "Village request card should prioritize ready trades");
+    assertEquals(true, /Machinist Geary: Reinforce Engine/.test(villageRequestText), "Village request card should name the villager and payoff");
+    assertEquals(true, /sample -&gt; trade -&gt; tool/.test(villageRequestText), "Village request card should teach the resource-flow formula");
+    assertEquals(true, /Payoff: ENGINE \+3 upgrade/.test(villageRequestText), "Village request card should show the concrete reward");
+    villageNpc22h.hiddenInCave = true;
+    villageNpc22h.shelterReason = "nearby mob";
+    list = makeEl();
+    updateMissionList(game);
+    assertEquals(null, findByClass(list, "village-request-crt-card"), "Mission panel should hide trade requests while the villager is sheltered");
+    villageNpc22h.hiddenInCave = false;
+    villageNpc22h.shelterReason = null;
+
     list = makeEl();
     game.lastStagedExperiment = null;
     game.coachPredictions = { "earth-gravity-wall": "lighter-longer" };
