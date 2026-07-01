@@ -1092,18 +1092,32 @@ function getScienceDeltaChainBadge(game, delta) {
   };
 }
 
-function getDiscoveryComboMilestonePreview(game, combo) {
-  const current = Math.max(0, Math.floor(Number(combo) || 0));
+function getDiscoveryComboMilestoneStatus(game, combo = null) {
+  const fallbackCombo = game && Number.isFinite(game.discoveryCombo) ? game.discoveryCombo : 0;
+  const current = Math.max(0, Math.floor(Number(combo !== null && combo !== undefined ? combo : fallbackCombo) || 0));
   const milestone = game && typeof game.getNextDiscoveryComboMilestone === "function"
     ? game.getNextDiscoveryComboMilestone(current)
     : null;
-  if (!milestone) return "";
+  if (!milestone) return null;
   const label = milestone.label || "LAB CHAIN";
   const target = Math.max(1, Math.floor(Number(milestone.combo) || current + 1));
   const reward = Math.max(0, Math.floor(Number(milestone.rewardXP) || 0));
   const remaining = Math.max(0, Math.floor(Number(milestone.remaining) || (target - current)));
-  if (remaining <= 1) return `Next milestone: ${label} at x${target} (+${reward} XP).`;
-  return `${remaining} fresh experiments to ${label} at x${target} (+${reward} XP).`;
+  const preview = remaining <= 1
+    ? `Next milestone: ${label} at x${target} (+${reward} XP).`
+    : `${remaining} fresh experiments to ${label} at x${target} (+${reward} XP).`;
+  return { combo: current, label, target, reward, remaining, preview };
+}
+
+function getActiveLabChainMilestone(game) {
+  const combo = Math.max(0, Math.floor(Number(game && game.discoveryCombo) || 0));
+  if (combo <= 0) return null;
+  return getDiscoveryComboMilestoneStatus(game, combo);
+}
+
+function getDiscoveryComboMilestonePreview(game, combo) {
+  const status = getDiscoveryComboMilestoneStatus(game, combo);
+  return status ? status.preview : "";
 }
 
 function getLabChainTarget(game) {
@@ -2184,6 +2198,7 @@ function updateResearchProgress(game = window.Game) {
   if (rankCard) {
     const pct = Math.round(rank.progress * 100);
     const labQuest = getActiveLabQuest(game);
+    const chainMilestone = getActiveLabChainMilestone(game);
     rankCard.innerHTML = `
       <div class="research-rank-top">
         <div>
@@ -2201,6 +2216,13 @@ function updateResearchProgress(game = window.Game) {
         <strong>${escapeHTML(labQuest.title)}</strong>
         <p>${escapeHTML(labQuest.body)}</p>
         <em>${escapeHTML(labQuest.reward)}</em>
+      </div>` : ""}
+      ${chainMilestone ? `
+      <div class="lab-chain-rank-card">
+        <span>LAB CHAIN x${escapeHTML(String(chainMilestone.combo))}</span>
+        <strong>${escapeHTML(chainMilestone.label)} at x${escapeHTML(String(chainMilestone.target))}</strong>
+        <p>${escapeHTML(chainMilestone.preview)}</p>
+        <em>Make one fresh experiment to keep the streak alive.</em>
       </div>` : ""}
       <div class="research-rank-perks">
         <div class="research-perk current">
@@ -2712,6 +2734,7 @@ function updateStartMissionRadar(game = window.Game) {
   const worldPreview = getStartWorldMasteryPreview(game);
   const villagePreview = getStartVillageTrustPreview(game);
   const proofPreview = getStartLabStarProofPreview(game);
+  const chainMilestone = getActiveLabChainMilestone(game);
   const action = getStartMissionRadarAction(game, quest);
   const kicker = panel.querySelector ? panel.querySelector(".start-mission-radar-head span") : null;
   const progress = document.getElementById("start-mission-radar-progress");
@@ -2748,7 +2771,11 @@ function updateStartMissionRadar(game = window.Game) {
   if (reward) reward.textContent = quest ? quest.reward : "Reward: stronger science record";
   if (unlockLabel) unlockLabel.textContent = unlockPreview.label;
   if (unlockTitle) unlockTitle.textContent = unlockPreview.title;
-  if (unlockBody) unlockBody.textContent = unlockPreview.body;
+  if (unlockBody) {
+    unlockBody.textContent = chainMilestone
+      ? `${unlockPreview.body} Lab chain: ${chainMilestone.preview}`
+      : unlockPreview.body;
+  }
   if (unlockBar && unlockBar.style) unlockBar.style.width = `${Math.round(unlockPreview.progress * 100)}%`;
   if (worldLabel) worldLabel.textContent = worldPreview.label;
   if (worldTitle) worldTitle.textContent = worldPreview.title;

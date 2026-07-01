@@ -2353,6 +2353,10 @@ function runEngineTests() {
     document.getElementById = (id) => id === "console-input" ? focusInput : (els[id] || null);
     updateResearchProgress({
       researchXP: 60,
+      discoveryCombo: 2,
+      getNextDiscoveryComboMilestone() {
+        return { combo: 3, label: "TRIPLE TEST", rewardXP: 6, remaining: 1 };
+      },
       discoveryLog: [
         { kind: "mass", title: "Mass Lab", formula: "a = F / m", insight: "Less mass makes acceleration bigger.", rewardXP: 12, cardUnlocked: true },
         { kind: "loop", title: "Loop Lab", formula: "repeat n = command x n", insight: "Loops build patterns quickly.", rewardXP: 9, cardUnlocked: true }
@@ -2363,6 +2367,9 @@ function runEngineTests() {
     assertEquals(true, /Formula Deck/.test(els["research-rank-card"].innerHTML), "Rank card should show the current lab perk");
     assertEquals(true, /Next Perk/.test(els["research-rank-card"].innerHTML), "Rank card should preview the next lab perk");
     assertEquals(true, /Combo Amplifier/.test(els["research-rank-card"].innerHTML), "Rank card should name the next lab perk");
+    assertEquals(true, /LAB CHAIN x2/.test(els["research-rank-card"].innerHTML), "Rank card should preserve the active lab-chain count");
+    assertEquals(true, /TRIPLE TEST at x3/.test(els["research-rank-card"].innerHTML), "Rank card should preview the next lab-chain milestone");
+    assertEquals(true, /Next milestone: TRIPLE TEST at x3 \(\+6 XP\)\./.test(els["research-rank-card"].innerHTML), "Rank card should show the milestone payoff");
     assertEquals(true, new RegExp(`Formula Cards 2\\/${DISCOVERY_RULES.length}`).test(els["discovery-deck"].innerHTML), "Deck should show formula collection progress");
     assertEquals(true, /NEXT EXPERIMENT/.test(els["discovery-deck"].innerHTML), "Deck should turn the next card into a focused experiment");
     assertEquals(true, /Engine Lab/.test(els["discovery-deck"].innerHTML), "Formula focus should point at the next locked card");
@@ -2759,6 +2766,7 @@ function runEngineTests() {
     game.requiredCollectiblesCollected = 0;
     game.confirmedHypotheses = new Set();
     game.discoveryPassCounts = {};
+    game.discoveryCombo = 2;
     updateResearchProgress(game);
     assertEquals(true, /NEXT LAB QUEST/.test(els["research-rank-card"].innerHTML), "Rank card should render the lab quest");
     assertEquals(true, /Collect Mass Lab/.test(els["research-rank-card"].innerHTML), "Rendered quest should point to the next formula card");
@@ -2769,6 +2777,7 @@ function runEngineTests() {
     assertEquals("NEXT LAB UNLOCK", els["start-rank-preview-label"].textContent, "Start radar should label the next rank unlock");
     assertEquals("Combo Amplifier in 40 XP", els["start-rank-preview-title"].textContent, "Start radar should name the next perk and remaining XP");
     assertEquals(true, /Reach Loop Engineer/.test(els["start-rank-preview-body"].textContent), "Start radar should connect the perk to the next rank");
+    assertEquals(true, /Lab chain: Next milestone: TRIPLE TEST at x3 \(\+6 XP\)\./.test(els["start-rank-preview-body"].textContent), "Start radar should preserve the next lab-chain milestone");
     assertEquals("11%", els["start-rank-preview-bar"].style.width, "Start radar should show rank progress toward the next unlock");
     assertEquals("WORLD MASTERY", els["start-world-preview-label"].textContent, "Start radar should label world mastery preview");
     assertEquals("Signal Scout · 80 XP", els["start-world-preview-title"].textContent, "Start radar should show current world mastery tier and XP");
