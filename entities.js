@@ -2567,6 +2567,10 @@ class NPC extends InteractiveObject {
     
     const wasProx = this.proximity;
     this.proximity = goingHome ? false : (this.hiddenInCave ? (caveDist < 58) : (dist < 48 || caveDist < 52));
+    if (this.proximity && game && typeof game.canNPCTrade === 'function' && !game.canNPCTrade(this, shelter)) {
+      this.proximity = false;
+      if (game.activeNPC === this) game.activeNPC = null;
+    }
     if (this.hazardCooldown > 0) this.hazardCooldown--;
     if (this.hitFlash > 0) this.hitFlash--;
 
@@ -2822,7 +2826,9 @@ class NPC extends InteractiveObject {
       ctx.fillStyle = caveStatus.color || 'rgba(226, 232, 240, 0.92)';
       ctx.font = "bold 7px 'Share Tech Mono', monospace";
       ctx.fillText(caveStatus.label || 'SAFE', caveX + 16, caveY + 39);
-      if (this.proximity && game && game.activeNPC === this) {
+      const canCall = this.proximity && game && game.activeNPC === this &&
+        (typeof game.canNPCTrade !== 'function' || game.canNPCTrade(this));
+      if (canCall) {
         ctx.fillStyle = 'rgba(15, 23, 42, 0.74)';
         ctx.beginPath();
         ctx.roundRect(caveX - 25, caveY - 18, 82, 15, 5);
@@ -2961,7 +2967,9 @@ class NPC extends InteractiveObject {
     this.drawTradeMarker(ctx, cx, cy, tradeMarker);
 
     // Draw floating prompt if proximity is active
-    if (this.proximity && game && game.activeNPC === this) {
+    const canPromptTrade = this.proximity && game && game.activeNPC === this &&
+      (typeof game.canNPCTrade !== 'function' || game.canNPCTrade(this));
+    if (canPromptTrade) {
       ctx.restore();
       ctx.save();
       ctx.fillStyle = 'rgba(15, 23, 42, 0.72)';

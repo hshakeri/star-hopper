@@ -291,6 +291,14 @@ class StarHopperGame {
     return !!this.findThreateningMobForNPC(npc, 160);
   }
 
+  canNPCTrade(npc, signal = null) {
+    if (!npc || npc.collected) return false;
+    const shelter = signal || this.getVillagerShelterSignal(npc, { radius: 128 });
+    if (shelter && shelter.active) return false;
+    if (npc.hiddenInCave || npc.rescuePending || npc.shelterReason || (npc.panicTimer || 0) > 0) return false;
+    return true;
+  }
+
   getVillagerCaveStatus(npc, signal = null) {
     const shelter = signal || this.getVillagerShelterSignal(npc, { radius: 128 });
     if (shelter && shelter.threat) {
@@ -5316,7 +5324,9 @@ class StarHopperGame {
 
       if (typeof NPC !== 'undefined' && obj instanceof NPC) {
         this.damageNPCFromHazards(obj);
-        if (obj.proximity) this.activeNPC = obj;
+        const shelterSignal = this.getVillagerShelterSignal(obj, { radius: 128 });
+        if (obj.proximity && this.canNPCTrade(obj, shelterSignal)) this.activeNPC = obj;
+        else if (obj.proximity) obj.proximity = false;
       }
 
       if (Physics.isOverlapping(this.player, obj)) {

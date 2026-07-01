@@ -6772,6 +6772,12 @@ function runCombatTests() {
     assertEquals(null, g.activeNPC, "Villager cannot stay trade-active while sheltering from a mob");
     for (let i = 0; i < 40 && !loopSentry.hiddenInCave; i++) g.updateVillagerShelterStates();
     assertEquals(true, loopSentry.hiddenInCave, "Game loop keeps routing a threatened villager into the cave");
+    loopSentry.proximity = true;
+    g.activeNPC = loopSentry;
+    assertEquals(false, g.canNPCTrade(loopSentry), "Hidden villagers cannot become trade targets while sheltering");
+    g.updateVillagerShelterStates();
+    assertEquals(false, loopSentry.proximity, "Shelter pass clears stale cave proximity");
+    assertEquals(null, g.activeNPC, "Sheltered villager cannot keep the active trade focus");
     g.mobs = [];
     loopSentry.panicTimer = 0;
     g.updateVillagerShelterStates();
@@ -7002,6 +7008,17 @@ function runCombatTests() {
     assertEquals("VILLAGE NIGHT: traders wait in caves", nightGame.missionBalloon && nightGame.missionBalloon.text, "Survival-off night release explains villagers stayed in caves");
     assertEquals(0, nightNpc.panicTimer, "Night shelter clears mob panic without forcing villagers outside");
     assertEquals(0, nightGame.researchXP, "Night shelter waits to reward until the villager can actually return");
+    nightNpc.proximity = true;
+    nightGame.activeNPC = nightNpc;
+    nightNpc.update(nightGame);
+    assertEquals(false, nightNpc.proximity, "Night-cave villager cannot become a trade target at the cave mouth");
+    assertEquals(null, nightGame.activeNPC, "Night-cave villager clears stale trade focus");
+    nightGame.getEarthDayNightPhase = () => ({ t: 0.5, daylight: 1, isDay: true, sunX: 0.5, sunY: 0.34 });
+    nightGame.updateVillagerShelterStates();
+    assertEquals(false, nightNpc.hiddenInCave, "Daylight after survival-off brings the villager back out");
+    assertEquals(null, nightNpc.shelterReason, "Daylight after survival-off clears the cave reason");
+    assertEquals(true, nightGame.canNPCTrade(nightNpc), "Daylight-returned villager can trade again");
+    assertEquals(7, nightGame.researchXP, "The rescue reward waits until the villager actually returns");
     renderTestResult(SUITE, "Villagers: survival off releases cave hiding", true);
   } catch (err) {
     renderTestResult(SUITE, "Villagers: survival off releases cave hiding", false, err.message);
@@ -7023,6 +7040,7 @@ function runCombatTests() {
     for (let i = 0; i < 40 && !npc.hiddenInCave; i++) g.updateVillagerShelterStates();
     assertEquals(true, npc.hiddenInCave, "Villager shelters in a cave at night");
     assertEquals("night", npc.shelterReason, "Night cave shelter is labeled separately from mob rescue");
+    assertEquals(false, g.canNPCTrade(npc), "Night-sheltered villagers cannot trade from caves");
     npc.x = 300;
     npc.proximity = true;
     g.activeNPC = npc;
