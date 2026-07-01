@@ -3550,6 +3550,8 @@ function runEngineTests() {
     assertEquals("science-checkpoint", queue[0] && queue[0].source, "Run queue checkpoint item should preserve source metadata");
     assertEquals("STAGE CHECKPOINT", queue[0] && queue[0].cta, "Run queue checkpoint item should expose a stage action");
     assertEquals(true, /Agility 12\/30/.test(queue[0] && queue[0].body), "Run queue checkpoint item should show the live stat");
+    assertEquals(0.4, queue[0] && queue[0].progress && queue[0].progress.value, "Run queue checkpoint item should carry live progress");
+    assertEquals(0.5, queue[0] && queue[0].progress && queue[0].progress.target, "Run queue checkpoint item should carry the next target marker");
 
     const cue = game.getRunObjectiveCompassCue();
     assertEquals("NEXT CHECKPOINT", cue && cue.label, "Objective compass should show checkpoint label when it is the top queue item");
@@ -3557,6 +3559,28 @@ function runEngineTests() {
     assertEquals("science-checkpoint", cue && cue.source, "Objective compass should preserve checkpoint source metadata");
     assertEquals("use_hopper()", cue && cue.commandLine, "Objective compass should show the first runnable checkpoint command");
     assertEquals(true, /Need \+3\.0 to 50% TARGET/.test(cue && cue.reasonLine), "Objective compass should show the checkpoint gap as the reason line");
+    assertEquals(0.4, cue && cue.progress && cue.progress.value, "Objective compass should carry checkpoint progress for a visual rail");
+    assertEquals(0.5, cue && cue.progress && cue.progress.target, "Objective compass should carry checkpoint target marker");
+
+    const railOps = [];
+    const fakeCtx = {
+      save() {},
+      restore() {},
+      beginPath() {},
+      roundRect(x, y, w, h) { railOps.push({ type: "roundRect", x, y, w, h }); },
+      fill() {},
+      stroke() {},
+      fillRect() {},
+      moveTo(x, y) { railOps.push({ type: "moveTo", x, y }); },
+      lineTo(x, y) { railOps.push({ type: "lineTo", x, y }); },
+      fillText() {},
+      measureText(text) { return { width: String(text || "").length * 6 }; }
+    };
+    const drawn = game.drawRunObjectiveCompass(fakeCtx);
+    assertEquals("NEXT CHECKPOINT", drawn && drawn.label, "Compass draw should return the checkpoint cue");
+    assertEquals(0.4, drawn && drawn.progress && drawn.progress.value, "Compass draw should preserve checkpoint progress");
+    assertEquals(true, drawn && drawn.h > 60, "Compass draw should reserve compact space for the checkpoint rail");
+    assertEquals(true, railOps.some(op => op.type === "moveTo"), "Compass draw should paint the checkpoint target marker");
 
     getAttemptLogNextQuestion = oldGetAttemptLogNextQuestion22bc3;
     getLabChainTarget = oldGetLabChainTarget22bc3;

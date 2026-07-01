@@ -8063,6 +8063,13 @@ class StarHopperGame {
       .find(Boolean) || "";
     const itemBody = String(item.body || "").trim();
     const reasonLine = commandLine && itemBody && itemBody !== commandLine ? itemBody : "";
+    const progressInfo = item.progress && typeof item.progress === "object" ? item.progress : null;
+    const progressValue = progressInfo && Number.isFinite(Number(progressInfo.value))
+      ? Math.max(0, Math.min(1, Number(progressInfo.value)))
+      : null;
+    const progressTarget = progressInfo && Number.isFinite(Number(progressInfo.target))
+      ? Math.max(0, Math.min(1, Number(progressInfo.target)))
+      : null;
     return {
       key: `${item.label || "NEXT"}:${item.title || "Next objective"}:${commandLine || item.body || item.reward || ""}:${item.source || "run-objective-queue"}`,
       priority: item.priority || 1,
@@ -8076,6 +8083,11 @@ class StarHopperGame {
       kind: item.kind || "objective",
       source: item.source || "run-objective-queue",
       color: item.color || "#67e8f9",
+      progress: progressValue !== null ? {
+        value: progressValue,
+        target: progressTarget !== null ? progressTarget : progressValue,
+        label: progressInfo && progressInfo.label ? String(progressInfo.label) : ""
+      } : null,
       disabled: !!item.disabled,
       queueCount: queue.length,
       trail,
@@ -8099,7 +8111,8 @@ class StarHopperGame {
     const w = Math.max(124, Math.min(176, W - 24));
     const hasReason = !!cue.reasonLine;
     const hasTrail = !!(cue.trail && cue.trail.length);
-    const h = 48 + (hasReason ? 12 : 0) + (hasTrail ? 12 : 0);
+    const hasProgress = !!(cue.progress && Number.isFinite(Number(cue.progress.value)));
+    const h = 48 + (hasReason ? 12 : 0) + (hasProgress ? 12 : 0) + (hasTrail ? 12 : 0);
     const x = Math.max(12, Math.min(W - w - 12, px - w / 2));
     const y = Math.max(64, Math.min(H - h - 16, py - 62));
     const color = cue.color || "#67e8f9";
@@ -8158,6 +8171,31 @@ class StarHopperGame {
       ctx.fillStyle = cue.disabled ? "#cbd5e1" : "#fde68a";
       ctx.font = "6.5px 'Share Tech Mono', monospace";
       ctx.fillText(this.fitCardText(ctx, cue.reasonLine, w - 18), x + 9, y + 50);
+    }
+
+    if (hasProgress) {
+      const railY = y + 50 + (hasReason ? 12 : 0);
+      const railX = x + 9;
+      const railW = w - 18;
+      const railH = 5;
+      const targetX = railX + railW * Math.max(0, Math.min(1, Number(cue.progress.target)));
+      ctx.globalAlpha = cue.disabled ? 0.36 : 0.62;
+      ctx.fillStyle = "rgba(15, 23, 42, 0.88)";
+      ctx.beginPath();
+      ctx.roundRect(railX, railY - 3, railW, railH, 3);
+      ctx.fill();
+      ctx.globalAlpha = cue.disabled ? 0.52 : 0.95;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.roundRect(railX, railY - 3, railW * Math.max(0, Math.min(1, Number(cue.progress.value))), railH, 3);
+      ctx.fill();
+      ctx.globalAlpha = cue.disabled ? 0.5 : 0.94;
+      ctx.strokeStyle = "#fef08a";
+      ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      ctx.moveTo(targetX, railY - 5);
+      ctx.lineTo(targetX, railY + 4);
+      ctx.stroke();
     }
 
     if (hasTrail) {

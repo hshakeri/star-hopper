@@ -524,6 +524,7 @@ function addRunObjectiveQueueItem(queue, seen, item) {
     source: item.source || "run-objective-queue",
     color: item.color || "#67e8f9",
     prediction: item.prediction || null,
+    progress: item.progress && typeof item.progress === "object" ? item.progress : null,
     disabled: !!item.disabled,
     priority: queue.length + 1
   });
@@ -619,7 +620,12 @@ function getRunObjectiveQueue(game) {
       command: checkpoint.command,
       kind: "science-checkpoint",
       source: "science-checkpoint",
-      color: "#bef264"
+      color: "#bef264",
+      progress: {
+        value: checkpoint.progress,
+        target: checkpoint.checkpointProgress,
+        label: checkpoint.checkpoint || "checkpoint"
+      }
     });
   }
 
