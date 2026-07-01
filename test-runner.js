@@ -1195,6 +1195,22 @@ function runEngineTests() {
     assertEquals(true, labels.includes("PATH COMPLETE!"), "Lesson path capstone should pop an in-world completion label");
     assertEquals(true, /LESSON PATH COMPLETE/.test(panel.innerHTML), "Discovery Pulse should render the lesson path mastery chip");
     assertEquals(true, /2 phases/.test(panel.innerHTML), "Lesson path mastery chip should show the completed phase count");
+    const pathCadetRecord = getCadetIdentityPreview(game);
+    assertEquals(true, /Lesson Paths 1\/3 · next Hopper Engineering Shakedown/.test(pathCadetRecord.body), "Cadet Record should persist completed lesson-path progress after the capstone reward");
+    const pathSourceRecord = getCadetIdentityPreview({
+      researchXP: 0,
+      currentPlanetIndex: 0,
+      discoveredFormulaKinds: new Set(),
+      discoveryPassCounts: {},
+      masteryMeters: {
+        0: { xp: 16, sources: { [getLessonPathMasterySourceKey("earth-gravity-wall")]: 16 } },
+        1: { xp: 16, sources: { [getLessonPathMasterySourceKey("moon-canyon-jump")]: 16 } },
+        5: { xp: 16, sources: { [getLessonPathMasterySourceKey("asteroid-forge-momentum")]: 16 } }
+      },
+      getCadetCallsign: () => "Path Cadet",
+      getVillageTrustProgress: () => ({ title: "New Arrival", points: 0 })
+    });
+    assertEquals(true, /Lesson Paths mastered 3\/3/.test(pathSourceRecord.body), "Cadet Record should count lesson-path mastery from persisted world-mastery sources");
     const afterPathXP = game.researchXP;
     const duplicatePath = grantLessonPathMastery(game, forgeMission, finalOutcome.lessonPhaseAdvance, getMissionLessonPhaseRows(game, forgeMission), finalOutcome.pulse);
     assertEquals(null, duplicatePath, "Lesson path capstone should not replay after its source key is stored");
@@ -3930,6 +3946,7 @@ function runEngineTests() {
     assertEquals(true, /Daily Streak d3 · Mass remix proof/.test(els["start-cadet-identity-body"].textContent), "Cadet record should show the daily lab streak habit");
     assertEquals(true, /Lab Chain x2 -> TRIPLE TEST x3/.test(els["start-cadet-identity-body"].textContent), "Cadet record should show the active lab-chain milestone");
     assertEquals(true, /Passport 1\/6 stamps · next Moon/.test(els["start-cadet-identity-body"].textContent), "Cadet record should show Science Passport stamp progress");
+    assertEquals(true, /Lesson Paths 0\/3 · next Hopper Engineering Shakedown/.test(els["start-cadet-identity-body"].textContent), "Cadet record should show persistent lesson-path progress");
     assertEquals(true, /1\/\d+ formulas/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include formula deck progress");
     assertEquals(true, /1\/12 transmissions/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include story transmission progress");
     assertEquals(true, /1\/5 AI states/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include AI State Deck progress");
@@ -4414,6 +4431,7 @@ function runEngineTests() {
     assertEquals(true, /Daily Streak d3 · Mass remix proof/.test(report.innerHTML), "Clear report cadet record should show the daily lab streak habit");
     assertEquals(true, /Lab Chain x2 -&gt; TRIPLE TEST x3/.test(report.innerHTML), "Clear report cadet record should show the active lab-chain milestone");
     assertEquals(true, /Passport 1\/6 stamps · next Moon/.test(report.innerHTML), "Clear report cadet record should show Science Passport stamp progress");
+    assertEquals(true, /Lesson Paths 0\/3 · next Hopper Engineering Shakedown/.test(report.innerHTML), "Clear report cadet record should show lesson-path portfolio progress");
     assertEquals(true, /1\/\d+ formulas/.test(report.innerHTML), "Clear report cadet record should show formula progress");
     assertEquals(true, /Future Lab: Source Key complete/.test(report.innerHTML), "Clear report cadet record should show the completed Future Lab source-key portfolio state");
     assertEquals(true, /2\/5 AI states/.test(report.innerHTML), "Clear report cadet record should show AI State Deck progress");

@@ -2850,6 +2850,43 @@ function getCadetPassportPortfolioText(game = window.Game) {
   return `Passport ${stamped.length}/${worlds.length} stamps · next ${nextName}`;
 }
 
+function hasLessonPathMasteryCredit(game, mission) {
+  if (!game || !mission) return false;
+  const sourceKey = getLessonPathMasterySourceKey(mission.id || mission.missionId || "mission");
+  const discovery = game.discoveryPassCounts && typeof game.discoveryPassCounts === "object"
+    ? game.discoveryPassCounts
+    : {};
+  if (discovery[sourceKey]) return true;
+  const meters = game.masteryMeters && typeof game.masteryMeters === "object" ? game.masteryMeters : {};
+  return Object.keys(meters).some(key => {
+    const meter = meters[key];
+    const sources = meter && meter.sources && typeof meter.sources === "object" ? meter.sources : {};
+    return !!sources[sourceKey];
+  });
+}
+
+function getLessonPathPortfolioProgress(game = window.Game) {
+  const missions = (typeof PlatformerMissions !== "undefined" && Array.isArray(PlatformerMissions))
+    ? PlatformerMissions.filter(mission => mission && Array.isArray(mission.lessonPhases) && mission.lessonPhases.length > 0)
+    : [];
+  const earned = missions.filter(mission => hasLessonPathMasteryCredit(game, mission));
+  const next = missions.find(mission => !hasLessonPathMasteryCredit(game, mission)) || null;
+  return {
+    earned: earned.length,
+    total: missions.length,
+    next,
+    complete: missions.length > 0 && earned.length >= missions.length
+  };
+}
+
+function getCadetLessonPathPortfolioText(game = window.Game) {
+  const progress = getLessonPathPortfolioProgress(game);
+  if (!progress.total) return "Lesson Paths pending";
+  if (progress.complete) return `Lesson Paths mastered ${progress.earned}/${progress.total}`;
+  const nextTitle = progress.next && progress.next.title ? progress.next.title : "next lesson";
+  return `Lesson Paths ${progress.earned}/${progress.total} · next ${nextTitle}`;
+}
+
 function getCadetDailyHabitPortfolioText(game = window.Game) {
   const streak = Math.max(0, Math.floor(Number(game && game.streakCount) || 0));
   if (streak <= 0) return "Daily Lab: start streak";
@@ -2874,6 +2911,7 @@ function getCadetIdentityPreview(game = window.Game) {
   const labChain = getCadetLabChainPortfolioText(game);
   const dailyHabit = getCadetDailyHabitPortfolioText(game);
   const passport = getCadetPassportPortfolioText(game);
+  const lessonPaths = getCadetLessonPathPortfolioText(game);
   const futureLab = getCadetFutureLabPortfolioText(game);
   const village = game && typeof game.getVillageTrustProgress === "function" ? game.getVillageTrustProgress(game.currentPlanetIndex) : null;
   const trust = village ? `${village.title} · ${village.points} trust` : "Village trust pending";
@@ -2905,7 +2943,7 @@ function getCadetIdentityPreview(game = window.Game) {
   return {
     label: "CADET RECORD",
     title: `${callsign} // ${rank.title}`,
-    body: `${Math.round(rank.xp || 0)} XP · ${dailyHabit} · ${labChain} · ${passport} · ${formulas} · ${transmissions} · ${futureLab} · ${aiStates} · ${trust}`,
+    body: `${Math.round(rank.xp || 0)} XP · ${dailyHabit} · ${labChain} · ${passport} · ${lessonPaths} · ${formulas} · ${transmissions} · ${futureLab} · ${aiStates} · ${trust}`,
     progress: Math.max(0, Math.min(1, Number(rank.progress) || 0)),
     aiAction
   };
