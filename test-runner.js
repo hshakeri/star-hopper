@@ -3809,6 +3809,7 @@ function runEngineTests() {
   const oldGetElementById22e = document.getElementById;
   const oldProfiles22e = window.StarHopperProfiles;
   const oldAttemptRows22e = (typeof AttemptLog !== 'undefined' && AttemptLog.byPlanet) ? AttemptLog.byPlanet : null;
+  const oldSwitchMainMode22e = typeof switchMainMode === 'function' ? switchMainMode : null;
   try {
     window.StarHopperProfiles = { getActive: () => ({ name: "Nova", emoji: "🚀" }) };
     if (typeof AttemptLog !== 'undefined') AttemptLog.byPlanet = { 0: [{ maxH: 222, maxV: 6.4, result: "cleared" }] };
@@ -3846,6 +3847,8 @@ function runEngineTests() {
     assertEquals(true, /2\/5 AI states/.test(report.innerHTML), "Clear report cadet record should show AI State Deck progress");
     assertEquals(true, /next Pet Pact/.test(report.innerHTML), "Clear report cadet record should name the next AI behavior card");
     assertEquals(true, /GET LOTION/.test(report.innerHTML), "Clear report cadet record should include the next AI behavior action");
+    assertEquals(true, /clear-cadet-ai-btn/.test(report.innerHTML), "Clear report cadet record should expose a direct AI route button");
+    assertEquals(true, /runClearCadetAIAction\('pet-pact'\)/.test(report.innerHTML), "Clear report AI button should target the next missing state");
     assertEquals(true, /NEW MASTERY BADGE/.test(report.innerHTML), "Clear report should celebrate a first 3-star mastery");
     assertEquals(true, /\+25 Research XP/.test(report.innerHTML), "Clear report should show the mastery XP reward");
     assertEquals(true, /WORLD MASTERY/.test(report.innerHTML), "Clear report should include per-world mastery progress");
@@ -3897,17 +3900,27 @@ function runEngineTests() {
     assertEquals("WRITE EXPLANATION", game.lastClearObjectiveQueue[1].cta, "Objective queue data should preserve the explanation action");
     assertEquals("Emerald Wall Signal", game.lastClearObjectiveQueue[2].title, "Objective queue data should preserve the decoded story target");
     assertEquals("Pet Pact", game.lastClearObjectiveQueue[3].title, "Objective queue data should preserve the AI-state card target");
+    const clearAIStarts = [];
+    const clearAIModes = [];
+    game.startLevel = (level) => { clearAIStarts.push(level); };
+    switchMainMode = (mode) => { clearAIModes.push(mode); };
+    assertEquals(true, game.runClearCadetAIAction("pet-pact"), "Clear report AI action should launch the next behavior proof");
+    assertEquals(3, clearAIStarts[0], "Clear report AI action should launch the lotion route world");
+    assertEquals("pet-pact", game.activeAIStateRun && game.activeAIStateRun.cardId, "Clear report AI action should remember the active proof card");
+    assertEquals("terminal", clearAIModes[0], "Clear report AI action should return to the playable terminal");
     assertEquals(true, new RegExp(`1\\/${DISCOVERY_RULES.length}`).test(report.innerHTML), "Clear report should include formula deck progress");
     assertEquals(true, /\+2 emerald/.test(report.innerHTML), "Clear report should include newly banked gems");
     assertEquals(true, /Collect Mass Lab/.test(report.innerHTML), "Clear report should include the next lab quest");
 
     if (typeof AttemptLog !== 'undefined') AttemptLog.byPlanet = oldAttemptRows22e || {};
     window.StarHopperProfiles = oldProfiles22e;
+    if (oldSwitchMainMode22e) switchMainMode = oldSwitchMainMode22e;
     document.getElementById = oldGetElementById22e;
     renderTestResult("engine-suite", "Curriculum: clear screen renders lab report", true);
   } catch (err) {
     if (typeof AttemptLog !== 'undefined') AttemptLog.byPlanet = oldAttemptRows22e || {};
     window.StarHopperProfiles = oldProfiles22e;
+    if (oldSwitchMainMode22e) switchMainMode = oldSwitchMainMode22e;
     document.getElementById = oldGetElementById22e;
     renderTestResult("engine-suite", "Curriculum: clear screen renders lab report", false, err.message);
   }

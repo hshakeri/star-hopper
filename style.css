@@ -1692,6 +1692,25 @@ body.resizing-panes * {
   margin: 5px 0 0;
 }
 
+.clear-cadet-ai-btn {
+  margin-top: 6px;
+  min-height: 25px;
+  padding: 3px 9px;
+  border: 1px solid rgba(125, 211, 252, 0.48);
+  border-radius: 6px;
+  background: rgba(34, 211, 238, 0.14);
+  color: #a5f3fc;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.12);
+}
+
+.clear-cadet-ai-btn:hover {
+  background: rgba(34, 211, 238, 0.23);
+}
+
 .clear-lab-star-icons {
   display: flex;
   gap: 3px;
@@ -9587,6 +9606,7 @@ body.readable-text-mode .clear-explain-card strong,
 body.readable-text-mode .clear-explain-card p,
 body.readable-text-mode .clear-explain-card em,
 body.readable-text-mode .clear-explain-btn,
+body.readable-text-mode .clear-cadet-ai-btn,
 body.readable-text-mode .start-story-preview,
 body.readable-text-mode .start-story-preview span,
 body.readable-text-mode .start-story-preview strong,

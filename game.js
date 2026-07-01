@@ -4343,6 +4343,15 @@ class StarHopperGame {
     return true;
   }
 
+  runClearCadetAIAction(cardId = null) {
+    const fallback = typeof getCadetIdentityPreview === 'function'
+      ? (getCadetIdentityPreview(this).aiAction || {}).cardId
+      : null;
+    const id = cardId || fallback;
+    if (!id || typeof runAIStateDeckAction !== 'function') return false;
+    return runAIStateDeckAction(id, this);
+  }
+
   getClearExplainMission() {
     if (typeof getActivePlatformerMission === 'function') {
       return getActivePlatformerMission(this);
@@ -6817,6 +6826,13 @@ class StarHopperGame {
     ` : "";
     const cadetIdentity = typeof getCadetIdentityPreview === 'function' ? getCadetIdentityPreview(this) : null;
     const cadetIdentityPct = cadetIdentity ? Math.max(0, Math.min(100, Math.round((Number(cadetIdentity.progress) || 0) * 100))) : 0;
+    const cadetAIAction = cadetIdentity && cadetIdentity.aiAction && cadetIdentity.aiAction.cardId
+      ? cadetIdentity.aiAction
+      : null;
+    const cadetAIActionId = cadetAIAction ? String(cadetAIAction.cardId || "").replace(/[^a-z0-9_-]/gi, "") : "";
+    const cadetAIActionBlock = cadetAIAction && cadetAIActionId ? `
+      <button type="button" class="clear-cadet-ai-btn" onclick="if (window.Game) window.Game.runClearCadetAIAction('${safe(cadetAIActionId)}')">${safe(cadetAIAction.label || "RUN AI STATE")}</button>
+    ` : "";
     const cadetIdentityBlock = cadetIdentity ? `
       <div class="clear-cadet-record">
         <div class="clear-cadet-record-head">
@@ -6825,6 +6841,7 @@ class StarHopperGame {
         </div>
         <div class="clear-cadet-record-bar" aria-label="${safe(`${cadetIdentityPct}% toward next research rank`)}"><span style="width: ${cadetIdentityPct}%"></span></div>
         <p>${safe(cadetIdentity.body)}</p>
+        ${cadetAIActionBlock}
       </div>
     ` : "";
     const starSummary = labStars || this.getClearLabStarSummary({ isDailyRun });
