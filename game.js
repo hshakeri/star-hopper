@@ -3059,6 +3059,55 @@ class StarHopperGame {
     return `<span class="map-ai-state-chip mastered" aria-label="${safe(`AI State Deck mastered: ${deck.earnedCount}/${deck.total} behavior states logged`)}"><strong>AI MASTERED</strong><em>${safe(`${deck.earnedCount}/${deck.total} states`)}</em></span>`;
   }
 
+  getMapHypothesisTarget(index) {
+    if (typeof getCadetHypothesisAction !== 'function') return null;
+    const targetIndex = Number(index);
+    if (!Number.isFinite(targetIndex)) return null;
+    const action = getCadetHypothesisAction(this);
+    if (!action || !action.missionId || Number(action.levelIndex) !== targetIndex) return null;
+    const progress = action.progress || (typeof getHypothesisPortfolioProgress === 'function' ? getHypothesisPortfolioProgress(this) : null);
+    return { action, progress };
+  }
+
+  getMapHypothesisMastery(index) {
+    if (typeof getHypothesisPortfolioProgress !== 'function') return null;
+    const targetIndex = Number(index);
+    const currentIndex = Number(this.currentPlanetIndex);
+    if (!Number.isFinite(targetIndex) || !Number.isFinite(currentIndex) || targetIndex !== currentIndex) return null;
+    const progress = getHypothesisPortfolioProgress(this);
+    if (!progress || !progress.complete) return null;
+    return progress;
+  }
+
+  renderMapHypothesisChip(index, target = null) {
+    const proofTarget = target || this.getMapHypothesisTarget(index);
+    if (!proofTarget || !proofTarget.action) return "";
+    const safe = (typeof escapeHTML === 'function')
+      ? escapeHTML
+      : (value) => String(value || "").replace(/[&<>"']/g, ch => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[ch]));
+    const action = proofTarget.action;
+    const label = action.label || "RUN PREDICT";
+    const title = String(action.title || "Next prediction proof").replace(/^(Predict|Prove)\s+/i, "");
+    const progress = proofTarget.progress && proofTarget.progress.total
+      ? `${proofTarget.progress.done}/${proofTarget.progress.total} proofs`
+      : "prediction proof";
+    const verb = /^RUN PROOF$/i.test(label) ? "PROOF NEXT" : "PREDICT NEXT";
+    return `<span class="map-hypothesis-chip" aria-label="${safe(`Hypothesis Proof next: ${title} - ${label}`)}"><strong>${safe(verb)}</strong><em>${safe(title)} · ${safe(progress)}</em></span>`;
+  }
+
+  renderMapHypothesisMasteryChip(index, progress = null) {
+    const portfolio = progress || this.getMapHypothesisMastery(index);
+    if (!portfolio) return "";
+    const safe = (typeof escapeHTML === 'function')
+      ? escapeHTML
+      : (value) => String(value || "").replace(/[&<>"']/g, ch => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[ch]));
+    return `<span class="map-hypothesis-chip mastered" aria-label="${safe(`Hypothesis Proofs mastered: ${portfolio.done}/${portfolio.total} predictions confirmed`)}"><strong>HYPOTHESIS MASTERED</strong><em>${safe(`${portfolio.done}/${portfolio.total} proofs`)}</em></span>`;
+  }
+
   getPlanetMapConcept(index) {
     const planets = (typeof PLANETS !== 'undefined' && Array.isArray(PLANETS)) ? PLANETS : [];
     const planet = planets[index] || null;
@@ -3369,10 +3418,16 @@ class StarHopperGame {
       const aiChip = this.renderMapAIStateChip(index, aiTarget);
       const aiMastery = this.getMapAIStateMastery(index);
       const aiMasteryChip = !aiTarget ? this.renderMapAIStateMasteryChip(index, aiMastery) : "";
+      const hypothesisTarget = available ? this.getMapHypothesisTarget(index) : null;
+      const hypothesisChip = available ? this.renderMapHypothesisChip(index, hypothesisTarget) : "";
+      const hypothesisMastery = available ? this.getMapHypothesisMastery(index) : null;
+      const hypothesisMasteryChip = !hypothesisTarget && available ? this.renderMapHypothesisMasteryChip(index, hypothesisMastery) : "";
       const learningTargets = available ? this.getMapLearningTargets(index) : { codeConcept: null, labChain: null };
       const learningChips = available ? this.renderMapLearningChips(index, learningTargets) : "";
       node.classList.toggle('ai-state-next', !!aiTarget);
       node.classList.toggle('ai-state-mastered', !!aiMastery && !aiTarget);
+      node.classList.toggle('map-hypothesis-next', !!hypothesisTarget);
+      node.classList.toggle('map-hypothesis-mastered', !!hypothesisMastery && !hypothesisTarget);
       node.classList.toggle('map-code-next', !!(learningTargets && learningTargets.codeConcept));
       node.classList.toggle('map-lab-next', !!(learningTargets && learningTargets.labChain));
       if (meta) {
@@ -3381,7 +3436,7 @@ class StarHopperGame {
           meta.innerHTML = `Locked · ${conceptChip}${aiChip}${aiMasteryChip}<span class="map-lock-hint">Recover previous shard</span>`;
         } else {
           const label = mastered ? "Mastered" : (clears > 0 ? `Clear ${clears}` : (index === 0 ? "Start" : "Unlocked"));
-          meta.innerHTML = `${label} · ${conceptChip}${this.renderMapStarMeter(index)}${this.renderMapMasteryMeter(index)}${this.renderMapVillageTrustMeter(index)}${learningChips}${aiChip}${aiMasteryChip}`;
+          meta.innerHTML = `${label} · ${conceptChip}${this.renderMapStarMeter(index)}${this.renderMapMasteryMeter(index)}${this.renderMapVillageTrustMeter(index)}${learningChips}${hypothesisChip}${hypothesisMasteryChip}${aiChip}${aiMasteryChip}`;
         }
       }
       const stars = this.getPlanetLabStarCount(index);
@@ -3390,9 +3445,11 @@ class StarHopperGame {
       const concept = this.getPlanetMapConcept(index);
       const aiTitle = aiTarget ? ` · AI State: ${aiTarget.card.title} (${aiTarget.action.label || "RUN STATE"})` : "";
       const aiMasteryTitle = aiMastery && !aiTarget ? ` · AI State Deck mastered (${aiMastery.earnedCount}/${aiMastery.total})` : "";
+      const hypothesisTitle = hypothesisTarget ? ` · Hypothesis Proof: ${hypothesisTarget.action.title || "next prediction"} (${hypothesisTarget.action.label || "RUN PREDICT"})` : "";
+      const hypothesisMasteryTitle = hypothesisMastery && !hypothesisTarget ? ` · Hypothesis Proofs mastered (${hypothesisMastery.done}/${hypothesisMastery.total})` : "";
       const learningTitle = available ? this.getMapLearningTitle(learningTargets) : "";
       node.title = available
-        ? `${planets[index].name}: ${concept} · ${stars}/3 Lab Stars · ${worldMastery.title} (${worldMastery.xp} XP) · ${villageTrust.title} (${villageTrust.points} trust)${learningTitle}${aiTitle}${aiMasteryTitle}${mastered ? " · Mastered" : (clears > 0 ? " · Mastery Remix ready" : "")}`
+        ? `${planets[index].name}: ${concept} · ${stars}/3 Lab Stars · ${worldMastery.title} (${worldMastery.xp} XP) · ${villageTrust.title} (${villageTrust.points} trust)${learningTitle}${hypothesisTitle}${hypothesisMasteryTitle}${aiTitle}${aiMasteryTitle}${mastered ? " · Mastered" : (clears > 0 ? " · Mastery Remix ready" : "")}`
         : `${planets[index].name}: locked. Next concept: ${concept}.${aiTitle}${aiMasteryTitle} Recover the previous signal shard.`;
     });
     this.refreshFutureWorldTeasers();
@@ -3404,6 +3461,10 @@ class StarHopperGame {
     const aiTarget = this.getMapAIStateTarget(levelIndex);
     if (aiTarget && typeof runAIStateDeckAction === 'function') {
       return runAIStateDeckAction(aiTarget.card.id, this);
+    }
+    const hypothesisTarget = this.getMapHypothesisTarget(levelIndex);
+    if (hypothesisTarget && hypothesisTarget.action && typeof runCadetHypothesisAction === 'function') {
+      return runCadetHypothesisAction(hypothesisTarget.action.missionId, this);
     }
     this.startLevel(levelIndex);
     return true;

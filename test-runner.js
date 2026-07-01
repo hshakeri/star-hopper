@@ -6590,10 +6590,15 @@ function runEngineTests() {
     assertEquals(true, /LAB NEXT/.test(nodes[0]._meta.innerHTML), "Current map node should show a Lab Chain next chip");
     assertEquals(true, /2\/3 to TRIPLE TEST/.test(nodes[0]._meta.innerHTML), "Lab Chain map chip should show milestone progress");
     assertEquals(true, /hopper.mass = 0.8/.test(nodes[0]._meta.innerHTML), "Lab Chain map chip should show the next science command");
+    assertEquals(true, nodes[0].classList.contains("map-hypothesis-next"), "Current map node should mark the next Hypothesis Proof action");
+    assertEquals(true, /PREDICT NEXT/.test(nodes[0]._meta.innerHTML), "Current map node should show a Hypothesis Proof next chip");
+    assertEquals(true, /Hopper Engineering Shakedown/.test(nodes[0]._meta.innerHTML), "Hypothesis map chip should name the next prediction mission");
+    assertEquals(true, /0\/6 proofs/.test(nodes[0]._meta.innerHTML), "Hypothesis map chip should show proof progress");
     assertEquals(true, /Standard Gravity & Trajectories/.test(nodes[0].title), "Cleared node title should include the science concept");
     assertEquals(true, /Cave Ally \(7 trust\)/.test(nodes[0].title), "Cleared node title should include village trust progress");
     assertEquals(true, /Code next: Loop \(repeat 3 \{ spawn_block\(\) \}\)/.test(nodes[0].title), "Current node title should include the next Code Concept command");
     assertEquals(true, /Lab next: Compare a lighter Hopper \(hopper.mass = 0.8\)/.test(nodes[0].title), "Current node title should include the next Lab Chain command");
+    assertEquals(true, /Hypothesis Proof: Predict Hopper Engineering Shakedown \(RUN PREDICT\)/.test(nodes[0].title), "Current node title should include the next Hypothesis Proof route");
     assertEquals(false, nodes[1].disabled, "Moon should unlock after Earth clear");
     assertEquals(false, nodes[1].classList.contains("map-code-next"), "Only the current node should show Code Concept next-state emphasis");
     assertEquals(false, nodes[1].classList.contains("map-lab-next"), "Only the current node should show Lab Chain next-state emphasis");
@@ -6611,6 +6616,18 @@ function runEngineTests() {
     assertEquals(false, teasers[0].classList.contains("anomaly-next"), "Future Dark Matter node should not pulse as the next anomaly before the star-map is restored");
     assertEquals(true, teasers[0].disabled, "Future Dark Matter node should stay disabled before the star-map is restored");
     assertEquals(false, teasers[0].classList.contains("future-action"), "Future Dark Matter node should not advertise a click action too early");
+
+    const routedHypothesisStarts22g = [];
+    const routedHypothesisModes22g = [];
+    const originalHypothesisStartLevel22g = game.startLevel;
+    game.startLevel = (level) => { routedHypothesisStarts22g.push(level); };
+    switchMainMode = (mode) => { routedHypothesisModes22g.push(mode); };
+    assertEquals(true, game.startMapPlanet(0), "Clicking the Hypothesis NEXT map world should use the Hypothesis Proof route");
+    assertEquals(0, routedHypothesisStarts22g[0], "Hypothesis NEXT map route should launch the target proof world");
+    assertEquals("earth-gravity-wall", game.activeHypothesisMissionId, "Hypothesis NEXT map route should remember the proof mission");
+    assertEquals("terminal", routedHypothesisModes22g[0], "Hypothesis NEXT map route should return to the terminal");
+    game.startLevel = originalHypothesisStartLevel22g;
+    switchMainMode = oldSwitchMainMode22g;
 
     game.villageTrust = { 0: { points: 3, badges: ["friend"], sources: { "village-trade:0:geary:engine_1": 3 } } };
     game.discoveryPassCounts = {};
@@ -6666,6 +6683,13 @@ function runEngineTests() {
     assertEquals(true, /5\/5 states/.test(nodes[0]._meta.innerHTML), "AI mastered trophy should show behavior card count");
     assertEquals(true, /AI State Deck mastered \(5\/5\)/.test(nodes[0].title), "Current node tooltip should include AI deck mastery");
     assertEquals(false, nodes[1].classList.contains("ai-state-mastered"), "AI deck mastery trophy should not duplicate onto other map nodes");
+    game.confirmedHypotheses = new Set(getHypothesisPortfolioMissions().map(mission => mission.id));
+    game.refreshGalaxyMapProgress();
+    assertEquals(false, nodes[0].classList.contains("map-hypothesis-next"), "Completed Hypothesis Proofs should clear the next-target map class");
+    assertEquals(true, nodes[0].classList.contains("map-hypothesis-mastered"), "Current map node should show completed Hypothesis Proof mastery");
+    assertEquals(true, /HYPOTHESIS MASTERED/.test(nodes[0]._meta.innerHTML), "Completed Hypothesis Proofs should render a compact map trophy");
+    assertEquals(true, /6\/6 proofs/.test(nodes[0]._meta.innerHTML), "Hypothesis mastered trophy should show proof count");
+    assertEquals(true, /Hypothesis Proofs mastered \(6\/6\)/.test(nodes[0].title), "Current node tooltip should include Hypothesis Proof mastery");
 
     game.planetClears = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 };
     game.frontierRecords = {};
