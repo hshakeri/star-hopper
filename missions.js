@@ -28,38 +28,78 @@ const PlatformerMissions = [
     title: "Hopper Engineering Shakedown",
     ageRange: "8-12",
     concept: "Newton's 2nd law: acceleration = force ÷ mass. A lighter rover (or a stronger engine) reaches a higher top speed and jumps higher under the same push.",
-    beginnerConcept: "Change one number, test, then change another — and notice that less mass makes the same engine go faster and jump higher.",
+    beginnerConcept: "Change one number at a time: first lower felt gravity, then make Hopper lighter, stronger, and jumpier.",
     codingConcept: "Variable assignment and parameter tuning",
-    starterCode: "use_hopper()\nantigravity = 4.9\nhopper.mass = 1.2\nhopper.engine = 6\nhopper.jump_power = 18",
-    objective: "Push Hopper's Agility past 30 with any mix of lower mass, more antigravity, more engine force, and more jump force, to unlock every Emerald Core gem and clear the wall.",
+    starterCode: "use_hopper()\nantigravity = 4.9",
+    objective: "First activate Hopper and lower felt gravity. Then tune mass, engine force, and jump force one at a time until Agility passes 30 and every Emerald Core gem unlocks.",
     steps: [
       { id: "observe", prompt: "Observe: Hopper is too heavy to clear the high metal wall with default settings.", done: false },
       { id: "predict", prompt: "Predict: If you lower the mass but keep the same engine, will the top speed go up, down, or stay the same?", done: false },
-      { id: "code", prompt: "Code: Lower hopper.mass and add antigravity, then raise hopper.engine and hopper.jump_power.", done: false },
-      { id: "test", prompt: "Test: Swap to Hopper, collect the locked ridge gems, and watch how a lighter rover moves faster and jumps higher.", done: false },
-      { id: "explain", prompt: "Explain: Why did lowering the mass raise both the speed and the jump?", done: false },
+      { id: "code", prompt: "Code: Stage one line at a time: antigravity, then hopper.mass, hopper.engine, and hopper.jump_power.", done: false },
+      { id: "test", prompt: "Test: Watch each one-variable change open more Emerald Core routes.", done: false },
+      { id: "explain", prompt: "Explain: Which variable changed airtime, speed, or jump height?", done: false },
       { id: "challenge", prompt: "Challenge: Clear the wall as Hopper with antigravity >= 4.1 (felt gravity <= 5.7 m/s²) and hopper.mass <= 1.2, reaching top speed >= 4.8 by tuning engine and mass.", done: false }
     ],
     hints: [
-      "Mission Coach gives starter values; edit the numbers to reach the target.",
-      "Hopper needs less mass and more horizontal speed than the default suit.",
-      "Low Emerald gems unlock after antigravity is tuned; high ridge gems need the full Hopper build."
+      "First success: use_hopper() plus antigravity = 4.9 makes the jump arc easier to read.",
+      "Second step: lower hopper.mass so the same forces create more acceleration.",
+      "Later steps: raise hopper.engine for speed and hopper.jump_power for height."
     ],
     scaffold: {
       mode: "fill-values",
       template: "use_hopper()\nantigravity = {gravity}\nhopper.mass = {mass}\nhopper.engine = {engine}\nhopper.jump_power = {jump_power}",
       slots: [
-        { id: "gravity", label: "antigravity (m/s²)", value: "4.9", hint: "Antigravity in m/s². Earth's gravity is a fixed 9.8 — more antigravity pushes back against it, so Hopper hangs longer and jumps higher." },
-        { id: "mass", label: "mass", value: "1.2", hint: "Less mass means the SAME engine and jump push Hopper faster and higher (a = F / m)." },
-        { id: "engine", label: "engine", value: "6", hint: "Top speed = engine force ÷ mass. Raise the force or drop the mass to go faster." },
-        { id: "jump_power", label: "jump", value: "18", hint: "Jump height = jump force ÷ mass. A lighter Hopper jumps higher for the same force." }
+        { id: "gravity", label: "antigravity (m/s²)", value: "4.9", resultCheckId: "earth-gravity-check", hint: "First tweak: Earth's gravity is fixed at 9.8 m/s², but antigravity pushes back so Hopper hangs longer." },
+        { id: "mass", label: "mass", value: "1.2", resultCheckId: "earth-mass-check", unlockAfterCheck: "earth-gravity-check", lockedHint: "First prove the antigravity arc; then lighten Hopper.", hint: "Second tweak: less mass means the SAME engine and jump push Hopper faster and higher (a = F / m)." },
+        { id: "engine", label: "engine", value: "6", resultCheckId: "earth-engine-check", unlockAfterCheck: "earth-mass-check", lockedHint: "First prove the lighter Hopper; then tune horizontal force.", hint: "Third tweak: top speed = engine force ÷ mass. Raise force or drop mass to go faster." },
+        { id: "jump_power", label: "jump", value: "18", resultCheckId: "earth-jump-check", unlockAfterCheck: "earth-engine-check", lockedHint: "First prove the engine force; then tune jump height.", hint: "Fourth tweak: jump height = jump force ÷ mass. A lighter Hopper jumps higher for the same force." }
       ],
-      explain: "Activate Hopper, then raise its Agility past 30. Agility climbs when you lower mass or add antigravity, or raise engine force or jump force — there's no single right answer, just get the number over 30 (watch it print in the shell).",
-      parentPrompt: "When you lowered the mass, what happened to the speed and the jump?",
-      codeIdea: "Activate Hopper, lower the mass, and raise the engine and jump force.",
+      explain: "Activate Hopper, then tune one variable at a time. Agility climbs as felt gravity drops, mass drops, engine force rises, and jump force rises — watch the shell after each line.",
+      parentPrompt: "Which one-variable change did you notice first: gravity, mass, engine, or jump?",
+      codeIdea: "Activate Hopper with use_hopper() and antigravity first; then tune mass, engine, and jump in order.",
       physicsIdea: "Newton's 2nd law: acceleration = force ÷ mass. Same engine + less mass = more speed and a higher jump.",
       success: "The lighter, stronger Hopper reaches top speed >= 4.8, clears the wall, and collects every Emerald Core gem."
     },
+    lessonPhases: [
+      {
+        id: "earth-gravity-phase",
+        label: "1 Felt gravity",
+        checkId: "earth-gravity-check",
+        formula: "felt g = planet g - antigravity",
+        command: "use_hopper()\nantigravity = 4.9",
+        payoff: "Low Emerald routes feel reachable"
+      },
+      {
+        id: "earth-mass-phase",
+        label: "2 Light mass",
+        checkId: "earth-mass-check",
+        unlockAfterCheck: "earth-gravity-check",
+        lockedHint: "First prove the antigravity arc; then the mass command appears.",
+        formula: "acceleration = force / mass",
+        command: "hopper.mass = 1.2",
+        payoff: "Same force moves Hopper faster"
+      },
+      {
+        id: "earth-engine-phase",
+        label: "3 Engine force",
+        checkId: "earth-engine-check",
+        unlockAfterCheck: "earth-mass-check",
+        lockedHint: "First prove light mass; then engine force appears.",
+        formula: "speed = engine / mass",
+        command: "hopper.engine = 6",
+        payoff: "Hopper reaches the wall faster"
+      },
+      {
+        id: "earth-jump-phase",
+        label: "4 Jump force",
+        checkId: "earth-jump-check",
+        unlockAfterCheck: "earth-engine-check",
+        lockedHint: "First prove engine force; then jump force appears.",
+        formula: "jump = impulse / mass",
+        command: "hopper.jump_power = 18",
+        payoff: "High Emerald routes open"
+      }
+    ],
     prediction: {
       question: "Which change will help Hopper reach the high Emerald gems?",
       options: [
@@ -75,6 +115,34 @@ const PlatformerMissions = [
         success: "Hopper is active, so the engineering numbers apply to the heavy suit.",
         waiting: "Run the coach code to activate Hopper.",
         check: (game) => game.player && game.player.charType === 'hopper'
+      },
+      {
+        id: "earth-gravity-check",
+        label: "First tweak: felt gravity lowered",
+        success: "Felt gravity is low enough to stretch Hopper's airtime.",
+        waiting: "Stage the first phase: use_hopper() and antigravity = 4.9.",
+        check: (game) => game.player && game.player.charType === 'hopper' && typeof game.getDesignGravity === 'function' && game.getDesignGravity() <= 0.35
+      },
+      {
+        id: "earth-mass-check",
+        label: "Second tweak: Hopper mass 1.2",
+        success: "Hopper is light enough for the same forces to create more acceleration.",
+        waiting: "Now set hopper.mass = 1.2.",
+        check: (game) => game.player && game.player.charType === 'hopper' && game.hopperMass <= 1.2
+      },
+      {
+        id: "earth-engine-check",
+        label: "Third tweak: engine force 6",
+        success: "Engine force is high enough for the lighter Hopper to move fast.",
+        waiting: "Now set hopper.engine = 6.",
+        check: (game) => typeof game.getEngineForce === 'function' && game.getEngineForce() >= 6
+      },
+      {
+        id: "earth-jump-check",
+        label: "Fourth tweak: jump force 18",
+        success: "Jump force is high enough for the lighter Hopper arc.",
+        waiting: "Now set hopper.jump_power = 18.",
+        check: (game) => game.player && game.player.jumpPower >= 18
       },
       {
         id: "earth-emerald-gates",
@@ -474,7 +542,7 @@ const PlatformerMissions = [
       template: "use_hopper()\nhopper.mass = {mass}\nelasticity = {elasticity}",
       slots: [
         { id: "mass", label: "mass override", value: "4.0", dir: ">=", resultCheckId: "asteroid-mass-check", hint: "First tweak: make Hopper heavy so one collision has more momentum." },
-        { id: "elasticity", label: "elasticity", value: "1.0", dir: ">=", resultCheckId: "asteroid-elasticity-check", unlockAfterCheck: "asteroid-mass-check", lockedHint: "First prove the mass shove; then the bounce control appears.", hint: "Second tweak: after the shove works, make later collisions bounce cleanly." }
+        { id: "elasticity", label: "elasticity", value: "1.0", dir: ">=", resultCheckId: "asteroid-elasticity-check", unlockAfterCheck: "asteroid-mass-check", hideFormulaUntilCheck: true, lockedHint: "First prove the mass shove; then the bounce control appears.", hint: "Second tweak: after the shove works, make later collisions bounce cleanly." }
       ],
       explain: "Mass gives the first simple win: bigger momentum for a stronger shove. Elasticity comes next as the bounce-control variable.",
       parentPrompt: "What changed after mass was set, before elasticity was added?",

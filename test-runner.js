@@ -821,6 +821,76 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Objectives: sample pickups show mission progress", false, err.message);
   }
 
+  // Test 17b5: Earth coaching reveals one variable at a time from the first mission.
+  try {
+    Compiler.reset();
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[0];
+    game.currentPlanetIndex = 0;
+    game.player = { charType: 'star', jumpPower: 10, rocketPower: 40, mass: 1, spikes: false };
+    game.star = game.player;
+    game.hopper = game.player;
+    game.hopperMass = 2.5;
+    const earthMission = PlatformerMissions.find(mission => mission.id === "earth-gravity-wall");
+    const activeMission = { id: "earth-gravity-wall", fullMission: earthMission };
+
+    const phaseRowsOne = getMissionLessonPhaseRows(game, earthMission);
+    assertEquals("active", phaseRowsOne[0].status, "Earth phase ladder starts on felt gravity");
+    assertEquals("locked", phaseRowsOne[1].status, "Earth phase ladder locks mass before antigravity passes");
+    assertEquals("use_hopper()\nantigravity = 4.9", phaseRowsOne[0].command, "Earth first phase stages setup plus one variable");
+    const phaseHTMLBefore = renderMissionLessonPhaseLadder(game, earthMission);
+    assertEquals(true, /data-lesson-phase-stage="0"/.test(phaseHTMLBefore), "Active Earth gravity phase should expose a stage button");
+    assertEquals(false, /hopper\.mass = 1\.2/.test(phaseHTMLBefore), "Earth ladder should hide mass before gravity proof");
+
+    const phaseOne = scaffoldWithActiveSlots(earthMission.scaffold, game, earthMission);
+    assertEquals(1, phaseOne.slots.length, "Earth phase one should expose only the antigravity slot");
+    assertEquals("gravity", phaseOne.slots[0].id, "Earth phase one should expose antigravity first");
+    assertEquals(false, /hopper\.mass/.test(phaseOne.template), "Earth phase one scaffold should not include mass yet");
+    assertEquals("use_hopper()\nantigravity = 4.9", buildNextExperimentCommand(earthMission, null, game), "Earth first stage command should be setup plus antigravity only");
+    const firstFormula = getActiveFormulaTarget(game, activeMission);
+    assertEquals("Gravity Lab", firstFormula && firstFormula.title, "Earth formula target should still start with Gravity Lab");
+
+    game.player.charType = 'hopper';
+    Compiler.env.antigravity = 4.9 / GRAVITY_MPS2_PER_UNIT;
+    let rows = getMissionLessonPhaseRows(game, earthMission);
+    assertEquals("complete", rows[0].status, "Earth gravity phase completes after antigravity proof");
+    assertEquals("active", rows[1].status, "Earth mass phase activates after gravity proof");
+    assertEquals("hopper.mass = 1.2", rows[1].command, "Earth second phase reveals mass");
+    assertEquals("hopper.mass = 1.2", buildNextExperimentCommand(earthMission, null, game), "Earth second stage command should be mass only");
+
+    game.hopperMass = 1.2;
+    game.player.mass = 1.2;
+    rows = getMissionLessonPhaseRows(game, earthMission);
+    assertEquals("complete", rows[1].status, "Earth mass phase completes after mass proof");
+    assertEquals("active", rows[2].status, "Earth engine phase activates after mass proof");
+    assertEquals("hopper.engine = 6", buildNextExperimentCommand(earthMission, null, game), "Earth third stage command should be engine only");
+
+    Compiler.env.engine = 6;
+    rows = getMissionLessonPhaseRows(game, earthMission);
+    assertEquals("complete", rows[2].status, "Earth engine phase completes after engine proof");
+    assertEquals("active", rows[3].status, "Earth jump phase activates after engine proof");
+    assertEquals("hopper.jump_power = 18", buildNextExperimentCommand(earthMission, null, game), "Earth fourth stage command should be jump only");
+
+    game.player.jumpPower = 18;
+    rows = getMissionLessonPhaseRows(game, earthMission);
+    assertEquals("complete", rows[3].status, "Earth jump phase completes after jump proof");
+    assertEquals(true, earthMission.resultChecks.every(check => check.check(game, Compiler)), "Earth phased scaffold checks all pass after the full sequence");
+
+    Compiler.env.antigravity = null;
+    Compiler.env.engine = 6;
+    const staleGame = new StarHopperGame();
+    staleGame.currentPlanet = PLANETS[0];
+    staleGame.currentPlanetIndex = 0;
+    const stalePhase = scaffoldWithActiveSlots(earthMission.scaffold, staleGame, earthMission);
+    assertEquals(1, stalePhase.slots.length, "Stale later values should not unlock Earth phases out of order");
+    assertEquals("gravity", stalePhase.slots[0].id, "Earth scaffold still starts at gravity when earlier proof is missing");
+    Compiler.reset();
+    renderTestResult("engine-suite", "Curriculum: Earth coach phases first variables", true);
+  } catch (err) {
+    Compiler.reset();
+    renderTestResult("engine-suite", "Curriculum: Earth coach phases first variables", false, err.message);
+  }
+
   // Test 17c: Asteroid Forge teaches one concept first: mass unlocks the first gem, then
   // elasticity is required for later boulder-bounce gems.
   try {
@@ -5365,7 +5435,8 @@ function runEngineTests() {
     document.getElementById = (id) => id === "console-input" ? inputEl22j : (id === "mission-list" ? list : null);
     activeLensButton._events.click();
     assertEquals(true, /use_hopper\(\)/.test(inputEl22j.value), "Lesson lens stage action should include mission setup code");
-    assertEquals(true, /hopper\.mass/.test(inputEl22j.value), "Lesson lens stage action should include the scaffold tuning code");
+    assertEquals(true, /antigravity = 4\.9/.test(inputEl22j.value), "Lesson lens stage action should include the first one-variable tweak");
+    assertEquals(false, /hopper\.mass/.test(inputEl22j.value), "Lesson lens should hide mass until the antigravity proof passes");
     assertEquals(true, inputEl22j.focused, "Lesson lens stage action should focus the terminal");
     inputEl22j.value = "";
     inputEl22j.focused = false;

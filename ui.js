@@ -496,6 +496,10 @@ function appendHTML(parent, html) {
   if (!parent || !html) return;
   if (typeof parent.insertAdjacentHTML === 'function') {
     parent.insertAdjacentHTML('beforeend', html);
+  } else if (typeof document !== 'undefined' && typeof document.createElement === 'function' && typeof parent.appendChild === 'function') {
+    const holder = document.createElement("div");
+    holder.innerHTML = html;
+    parent.appendChild(holder);
   } else {
     parent.innerHTML = `${parent.innerHTML || ""}${html}`;
   }
@@ -3295,7 +3299,12 @@ function missionResultCheckPassed(game, fullMission, checkId) {
 function getActiveScaffoldSlots(scaffold, game = null, fullMission = null) {
   const slots = scaffold && Array.isArray(scaffold.slots) ? scaffold.slots : [];
   if (!slots.length || !game || !fullMission) return slots.slice();
-  return slots.filter(slot => !slot.unlockAfterCheck || missionResultCheckPassed(game, fullMission, slot.unlockAfterCheck));
+  const active = [];
+  for (const slot of slots) {
+    if (slot.unlockAfterCheck && !missionResultCheckPassed(game, fullMission, slot.unlockAfterCheck)) break;
+    active.push(slot);
+  }
+  return active;
 }
 
 function scaffoldWithActiveSlots(scaffold, game = null, fullMission = null) {
@@ -3319,9 +3328,13 @@ function scaffoldWithActiveSlots(scaffold, game = null, fullMission = null) {
 function getHiddenScaffoldTemplate(scaffold, activeScaffold) {
   if (!scaffold || !Array.isArray(scaffold.slots) || !activeScaffold || !Array.isArray(activeScaffold.slots)) return "";
   const activeIds = new Set(activeScaffold.slots.map(slot => slot.id));
+  const slotsById = new Map(scaffold.slots.map(slot => [slot.id, slot]));
   return String(scaffold.template || "").split("\n").filter(line => {
     const matches = Array.from(line.matchAll(/\{([^}]+)\}/g));
-    return matches.length && matches.every(match => !activeIds.has(match[1]));
+    if (!matches.length) return false;
+    const matchedSlots = matches.map(match => slotsById.get(match[1])).filter(Boolean);
+    return matchedSlots.length === matches.length
+      && matchedSlots.every(slot => !activeIds.has(slot.id) && slot.hideFormulaUntilCheck);
   }).join("\n");
 }
 
@@ -5914,6 +5927,8 @@ function buildNextExperimentCommand(fullMission, failed = null, game = null) {
         if (setupLines.length && scaffold.slots.indexOf(slot) === 0) return `${setupLines.join("\n")}\n${assignment}`;
         return assignment;
       }
+      const values = typeof getCorrectedScaffoldValues === 'function' ? getCorrectedScaffoldValues(scaffold) : {};
+      return buildScaffoldCode(scaffold, values);
     }
     if (game && Array.isArray(scaffold.slots)) {
       const nextSlot = scaffold.slots.find(slot => slot && slot.resultCheckId && !missionResultCheckPassed(game, fullMission, slot.resultCheckId));
