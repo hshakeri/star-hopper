@@ -841,6 +841,7 @@ function runEngineTests() {
     const phaseHTMLBefore = renderMissionLessonPhaseLadder(game, earthMission);
     assertEquals(true, /data-lesson-phase-stage="0"/.test(phaseHTMLBefore), "Active Earth gravity phase should expose a stage button");
     assertEquals(false, /hopper\.mass = 1\.2/.test(phaseHTMLBefore), "Earth ladder should hide mass before gravity proof");
+    assertEquals(true, /lesson-phase-pip active/.test(phaseHTMLBefore) && /lesson-phase-pip locked/.test(phaseHTMLBefore), "Earth ladder should render active and locked progress pips");
 
     const phaseOne = scaffoldWithActiveSlots(earthMission.scaffold, game, earthMission);
     assertEquals(1, phaseOne.slots.length, "Earth phase one should expose only the antigravity slot");
@@ -863,6 +864,8 @@ function runEngineTests() {
     const phaseHTMLAfterGravity = renderMissionLessonPhaseLadder(game, earthMission);
     assertEquals(true, /PAYOFF/.test(phaseHTMLAfterGravity), "Earth ladder should visibly label completed phase payoff");
     assertEquals(true, /UNLOCKED: 2 Light mass/.test(phaseHTMLAfterGravity), "Earth ladder should visibly point to the next unlocked phase");
+    assertEquals(true, /1\/4 lesson phases complete/.test(phaseHTMLAfterGravity), "Earth ladder progress label should summarize completed phases");
+    assertEquals(true, /lesson-phase-pip complete/.test(phaseHTMLAfterGravity) && /lesson-phase-pip active/.test(phaseHTMLAfterGravity), "Earth ladder should render complete and active progress pips after proof");
 
     game.hopperMass = 1.2;
     game.player.mass = 1.2;
@@ -967,6 +970,7 @@ function runEngineTests() {
     const phaseHTMLAfter = renderMissionLessonPhaseLadder(game, forgeMission);
     assertEquals(true, /DONE/.test(phaseHTMLAfter) && /NOW/.test(phaseHTMLAfter), "Forge phase ladder should show complete and active states after mass");
     assertEquals(true, /PAYOFF/.test(phaseHTMLAfter) && /UNLOCKED: 2 Bounce control/.test(phaseHTMLAfter), "Forge ladder should show the completed payoff and next unlock");
+    assertEquals(true, /lesson-phase-pip complete/.test(phaseHTMLAfter) && /lesson-phase-pip active/.test(phaseHTMLAfter), "Forge ladder should render progress pips for complete and active phases");
     assertEquals(true, /elasticity = 1\.0/.test(phaseHTMLAfter), "Forge phase ladder should reveal elasticity after mass proof");
     assertEquals(false, /data-lesson-phase-stage="0"/.test(phaseHTMLAfter), "Completed Forge mass phase should stop exposing the stage action");
     assertEquals(true, /data-lesson-phase-stage="1"/.test(phaseHTMLAfter), "Active Forge bounce phase should expose a stage button");

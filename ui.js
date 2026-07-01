@@ -542,11 +542,17 @@ function getMissionLessonPhaseRows(game, fullMission) {
 function renderMissionLessonPhaseLadder(game, fullMission, label = "LESSON PATH") {
   const rows = getMissionLessonPhaseRows(game, fullMission);
   if (!rows.length) return "";
+  const completeCount = rows.filter(row => row.status === "complete").length;
   return `
     <div class="lesson-phase-ladder">
       <div class="lesson-phase-head">
         <span>${escapeHTML(label)}</span>
-        <strong>${escapeHTML(String(rows.filter(row => row.status === "complete").length))}/${escapeHTML(String(rows.length))}</strong>
+        <div class="lesson-phase-progress" aria-label="${escapeHTML(`${completeCount}/${rows.length} lesson phases complete`)}">
+          <strong>${escapeHTML(String(completeCount))}/${escapeHTML(String(rows.length))}</strong>
+          <div class="lesson-phase-pips">
+            ${rows.map(row => `<i class="lesson-phase-pip ${escapeHTML(row.status)}" title="${escapeHTML(`${row.statusLabel}: ${row.label || `Phase ${row.index + 1}`}`)}" aria-hidden="true"></i>`).join("")}
+          </div>
+        </div>
       </div>
       <div class="lesson-phase-steps">
         ${rows.map(row => `

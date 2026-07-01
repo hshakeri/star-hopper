@@ -4334,6 +4334,42 @@ html {
   color: #bbf7d0;
 }
 
+.lesson-phase-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lesson-phase-pips {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.lesson-phase-pip {
+  width: 15px;
+  height: 5px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 2px;
+  background: rgba(15, 23, 42, 0.72);
+  box-shadow: inset 0 0 5px rgba(15, 23, 42, 0.7);
+}
+
+.lesson-phase-pip.complete {
+  border-color: rgba(134, 239, 172, 0.68);
+  background: #22c55e;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.36);
+}
+
+.lesson-phase-pip.active {
+  border-color: rgba(103, 232, 249, 0.72);
+  background: #38bdf8;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.38);
+}
+
+.lesson-phase-pip.locked {
+  opacity: 0.62;
+}
+
 .lesson-phase-steps {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(116px, 1fr));
@@ -4355,7 +4391,7 @@ html {
   color: #94a3b8;
   font-size: 0.48rem;
   font-weight: 900;
-  letter-spacing: 0.03em;
+  letter-spacing: 0;
 }
 
 .lesson-phase-step strong {
@@ -4373,7 +4409,7 @@ html {
   color: #fef08a;
   font-size: 0.47rem;
   font-weight: 900;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
 }
 
 .lesson-phase-step em,
@@ -9711,10 +9747,13 @@ body.readable-text-mode .lesson-lens-card p,
 body.readable-text-mode .lesson-lens-card code,
 body.readable-text-mode .lesson-lens-stage-btn,
 body.readable-text-mode .lesson-phase-head,
+body.readable-text-mode .lesson-phase-progress strong,
 body.readable-text-mode .lesson-phase-step > span,
 body.readable-text-mode .lesson-phase-step strong,
+body.readable-text-mode .lesson-phase-detail b,
 body.readable-text-mode .lesson-phase-step em,
 body.readable-text-mode .lesson-phase-step code,
+body.readable-text-mode .lesson-phase-unlock,
 body.readable-text-mode .lesson-phase-stage-btn,
 body.readable-text-mode .mentor-signal-head,
 body.readable-text-mode .mentor-signal-copy strong,
