@@ -7222,6 +7222,17 @@ function runEngineTests() {
     game.coachPredictions = { "earth-gravity-wall": "lighter-longer" };
     game.currentMissionId = "earth-gravity-wall";
     game.currentMissionSteps = { observe: true, predict: true, code: false, test: false, explain: false, challenge: false };
+    game.discoveryCombo = 2;
+    game.discoveryPulse = { combo: 2, rewardXP: 5, code: "hopper.mass = 1.0" };
+    game.lastScienceDelta = {
+      code: "hopper.mass = 1.0",
+      changes: [{ label: "Mass", value: "2.5 -> 1.0" }],
+      nextExperiment: {
+        title: "Engine Lab",
+        body: "Raise engine, then compare speed.",
+        command: "hopper.engine = 7"
+      }
+    };
     updatePedagogicalGuide(game);
     const loop = els["pedagogical-steps"].children.find(child => child.className === "coach-lab-loop");
     assertEquals(true, !!loop, "Coach should render a labeled lab loop strip");
@@ -7231,6 +7242,11 @@ function runEngineTests() {
     assertEquals(true, /active/.test(loop.children[2].className), "Code should be the active step");
     assertEquals(true, /Activate Hopper/.test(els["mission-coach-focus"].innerHTML), "Coach focus should show the next code action");
     assertEquals(true, /Change one number/.test(els["mission-coach-summary"].innerHTML), "Coach summary should surface the beginner concept");
+    const proofHook = els["pedagogical-steps"].children.find(child => child.className === "coach-proof-hook");
+    assertEquals(true, !!proofHook, "Coach should render the proof payoff hook");
+    assertEquals(true, /LAB CHAIN x2/.test(proofHook.innerHTML), "Proof hook should show the active reward path");
+    assertEquals(true, /Engine Lab/.test(proofHook.innerHTML), "Proof hook should name the next experiment");
+    assertEquals(true, /hopper\.engine = 7/.test(proofHook.innerHTML), "Proof hook should show the runnable follow-up command");
     document.getElementById = oldGetElementById22i;
     document.createElement = oldCreateElement22i;
     renderTestResult("engine-suite", "Curriculum: Mission Coach renders lab loop progress", true);

@@ -6935,6 +6935,61 @@ function getCoachStepParts(step, index = 0) {
   };
 }
 
+function getCoachProofHook(game, activeMission) {
+  if (!game || !activeMission || !activeMission.fullMission) return null;
+  const fullMission = activeMission.fullMission;
+  const missionDone = game.completedMissions && game.completedMissions.has(activeMission.id);
+  if (missionDone) {
+    return {
+      label: "PROOF BANKED",
+      title: "Explain the evidence",
+      body: "Write what your code changed so the test turns into a saved lab proof.",
+      reward: "Reward: stronger lab record"
+    };
+  }
+
+  const labChain = typeof getLabChainTarget === "function" ? getLabChainTarget(game) : null;
+  if (labChain) {
+    return {
+      label: labChain.label || "LAB CHAIN",
+      title: labChain.title || "Make one fresh change",
+      body: labChain.reward || labChain.body || "Fresh progress keeps the experiment chain alive.",
+      command: labChain.command || ""
+    };
+  }
+
+  const formulaTarget = typeof getActiveFormulaTarget === "function" ? getActiveFormulaTarget(game, activeMission) : null;
+  if (formulaTarget) {
+    return {
+      label: "FORMULA CARD",
+      title: `Collect ${formulaTarget.title || "science proof"}`,
+      body: formulaTarget.cue || formulaTarget.axis || "Run the matching code and compare what changed.",
+      command: formulaTarget.sampleCode || ""
+    };
+  }
+
+  const codeConceptTarget = typeof getActiveCodeConceptTarget === "function" ? getActiveCodeConceptTarget(game) : null;
+  if (codeConceptTarget && codeConceptTarget.command) {
+    return {
+      label: "CODE CONCEPT",
+      title: `Collect ${codeConceptTarget.title || "coding idea"}`,
+      body: codeConceptTarget.reward || codeConceptTarget.body || "Practice one programming idea and save it to the deck.",
+      command: codeConceptTarget.command
+    };
+  }
+
+  const command = typeof buildNextExperimentCommand === "function"
+    ? buildNextExperimentCommand(fullMission, null, game)
+    : (fullMission.starterCode || "");
+  const badge = fullMission.badge || null;
+  return {
+    label: "NEXT PROOF",
+    title: badge ? `Unlock ${badge.label}` : "Run one clean test",
+    body: badge && badge.description ? badge.description : "Make one obvious tweak, test the result, then compare the evidence.",
+    command
+  };
+}
+
 // Direction + live reading for the numeric tuners, so the coach can detect an
 // assignment the cadet has already made and skip past it.
 const COACH_SLOT_RULES = {
@@ -8461,6 +8516,20 @@ function updatePedagogicalGuide(game) {
       <div class="coach-step-text">${escapeHTML(parts.body)}</div>
     `;
     stepsContainer.appendChild(item);
+  }
+
+  const proofHook = getCoachProofHook(game, activeMission);
+  if (proofHook) {
+    const hook = document.createElement("div");
+    hook.className = "coach-proof-hook";
+    const command = proofHook.command ? `<code>${escapeHTML(proofHook.command)}</code>` : "";
+    hook.innerHTML = `
+      <span>${escapeHTML(proofHook.label || "NEXT PROOF")}</span>
+      <strong>${escapeHTML(proofHook.title || "Run one clean test")}</strong>
+      <p>${escapeHTML(proofHook.body || "Run the code, compare the result, and save the evidence.")}</p>
+      ${command}
+    `;
+    stepsContainer.appendChild(hook);
   }
 
   renderScaffoldEditor(game, activeMission);
