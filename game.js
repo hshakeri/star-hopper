@@ -1026,6 +1026,8 @@ class StarHopperGame {
     let villagers = 0;
     let released = 0;
     let sheltered = 0;
+    let dangerSheltered = 0;
+    let nightSheltered = 0;
     for (const obj of this.interactiveObjects || []) {
       if (!(typeof NPC !== 'undefined' && obj instanceof NPC)) continue;
       villagers++;
@@ -1039,6 +1041,8 @@ class StarHopperGame {
       if (keepNpcSheltered) {
         sheltered++;
         const reason = shelter && shelter.reason ? shelter.reason : "night";
+        if (reason === "night") nightSheltered++;
+        else dangerSheltered++;
         if (obj.rescuePending && !obj.rescueReason) {
           obj.rescueReason = obj.shelterReason && obj.shelterReason !== "night" ? obj.shelterReason : "danger";
         }
@@ -1063,17 +1067,25 @@ class StarHopperGame {
     }
     if (this.activeNPC && this.activeNPC.hiddenInCave) this.activeNPC = null;
     this.syncTradeTouchControls();
+    const caveState = dangerSheltered > 0
+      ? "danger"
+      : ((keepSheltered || nightSheltered > 0) ? "night" : "clear");
+    const message = caveState === "night"
+      ? "VILLAGE NIGHT: traders wait in caves"
+      : (caveState === "danger"
+        ? "VILLAGE WAIT: danger still near caves"
+        : "VILLAGE CLEAR: traders back outside");
     if (villagers > 0 && typeof this.showMissionBalloon === 'function') {
       this.showMissionBalloon(
-        keepSheltered ? "VILLAGE NIGHT: traders wait in caves" : "VILLAGE CLEAR: traders back outside",
+        message,
         {
           title: "MISSION CRT",
-          color: keepSheltered ? "#fde68a" : "#a7f3d0",
+          color: caveState === "danger" ? "#facc15" : (caveState === "night" ? "#fde68a" : "#a7f3d0"),
           timer: 220
         }
       );
     }
-    return { villagers, released, sheltered, keepSheltered };
+    return { villagers, released, sheltered, keepSheltered, caveState, message, allClear: caveState === "clear" };
   }
 
   syncTradeTouchControls() {

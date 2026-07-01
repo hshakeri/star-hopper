@@ -8889,6 +8889,9 @@ function runCombatTests() {
     assertEquals(true, !!npc.returningFromCave, "Daylight release starts a visible walk back to the village");
     assertEquals(false, g.canNPCTrade(npc), "Villager cannot trade while still walking home from the cave");
     assertEquals("VILLAGE CLEAR: traders back outside", g.missionBalloon && g.missionBalloon.text, "Survival-off daylight release announces visible villagers");
+    assertEquals("clear", releaseSummary && releaseSummary.caveState, "Survival-off daylight release reports the clear cave state");
+    assertEquals(true, releaseSummary && releaseSummary.allClear, "Survival-off daylight release reports all caves clear");
+    assertEquals("VILLAGE CLEAR: traders back outside", releaseSummary && releaseSummary.message, "Survival-off daylight release exposes the CRT message");
     assertEquals(0, npc.panicTimer, "Villager panic clears after survival mode ends");
     assertEquals(7, g.researchXP, "A danger-caused cave release grants Village Rescue Research XP");
     assertEquals(true, g.hasVillageRescueCredit(1), "Village rescue records world mastery source credit");
@@ -8970,6 +8973,24 @@ function runCombatTests() {
     walkReturningVillagerHome(hiddenOff, hiddenNpc);
     assertEquals(150, hiddenNpc.x, "Survival-off walks a hidden villager back to the village home");
 
+    const dangerHold = new StarHopperGame();
+    dangerHold.state = 'playing'; dangerHold.currentPlanetIndex = 1; dangerHold.currentPlanet = PLANETS[1];
+    dangerHold.player = new Player(0, 0);
+    dangerHold.researchXP = 0;
+    dangerHold.masteryMeters = {};
+    const dangerNpc = new NPC({ id: 'danger-hold', name: 'Danger Hold', profession: 'Guard', type: 'npc', x: 82, y: 60, color: '#cbd5e1', homeX: 140, homeY: 60, caveX: 72, caveY: 60, hiddenInCave: true });
+    dangerNpc.rescuePending = true;
+    dangerNpc.shelterReason = "nearby mob";
+    dangerHold.interactiveObjects = [dangerNpc];
+    dangerHold.mobs = [new Mob(90, 60, 'hog', '#9a6b4f', 1)];
+    const dangerSummary = dangerHold.releaseVillagersFromCaves({ keepSheltered: false });
+    assertEquals(true, dangerNpc.hiddenInCave, "Villager stays in the cave while danger is still near the cave");
+    assertEquals(0, dangerSummary && dangerSummary.released, "Danger-held cave release reports no visible release");
+    assertEquals(1, dangerSummary && dangerSummary.sheltered, "Danger-held cave release reports one sheltered villager");
+    assertEquals("danger", dangerSummary && dangerSummary.caveState, "Danger-held cave release reports a danger cave state");
+    assertEquals(false, dangerSummary && dangerSummary.allClear, "Danger-held cave release does not claim all caves are clear");
+    assertEquals("VILLAGE WAIT: danger still near caves", dangerHold.missionBalloon && dangerHold.missionBalloon.text, "Danger-held cave release explains why the villager did not come out");
+
     const rosterRelease = new StarHopperGame();
     rosterRelease.state = 'playing'; rosterRelease.currentPlanetIndex = 1; rosterRelease.currentPlanet = PLANETS[1];
     rosterRelease.currentVariant = {
@@ -9029,6 +9050,8 @@ function runCombatTests() {
     assertEquals(2, nightRoster.length, "Survival-off night keeps every villager object in the village roster");
     assertEquals(0, nightRosterSummary && nightRosterSummary.released, "Survival-off night reports no daylight villager release");
     assertEquals(2, nightRosterSummary && nightRosterSummary.sheltered, "Survival-off night keeps every villager sheltered");
+    assertEquals("night", nightRosterSummary && nightRosterSummary.caveState, "Survival-off night reports the night cave state");
+    assertEquals(false, nightRosterSummary && nightRosterSummary.allClear, "Survival-off night does not claim all caves are clear");
     assertEquals(true, nightRoster.every(npc => npc.hiddenInCave), "Earth night sends all villagers into caves after Survival danger ends");
     assertEquals(true, nightRoster.every(npc => npc.shelterReason === "night"), "Earth night owns the visible cave state after mobs clear");
     assertEquals(true, nightRoster.every(npc => npc.rescueReason === "nearby mob"), "Earth night preserves each mob-rescue cause for daylight return");
