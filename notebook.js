@@ -275,9 +275,35 @@ function buildNotebookStageCall(cue) {
   return `stageScienceDeltaCommand(decodeNotebookStageArg('${command}'), { title: decodeNotebookStageArg('${title}'), kind: decodeNotebookStageArg('${kind}'), source: 'reflection-proof', color: '#bef264' })`;
 }
 
-function awardNotebookReflectionReward(game, missionId, missionTitle, alreadyRewarded = false, mission = null) {
+function getNotebookReflectionSaveContext(game, missionId, missionTitle) {
+  const context = game && game.reflectionContext;
+  if (context && context.kind === "signal-lab" && context.proofSourceKey) {
+    const key = `signal-reflection:${context.proofSourceKey}`;
+    return {
+      entryKey: key,
+      rewardId: key,
+      sourceKey: `reflection-proof:${key}`,
+      missionTitle: context.title || missionTitle || "Signal Lab proof",
+      rewardTitle: "Signal Reflection Proof",
+      rewardFormula: "claim = signal + evidence + why",
+      rewardCue: "Use this proof to compare the next Daily or Frontier signal."
+    };
+  }
+  return {
+    entryKey: missionId,
+    rewardId: missionId,
+    sourceKey: `reflection-proof:${missionId}`,
+    missionTitle,
+    rewardTitle: "Reflection Proof",
+    rewardFormula: "claim = evidence + why",
+    rewardCue: "Use this proof to compare your next code change."
+  };
+}
+
+function awardNotebookReflectionReward(game, missionId, missionTitle, alreadyRewarded = false, mission = null, options = {}) {
   if (!game || !missionId || alreadyRewarded) return null;
-  const sourceKey = `reflection-proof:${missionId}`;
+  const sourceKey = options.sourceKey || `reflection-proof:${missionId}`;
+  const title = options.rewardTitle || "Reflection Proof";
   let masteryAward = null;
   if (typeof game.awardWorldMasteryXP === 'function') {
     masteryAward = game.awardWorldMasteryXP(8, "evidence explanation", {
@@ -294,10 +320,10 @@ function awardNotebookReflectionReward(game, missionId, missionTitle, alreadyRew
   const rankUp = !!(beforeRank && afterRank && afterRank.level > beforeRank.level);
   const pulse = {
     kind: "reflection",
-    title: "Reflection Proof",
-    formula: "claim = evidence + why",
+    title,
+    formula: options.rewardFormula || "claim = evidence + why",
     insight: `${missionTitle || "Mission"} explanation saved. The win now has a claim, evidence, and a reason.`,
-    cue: "Use this proof to compare your next code change.",
+    cue: options.rewardCue || "Use this proof to compare your next code change.",
     missionId,
     missionTitle: missionTitle || "Science Notebook",
     passed: 1,
@@ -318,7 +344,7 @@ function awardNotebookReflectionReward(game, missionId, missionTitle, alreadyRew
   game.discoveryPulse = pulse;
   game.discoveryLog = [pulse].concat(Array.isArray(game.discoveryLog) ? game.discoveryLog : []).slice(0, 8);
   if (typeof ui_log_output === 'function') {
-    ui_log_output(`Reflection Proof: +${xp} Research XP for explaining evidence.`, "success");
+    ui_log_output(`${title}: +${xp} Research XP for explaining evidence.`, "success");
   }
   if (typeof logMissionBriefing === 'function') {
     logMissionBriefing(`${pulse.title}: ${pulse.insight}`);
@@ -389,14 +415,16 @@ function saveNotebookReflection() {
     ? getCoachPredictionOption(window.Game, missionId)
     : null;
   const evidence = qEl.dataset.evidenceStarter || ((document.getElementById("notebook-reflection-starter") || {}).textContent || "");
+  const game = (typeof window !== 'undefined' && window.Game) ? window.Game : (typeof Game !== 'undefined' ? Game : null);
+  const saveContext = getNotebookReflectionSaveContext(game, missionId, missionTitle);
   const badge = mission && mission.badge && window.Game && window.Game.earnedBadges && window.Game.earnedBadges.has(mission.badge.id)
     ? mission.badge
     : null;
-  const previousEntry = notebookEntries[missionId] || null;
+  const previousEntry = notebookEntries[saveContext.entryKey] || null;
   const alreadyRewarded = !!(previousEntry && previousEntry.reflectionRewardXP > 0);
 
   const entry = {
-    title: missionTitle,
+    title: saveContext.missionTitle || missionTitle,
     question: qEl.textContent,
     answer: responseText,
     code: starterCode,
@@ -406,8 +434,7 @@ function saveNotebookReflection() {
     timestamp: new Date().toLocaleTimeString(),
     updatedAtMs: Date.now()
   };
-  const game = (typeof window !== 'undefined' && window.Game) ? window.Game : (typeof Game !== 'undefined' ? Game : null);
-  const reward = awardNotebookReflectionReward(game, missionId, missionTitle, alreadyRewarded, mission);
+  const reward = awardNotebookReflectionReward(game, saveContext.rewardId, saveContext.missionTitle, alreadyRewarded, mission, saveContext);
   const nextExperiment = reward && reward.nextExperiment
     ? reward.nextExperiment
     : (previousEntry && previousEntry.nextExperiment ? previousEntry.nextExperiment : getNotebookReflectionNextExperiment(game, mission));
@@ -419,7 +446,7 @@ function saveNotebookReflection() {
     entry.reflectionRewardLabel = previousEntry.reflectionRewardLabel || "Reflection Proof";
   }
   if (nextExperiment) entry.nextExperiment = nextExperiment;
-  notebookEntries[missionId] = entry;
+  notebookEntries[saveContext.entryKey] = entry;
 
   textEl.value = "";
   renderNotebookHistory();

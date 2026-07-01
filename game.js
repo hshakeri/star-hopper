@@ -2728,7 +2728,8 @@ class StarHopperGame {
     };
   }
 
-  runClearExplainPrompt() {
+  runClearExplainPrompt(options = {}) {
+    if (!options || !options.preserveReflectionContext) this.reflectionContext = null;
     const activeMission = this.getClearExplainMission();
     if (typeof updateActiveQuestion === 'function') updateActiveQuestion(this);
     if (this.player && typeof updateNotebook === 'function') updateNotebook(this);

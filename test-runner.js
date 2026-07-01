@@ -2605,12 +2605,14 @@ function runEngineTests() {
       actionGame.currentPlanet = PLANETS[0];
       actionGame.completedMissions = new Set();
       actionGame.player = new Player(0, 0);
+      actionGame.reflectionContext = { kind: "signal-lab", title: "Stale signal" };
       assertEquals(true, actionGame.runClearExplainPrompt(), "Explain action should complete successfully");
       assertEquals("notebook", notebookMode, "Explain action should open the Science Notebook");
       assertEquals(1, notebookUpdated, "Explain action should refresh notebook telemetry when a player exists");
       assertEquals(1, questionUpdated, "Explain action should refresh the active reflection question");
       assertEquals("earth-gravity-wall", reflectionMission && reflectionMission.id, "Explain action should use the active platformer mission");
       assertEquals(true, responseEl.focused, "Explain action should focus the reflection textbox");
+      assertEquals(null, actionGame.reflectionContext, "Generic clear explanation should clear stale Signal Lab context");
     } finally {
       if (oldSwitchMainMode22fg) switchMainMode = oldSwitchMainMode22fg;
       if (oldUpdateNotebook22fg) updateNotebook = oldUpdateNotebook22fg;
@@ -3010,7 +3012,8 @@ function runEngineTests() {
     assertEquals(true, !!proofStatus, "Signal lab proof status should expose a durable source key");
     game.discoveryPassCounts[proofStatus.sourceKey] = 1;
     let explainCalls = 0;
-    game.runClearExplainPrompt = () => { explainCalls++; return true; };
+    let explainOptions = null;
+    game.runClearExplainPrompt = (opts) => { explainCalls++; explainOptions = opts || null; return true; };
     list = makeEl();
     updateMissionList(game);
     const claimedSignalLab = findByClass(list, "signal-lab-contract-card");
@@ -3023,6 +3026,7 @@ function runEngineTests() {
     assertEquals("EXPLAIN EVIDENCE", explainSignalButton && explainSignalButton.textContent, "Claimed Signal Lab card should expose the explain action");
     explainSignalButton._events.click();
     assertEquals(1, explainCalls, "Signal Lab explain action should reuse the Science Notebook explain flow");
+    assertEquals(true, !!(explainOptions && explainOptions.preserveReflectionContext), "Signal Lab explain action should preserve its reflection context");
     assertEquals("signal-lab", game.reflectionContext && game.reflectionContext.kind, "Signal Lab explain action should set notebook reflection context");
     assertEquals("Numeric friction target", game.reflectionContext && game.reflectionContext.title, "Signal Lab reflection context should preserve the replay focus");
     assertEquals("friction = 8", game.reflectionContext && game.reflectionContext.command, "Signal Lab reflection context should preserve the tested command");
@@ -6122,6 +6126,36 @@ function runExperimentLogTests() {
     assertEquals(4, notebookEntries["earth-gravity-wall"].reflectionRewardXP, "Re-save should preserve the original proof badge");
     assertEquals("Raise engine", notebookEntries["earth-gravity-wall"].nextExperiment.title, "Re-save should preserve the next-test handoff");
     assertEquals(2, cloudSaves, "Re-saving should still persist the revised answer");
+
+    const signalProofKey = "signal-lab-proof:daily:earth-20260630:day:0:mass-remix-proof:abc123";
+    game.reflectionContext = {
+      kind: "signal-lab",
+      source: "Daily Signal Lab",
+      title: "Mass remix proof",
+      concept: "Force and mass",
+      command: "hopper.mass = 1.2",
+      proofLabel: "SIGNAL LAB TESTED",
+      proofSourceKey: signalProofKey
+    };
+    question.dataset.evidenceStarter = buildReflectionEvidenceStarter(game, PLANETS[0].missions.find(mission => mission.id === "earth-gravity-wall"));
+    response.value = "The Daily Signal proof shows lower mass changed acceleration evidence.";
+    saveNotebookReflection();
+    const signalEntryKey = `signal-reflection:${signalProofKey}`;
+    const signalEntry = notebookEntries[signalEntryKey];
+    assertEquals(18, game.researchXP, "Signal Lab reflection should award its own +4 Research XP");
+    assertEquals("Signal Reflection Proof", game.discoveryPulse.title, "Signal Lab reflection should create a specific discovery pulse");
+    assertEquals("Mass remix proof", signalEntry.title, "Signal Lab notebook entry should use the replay focus title");
+    assertEquals(4, signalEntry.reflectionRewardXP, "Signal Lab notebook entry should remember its proof reward");
+    assertEquals("Signal Reflection Proof", signalEntry.reflectionRewardLabel, "Signal Lab notebook entry should label the specific proof");
+    assertEquals(true, /signal lab: Daily Signal Lab/.test(signalEntry.evidence), "Signal Lab entry should preserve contextual evidence");
+    assertEquals(3, cloudSaves, "Saving a Signal Lab reflection should persist the new entry");
+
+    response.value = "A revised Daily Signal explanation still should not farm XP.";
+    saveNotebookReflection();
+    assertEquals(18, game.researchXP, "Re-saving the same Signal Lab reflection should not farm XP");
+    assertEquals("A revised Daily Signal explanation still should not farm XP.", notebookEntries[signalEntryKey].answer, "Signal Lab re-save should update the answer");
+    assertEquals(4, notebookEntries[signalEntryKey].reflectionRewardXP, "Signal Lab re-save should preserve the original proof badge");
+    assertEquals(4, cloudSaves, "Signal Lab re-save should still persist the revised answer");
 
     document.getElementById = oldGetElementByIdE6;
     Object.keys(notebookEntries).forEach(key => delete notebookEntries[key]);

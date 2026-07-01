@@ -656,7 +656,8 @@ function setSignalLabReflectionContext(game, proofStatus) {
     title: proofStatus.title || contract.title || "Signal Lab proof",
     concept: contract.concept || signal.concept || "Replay physics",
     command: proofStatus.command || contract.command || "",
-    proofLabel: proofStatus.isFrontier ? "FRONTIER LAB TESTED" : "SIGNAL LAB TESTED"
+    proofLabel: proofStatus.isFrontier ? "FRONTIER LAB TESTED" : "SIGNAL LAB TESTED",
+    proofSourceKey: proofStatus.sourceKey || ""
   };
   game.reflectionContext = context;
   return context;
@@ -666,7 +667,7 @@ function runSignalLabExplainAction(game, proofStatus = null) {
   const target = game || (typeof window !== 'undefined' ? window.Game : null);
   if (target && proofStatus) setSignalLabReflectionContext(target, proofStatus);
   if (target && typeof target.runClearExplainPrompt === 'function') {
-    return target.runClearExplainPrompt();
+    return target.runClearExplainPrompt({ preserveReflectionContext: true });
   }
   if (typeof switchMainMode === 'function') {
     switchMainMode('notebook');
