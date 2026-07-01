@@ -3129,6 +3129,7 @@ function runEngineTests() {
     game.remixContext = 'first';
     game.bestClearTimes = { 0: 12.4 };
     game.masteryMeters = { 0: { xp: 80, badges: ["scout"], sources: { "science-proof": 24 } } };
+    game.villageTrust = { 0: { points: 3, badges: ["friend"], sources: { "village-trade:0:geary:engine_1": 3 } } };
     game.planetClears = { 0: 1, 1: 1 };
     game.discoveredFormulaKinds = new Set(["antigravity"]);
     window.Game = game;
@@ -3160,6 +3161,8 @@ function runEngineTests() {
     const labQuestionText = flattenText(labQuestion || list);
     const worldMastery = findByClass(list, "world-mastery-crt-card");
     const worldMasteryText = flattenText(worldMastery || list);
+    const villageTrust = findByClass(list, "village-trust-crt-card");
+    const villageTrustText = flattenText(villageTrust || list);
     const signalStory = findByClass(list, "signal-story-crt-card");
     const signalStoryText = flattenText(signalStory || list);
     const mentor = findByClass(list, "mentor-signal-card");
@@ -3189,6 +3192,12 @@ function runEngineTests() {
     assertEquals(true, /Signal Scout · 80 XP/.test(worldMasteryText), "World mastery card should show current tier and XP");
     assertEquals(true, /30 XP to World Engineer/.test(worldMasteryText), "World mastery card should show the next tier gap");
     assertEquals(true, /tasks, samples, science proof, rescues, and remixes/.test(worldMasteryText), "World mastery card should explain educational sources");
+    assertEquals(true, !!villageTrust, "Mission panel should show the village trust target");
+    assertEquals(true, /VILLAGE TRUST/.test(villageTrustText), "Village trust card should identify itself");
+    assertEquals(true, /Trading Friend · 3/.test(villageTrustText), "Village trust card should show current tier and points");
+    assertEquals(true, /4 trust to Cave Ally/.test(villageTrustText), "Village trust card should show the next relationship tier gap");
+    assertEquals(true, /Protect or trade again/.test(villageTrustText), "Village trust card should name the next relationship action");
+    assertEquals(true, /AI states/.test(villageTrustText), "Village trust card should frame helpful play as a game-AI lesson");
     assertEquals(true, !!signalStory, "Mission panel should show the active Signal Story contract");
     assertEquals(true, /STAR-MAP SIGNAL/.test(signalStoryText), "Signal Story card should identify itself");
     assertEquals(true, /2\/12 decoded/.test(signalStoryText), "Signal Story card should show decoded progress");

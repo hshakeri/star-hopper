@@ -420,6 +420,7 @@ function updateMissionList(game) {
   appendLessonLensCard(listContainer, game);
   appendMissionLabQuestionCard(listContainer, game);
   appendWorldMasteryCrtCard(listContainer, game);
+  appendVillageTrustCrtCard(listContainer, game);
   appendSignalStoryCrtCard(listContainer, game);
   appendSignalLabContractCard(listContainer, game);
   appendFrontierRivalCrtCard(listContainer, game);
@@ -614,6 +615,60 @@ function appendWorldMasteryCrtCard(listContainer, game) {
     <div class="world-mastery-crt-body">
       <strong>${escapeHTML(nextText)}</strong>
       <p>${escapeHTML(planetName)} mastery grows from new tasks, samples, science proof, rescues, and remixes.</p>
+    </div>
+  `;
+  listContainer.appendChild(card);
+}
+
+function getVillageTrustCrtPreview(game) {
+  if (!game || typeof game.getVillageTrustProgress !== "function") return null;
+  const progress = game.getVillageTrustProgress(game.currentPlanetIndex);
+  if (!progress) return null;
+  const currentPoints = Math.max(0, Math.floor(Number(progress.points) || 0));
+  const currentTierPoints = progress.currentTier ? Math.max(0, Number(progress.currentTier.points) || 0) : 0;
+  const nextTierPoints = progress.nextTier ? Math.max(1, Number(progress.nextTier.points) || 1) : Math.max(1, currentPoints || 1);
+  const span = Math.max(1, nextTierPoints - currentTierPoints);
+  const tierPct = progress.nextTier ? Math.max(0, Math.min(100, Math.round(((currentPoints - currentTierPoints) / span) * 100))) : 100;
+  const nextText = progress.nextTier
+    ? `${Math.max(0, nextTierPoints - currentPoints)} trust to ${progress.nextTier.label}`
+    : "Max village trust reached";
+  const gem = typeof game.getGemConfig === "function" ? game.getGemConfig(game.currentPlanetIndex) : null;
+  const sampleName = gem && gem.shortName ? gem.shortName : "planet sample";
+  let action = "Trade a local sample";
+  let body = `Bank ${sampleName} gems, make a fair village trade, then test how the new tool changes the run.`;
+  if (currentPoints > 0 && progress.nextTier) {
+    action = "Protect or trade again";
+    body = "Rescue villagers from mobs or let a trained pet guard the cadet. That turns AI states into relationship progress.";
+  } else if (!progress.nextTier) {
+    action = "Mentor status online";
+    body = "The village trusts this cadet. Keep using trades, pets, and rescues as evidence for how game systems remember helpful choices.";
+  }
+  return {
+    title: progress.title || "New Arrival",
+    points: currentPoints,
+    tierPct,
+    nextText,
+    action,
+    body
+  };
+}
+
+function appendVillageTrustCrtCard(listContainer, game) {
+  if (!listContainer || !game) return;
+  const preview = getVillageTrustCrtPreview(game);
+  if (!preview) return;
+
+  const card = document.createElement("div");
+  card.className = "village-trust-crt-card";
+  card.innerHTML = `
+    <div class="village-trust-crt-head">
+      <span>VILLAGE TRUST</span>
+      <strong>${escapeHTML(preview.title)} · ${escapeHTML(String(preview.points))}</strong>
+    </div>
+    <div class="village-trust-crt-bar" aria-label="${escapeHTML(String(preview.tierPct))}% toward next village trust tier"><i style="width: ${escapeHTML(String(preview.tierPct))}%"></i></div>
+    <div class="village-trust-crt-body">
+      <strong>${escapeHTML(preview.nextText)} · ${escapeHTML(preview.action)}</strong>
+      <p>${escapeHTML(preview.body)}</p>
     </div>
   `;
   listContainer.appendChild(card);
