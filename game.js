@@ -7972,6 +7972,97 @@ class StarHopperGame {
     return { target, visible: false, offscreen: true, color, x: markerX, y: markerY, angle, label, kind };
   }
 
+  getRunObjectiveCompassCue() {
+    if (this.state !== 'playing' || typeof getRunObjectiveQueue !== 'function') return null;
+    let queue = [];
+    try {
+      queue = getRunObjectiveQueue(this);
+    } catch (err) {
+      queue = [];
+    }
+    if (!Array.isArray(queue) || !queue.length) return null;
+    const item = queue[0] || {};
+    const commandLine = String(item.command || "")
+      .split(/\n/)
+      .map(line => line.trim())
+      .find(Boolean) || "";
+    return {
+      priority: item.priority || 1,
+      label: item.label || "NEXT",
+      cta: item.cta || (commandLine ? "STAGE" : "CHECK"),
+      title: item.title || "Next objective",
+      body: commandLine || item.body || item.reward || "Run the next focused experiment.",
+      reward: item.reward || "",
+      commandLine,
+      kind: item.kind || "objective",
+      source: item.source || "run-objective-queue",
+      color: item.color || "#67e8f9",
+      disabled: !!item.disabled
+    };
+  }
+
+  drawRunObjectiveCompass(ctx) {
+    const cue = this.getRunObjectiveCompassCue();
+    if (!ctx || !cue || !this.canvas || !this.player) return null;
+    const W = this.canvas.width || 720;
+    const H = this.canvas.height || 448;
+    const p = this.player;
+    const px = (Number.isFinite(p.x) ? p.x : 0) + (Number.isFinite(p.w) ? p.w : 24) / 2 - (this.cameraX || 0);
+    const py = Number.isFinite(p.y) ? p.y : H / 2;
+    const w = Math.max(124, Math.min(176, W - 24));
+    const h = 48;
+    const x = Math.max(12, Math.min(W - w - 12, px - w / 2));
+    const y = Math.max(64, Math.min(H - h - 16, py - 62));
+    const color = cue.color || "#67e8f9";
+    const pulse = this.reducedMotion ? 0.45 : 0.45 + 0.35 * Math.sin(Date.now() / 480);
+
+    ctx.save();
+    ctx.globalAlpha = cue.disabled ? 0.72 : 0.86;
+    ctx.strokeStyle = cue.disabled ? "rgba(203, 213, 225, 0.52)" : color;
+    ctx.fillStyle = "rgba(2, 6, 23, 0.68)";
+    ctx.shadowBlur = cue.disabled ? 0 : 8 + pulse * 4;
+    ctx.shadowColor = color;
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, 8);
+    ctx.fill();
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    ctx.globalAlpha = 0.22;
+    ctx.fillStyle = color;
+    for (let lineY = y + 7; lineY < y + h - 5; lineY += 6) ctx.fillRect(x + 8, lineY, w - 16, 1);
+    ctx.globalAlpha = cue.disabled ? 0.76 : 0.94;
+
+    ctx.fillStyle = color;
+    ctx.font = "bold 7px 'Share Tech Mono', monospace";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText(this.fitCardText(ctx, `#${cue.priority} ${cue.label}`, w - 72), x + 9, y + 10);
+    ctx.textAlign = "right";
+    ctx.fillText(this.fitCardText(ctx, cue.cta, 58), x + w - 9, y + 10);
+
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#f8fafc";
+    ctx.font = "bold 9px 'Share Tech Mono', monospace";
+    ctx.fillText(this.fitCardText(ctx, cue.title, w - 18), x + 9, y + 26);
+    ctx.fillStyle = cue.disabled ? "#e2e8f0" : "#bbf7d0";
+    ctx.font = "7px 'Share Tech Mono', monospace";
+    ctx.fillText(this.fitCardText(ctx, cue.body, w - 18), x + 9, y + 39);
+
+    ctx.globalAlpha = cue.disabled ? 0.35 : 0.62;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(Math.max(x + 18, Math.min(x + w - 18, px)), y + h);
+    ctx.lineTo(px, Math.max(12, py - 8));
+    ctx.stroke();
+    ctx.restore();
+
+    this.lastRunObjectiveCompassCue = { ...cue, x, y, w, h };
+    return this.lastRunObjectiveCompassCue;
+  }
+
   getFutureLabRunProgress(preferredStageId = null) {
     if (typeof getFutureLabRoadmapStages !== 'function') return null;
     let stages = null;
@@ -8559,6 +8650,7 @@ class StarHopperGame {
     this.drawWeaponHUD(this.ctx);
     this.drawDrillHUD(this.ctx);
     this.drawLabChainRunCue(this.ctx);
+    this.drawRunObjectiveCompass(this.ctx);
 
     // 9f. Meteor-shower "take shelter" warning banner (screen-space).
     this.drawMeteorBanner(this.ctx);

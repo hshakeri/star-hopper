@@ -3182,6 +3182,60 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: active lab-chain HUD previews next milestone", false, err.message);
   }
 
+  // Test 22bc2: the active canvas compass mirrors the top in-run objective queue item.
+  try {
+    const game = new StarHopperGame();
+    game.state = 'playing';
+    game.canvas = { width: 320, height: 200 };
+    game.player = { x: 96, y: 118, w: 24, h: 32 };
+    game.cameraX = 0;
+    game.reducedMotion = true;
+    game.currentPlanet = PLANETS[0];
+    game.currentPlanetIndex = 0;
+    game.completedMissions = new Set();
+    game.discoveryPassCounts = {};
+    game.lastStagedExperiment = {
+      title: "Mass Lab",
+      kind: "mass",
+      source: "mentor-signal",
+      command: "hopper.mass = 1.0",
+      time: Date.now()
+    };
+
+    const cue = game.getRunObjectiveCompassCue();
+    assertEquals("READY TO TEST", cue.label, "Objective compass should mirror the top run-queue label");
+    assertEquals("RESTAGE", cue.cta, "Objective compass should mirror the top run-queue action");
+    assertEquals("Mass Lab", cue.title, "Objective compass should name the queued experiment");
+    assertEquals("hopper.mass = 1.0", cue.commandLine, "Objective compass should show the first runnable command");
+    assertEquals("mentor-signal", cue.source, "Objective compass should preserve queue source metadata");
+
+    const labels = [];
+    const fakeCtx = {
+      save() {},
+      restore() {},
+      beginPath() {},
+      roundRect() {},
+      fill() {},
+      stroke() {},
+      fillRect() {},
+      moveTo() {},
+      lineTo() {},
+      fillText(text) { labels.push(text); },
+      measureText(text) { return { width: String(text || "").length * 6 }; }
+    };
+    const drawn = game.drawRunObjectiveCompass(fakeCtx);
+    assertEquals("READY TO TEST", drawn.label, "Drawing should return the visible objective cue");
+    assertEquals(true, labels.some(text => /READY TO TEST/.test(text)), "Compass draw should write the ranked objective label");
+    assertEquals(true, labels.includes("Mass Lab"), "Compass draw should write the experiment title");
+    assertEquals(true, labels.includes("hopper.mass = 1.0"), "Compass draw should write the command line");
+    assertEquals("READY TO TEST", game.lastRunObjectiveCompassCue && game.lastRunObjectiveCompassCue.label, "Drawing should cache the visible objective cue");
+    game.state = 'start';
+    assertEquals(null, game.getRunObjectiveCompassCue(), "Objective compass should stay out of non-playing screens");
+    renderTestResult("engine-suite", "Curriculum: run objective compass mirrors queue", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Curriculum: run objective compass mirrors queue", false, err.message);
+  }
+
   // Test 22c: Research rank and discovery deck render a readable learning collection.
   const oldGetElementById22c = document.getElementById;
   const oldWindowGame22c = window.Game;
