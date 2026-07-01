@@ -4599,6 +4599,7 @@ function runEngineTests() {
         teaser: id,
         disabled: true,
         title: "",
+        dataset: {},
         classList: makeClassList(["planet-node", "teaser"]),
         getAttribute: (name) => name === "data-teaser" ? id : null,
         querySelector: (selector) => selector === ".mission-meta" ? meta : null,
@@ -4647,6 +4648,8 @@ function runEngineTests() {
     assertEquals(true, /0\/6 seeds/.test(teasers[0]._meta.innerHTML), "Future Dark Matter node should show unopened Future Lab seed progress");
     assertEquals(true, /Restore the star-map/.test(teasers[0]._meta.innerHTML), "Future Lab seed strip should name the first seed before the star-map is restored");
     assertEquals(false, teasers[0].classList.contains("anomaly-next"), "Future Dark Matter node should not pulse as the next anomaly before the star-map is restored");
+    assertEquals(true, teasers[0].disabled, "Future Dark Matter node should stay disabled before the star-map is restored");
+    assertEquals(false, teasers[0].classList.contains("future-action"), "Future Dark Matter node should not advertise a click action too early");
 
     game.villageTrust = { 0: { points: 3, badges: ["friend"], sources: { "village-trade:0:geary:engine_1": 3 } } };
     game.discoveryPassCounts = {};
@@ -4712,10 +4715,26 @@ function runEngineTests() {
     assertEquals(true, /Clear one Frontier Challenge/.test(teasers[0]._meta.innerHTML), "Active anomaly should name the retention action");
     assertEquals(true, /1\/6 seeds/.test(teasers[0]._meta.innerHTML), "Restored star-map should advance the Future Lab seed counter");
     assertEquals(true, /Decode Dark Matter Echo/.test(teasers[0]._meta.innerHTML), "Restored star-map should name the next Future Lab seed on the map");
+    assertEquals(false, teasers[0].disabled, "Restored star-map should make the active Dark Matter teaser clickable");
+    assertEquals(true, teasers[0].classList.contains("future-action"), "Restored star-map should mark Dark Matter as an actionable future seed");
+    assertEquals(true, /CLICK: RUN FRONTIER/.test(teasers[0]._meta.innerHTML), "Actionable Dark Matter teaser should show the seed CTA");
+    assertEquals(true, /Click to RUN FRONTIER/.test(teasers[0].title), "Actionable Dark Matter tooltip should explain the click action");
     assertEquals(true, /hidden-force anomaly detected/.test(teasers[0].title), "Active anomaly title should explain the next story step");
     assertEquals(true, teasers[1].classList.contains("anomaly-waiting"), "Quantum Gate should wait behind the Dark Matter Echo");
     assertEquals(true, /Decode Dark Matter Echo first/.test(teasers[1]._meta.innerHTML), "Quantum Gate teaser should explain its lock");
     assertEquals(true, /1\/6 seeds/.test(teasers[1]._meta.innerHTML), "Quantum Gate should mirror the shared Future Lab seed counter while locked");
+    assertEquals(true, teasers[1].disabled, "Quantum Gate should stay disabled until its own prep seed is next");
+    const futureFrontierStarts22g = [];
+    const futureModes22g = [];
+    const originalFutureStart22g = game.startFrontierChallenge;
+    game.startFrontierChallenge = (opts) => { futureFrontierStarts22g.push(opts || null); return true; };
+    switchMainMode = (mode) => futureModes22g.push(mode);
+    assertEquals(true, game.startFutureWorldTeaser("dark-matter"), "Clicking active Dark Matter teaser should launch the current Future Lab seed");
+    assertEquals(1, futureFrontierStarts22g.length, "Dark Matter teaser action should launch one Frontier proof");
+    assertEquals(null, futureFrontierStarts22g[0], "Dark Matter Echo action should use a standard Frontier proof");
+    assertEquals("terminal", futureModes22g[0], "Dark Matter teaser action should return to the playable terminal");
+    game.startFrontierChallenge = originalFutureStart22g;
+    switchMainMode = oldSwitchMainMode22g;
 
     game.frontierRecords = {
       "2026-06-30": {
@@ -4751,6 +4770,9 @@ function runEngineTests() {
     assertEquals(true, /Test a branch condition/.test(teasers[1]._meta.innerHTML), "Quantum Gate prep should name the branch action");
     assertEquals(true, /4\/6 seeds/.test(teasers[1]._meta.innerHTML), "Dark Matter evidence should advance the Quantum Gate seed counter");
     assertEquals(true, /Seed a branch condition/.test(teasers[1]._meta.innerHTML), "Quantum Gate seed strip should name the branch proof");
+    assertEquals(false, teasers[1].disabled, "Quantum Gate should become clickable when its branch seed is next");
+    assertEquals(true, teasers[1].classList.contains("future-action"), "Quantum Gate should mark the branch seed as actionable");
+    assertEquals(true, /CLICK: TEST BRANCH/.test(teasers[1]._meta.innerHTML), "Quantum Gate branch seed should show the click CTA");
     game.discoveryPassCounts = {
       "anomaly-trace-proof:4:trace-hidden-force:test": 1,
       "signal-lab-proof:frontier:frontier-earth-1234:t1:0:dark-matter-prep-curve-evidence:test": 1,
@@ -4772,6 +4794,7 @@ function runEngineTests() {
     assertEquals(true, /chance paths/.test(teasers[1]._meta.innerHTML), "Quantum Gate seed should preview chance paths");
     assertEquals(true, /6\/6 seeds/.test(teasers[1]._meta.innerHTML), "Complete Quantum prep should show all Future Lab seeds banked");
     assertEquals(true, /Source key ready/.test(teasers[1]._meta.innerHTML), "Complete Future Lab seed strip should point to the source key");
+    assertEquals(true, /CLICK: RUN SOURCE/.test(teasers[1]._meta.innerHTML), "Complete Quantum prep should make the source rehearsal clickable");
     document.querySelectorAll = oldQuerySelectorAll22g;
     switchMainMode = oldSwitchMainMode22g;
     renderTestResult("engine-suite", "Curriculum: galaxy map surfaces lab-star mastery", true);

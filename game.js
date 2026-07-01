@@ -2615,6 +2615,47 @@ class StarHopperGame {
     return `<span class="map-seed-progress"><b>${safe(`${done}/${total} seeds`)}</b><em>${safe(nextTitle)}</em><span class="map-seed-pips">${pips}</span></span>`;
   }
 
+  getFutureLabRoadmapTarget(stageId = null) {
+    if (typeof getFutureLabRoadmapStages !== 'function') return null;
+    let stages = [];
+    try {
+      stages = getFutureLabRoadmapStages(this);
+    } catch (err) {
+      stages = [];
+    }
+    if (!Array.isArray(stages) || !stages.length) return null;
+    const allDone = stages.every(stage => stage && stage.status === "done");
+    const sourceTarget = typeof getFutureLabSourceRoadmapTarget === 'function'
+      ? getFutureLabSourceRoadmapTarget(this, allDone)
+      : null;
+    const target = (stageId && stages.find(stage => stage && stage.id === stageId)) ||
+      (stageId === "future-source-key" ? sourceTarget : null) ||
+      stages.find(stage => stage && stage.status === "next") ||
+      sourceTarget;
+    if (!target || target.status === "locked" || target.status === "done") return null;
+    return target;
+  }
+
+  getFutureLabMapActionForTeaser(teaserId) {
+    if (typeof runFutureLabRoadmapAction !== 'function' || typeof this.getFutureLabRunProgress !== 'function') return null;
+    const id = String(teaserId || "");
+    const preferred = id === "quantum-gate" ? "quantum-branch" : "dark-matter-echo";
+    const progress = this.getFutureLabRunProgress(preferred);
+    const stageId = progress && progress.nextId ? String(progress.nextId) : "";
+    const darkMatterStages = new Set(["dark-matter-echo", "hidden-force-trace", "dark-matter-evidence"]);
+    const quantumStages = new Set(["quantum-branch", "quantum-chance", "future-source-key"]);
+    if (id === "quantum-gate" && !quantumStages.has(stageId)) return null;
+    if (id !== "quantum-gate" && !darkMatterStages.has(stageId)) return null;
+    const target = this.getFutureLabRoadmapTarget(stageId);
+    if (!target) return null;
+    return {
+      id: target.id,
+      label: target.cta || "RUN SEED",
+      title: target.title || "Future Lab seed",
+      actionType: target.actionType || "future-lab"
+    };
+  }
+
   getFutureWorldTeaserState(teaserId) {
     const id = String(teaserId || "");
     const safe = (typeof escapeHTML === 'function')
@@ -2645,82 +2686,98 @@ class StarHopperGame {
       : "Infer hidden forces";
     const chip = `<span class="map-concept-chip">${safe(concept)}</span>`;
     const seedProgress = this.renderFutureLabMapSeedProgress(id === "quantum-gate" ? "quantum-branch" : "dark-matter-echo");
+    const action = this.getFutureLabMapActionForTeaser(id);
+    const actionHTML = action
+      ? `<span class="map-seed-action">CLICK: ${safe(action.label)}</span>`
+      : "";
+    const suffix = `${seedProgress}${actionHTML}`;
 
     if (id === "quantum-gate") {
       if (quantumChanceSeeded) {
         return {
           className: "anomaly-decoded",
-          metaHTML: `PROBABILITY SEED · ${chip}<span class="map-lock-hint">Future lab: chance paths</span>${seedProgress}`,
-          title: "Quantum Gate: probability proof logged. The source lab has a chance seed for branching paths."
+          metaHTML: `PROBABILITY SEED · ${chip}<span class="map-lock-hint">Future lab: chance paths</span>${suffix}`,
+          title: "Quantum Gate: probability proof logged. The source lab has a chance seed for branching paths.",
+          action
         };
       }
       if (quantumSeeded) {
         return {
           className: "anomaly-next",
-          metaHTML: `CHANCE PREP · ${chip}<span class="map-lock-hint">Test chance(50)</span>${seedProgress}`,
-          title: "Quantum Gate: branch proof logged. Test a chance branch to seed probability paths."
+          metaHTML: `CHANCE PREP · ${chip}<span class="map-lock-hint">Test chance(50)</span>${suffix}`,
+          title: "Quantum Gate: branch proof logged. Test a chance branch to seed probability paths.",
+          action
         };
       }
       if (darkMatterEvidence) {
         return {
           className: "anomaly-next",
-          metaHTML: `QUANTUM PREP · ${chip}<span class="map-lock-hint">Test a branch condition</span>${seedProgress}`,
-          title: "Quantum Gate: hidden-force evidence banked. Test one conditional branch to seed the probability lab."
+          metaHTML: `QUANTUM PREP · ${chip}<span class="map-lock-hint">Test a branch condition</span>${suffix}`,
+          title: "Quantum Gate: hidden-force evidence banked. Test one conditional branch to seed the probability lab.",
+          action
         };
       }
       if (anomalyTraced) {
         return {
           className: "anomaly-decoded",
-          metaHTML: `FORCE TRACED · ${chip}<span class="map-lock-hint">Next: bank curve evidence</span>${seedProgress}`,
-          title: "Quantum Gate: hidden-force trace logged. Bank Dark Matter evidence before branching into probability."
+          metaHTML: `FORCE TRACED · ${chip}<span class="map-lock-hint">Next: bank curve evidence</span>${suffix}`,
+          title: "Quantum Gate: hidden-force trace logged. Bank Dark Matter evidence before branching into probability.",
+          action
         };
       }
       if (frontierDecoded) {
         return {
           className: "anomaly-waiting",
-          metaHTML: `TRACE NEEDED · ${chip}<span class="map-lock-hint">Run Trace hidden force</span>${seedProgress}`,
-          title: "Quantum Gate: echo decoded, but the hidden-force trace must be tested before the source opens."
+          metaHTML: `TRACE NEEDED · ${chip}<span class="map-lock-hint">Run Trace hidden force</span>${suffix}`,
+          title: "Quantum Gate: echo decoded, but the hidden-force trace must be tested before the source opens.",
+          action
         };
       }
       if (storyComplete) {
         return {
           className: "anomaly-waiting",
-          metaHTML: `SOURCE LOCKED · ${chip}<span class="map-lock-hint">Decode Dark Matter Echo first</span>${seedProgress}`,
-          title: "Quantum Gate: source locked. Clear a Frontier Challenge to triangulate the Dark Matter Echo first."
+          metaHTML: `SOURCE LOCKED · ${chip}<span class="map-lock-hint">Decode Dark Matter Echo first</span>${suffix}`,
+          title: "Quantum Gate: source locked. Clear a Frontier Challenge to triangulate the Dark Matter Echo first.",
+          action
         };
       }
       return {
         className: "",
-        metaHTML: `Signal source · ${chip}${seedProgress}`,
-        title: "Quantum Gate - source of the signal. Concept: branching and probability."
+        metaHTML: `Signal source · ${chip}${suffix}`,
+        title: "Quantum Gate - source of the signal. Concept: branching and probability.",
+        action
       };
     }
 
     if (anomalyTraced) {
       return {
         className: "anomaly-decoded",
-        metaHTML: `SOURCE TRACED · ${chip}<span class="map-lock-hint">Future lab: curve clues</span>${seedProgress}`,
-        title: "Dark Matter Lab: hidden-force trace logged with a Mag-Net prototype. Future lab under construction."
+        metaHTML: `SOURCE TRACED · ${chip}<span class="map-lock-hint">Future lab: curve clues</span>${suffix}`,
+        title: "Dark Matter Lab: hidden-force trace logged with a Mag-Net prototype. Future lab under construction.",
+        action
       };
     }
     if (frontierDecoded) {
       return {
         className: "anomaly-decoded",
-        metaHTML: `ECHO DECODED · ${chip}<span class="map-lock-hint">Next: Trace hidden force</span>${seedProgress}`,
-        title: "Dark Matter Lab: Echo decoded. Run the Mag-Net trace prototype to prove hidden-force inference."
+        metaHTML: `ECHO DECODED · ${chip}<span class="map-lock-hint">Next: Trace hidden force</span>${suffix}`,
+        title: "Dark Matter Lab: Echo decoded. Run the Mag-Net trace prototype to prove hidden-force inference.",
+        action
       };
     }
     if (storyComplete) {
       return {
         className: "anomaly-next",
-        metaHTML: `ANOMALY · ${chip}<span class="map-lock-hint">Clear one Frontier Challenge</span>${seedProgress}`,
-        title: "Dark Matter Lab: hidden-force anomaly detected. Clear one Frontier Challenge to decode the echo."
+        metaHTML: `ANOMALY · ${chip}<span class="map-lock-hint">Clear one Frontier Challenge</span>${suffix}`,
+        title: "Dark Matter Lab: hidden-force anomaly detected. Clear one Frontier Challenge to decode the echo.",
+        action
       };
     }
     return {
       className: "",
-      metaHTML: `Transmission incoming · ${chip}${seedProgress}`,
-      title: "Dark Matter Lab - something invisible is bending the signal. Concept: inferring hidden forces from motion."
+      metaHTML: `Transmission incoming · ${chip}${suffix}`,
+      title: "Dark Matter Lab - something invisible is bending the signal. Concept: inferring hidden forces from motion.",
+      action
     };
   }
 
@@ -2730,11 +2787,19 @@ class StarHopperGame {
     teasers.forEach((node) => {
       const state = this.getFutureWorldTeaserState(node.getAttribute('data-teaser'));
       const meta = node.querySelector('.mission-meta');
-      node.classList.remove('anomaly-next', 'anomaly-waiting', 'anomaly-decoded');
+      node.classList.remove('anomaly-next', 'anomaly-waiting', 'anomaly-decoded', 'future-action');
       if (state.className) node.classList.add(state.className);
-      node.disabled = true;
+      const action = state.action || null;
+      if (action) node.classList.add('future-action');
+      node.disabled = !action;
+      if (node.dataset) {
+        node.dataset.futureActionId = action ? action.id : "";
+        node.dataset.futureActionLabel = action ? action.label : "";
+      }
       if (meta) meta.innerHTML = state.metaHTML;
-      node.title = state.title;
+      node.title = action
+        ? `${state.title} Click to ${action.label}: ${action.title}.`
+        : state.title;
     });
   }
 
@@ -2791,6 +2856,16 @@ class StarHopperGame {
     }
     this.startLevel(levelIndex);
     return true;
+  }
+
+  startFutureWorldTeaser(teaserId) {
+    const action = this.getFutureLabMapActionForTeaser(teaserId);
+    if (!action || typeof runFutureLabRoadmapAction !== 'function') return false;
+    const started = runFutureLabRoadmapAction(action.id, this) !== false;
+    if (started && action.actionType !== "notebook" && typeof switchMainMode === 'function') {
+      switchMainMode('terminal');
+    }
+    return started;
   }
 
   // Animate a planet node from locked → available on the start-screen galaxy map.
@@ -3215,6 +3290,11 @@ class StarHopperGame {
     const btns = document.querySelectorAll(".level-button");
     btns.forEach(btn => {
       btn.addEventListener("click", () => {
+        const teaserId = btn.getAttribute("data-teaser");
+        if (teaserId) {
+          this.startFutureWorldTeaser(teaserId);
+          return;
+        }
         const id = parseInt(btn.getAttribute("data-level"));
         this.startMapPlanet(id);
       });

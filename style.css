@@ -1316,6 +1316,15 @@ body.resizing-panes * {
   animation: teaser-pulse 2.6s ease-in-out infinite;
 }
 
+.galaxy-map .planet-node.teaser.future-action {
+  cursor: pointer;
+  border-style: solid;
+  opacity: 1;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--btn-color) 38%, transparent),
+    0 0 22px color-mix(in srgb, var(--btn-color) 24%, transparent);
+}
+
 .galaxy-map .planet-node.teaser::before {
   filter: saturate(0.9);
 }
@@ -1324,6 +1333,14 @@ body.resizing-panes * {
   transform: translate(-50%, -50%);
   background: rgba(15, 23, 42, 0.64);
   box-shadow: 0 0 16px color-mix(in srgb, var(--btn-color) 40%, transparent);
+}
+
+.galaxy-map .planet-node.teaser.future-action:hover {
+  transform: translate(-50%, -50%) scale(1.04);
+  background: rgba(15, 23, 42, 0.78);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--btn-color) 58%, transparent),
+    0 0 28px color-mix(in srgb, var(--btn-color) 40%, transparent);
 }
 
 .galaxy-map .planet-node.teaser .mission-meta {
@@ -1387,6 +1404,19 @@ body.resizing-panes * {
 .galaxy-map .planet-node.teaser .map-seed-pips i.next {
   background: #fde68a;
   box-shadow: 0 0 6px rgba(250, 204, 21, 0.55);
+}
+
+.galaxy-map .planet-node.teaser .map-seed-action {
+  display: block;
+  margin-top: 3px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: rgba(250, 204, 21, 0.14);
+  color: #fde68a;
+  font-family: var(--font-mono);
+  font-size: 0.45rem;
+  font-weight: 800;
+  line-height: 1.1;
 }
 
 .galaxy-map .planet-node.teaser.anomaly-next {
