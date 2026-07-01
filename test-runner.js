@@ -8601,10 +8601,12 @@ function runCombatTests() {
     g.mobs = [prowler];
     for (let i = 0; i < 40 && !sentry.hiddenInCave; i++) sentry.update(g);
     assertEquals(true, sentry.hiddenInCave, "Villager hides when a mob is close, before contact");
+    assertEquals(0, sentry.caveExitTimer || 0, "Villager has no exit cue while still hidden from the close mob");
     g.mobs = [];
     sentry.panicTimer = 0;
     sentry.update(g);
     assertEquals(false, sentry.hiddenInCave, "Villager comes back out when nearby danger clears");
+    assertEquals(true, (sentry.caveExitTimer || 0) > 0, "Villager shows a cave-exit cue when close mob danger clears");
     assertEquals(true, g.discoveredFormulaKinds.has("state"), "Village rescue collects the AI State Lab card");
     assertEquals(1, g.formulaCardEffects.length, "Village rescue spawns one AI State Lab card effect");
     assertEquals("AI State Lab", g.formulaCardEffects[0].title, "Village rescue card effect names the state-machine concept");
@@ -8797,6 +8799,7 @@ function runCombatTests() {
     assertEquals(false, npc.hiddenInCave, "Villager reappears after survival danger ends");
     assertEquals(82, npc.x, "Daylight release shows the villager exiting at the cave mouth");
     assertEquals(60, npc.y, "Daylight cave exit keeps the villager on the village surface");
+    assertEquals(true, (npc.caveExitTimer || 0) > 0, "Survival-off release keeps a visible cave-exit cue");
     assertEquals(true, !!npc.returningFromCave, "Daylight release starts a visible walk back to the village");
     assertEquals(false, g.canNPCTrade(npc), "Villager cannot trade while still walking home from the cave");
     assertEquals("VILLAGE CLEAR: traders back outside", g.missionBalloon && g.missionBalloon.text, "Survival-off daylight release announces visible villagers");
@@ -9018,6 +9021,7 @@ function runCombatTests() {
     nightGame.mobs = [new Mob(90, 60, 'hog', '#9a6b4f', 1)];
     const nightSummary = nightGame.toggleSurvival();
     assertEquals(true, nightNpc.hiddenInCave, "Earth night keeps villagers sheltered after survival danger ends");
+    assertEquals(0, nightNpc.caveExitTimer || 0, "Earth night does not show a false cave-exit cue while the villager stays hidden");
     assertEquals(0, nightSummary && nightSummary.released, "Survival-off night release reports no daylight villagers");
     assertEquals(1, nightSummary && nightSummary.sheltered, "Survival-off night release reports one villager kept in a cave");
     assertEquals(82, nightNpc.x, "Earth night parks the villager at the cave mouth");
@@ -9039,6 +9043,7 @@ function runCombatTests() {
     nightGame.updateVillagerShelterStates();
     assertEquals(false, nightNpc.hiddenInCave, "Daylight after survival-off brings the villager back out");
     assertEquals(82, nightNpc.x, "Daylight after survival-off shows the villager at the cave mouth first");
+    assertEquals(true, (nightNpc.caveExitTimer || 0) > 0, "Daylight release after night shows a cave-exit cue");
     assertEquals(null, nightNpc.shelterReason, "Daylight after survival-off clears the cave reason");
     assertEquals(7, nightGame.researchXP, "The rescue reward waits until the villager actually returns");
     assertEquals(false, nightGame.canNPCTrade(nightNpc), "Daylight-returned villager waits to trade until it reaches home");

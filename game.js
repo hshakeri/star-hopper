@@ -1053,6 +1053,7 @@ class StarHopperGame {
         obj.shelterReason = null;
         obj.returningFromCave = false;
         obj.returningFromCaveTimer = 0;
+        obj.caveExitTimer = 0;
         obj.proximity = false;
         if (this.activeNPC === obj) this.activeNPC = null;
       }
@@ -1086,6 +1087,7 @@ class StarHopperGame {
     if (Number.isFinite(npc.caveY)) npc.y = npc.caveY;
     npc.returningFromCave = false;
     npc.returningFromCaveTimer = 0;
+    npc.caveExitTimer = 0;
     if (reason === "night" && !npc.rescuePending) npc.shelterReason = "night";
     else if (!npc.rescuePending && !npc.shelterReason) npc.shelterReason = reason;
     npc.proximity = false;
@@ -1115,6 +1117,9 @@ class StarHopperGame {
     npc.returningFromCaveTimer = npc.returningFromCave
       ? Math.max(90, Math.min(240, Math.ceil(Math.max(homeDx, homeDy) / 1.1) + 35))
       : 0;
+    if (wasHidden || rescuePending || walkHome) {
+      npc.caveExitTimer = Math.max(npc.caveExitTimer || 0, npc.returningFromCave ? 140 : 70);
+    }
     npc.proximity = false;
     if (this.activeNPC === npc) this.activeNPC = null;
   }
@@ -1130,6 +1135,7 @@ class StarHopperGame {
     npc.caveCooldown = Math.max(npc.caveCooldown || 0, options.caveCooldown || 90);
     npc.returningFromCave = false;
     npc.returningFromCaveTimer = 0;
+    npc.caveExitTimer = 0;
     npc.proximity = false;
     if (this.activeNPC === npc) this.activeNPC = null;
     return true;
@@ -1145,6 +1151,7 @@ class StarHopperGame {
     const reached = typeof npc.stepTowardCave === 'function' ? npc.stepTowardCave(speed) : false;
     npc.returningFromCave = false;
     npc.returningFromCaveTimer = 0;
+    npc.caveExitTimer = 0;
     npc.proximity = false;
     if (this.activeNPC === npc) this.activeNPC = null;
     if (reached || npc.hiddenInCave || typeof npc.stepTowardCave !== 'function') {

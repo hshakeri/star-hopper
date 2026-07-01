@@ -2422,6 +2422,7 @@ class NPC extends InteractiveObject {
     this.caveCooldown = 0;
     this.rescuePending = !!config.rescuePending;
     this.shelterReason = config.shelterReason || null;
+    this.caveExitTimer = Number.isFinite(config.caveExitTimer) ? config.caveExitTimer : 0;
     
     // Set dialogue lists
     if (Array.isArray(config.dialogue)) this.dialogue = config.dialogue.slice();
@@ -2525,6 +2526,8 @@ class NPC extends InteractiveObject {
     }
     if (this.panicTimer > 0) this.panicTimer--;
     if (this.caveCooldown > 0) this.caveCooldown--;
+    if (this.caveExitTimer > 0) this.caveExitTimer--;
+    if (this.hiddenInCave) this.caveExitTimer = 0;
 
     const waitInCave = (typeof game.shouldNPCWaitInCave === 'function')
       ? game.shouldNPCWaitInCave(this, shelter)
@@ -2821,41 +2824,41 @@ class NPC extends InteractiveObject {
 
     if (this.hiddenInCave) {
       const pulse = 0.08 + 0.05 * Math.sin(Date.now() / 220 + this.x * 0.02);
-      ctx.shadowBlur = 12;
+      ctx.shadowBlur = 18;
       ctx.shadowColor = caveStatus.color || this.color;
       ctx.fillStyle = caveStatus.fill || 'rgba(250, 204, 21, 0.28)';
       ctx.beginPath();
-      ctx.roundRect(caveX + 3, caveY + 15, 26, 17, 5);
+      ctx.roundRect(caveX - 1, caveY + 10, 34, 25, 7);
       ctx.fill();
       ctx.strokeStyle = caveStatus.color || this.color;
-      ctx.lineWidth = 1.3;
+      ctx.lineWidth = 1.6;
       ctx.globalAlpha = 0.75 + pulse;
       ctx.stroke();
       ctx.globalAlpha = 1;
       ctx.shadowBlur = 0;
       ctx.fillStyle = 'rgba(15, 23, 42, 0.78)';
       ctx.beginPath();
-      ctx.roundRect(caveX + 8, caveY + 20, 16, 10, 4);
+      ctx.roundRect(caveX + 5, caveY + 18, 22, 14, 5);
       ctx.fill();
       ctx.fillStyle = this.skinTone;
       ctx.beginPath();
-      ctx.arc(caveX + 16, caveY + 19, 5.2, 0, Math.PI * 2);
+      ctx.arc(caveX + 16, caveY + 18, 6.3, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = this.color;
-      ctx.fillRect(caveX + 10, caveY + 13, 12, 4);
+      ctx.fillRect(caveX + 9, caveY + 11, 14, 5);
       ctx.fillStyle = 'rgba(254, 240, 138, 0.95)';
       ctx.beginPath();
-      ctx.arc(caveX + 13, caveY + 19, 1.3, 0, Math.PI * 2);
-      ctx.arc(caveX + 19, caveY + 19, 1.3, 0, Math.PI * 2);
+      ctx.arc(caveX + 12.8, caveY + 18, 1.5, 0, Math.PI * 2);
+      ctx.arc(caveX + 19.2, caveY + 18, 1.5, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = this.color;
       ctx.font = "bold 7px 'Share Tech Mono', monospace";
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(this.roleMark, caveX + 16, caveY + 27);
+      ctx.fillText(this.roleMark, caveX + 16, caveY + 28);
       ctx.fillStyle = caveStatus.color || 'rgba(226, 232, 240, 0.92)';
       ctx.font = "bold 7px 'Share Tech Mono', monospace";
-      ctx.fillText(caveStatus.label || 'SAFE', caveX + 16, caveY + 39);
+      ctx.fillText(caveStatus.label || 'SAFE', caveX + 16, caveY + 42);
       const canCall = this.proximity && game && game.activeNPC === this &&
         (typeof game.canNPCTrade !== 'function' || game.canNPCTrade(this));
       if (canCall) {
@@ -2870,6 +2873,35 @@ class NPC extends InteractiveObject {
       }
       ctx.restore();
       return;
+    }
+
+    if (this.returningFromCave || (this.caveExitTimer || 0) > 0) {
+      const exitAlpha = this.returningFromCave
+        ? 0.78
+        : Math.max(0.18, Math.min(0.72, (this.caveExitTimer || 0) / 100));
+      ctx.save();
+      ctx.globalAlpha = exitAlpha;
+      ctx.strokeStyle = 'rgba(167, 243, 208, 0.72)';
+      ctx.lineWidth = 2;
+      if (typeof ctx.setLineDash === 'function') ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.moveTo(caveX + 16, caveY + 30);
+      ctx.lineTo(cx + this.w / 2, cy + this.h + 2);
+      ctx.stroke();
+      if (typeof ctx.setLineDash === 'function') ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(6, 78, 59, 0.84)';
+      ctx.strokeStyle = 'rgba(167, 243, 208, 0.75)';
+      ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      ctx.roundRect(cx - 12, cy - 21, 34, 14, 4);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#bbf7d0';
+      ctx.font = "bold 7px 'Share Tech Mono', monospace";
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('OUT', cx + 5, cy - 14);
+      ctx.restore();
     }
 
     if (this.hitFlash > 0) {
