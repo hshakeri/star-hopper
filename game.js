@@ -2814,6 +2814,65 @@ class StarHopperGame {
     return `<span class="map-concept-chip">${safe(this.getPlanetMapConcept(index))}</span>`;
   }
 
+  getMapLearningTargets(index) {
+    const targetIndex = Number(index);
+    const currentIndex = Number(this.currentPlanetIndex);
+    if (!Number.isFinite(targetIndex) || !Number.isFinite(currentIndex) || targetIndex !== currentIndex) {
+      return { codeConcept: null, labChain: null };
+    }
+    const codeConcept = typeof getActiveCodeConceptTarget === 'function'
+      ? getActiveCodeConceptTarget(this)
+      : null;
+    const labChain = typeof getLabChainTarget === 'function'
+      ? getLabChainTarget(this)
+      : null;
+    const codeCommand = codeConcept && codeConcept.command ? String(codeConcept.command).trim() : "";
+    const labCommand = labChain && labChain.command ? String(labChain.command).trim() : "";
+    return {
+      codeConcept: codeCommand ? codeConcept : null,
+      labChain: labCommand && labCommand !== codeCommand ? labChain : null
+    };
+  }
+
+  renderMapLearningChips(index, targets = null) {
+    const learning = targets || this.getMapLearningTargets(index);
+    const safe = (typeof escapeHTML === 'function')
+      ? escapeHTML
+      : (value) => String(value || "").replace(/[&<>"']/g, ch => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[ch]));
+    const compactCommand = (value) => String(value || "").replace(/\s+/g, " ").trim();
+    const chips = [];
+    if (learning && learning.codeConcept) {
+      const target = learning.codeConcept;
+      const command = compactCommand(target.command);
+      chips.push(`<span class="map-learning-chip code" aria-label="${safe(`Code Concept next: ${target.title} - ${command}`)}"><strong>CODE NEXT</strong><em>${safe(target.title || "Coding idea")}</em><code>${safe(command)}</code></span>`);
+    }
+    if (learning && learning.labChain) {
+      const target = learning.labChain;
+      const progress = typeof getLabChainProgressMeta === 'function'
+        ? getLabChainProgressMeta(this, target)
+        : null;
+      const progressLabel = progress && progress.label ? progress.label : "fresh test";
+      const command = compactCommand(target.command);
+      chips.push(`<span class="map-learning-chip lab" aria-label="${safe(`Lab Chain next: ${target.title} - ${command}`)}"><strong>LAB NEXT</strong><em>${safe(progressLabel)}</em><code>${safe(command)}</code></span>`);
+    }
+    return chips.join("");
+  }
+
+  getMapLearningTitle(targets = null) {
+    const learning = targets || { codeConcept: null, labChain: null };
+    const compactCommand = (value) => String(value || "").replace(/\s+/g, " ").trim();
+    const parts = [];
+    if (learning.codeConcept) {
+      parts.push(`Code next: ${learning.codeConcept.title || "Coding idea"} (${compactCommand(learning.codeConcept.command)})`);
+    }
+    if (learning.labChain) {
+      parts.push(`Lab next: ${learning.labChain.title || "Fresh test"} (${compactCommand(learning.labChain.command)})`);
+    }
+    return parts.length ? ` · ${parts.join(" · ")}` : "";
+  }
+
   renderFutureLabMapSeedProgress(preferredStageId = null) {
     if (typeof this.getFutureLabRunProgress !== 'function') return "";
     let progress = null;
@@ -3049,15 +3108,19 @@ class StarHopperGame {
       const aiChip = this.renderMapAIStateChip(index, aiTarget);
       const aiMastery = this.getMapAIStateMastery(index);
       const aiMasteryChip = !aiTarget ? this.renderMapAIStateMasteryChip(index, aiMastery) : "";
+      const learningTargets = available ? this.getMapLearningTargets(index) : { codeConcept: null, labChain: null };
+      const learningChips = available ? this.renderMapLearningChips(index, learningTargets) : "";
       node.classList.toggle('ai-state-next', !!aiTarget);
       node.classList.toggle('ai-state-mastered', !!aiMastery && !aiTarget);
+      node.classList.toggle('map-code-next', !!(learningTargets && learningTargets.codeConcept));
+      node.classList.toggle('map-lab-next', !!(learningTargets && learningTargets.labChain));
       if (meta) {
         const conceptChip = this.renderMapConceptChip(index);
         if (!available) {
           meta.innerHTML = `Locked · ${conceptChip}${aiChip}${aiMasteryChip}<span class="map-lock-hint">Recover previous shard</span>`;
         } else {
           const label = mastered ? "Mastered" : (clears > 0 ? `Clear ${clears}` : (index === 0 ? "Start" : "Unlocked"));
-          meta.innerHTML = `${label} · ${conceptChip}${this.renderMapStarMeter(index)}${this.renderMapMasteryMeter(index)}${this.renderMapVillageTrustMeter(index)}${aiChip}${aiMasteryChip}`;
+          meta.innerHTML = `${label} · ${conceptChip}${this.renderMapStarMeter(index)}${this.renderMapMasteryMeter(index)}${this.renderMapVillageTrustMeter(index)}${learningChips}${aiChip}${aiMasteryChip}`;
         }
       }
       const stars = this.getPlanetLabStarCount(index);
@@ -3066,8 +3129,9 @@ class StarHopperGame {
       const concept = this.getPlanetMapConcept(index);
       const aiTitle = aiTarget ? ` · AI State: ${aiTarget.card.title} (${aiTarget.action.label || "RUN STATE"})` : "";
       const aiMasteryTitle = aiMastery && !aiTarget ? ` · AI State Deck mastered (${aiMastery.earnedCount}/${aiMastery.total})` : "";
+      const learningTitle = available ? this.getMapLearningTitle(learningTargets) : "";
       node.title = available
-        ? `${planets[index].name}: ${concept} · ${stars}/3 Lab Stars · ${worldMastery.title} (${worldMastery.xp} XP) · ${villageTrust.title} (${villageTrust.points} trust)${aiTitle}${aiMasteryTitle}${mastered ? " · Mastered" : (clears > 0 ? " · Mastery Remix ready" : "")}`
+        ? `${planets[index].name}: ${concept} · ${stars}/3 Lab Stars · ${worldMastery.title} (${worldMastery.xp} XP) · ${villageTrust.title} (${villageTrust.points} trust)${learningTitle}${aiTitle}${aiMasteryTitle}${mastered ? " · Mastered" : (clears > 0 ? " · Mastery Remix ready" : "")}`
         : `${planets[index].name}: locked. Next concept: ${concept}.${aiTitle}${aiMasteryTitle} Recover the previous signal shard.`;
     });
     this.refreshFutureWorldTeasers();

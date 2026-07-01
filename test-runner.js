@@ -6255,6 +6255,16 @@ function runEngineTests() {
     game.masteryCleared = { 0: true };
     game.masteryMeters = { 0: { xp: 110, badges: ["scout", "engineer"], sources: {} } };
     game.villageTrust = { 0: { points: 7, badges: ["friend", "ally"], sources: { "village-trade:0:geary:engine_1": 3, "village-rescue:0:geary": 4 } } };
+    game.codeConcepts = new Set(["ASSIGN"]);
+    game.discoveryCombo = 2;
+    game.discoveryPulse = { combo: 2, rewardXP: 5, title: "Fresh proof" };
+    game.lastScienceDelta = {
+      nextExperiment: {
+        title: "Compare a lighter Hopper",
+        body: "Lower mass, run, and compare jump height.",
+        command: "hopper.mass = 0.8"
+      }
+    };
     game.refreshGalaxyMapProgress();
 
     assertEquals(false, nodes[0].disabled, "Cleared Earth node should be selectable");
@@ -6267,9 +6277,21 @@ function runEngineTests() {
     assertEquals(true, /110 XP/.test(nodes[0]._meta.innerHTML), "Cleared node should show world mastery XP");
     assertEquals(true, /Cave Ally/.test(nodes[0]._meta.innerHTML), "Cleared node should show village trust tier");
     assertEquals(true, /7 trust/.test(nodes[0]._meta.innerHTML), "Cleared node should show village trust points");
+    assertEquals(true, nodes[0].classList.contains("map-code-next"), "Current map node should mark the next Code Concept action");
+    assertEquals(true, /CODE NEXT/.test(nodes[0]._meta.innerHTML), "Current map node should show a Code Concept next chip");
+    assertEquals(true, /Loop/.test(nodes[0]._meta.innerHTML), "Code Concept map chip should name the next coding idea");
+    assertEquals(true, /repeat 3 \{ spawn_block\(\) \}/.test(nodes[0]._meta.innerHTML), "Code Concept map chip should show its runnable command");
+    assertEquals(true, nodes[0].classList.contains("map-lab-next"), "Current map node should mark the next Lab Chain action");
+    assertEquals(true, /LAB NEXT/.test(nodes[0]._meta.innerHTML), "Current map node should show a Lab Chain next chip");
+    assertEquals(true, /2\/3 to TRIPLE TEST/.test(nodes[0]._meta.innerHTML), "Lab Chain map chip should show milestone progress");
+    assertEquals(true, /hopper.mass = 0.8/.test(nodes[0]._meta.innerHTML), "Lab Chain map chip should show the next science command");
     assertEquals(true, /Standard Gravity & Trajectories/.test(nodes[0].title), "Cleared node title should include the science concept");
     assertEquals(true, /Cave Ally \(7 trust\)/.test(nodes[0].title), "Cleared node title should include village trust progress");
+    assertEquals(true, /Code next: Loop \(repeat 3 \{ spawn_block\(\) \}\)/.test(nodes[0].title), "Current node title should include the next Code Concept command");
+    assertEquals(true, /Lab next: Compare a lighter Hopper \(hopper.mass = 0.8\)/.test(nodes[0].title), "Current node title should include the next Lab Chain command");
     assertEquals(false, nodes[1].disabled, "Moon should unlock after Earth clear");
+    assertEquals(false, nodes[1].classList.contains("map-code-next"), "Only the current node should show Code Concept next-state emphasis");
+    assertEquals(false, nodes[1].classList.contains("map-lab-next"), "Only the current node should show Lab Chain next-state emphasis");
     assertEquals(true, /Unlocked/.test(nodes[1]._meta.innerHTML), "Next planet should read as unlocked");
     assertEquals(true, /Low Gravity &amp; Jump Loops/.test(nodes[1]._meta.innerHTML), "Unlocked next node should preview its science concept");
     assertEquals(true, /1 of 3 Lab Stars/.test(nodes[1]._meta.innerHTML), "Saved next-planet stars should render");
