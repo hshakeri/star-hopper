@@ -352,7 +352,91 @@ class StarHopperGame {
     if (cardUnlocked && typeof this.spawnFormulaCardEffect === 'function') {
       this.spawnFormulaCardEffect(pulse);
     }
+    if (cardUnlocked && typeof this.grantFormulaDeckMastery === 'function') {
+      this.grantFormulaDeckMastery(pulse);
+    }
     return cardUnlocked;
+  }
+
+  grantFormulaDeckMastery(pulse = null, options = {}) {
+    if (typeof getFormulaCollection !== 'function') return null;
+    const collection = getFormulaCollection(this);
+    if (!collection || !Array.isArray(collection.cards) || collection.cards.length === 0 || collection.locked.length > 0) return null;
+    this.discoveryPassCounts = this.discoveryPassCounts || {};
+    const sourceKey = "formula-deck-mastery";
+    if (this.discoveryPassCounts[sourceKey]) return null;
+
+    this.discoveryPassCounts[sourceKey] = 1;
+    const rewardXP = 12;
+    const masteryXP = 16;
+    const color = "#facc15";
+    const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+    const mastery = typeof this.awardWorldMasteryXP === 'function'
+      ? this.awardWorldMasteryXP(masteryXP, "formula deck mastery", { sourceKey, silent: true })
+      : { addedXP: 0, duplicate: false };
+    const result = {
+      label: "DECK MASTERED",
+      title: "Formula Deck Mastery",
+      rewardXP,
+      worldMasteryAddedXP: mastery && Number.isFinite(mastery.addedXP) ? mastery.addedXP : 0,
+      count: collection.unlocked.length,
+      total: collection.cards.length,
+      sourceKey
+    };
+
+    if (pulse) {
+      pulse.formulaDeckMastery = result;
+      pulse.rewardXP = Math.max(0, (pulse.rewardXP || 0) + rewardXP);
+      pulse.nextLabUnlock = {
+        label: "FORMULA DECK COMPLETE",
+        title: "All science cards collected",
+        body: "Use the full deck in Daily Signals, Frontier runs, and mastery remixes.",
+        progress: 1
+      };
+    }
+
+    if (!options || !options.deferResearchXP) {
+      this.researchXP = Math.max(0, (this.researchXP || 0) + rewardXP);
+      const afterRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+      if (beforeRank && afterRank && afterRank.level > beforeRank.level && pulse) {
+        pulse.rankUp = true;
+        pulse.rankTitle = afterRank.title;
+        pulse.rankPerk = afterRank.perk;
+        if (typeof showBadgeToast === 'function') {
+          showBadgeToast({
+            icon: "FX",
+            label: `Research Rank: ${afterRank.title}`,
+            description: `Formula Deck Mastery unlocked ${afterRank.perk.label}.`
+          });
+        }
+        if (typeof this.spawnResearchRankEffect === 'function') {
+          pulse.rankEffect = this.spawnResearchRankEffect(pulse);
+        }
+      }
+    }
+
+    if (typeof ui_log_output === 'function') {
+      const masteryText = result.worldMasteryAddedXP > 0 ? `, +${result.worldMasteryAddedXP} world mastery XP` : "";
+      ui_log_output(`Formula Deck mastered: +${rewardXP} Research XP${masteryText}.`, "success");
+    }
+    if (typeof this.showMissionBalloon === 'function') {
+      this.showMissionBalloon(`DECK MASTERED: +${rewardXP} Research XP`, {
+        title: "FORMULA DECK",
+        color,
+        timer: 260
+      });
+    }
+    if (this.player && typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+      const px = (Number.isFinite(this.player.x) ? this.player.x : 0) + (this.player.w || 24) / 2;
+      const py = Number.isFinite(this.player.y) ? this.player.y : 0;
+      ComicBubbles.pop(px, py - 64, "DECK MASTERED!", color, 1.0);
+      ComicBubbles.pop(px, py - 44, "ALL FORMULAS", "#67e8f9", 0.74);
+      if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+        Particles.spawnBurst(px, py - 10, color, 18, 2.4, 2.2, "glow");
+        Particles.spawnBurst(px, py - 10, "#67e8f9", 12, 1.8, 1.8, "glow");
+      }
+    }
+    return result;
   }
 
   grantVillageRescueReward(npc, reason = "danger") {

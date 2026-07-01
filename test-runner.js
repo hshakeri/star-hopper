@@ -1537,6 +1537,73 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: code runs create discovery rewards", false, err.message);
   }
 
+  // Test 22b1: completing the Formula Deck creates a one-time collection capstone.
+  const oldGetElementById22b1 = document.getElementById;
+  const oldBubblePop22b1 = ComicBubbles.pop;
+  const oldParticleBurst22b1 = Particles.spawnBurst;
+  try {
+    const labels = [];
+    let bursts = 0;
+    const panel = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };
+    document.getElementById = (id) => id === "discovery-pulse" ? panel : null;
+    ComicBubbles.pop = (x, y, text) => { labels.push(text); };
+    Particles.spawnBurst = () => { bursts++; };
+
+    const game = new StarHopperGame();
+    game.currentPlanetIndex = 0;
+    game.currentPlanet = PLANETS[0];
+    game.player = { x: 90, y: 110, w: 24, h: 32 };
+    game.discoveredFormulaKinds = new Set(DISCOVERY_RULES.map(rule => rule.kind).filter(kind => kind !== "state"));
+    game.researchXP = 0;
+    game.masteryMeters = {};
+    game.discoveryPassCounts = {};
+    const activeMission = PLANETS[0].missions.find(mission => mission.id === "earth-gravity-wall");
+    const resultState = {
+      allPassed: true,
+      items: [{ id: "state-proof", label: "AI state proof", passed: true, message: "State proof logged" }]
+    };
+    const pulse = recordDiscoveryPulse(game, activeMission, "rave_mode()", resultState, 0);
+    assertEquals(true, pulse.cardUnlocked, "The final formula card should unlock");
+    assertEquals("state", pulse.formulaCardKind || pulse.kind, "The final card should be the AI State Lab card");
+    assertEquals("DECK MASTERED", pulse.formulaDeckMastery && pulse.formulaDeckMastery.label, "Full deck should create a mastery chip");
+    assertEquals(DISCOVERY_RULES.length, pulse.formulaDeckMastery && pulse.formulaDeckMastery.count, "Mastery chip should show all cards collected");
+    assertEquals(DISCOVERY_RULES.length, pulse.formulaDeckMastery && pulse.formulaDeckMastery.total, "Mastery chip should know the deck total");
+    assertEquals(1, game.discoveryPassCounts["formula-deck-mastery"], "Formula Deck mastery should store a one-time source");
+    assertEquals(true, game.researchXP >= 12, "Formula Deck mastery should add Research XP to the discovery reward");
+    assertEquals(true, game.getWorldMasteryProgress(0).xp >= 16, "Formula Deck mastery should feed world mastery");
+    assertEquals("DECK MASTERED: +12 Research XP", game.missionBalloon && game.missionBalloon.text, "Mastery capstone should write to the Mission CRT");
+    assertEquals(true, labels.includes("DECK MASTERED!"), "Mastery capstone should pop a visible collection cue");
+    assertEquals(true, labels.includes("ALL FORMULAS"), "Mastery capstone should name the full-deck payoff");
+    assertEquals(true, bursts > 0, "Mastery capstone should spawn reward particles");
+    assertEquals(true, /DECK MASTERED \+12 XP/.test(panel.innerHTML), "Discovery Pulse should render the Formula Deck mastery chip");
+    assertEquals(true, /FORMULA DECK COMPLETE/.test(panel.innerHTML), "Discovery Pulse should show the completed-deck next-unlock card");
+    const xpAfterFirst = game.researchXP;
+    assertEquals(null, game.grantFormulaDeckMastery(pulse), "Repeating Formula Deck mastery should be blocked");
+    assertEquals(xpAfterFirst, game.researchXP, "Repeated Formula Deck mastery should not farm Research XP");
+
+    const direct = new StarHopperGame();
+    direct.currentPlanetIndex = 0;
+    direct.currentPlanet = PLANETS[0];
+    direct.player = { x: 70, y: 100, w: 24, h: 32 };
+    direct.discoveredFormulaKinds = new Set(DISCOVERY_RULES.map(rule => rule.kind).filter(kind => kind !== "state"));
+    direct.discoveryPassCounts = {};
+    const directPulse = { rewardXP: 0 };
+    assertEquals(true, direct.attachFormulaCardUnlock(directPulse, "state"), "Direct proof unlock should collect the final card");
+    assertEquals("DECK MASTERED", directPulse.formulaDeckMastery && directPulse.formulaDeckMastery.label, "Direct proof unlocks should also trigger deck mastery");
+    assertEquals(12, direct.researchXP, "Direct Formula Deck mastery should apply its Research XP immediately");
+    assertEquals(1, direct.discoveryPassCounts["formula-deck-mastery"], "Direct Formula Deck mastery should store the same source guard");
+
+    document.getElementById = oldGetElementById22b1;
+    ComicBubbles.pop = oldBubblePop22b1;
+    Particles.spawnBurst = oldParticleBurst22b1;
+    renderTestResult("engine-suite", "Curriculum: Formula Deck mastery rewards full collection", true);
+  } catch (err) {
+    document.getElementById = oldGetElementById22b1;
+    ComicBubbles.pop = oldBubblePop22b1;
+    Particles.spawnBurst = oldParticleBurst22b1;
+    renderTestResult("engine-suite", "Curriculum: Formula Deck mastery rewards full collection", false, err.message);
+  }
+
   // Test 22b2: raw terminal code shares the same discovery reward path as Mission Coach.
   const oldBubblePop22b2 = ComicBubbles.pop;
   const oldParticleBurst22b2 = Particles.spawnBurst;

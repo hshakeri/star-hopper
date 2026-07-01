@@ -3100,6 +3100,9 @@ function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems
     if (cardUnlocked && typeof game.spawnFormulaCardEffect === 'function') {
       game.spawnFormulaCardEffect(pulse);
     }
+    if (typeof game.grantFormulaDeckMastery === 'function') {
+      game.grantFormulaDeckMastery(pulse, { deferResearchXP: true });
+    }
     if (typeof game.awardWorldMasteryXP === 'function') {
       game.awardWorldMasteryXP(6 + newPasses * 3 + opened * 2 + (cardUnlocked ? 6 : 0), "science proof", {
         sourceKey: `concept:${missionId}:${pulse.kind}:${passed}:${opened}:${cardUnlocked ? "card" : "progress"}`,
@@ -3138,7 +3141,7 @@ function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems
     if (typeof logMissionBriefing === 'function') {
       logMissionBriefing(`${pulse.title}: ${pulse.insight}`);
     }
-    if (afterRank && typeof getResearchUnlockPreview === 'function') {
+    if (afterRank && !pulse.nextLabUnlock && typeof getResearchUnlockPreview === 'function') {
       pulse.nextLabUnlock = getResearchUnlockPreview(afterRank);
     }
   } else {
@@ -3784,6 +3787,9 @@ function updateDiscoveryPulse(game) {
   const hypothesis = pulse.hypothesisConfirmed
     ? `<div class="discovery-hypothesis">HYPOTHESIS CONFIRMED +${escapeHTML(String(pulse.hypothesisBonusXP || 0))} XP</div>`
     : "";
+  const formulaDeckMastery = pulse.formulaDeckMastery
+    ? `<div class="discovery-hypothesis discovery-perk">${escapeHTML(pulse.formulaDeckMastery.label || "DECK MASTERED")} +${escapeHTML(String(pulse.formulaDeckMastery.rewardXP || 0))} XP · ${escapeHTML(String(pulse.formulaDeckMastery.count || 0))}/${escapeHTML(String(pulse.formulaDeckMastery.total || 0))} cards</div>`
+    : "";
   const signalLabProof = pulse.signalLabProof
     ? `<div class="discovery-hypothesis discovery-signal-lab">${escapeHTML(pulse.signalLabProof.label)} +${escapeHTML(String(pulse.signalLabProof.rewardXP || 0))} XP</div>`
     : "";
@@ -3831,6 +3837,7 @@ function updateDiscoveryPulse(game) {
     ${comboChip}
     ${comboAmplifier}
     ${hypothesis}
+    ${formulaDeckMastery}
     ${signalLabProof}
     ${anomalyTraceProof}
     ${quantumBranchProof}
