@@ -3852,6 +3852,19 @@ function runEngineTests() {
     });
     const cadetAIButton = makeCadetButton();
     const cadetLessonButton = makeCadetButton();
+    const startObjectiveQueue = {
+      innerHTML: "",
+      style: {},
+      classList: {
+        hidden: false,
+        toggle(cls, force) {
+          if (cls === "hidden") this.hidden = force === undefined ? !this.hidden : !!force;
+        },
+        contains(cls) {
+          return cls === "hidden" ? !!this.hidden : false;
+        }
+      }
+    };
     const startVillagePreviewCard = {
       classList: {
         classes: new Set(),
@@ -3895,6 +3908,7 @@ function runEngineTests() {
       "start-story-preview-title": { textContent: "" },
       "start-story-preview-body": { textContent: "" },
       "start-story-preview-progress": { textContent: "" },
+      "start-objective-queue": startObjectiveQueue,
       "start-resume-test": resumeCard,
       "start-resume-test-label": { textContent: "" },
       "start-resume-test-title": { textContent: "" },
@@ -3966,6 +3980,33 @@ function runEngineTests() {
     assertEquals(false, cadetAIButton.classList.contains("hidden"), "Cadet record should show the next AI route button");
     assertEquals("RUN RESCUE", cadetAIButton.textContent, "Cadet record AI button should use the next route label");
     assertEquals("shelter-loop", cadetAIButton.dataset.state, "Cadet record AI button should target the next missing state");
+    assertEquals(false, startObjectiveQueue.classList.contains("hidden"), "Start radar should show the next objective queue");
+    assertEquals(true, /NEXT OBJECTIVE QUEUE/.test(startObjectiveQueue.innerHTML), "Start objective queue should render a CRT-style heading");
+    assertEquals(true, /#1 LAB QUEST/.test(startObjectiveQueue.innerHTML), "Start objective queue should rank the main lab quest first");
+    assertEquals(true, /Collect Mass Lab/.test(startObjectiveQueue.innerHTML), "Start objective queue should include the active formula quest");
+    assertEquals(true, /#2 RESUME LAB/.test(startObjectiveQueue.innerHTML), "Start objective queue should include saved notebook follow-up second");
+    assertEquals(true, /Raise engine/.test(startObjectiveQueue.innerHTML), "Start objective queue should preserve the saved next-test title");
+    assertEquals(true, /#3 LESSON PATH/.test(startObjectiveQueue.innerHTML), "Start objective queue should include the next focused lesson path");
+    assertEquals(true, /Hopper Engineering Shakedown/.test(startObjectiveQueue.innerHTML), "Start objective queue should name the next lesson path");
+    assertEquals(true, /#4 AI STATE/.test(startObjectiveQueue.innerHTML), "Start objective queue should include the next AI-state proof");
+    assertEquals(true, /Shelter Loop/.test(startObjectiveQueue.innerHTML), "Start objective queue should name the next AI-state card");
+    assertEquals(4, game.lastStartObjectiveQueue && game.lastStartObjectiveQueue.length, "Start objective queue should keep a compact four-item stack");
+    assertEquals("radar", game.lastStartObjectiveQueue[0].action, "Start objective queue first item should dispatch through Mission Radar");
+    assertEquals("resume", game.lastStartObjectiveQueue[1].action, "Start objective queue second item should stage the saved test");
+    assertEquals("lesson-path", game.lastStartObjectiveQueue[2].action, "Start objective queue third item should launch the focused lesson");
+    assertEquals("ai-state", game.lastStartObjectiveQueue[3].action, "Start objective queue fourth item should route AI-state proof");
+    window.Game = game;
+    assertEquals(true, runStartObjectiveQueueAction(2), "Start objective queue resume action should dispatch");
+    assertEquals("hopper.engine = 6", els["console-input"].value, "Start queue resume action should stage the saved command");
+    assertEquals("start-objective-queue", game.lastStagedExperiment && game.lastStagedExperiment.source, "Start queue resume action should preserve its surface source");
+    const queueLessonStarts = [];
+    const queueLessonModes = [];
+    game.startLevel = (level) => { queueLessonStarts.push(level); };
+    switchMainMode = (mode) => { queueLessonModes.push(mode); };
+    assertEquals(true, runStartObjectiveQueueAction(3), "Start objective queue lesson action should dispatch");
+    assertEquals(0, queueLessonStarts[0], "Start queue lesson action should launch Earth for the first lesson path");
+    assertEquals("terminal", queueLessonModes[0], "Start queue lesson action should return to the terminal");
+    assertEquals("cadet-lesson-path", game.lastStagedExperiment && game.lastStagedExperiment.source, "Start queue lesson action should enter the lesson staging loop");
     const cadetAIStarts = [];
     const cadetAIModes = [];
     const cadetLessonStarts = [];
@@ -4050,6 +4091,7 @@ function runEngineTests() {
     if (oldNotebookEntries22cc) Object.keys(notebookEntries).forEach(key => delete notebookEntries[key]);
     updateStartMissionRadar(game);
     assertEquals(true, resumeCard.classList.contains("hidden"), "Start radar should hide the resume card without a saved next test");
+    assertEquals(false, /RESUME LAB/.test(startObjectiveQueue.innerHTML), "Start objective queue should drop stale resume actions without a saved next test");
 
     game.completedMissions = new Set((game.currentPlanet.missions || []).map(mission => mission.id));
     game.requiredCollectiblesCollected = 2;
@@ -4277,6 +4319,7 @@ function runEngineTests() {
     updateStartMissionRadar(game);
     assertEquals(true, /Lesson Paths mastered 3\/3/.test(els["start-cadet-identity-body"].textContent), "Cadet record should celebrate a completed lesson-path set");
     assertEquals(true, cadetLessonButton.classList.contains("hidden"), "Cadet lesson route should hide once all lesson paths are mastered");
+    assertEquals(false, /LESSON PATH/.test(startObjectiveQueue.innerHTML), "Start objective queue should hide lesson-path actions once the focused paths are mastered");
 
     let dailyCalls = 0;
     const startedLevels = [];

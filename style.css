@@ -3363,6 +3363,131 @@ body.resizing-panes * {
   font-family: var(--font-mono);
 }
 
+.start-objective-queue {
+  padding: 6px 7px;
+  border: 1px solid rgba(45, 212, 191, 0.28);
+  border-radius: 6px;
+  background:
+    linear-gradient(90deg, rgba(15, 118, 110, 0.24), rgba(30, 41, 59, 0.3)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.024) 0 1px, transparent 1px 4px);
+  min-width: 0;
+}
+
+.start-objective-queue.hidden {
+  display: none;
+}
+
+.start-objective-queue-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.start-objective-queue-head span,
+.start-objective-item span,
+.start-objective-item em {
+  display: block;
+  font-size: 0.56rem;
+  line-height: 1.2;
+}
+
+.start-objective-queue-head span,
+.start-objective-item span {
+  color: #99f6e4;
+  font-weight: 900;
+}
+
+.start-objective-queue-head strong {
+  color: #fef08a;
+  font-size: 0.62rem;
+  line-height: 1.15;
+  text-align: right;
+}
+
+.start-objective-queue-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.start-objective-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 6px;
+  min-width: 0;
+  padding: 5px 6px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 5px;
+  background: rgba(2, 6, 23, 0.42);
+}
+
+.start-objective-item strong,
+.start-objective-item p,
+.start-objective-item em {
+  grid-column: 1;
+  min-width: 0;
+}
+
+.start-objective-item strong {
+  color: #ecfeff;
+  font-size: 0.64rem;
+  line-height: 1.15;
+}
+
+.start-objective-item p {
+  margin: 0;
+  color: #dff6ff;
+  font-size: 0.56rem;
+  line-height: 1.2;
+}
+
+.start-objective-item em {
+  color: #fef08a;
+  font-style: normal;
+}
+
+.start-objective-action-btn {
+  grid-column: 2;
+  grid-row: 1 / span 4;
+  align-self: center;
+  min-height: 22px;
+  padding: 3px 7px;
+  border: 1px solid rgba(45, 212, 191, 0.46);
+  border-radius: 6px;
+  background: rgba(20, 184, 166, 0.14);
+  color: #99f6e4;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  font-weight: 900;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(20, 184, 166, 0.12);
+}
+
+.start-objective-action-btn:hover {
+  background: rgba(20, 184, 166, 0.23);
+}
+
+@media (max-width: 620px) {
+  .start-objective-queue-list {
+    grid-template-columns: 1fr;
+  }
+
+  .start-objective-item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .start-objective-action-btn {
+    grid-column: 1;
+    grid-row: auto;
+    justify-self: start;
+    margin-top: 2px;
+  }
+}
+
 .start-resume-test {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -10054,6 +10179,13 @@ body.readable-text-mode .start-story-preview span,
 body.readable-text-mode .start-story-preview strong,
 body.readable-text-mode .start-story-preview em,
 body.readable-text-mode .start-story-preview code,
+body.readable-text-mode .start-objective-queue,
+body.readable-text-mode .start-objective-queue-head,
+body.readable-text-mode .start-objective-item span,
+body.readable-text-mode .start-objective-item strong,
+body.readable-text-mode .start-objective-item p,
+body.readable-text-mode .start-objective-item em,
+body.readable-text-mode .start-objective-action-btn,
 body.readable-text-mode .start-resume-test,
 body.readable-text-mode .start-resume-test span,
 body.readable-text-mode .start-resume-test strong,
@@ -10173,6 +10305,8 @@ body.readable-text-mode :is(
   .start-proof-preview,
   .start-village-preview,
   .start-story-preview,
+  .start-objective-queue,
+  .start-objective-item,
   .start-resume-test,
   .start-cadet-identity,
   .clear-explain-card,
@@ -10221,6 +10355,7 @@ body.readable-text-mode :is(
   .start-proof-preview span,
   .start-village-preview span,
   .start-story-preview span,
+  .start-objective-item p,
   .clear-objective-item p,
   .clear-explain-card p,
   .discovery-card p,
@@ -10283,6 +10418,7 @@ body.readable-text-mode :is(
   .formula-focus-stage-btn,
   .start-mission-radar-btn,
   .start-resume-test-btn,
+  .start-objective-action-btn,
   .start-cadet-ai-btn,
   .clear-explain-btn,
   .clear-objective-action-btn,

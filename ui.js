@@ -3827,6 +3827,157 @@ function updateStartResumeTestCard(cue = getStartResumeTestCue()) {
   }
 }
 
+function compactStartObjectiveCommand(command) {
+  return String(command || "")
+    .split(/\n/)
+    .map(line => line.trim())
+    .find(Boolean) || "";
+}
+
+function getStartObjectiveQueue(game = window.Game, context = {}) {
+  const quest = context.quest || getActiveLabQuest(game);
+  const radarAction = context.action || getStartMissionRadarAction(game, quest);
+  const resumeCue = context.resumeCue !== undefined ? context.resumeCue : getStartResumeTestCue();
+  const cadetPreview = context.cadetPreview || getCadetIdentityPreview(game);
+  const queue = [];
+  const seen = new Set();
+  const add = (item) => {
+    if (!item || !item.title) return;
+    const key = item.key || `${item.action || "note"}:${item.title}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    queue.push({
+      label: item.label || "NEXT",
+      title: item.title,
+      body: item.body || "",
+      reward: item.reward || "",
+      cta: item.cta || "",
+      action: item.action || null,
+      cardId: item.cardId || "",
+      missionId: item.missionId || "",
+      command: item.command || "",
+      kind: item.kind || "",
+      priority: queue.length + 1
+    });
+  };
+
+  if (quest && radarAction) {
+    add({
+      key: "radar",
+      label: String(quest.kicker || "LAB QUEST").replace(/^NEXT\s+/i, "") || "LAB QUEST",
+      title: quest.title,
+      body: quest.body,
+      reward: quest.reward,
+      cta: radarAction.label || "START",
+      action: "radar"
+    });
+  }
+
+  if (resumeCue && resumeCue.command) {
+    add({
+      key: `resume:${resumeCue.command}`,
+      label: "RESUME LAB",
+      title: resumeCue.title || "Resume the next test",
+      body: `${resumeCue.missionTitle || "Science Notebook"}: ${resumeCue.body || "Stage the saved command and compare new evidence."}`,
+      reward: `Saved proof loop${compactStartObjectiveCommand(resumeCue.command) ? ` · ${compactStartObjectiveCommand(resumeCue.command)}` : ""}`,
+      cta: "STAGE TEST",
+      action: "resume",
+      command: resumeCue.command,
+      kind: resumeCue.kind || "reflection"
+    });
+  }
+
+  const lessonAction = cadetPreview && cadetPreview.lessonPathAction;
+  if (lessonAction && lessonAction.missionId) {
+    const progress = getLessonPathPortfolioProgress(game);
+    const lessonCommand = compactStartObjectiveCommand(lessonAction.command);
+    add({
+      key: `lesson:${lessonAction.missionId}`,
+      label: "LESSON PATH",
+      title: lessonAction.stageTitle || lessonAction.title || "Next lesson path",
+      body: lessonCommand ? `One focused tweak: ${lessonCommand}` : "Run the next focused coding and science lesson.",
+      reward: progress && progress.total ? `Lesson Paths ${progress.earned}/${progress.total}` : "Lesson proof",
+      cta: lessonAction.label || "RUN LESSON",
+      action: "lesson-path",
+      missionId: lessonAction.missionId,
+      command: lessonAction.command || "",
+      kind: "lesson-path"
+    });
+  }
+
+  const aiAction = cadetPreview && cadetPreview.aiAction;
+  if (aiAction && aiAction.cardId) {
+    const deck = typeof getAIStateDeckProgress === "function" ? getAIStateDeckProgress(game) : null;
+    const card = deck && Array.isArray(deck.cards)
+      ? deck.cards.find(item => item && item.id === aiAction.cardId)
+      : null;
+    add({
+      key: `ai:${aiAction.cardId}`,
+      label: "AI STATE",
+      title: card && card.title ? card.title : (aiAction.title || "Next behavior proof"),
+      body: aiAction.body || (card && card.next) || "Run the next behavior proof and watch the state change.",
+      reward: deck ? `${deck.earnedCount}/${deck.total} AI states logged` : "State machine proof",
+      cta: aiAction.label || "RUN STATE",
+      action: "ai-state",
+      cardId: aiAction.cardId
+    });
+  }
+
+  const daily = game && typeof game.getDailySignal === "function" ? game.getDailySignal() : null;
+  const dailyAlreadyPrimary = radarAction && radarAction.action === "daily";
+  if (daily && !dailyAlreadyPrimary) {
+    const focus = getDailySignalActionFocus(game);
+    add({
+      key: "daily",
+      label: "DAILY SIGNAL",
+      title: focus && focus.title ? focus.title : "Today's signal",
+      body: daily.concept || "A fresh science remix is ready.",
+      reward: "Daily clear + share code",
+      cta: "ACCEPT",
+      action: "daily"
+    });
+  }
+
+  return queue.slice(0, 4).map((item, index) => ({
+    ...item,
+    priority: index + 1
+  }));
+}
+
+function updateStartObjectiveQueue(game, queue) {
+  const panel = document.getElementById("start-objective-queue");
+  if (game) game.lastStartObjectiveQueue = Array.isArray(queue) ? queue : [];
+  if (!panel) return;
+  const items = Array.isArray(queue) ? queue : [];
+  const visible = items.length > 0;
+  if (panel.classList && typeof panel.classList.toggle === "function") {
+    panel.classList.toggle("hidden", !visible);
+  } else if (panel.style) {
+    panel.style.display = visible ? "" : "none";
+  }
+  if (!visible) {
+    panel.innerHTML = "";
+    return;
+  }
+  panel.innerHTML = `
+    <div class="start-objective-queue-head">
+      <span>NEXT OBJECTIVE QUEUE</span>
+      <strong>${escapeHTML(items[0].cta || "RUN NEXT")}</strong>
+    </div>
+    <div class="start-objective-queue-list">
+      ${items.map(item => `
+        <div class="start-objective-item">
+          <span>#${item.priority} ${escapeHTML(item.label)}</span>
+          <strong>${escapeHTML(item.title)}</strong>
+          <p>${escapeHTML(item.body)}</p>
+          ${(item.reward || item.cta) ? `<em>${escapeHTML(`${item.reward || "Reward ready"}${item.cta ? ` · ${item.cta}` : ""}`)}</em>` : ""}
+          ${item.action ? `<button type="button" class="start-objective-action-btn" onclick="runStartObjectiveQueueAction(${item.priority})">${escapeHTML(item.cta || "RUN")}</button>` : ""}
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
 function updateStartMissionRadar(game = window.Game) {
   const panel = document.getElementById("start-mission-radar");
   if (!panel) return;
@@ -3841,6 +3992,8 @@ function updateStartMissionRadar(game = window.Game) {
   const proofPreview = getStartLabStarProofPreview(game);
   const chainMilestone = getActiveLabChainMilestone(game);
   const action = getStartMissionRadarAction(game, quest);
+  const resumeCue = getStartResumeTestCue();
+  const objectiveQueue = getStartObjectiveQueue(game, { quest, action, cadetPreview, resumeCue });
   const kicker = panel.querySelector ? panel.querySelector(".start-mission-radar-head span") : null;
   const progress = document.getElementById("start-mission-radar-progress");
   const title = document.getElementById("start-mission-radar-title");
@@ -3873,7 +4026,8 @@ function updateStartMissionRadar(game = window.Game) {
   const storyTitle = document.getElementById("start-story-preview-title");
   const storyBody = document.getElementById("start-story-preview-body");
   const storyProgress = document.getElementById("start-story-preview-progress");
-  updateStartResumeTestCard();
+  updateStartResumeTestCard(resumeCue);
+  updateStartObjectiveQueue(game, objectiveQueue);
 
   if (kicker) kicker.textContent = quest ? quest.kicker.replace(/^NEXT\s+/i, "") : "MISSION RADAR";
   if (progress) progress.textContent = `${collection.unlocked.length}/${collection.cards.length} formulas · ${Math.round(rank.xp)} XP`;
@@ -4013,6 +4167,38 @@ function runStartResumeTestAction() {
     source: "start-resume-proof",
     color: "#bef264"
   });
+}
+
+function runStartObjectiveQueueAction(priority = 1) {
+  const game = window.Game || (typeof Game !== 'undefined' ? Game : null);
+  const queue = game && Array.isArray(game.lastStartObjectiveQueue) ? game.lastStartObjectiveQueue : [];
+  const item = queue.find(entry => entry && entry.priority === Number(priority));
+  if (!item || !item.action) return false;
+  if (item.action === "radar") return runStartMissionRadarAction();
+  if (item.action === "resume") {
+    if (!item.command || typeof stageScienceDeltaCommand !== 'function') return false;
+    return stageScienceDeltaCommand(item.command, {
+      title: item.title || "Resume lab chain",
+      kind: item.kind || "reflection",
+      source: "start-objective-queue",
+      color: "#bef264"
+    });
+  }
+  if (item.action === "lesson-path") {
+    return runCadetLessonPathAction(item.missionId || null, game);
+  }
+  if (item.action === "ai-state") {
+    if (!item.cardId || typeof runAIStateDeckAction !== 'function') return false;
+    return runAIStateDeckAction(item.cardId, game);
+  }
+  if (item.action === "daily") {
+    return runDailySignalAction(game);
+  }
+  if (item.action === "log") {
+    if (typeof switchMainMode === 'function') switchMainMode("notebook");
+    return true;
+  }
+  return false;
 }
 
 function getDailySignalActionFocus(game = window.Game || (typeof Game !== 'undefined' ? Game : null)) {
