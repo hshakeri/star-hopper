@@ -646,8 +646,25 @@ function appendSignalStoryCrtCard(listContainer, game) {
   listContainer.appendChild(card);
 }
 
-function runSignalLabExplainAction(game) {
+function setSignalLabReflectionContext(game, proofStatus) {
+  if (!game || !proofStatus) return null;
+  const contract = proofStatus.contract || {};
+  const signal = proofStatus.signal || {};
+  const context = {
+    kind: "signal-lab",
+    source: proofStatus.isFrontier ? "Frontier Signal Lab" : "Daily Signal Lab",
+    title: proofStatus.title || contract.title || "Signal Lab proof",
+    concept: contract.concept || signal.concept || "Replay physics",
+    command: proofStatus.command || contract.command || "",
+    proofLabel: proofStatus.isFrontier ? "FRONTIER LAB TESTED" : "SIGNAL LAB TESTED"
+  };
+  game.reflectionContext = context;
+  return context;
+}
+
+function runSignalLabExplainAction(game, proofStatus = null) {
   const target = game || (typeof window !== 'undefined' ? window.Game : null);
+  if (target && proofStatus) setSignalLabReflectionContext(target, proofStatus);
   if (target && typeof target.runClearExplainPrompt === 'function') {
     return target.runClearExplainPrompt();
   }
@@ -721,7 +738,7 @@ function appendSignalLabContractCard(listContainer, game) {
       explain.className = "signal-lab-contract-explain-btn";
       explain.textContent = "EXPLAIN EVIDENCE";
       if (typeof explain.addEventListener === "function") {
-        explain.addEventListener("click", () => runSignalLabExplainAction(game));
+        explain.addEventListener("click", () => runSignalLabExplainAction(game, proofStatus));
       }
       card.appendChild(explain);
     } else {

@@ -3023,6 +3023,9 @@ function runEngineTests() {
     assertEquals("EXPLAIN EVIDENCE", explainSignalButton && explainSignalButton.textContent, "Claimed Signal Lab card should expose the explain action");
     explainSignalButton._events.click();
     assertEquals(1, explainCalls, "Signal Lab explain action should reuse the Science Notebook explain flow");
+    assertEquals("signal-lab", game.reflectionContext && game.reflectionContext.kind, "Signal Lab explain action should set notebook reflection context");
+    assertEquals("Numeric friction target", game.reflectionContext && game.reflectionContext.title, "Signal Lab reflection context should preserve the replay focus");
+    assertEquals("friction = 8", game.reflectionContext && game.reflectionContext.command, "Signal Lab reflection context should preserve the tested command");
 
     list = makeEl();
     game.dailyInfo = {
@@ -6005,7 +6008,18 @@ function runExperimentLogTests() {
       rewardXP: 13,
       comboBonusXP: 2
     };
+    g.reflectionContext = {
+      kind: "signal-lab",
+      source: "Daily Signal Lab",
+      title: "Mass remix proof",
+      concept: "Force and mass",
+      command: "hopper.mass = 1.2",
+      proofLabel: "SIGNAL LAB TESTED"
+    };
     updateActiveQuestion(g);
+    assertEquals(true, /signal lab: Daily Signal Lab - Mass remix proof/.test(starter.textContent), "Starter names the Signal Lab proof context");
+    assertEquals(true, /focus: Force and mass/.test(starter.textContent), "Starter includes the Signal Lab science focus");
+    assertEquals(true, /proof: SIGNAL LAB TESTED/.test(starter.textContent), "Starter includes the Signal Lab proof label");
     assertEquals(true, /code: use_hopper/.test(starter.textContent), "Starter names the latest coach code");
     assertEquals(true, /prediction: More antigravity/.test(starter.textContent), "Starter includes the selected prediction label");
     assertEquals(true, /result: cleared/.test(starter.textContent), "Starter includes the attempt result");

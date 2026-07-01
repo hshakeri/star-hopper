@@ -172,9 +172,22 @@ function getNotebookScienceDeltaEvidence(game) {
   return out;
 }
 
+function getNotebookReflectionContextEvidence(game) {
+  const context = game && game.reflectionContext;
+  if (!context || context.kind !== "signal-lab") return [];
+  const out = [];
+  const source = compactNotebookEvidenceValue(context.source || "Signal Lab", 36);
+  const title = compactNotebookEvidenceValue(context.title || "Replay proof", 44);
+  if (source || title) out.push(`signal lab: ${source}${title ? ` - ${title}` : ""}`);
+  if (context.concept) out.push(`focus: ${compactNotebookEvidenceValue(context.concept, 52)}`);
+  if (context.command) out.push(`code: ${compactNotebookEvidenceValue(context.command)}`);
+  if (context.proofLabel) out.push(`proof: ${compactNotebookEvidenceValue(context.proofLabel, 40)}`);
+  return out;
+}
+
 function buildReflectionEvidenceStarter(game, activeMission = null) {
   const missionId = activeMission && activeMission.id ? activeMission.id : null;
-  const parts = [];
+  const parts = getNotebookReflectionContextEvidence(game);
   const code = missionId && game && game.lastCoachCodeByMission
     ? game.lastCoachCodeByMission[missionId]
     : "";
