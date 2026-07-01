@@ -4889,6 +4889,7 @@ class StarHopperGame {
         kind: item.kind || "",
         source: item.source || "",
         progress: item.progress && typeof item.progress === "object" ? item.progress : null,
+        lessonSteps: item.lessonSteps && typeof item.lessonSteps === "object" ? item.lessonSteps : null,
         preserveReflectionContext: !!item.preserveReflectionContext
       });
     };
@@ -4957,6 +4958,11 @@ class StarHopperGame {
         command: codeConceptTarget.command,
         kind: codeConceptTarget.concept || "code-concept",
         source: "clear-code-concept",
+        lessonSteps: {
+          learn: codeConceptTarget.learn,
+          code: codeConceptTarget.codeMove,
+          win: codeConceptTarget.payoff
+        },
         progress: {
           mode: "code-concept",
           value: codeConceptTarget.count,
@@ -7765,6 +7771,10 @@ class StarHopperGame {
       return "";
     };
     const renderClearObjectiveContract = (item) => {
+      if (typeof renderObjectiveLearningContract === 'function') {
+        const rendered = renderObjectiveLearningContract(item, "clear-objective-contract");
+        if (rendered) return rendered;
+      }
       const contract = getClearObjectiveContract(item);
       return contract ? `<div class="clear-objective-contract">${safe(contract)}</div>` : "";
     };

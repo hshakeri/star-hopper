@@ -525,6 +525,7 @@ function addRunObjectiveQueueItem(queue, seen, item) {
     color: item.color || "#67e8f9",
     prediction: item.prediction || null,
     progress: item.progress && typeof item.progress === "object" ? item.progress : null,
+    lessonSteps: item.lessonSteps && typeof item.lessonSteps === "object" ? item.lessonSteps : null,
     disabled: !!item.disabled,
     priority: queue.length + 1
   });
@@ -642,6 +643,11 @@ function getRunObjectiveQueue(game) {
       kind: codeConceptTarget.concept,
       source: "code-concept-target",
       color: "#93c5fd",
+      lessonSteps: {
+        learn: codeConceptTarget.learn,
+        code: codeConceptTarget.codeMove,
+        win: codeConceptTarget.payoff
+      },
       progress: {
         value: codeConceptTarget.count,
         target: codeConceptTarget.total,
@@ -758,8 +764,52 @@ function getObjectiveLearningContract(item) {
   return "";
 }
 
+function getObjectiveLearningSteps(item) {
+  if (!item || !item.lessonSteps || typeof item.lessonSteps !== "object") return null;
+  const learn = String(item.lessonSteps.learn || "").trim();
+  const code = String(item.lessonSteps.code || item.lessonSteps.codeMove || "").trim();
+  const win = String(item.lessonSteps.win || item.lessonSteps.payoff || "").trim();
+  if (!learn && !code && !win) return null;
+  return {
+    learn: learn || "Next concept",
+    code: code || "Try the command",
+    win: win || "Collect the reward"
+  };
+}
+
+function renderObjectiveLearningSteps(item, className = "objective-learning-steps") {
+  const steps = getObjectiveLearningSteps(item);
+  if (!steps) return "";
+  return `
+    <div class="${escapeHTML(className)} objective-learning-steps">
+      <span><b>LEARN</b>${escapeHTML(steps.learn)}</span>
+      <span><b>CODE</b>${escapeHTML(steps.code)}</span>
+      <span><b>WIN</b>${escapeHTML(steps.win)}</span>
+    </div>
+  `;
+}
+
+function appendObjectiveLearningSteps(row, item, className = "run-objective-contract") {
+  const steps = getObjectiveLearningSteps(item);
+  if (!row || !steps || typeof document === "undefined" || typeof document.createElement !== "function") return false;
+  const line = document.createElement("div");
+  line.className = `${className} objective-learning-steps`;
+  [
+    ["LEARN", steps.learn],
+    ["CODE", steps.code],
+    ["WIN", steps.win]
+  ].forEach(([label, text]) => {
+    const chip = document.createElement("span");
+    chip.innerHTML = `<b>${escapeHTML(label)}</b>${escapeHTML(text)}`;
+    line.appendChild(chip);
+  });
+  row.appendChild(line);
+  return true;
+}
+
 function appendRunObjectiveContract(row, item) {
   if (!row || !item) return;
+  if (appendObjectiveLearningSteps(row, item, "run-objective-contract")) return;
   const contract = getObjectiveLearningContract(item);
   if (!contract) return;
   const line = document.createElement("div");
@@ -4450,7 +4500,12 @@ function getActiveLabQuest(game) {
       action: "code-concept",
       kind: codeConceptTarget.concept,
       command: codeConceptTarget.command,
-      stageTitle: `Code Concept: ${codeConceptTarget.title}`
+      stageTitle: `Code Concept: ${codeConceptTarget.title}`,
+      lessonSteps: {
+        learn: codeConceptTarget.learn,
+        code: codeConceptTarget.codeMove,
+        win: codeConceptTarget.payoff
+      }
     };
   }
 
@@ -4576,6 +4631,7 @@ function getStartObjectiveQueue(game = window.Game, context = {}) {
       levelIndex: Number.isFinite(Number(item.levelIndex)) ? Number(item.levelIndex) : null,
       stageTitle: item.stageTitle || "",
       progress: item.progress && typeof item.progress === "object" ? item.progress : null,
+      lessonSteps: item.lessonSteps && typeof item.lessonSteps === "object" ? item.lessonSteps : null,
       priority: queue.length + 1
     });
   };
@@ -4588,7 +4644,8 @@ function getStartObjectiveQueue(game = window.Game, context = {}) {
       body: quest.body,
       reward: quest.reward,
       cta: radarAction.label || "START",
-      action: "radar"
+      action: "radar",
+      lessonSteps: quest.lessonSteps && typeof quest.lessonSteps === "object" ? quest.lessonSteps : null
     });
   }
 
@@ -4660,6 +4717,11 @@ function getStartObjectiveQueue(game = window.Game, context = {}) {
       color: codeConceptTarget.color || "#93c5fd",
       levelIndex: Number.isFinite(Number(game && game.currentPlanetIndex)) ? Number(game.currentPlanetIndex) : 0,
       stageTitle: `Code Concept: ${codeConceptTarget.title}`,
+      lessonSteps: {
+        learn: codeConceptTarget.learn,
+        code: codeConceptTarget.codeMove,
+        win: codeConceptTarget.payoff
+      },
       progress: {
         mode: "code-concept",
         value: codeConceptTarget.count,
@@ -4754,6 +4816,8 @@ function updateStartObjectiveQueue(game, queue) {
 }
 
 function renderObjectiveLearningContract(item, className = "start-objective-contract") {
+  const steps = renderObjectiveLearningSteps(item, className);
+  if (steps) return steps;
   const contract = getObjectiveLearningContract(item);
   return contract ? `<div class="${escapeHTML(className)}">${escapeHTML(contract)}</div>` : "";
 }

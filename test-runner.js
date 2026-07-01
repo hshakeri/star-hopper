@@ -2199,7 +2199,13 @@ function runEngineTests() {
     assertEquals("code-concept-target", queue[0] && queue[0].source, "Run objective queue should preserve Code Concept source metadata");
     assertEquals(1, queue[0] && queue[0].progress && queue[0].progress.value, "Run objective queue should carry Code Concept pip progress");
     assertEquals(5, queue[0] && queue[0].progress && queue[0].progress.target, "Run objective queue should carry Code Concept pip total");
+    assertEquals("Repeat count makes tools", queue[0] && queue[0].lessonSteps && queue[0].lessonSteps.learn, "Run objective queue should carry Code Concept learning chip text");
+    assertEquals("Repeat a helper", queue[0] && queue[0].lessonSteps && queue[0].lessonSteps.code, "Run objective queue should carry Code Concept coding chip text");
+    assertEquals("Build the route", queue[0] && queue[0].lessonSteps && queue[0].lessonSteps.win, "Run objective queue should carry Code Concept payoff chip text");
     assertEquals("Code idea -> concept card", getObjectiveLearningContract(queue[0]), "Run objective queue should name the learning contract behind a Code Concept");
+    assertEquals(true, /LEARN/.test(renderObjectiveLearningContract(queue[0])) && /Repeat count makes tools/.test(renderObjectiveLearningContract(queue[0])), "Code Concept learning contract should render the LEARN chip");
+    assertEquals(true, /CODE/.test(renderObjectiveLearningContract(queue[0])) && /Repeat a helper/.test(renderObjectiveLearningContract(queue[0])), "Code Concept learning contract should render the CODE chip");
+    assertEquals(true, /WIN/.test(renderObjectiveLearningContract(queue[0])) && /Build the route/.test(renderObjectiveLearningContract(queue[0])), "Code Concept learning contract should render the WIN chip");
 
     const startQueue = getStartObjectiveQueue(queueGame, { quest: {}, resumeCue: null, cadetPreview: {} });
     assertEquals("CODE CONCEPT", startQueue[0] && startQueue[0].label, "Start objective queue should surface the next Code Concept when higher-priority routes are absent");
@@ -2207,10 +2213,13 @@ function runEngineTests() {
     assertEquals("STAGE IDEA", startQueue[0] && startQueue[0].cta, "Start objective queue should expose a Code Concept stage action");
     assertEquals("code-concept", startQueue[0] && startQueue[0].action, "Start objective queue should keep Code Concept action metadata");
     assertEquals("code-concept", startQueue[0] && startQueue[0].progress && startQueue[0].progress.mode, "Start objective Code Concept should carry progress metadata");
+    assertEquals("Repeat count makes tools", startQueue[0] && startQueue[0].lessonSteps && startQueue[0].lessonSteps.learn, "Start objective Code Concept should keep learning chip metadata");
     updateStartObjectiveQueue(queueGame, startQueue);
     assertEquals(true, /start-objective-code/.test(startQueuePanel22codeDeck.innerHTML), "Start objective queue should render a command chip");
-    assertEquals(true, /start-objective-contract/.test(startQueuePanel22codeDeck.innerHTML), "Start objective queue should render the learning contract strip");
-    assertEquals(true, /Code idea -&gt; concept card/.test(startQueuePanel22codeDeck.innerHTML), "Start objective learning contract should explain the Code Concept payoff");
+    assertEquals(true, /start-objective-contract objective-learning-steps/.test(startQueuePanel22codeDeck.innerHTML), "Start objective queue should render the Code Concept learning chips");
+    assertEquals(true, /LEARN/.test(startQueuePanel22codeDeck.innerHTML) && /Repeat count makes tools/.test(startQueuePanel22codeDeck.innerHTML), "Start objective learning chips should explain the coding idea");
+    assertEquals(true, /CODE/.test(startQueuePanel22codeDeck.innerHTML) && /Repeat a helper/.test(startQueuePanel22codeDeck.innerHTML), "Start objective learning chips should name the coding move");
+    assertEquals(true, /WIN/.test(startQueuePanel22codeDeck.innerHTML) && /Build the route/.test(startQueuePanel22codeDeck.innerHTML), "Start objective learning chips should name the game payoff");
     assertEquals(true, /repeat 3 \{ spawn_block\(\) \}/.test(startQueuePanel22codeDeck.innerHTML), "Start objective command chip should show the Code Concept sample");
     assertEquals(true, /start-objective-progress code-concept/.test(startQueuePanel22codeDeck.innerHTML), "Start objective queue should render Code Concept progress pips");
     assertEquals(true, /1\/5 ideas/.test(startQueuePanel22codeDeck.innerHTML), "Start objective Code Concept progress should show idea count");
@@ -2228,6 +2237,13 @@ function runEngineTests() {
     assertEquals("repeat 3 { spawn_block() }", inputEl.value, "Start objective Code Concept action should stage the sample command");
     assertEquals(true, inputEl.focused, "Start objective Code Concept action should focus the terminal");
     assertEquals("start-code-concept", queueGame.lastStagedExperiment && queueGame.lastStagedExperiment.source, "Start objective Code Concept action should preserve its source");
+
+    const clearCodeQueue = queueGame.getClearObjectiveQueue({ codeConceptTarget: target });
+    assertEquals("CODE CONCEPT", clearCodeQueue[0] && clearCodeQueue[0].label, "Clear objective queue should surface Code Concept follow-ups");
+    assertEquals("Repeat count makes tools", clearCodeQueue[0] && clearCodeQueue[0].lessonSteps && clearCodeQueue[0].lessonSteps.learn, "Clear objective Code Concept should keep learning chip metadata");
+    const clearCodeContract = renderObjectiveLearningContract(clearCodeQueue[0], "clear-objective-contract");
+    assertEquals(true, /clear-objective-contract objective-learning-steps/.test(clearCodeContract), "Clear objective Code Concept should render learning chips");
+    assertEquals(true, /Repeat count makes tools/.test(clearCodeContract) && /Build the route/.test(clearCodeContract), "Clear objective Code Concept chips should keep learn and win text");
 
     const chainQueueGame = new StarHopperGame();
     chainQueueGame.currentPlanet = { name: "Chain Lab", missions: [] };

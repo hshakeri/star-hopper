@@ -5134,6 +5134,40 @@ html {
   overflow-wrap: anywhere;
 }
 
+.start-objective-contract.objective-learning-steps,
+.run-objective-contract.objective-learning-steps,
+.clear-objective-contract.objective-learning-steps {
+  display: grid;
+  gap: 3px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 100%;
+  background: rgba(15, 23, 42, 0.44);
+  border-color: rgba(147, 197, 253, 0.3);
+  padding: 3px;
+}
+
+.objective-learning-steps span {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  border: 1px solid rgba(147, 197, 253, 0.2);
+  border-radius: 3px;
+  background: rgba(30, 41, 59, 0.46);
+  color: #dbeafe;
+  font-family: var(--font-mono);
+  font-size: 0.48rem;
+  font-weight: 900;
+  line-height: 1.08;
+  padding: 3px 4px;
+  overflow-wrap: anywhere;
+}
+
+.objective-learning-steps b {
+  color: #fef08a;
+  font-size: 0.44rem;
+  letter-spacing: 0;
+}
+
 .run-objective-queue-item code {
   display: block;
   max-height: 42px;
@@ -11335,6 +11369,7 @@ body.readable-text-mode .clear-objective-item strong,
 body.readable-text-mode .clear-objective-item p,
 body.readable-text-mode .clear-objective-item em,
 body.readable-text-mode .clear-objective-contract,
+body.readable-text-mode .objective-learning-steps span,
 body.readable-text-mode .clear-objective-code,
 body.readable-text-mode .clear-objective-progress span,
 body.readable-text-mode .clear-objective-action-btn,
