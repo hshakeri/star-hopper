@@ -2915,29 +2915,55 @@ function runEngineTests() {
   try {
     const g = new StarHopperGame();
     g.state = 'playing';
+    g.planetClears = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 };
+    g.frontierRecords = { "2026-06-30": { shareCode: "FRONTIER-EARTH-1234", stars: 2 } };
+    g.masteryMeters = {};
+    g.discoveryPassCounts = {
+      "anomaly-trace-proof:4:trace-hidden-force:test": 1
+    };
     g.dailyInfo = { isFrontier: true, darkMatterPrep: true };
     let cue = g.getFutureLabRunCue();
     assertEquals("DARK MATTER PREP", cue.label, "Dark Matter prep runs should show the hidden-force cue");
     assertEquals("curve", cue.mode, "Dark Matter prep cue should use the curve visualization");
     assertEquals(true, /hidden force/.test(cue.formula), "Dark Matter prep cue should name the hidden-force model");
+    assertEquals(3, cue.progress.done, "Dark Matter prep cue should show the 3 banked prerequisite future proofs");
+    assertEquals(6, cue.progress.total, "Future lab cue should use the six-step roadmap");
+    assertEquals("dark-matter-evidence", cue.progress.nextId, "Dark Matter prep cue should point at curve evidence as the active proof");
+    assertEquals(true, /Bank curve evidence/.test(cue.progress.progressLine), "Future lab cue should name the next proof target");
 
     g.dailyInfo = null;
+    g.discoveryPassCounts = {};
     g.lastStagedExperiment = { source: "start-anomaly-trace" };
     cue = g.getFutureLabRunCue();
     assertEquals("ANOMALY TRACE", cue.label, "Anomaly trace staging should show the field cue");
     assertEquals("field", cue.mode, "Anomaly trace cue should use the field visualization");
+    assertEquals(2, cue.progress.done, "Anomaly trace cue should count star-map plus Frontier echo prerequisites");
+    assertEquals("hidden-force-trace", cue.progress.nextId, "Anomaly trace cue should point at the hidden-force proof");
 
+    g.discoveryPassCounts = {
+      "anomaly-trace-proof:4:trace-hidden-force:test": 1,
+      "signal-lab-proof:frontier:frontier-earth-1234:t2:0:dark-matter-prep:curve": 1
+    };
     g.lastStagedExperiment = { source: "start-quantum-branch" };
     cue = g.getFutureLabRunCue();
     assertEquals("QUANTUM PREP", cue.label, "Quantum branch staging should show the branch cue");
     assertEquals("branch", cue.mode, "Quantum branch cue should use the split-path visualization");
     assertEquals(true, /path A\/B/.test(cue.formula), "Quantum branch cue should name path selection");
+    assertEquals(4, cue.progress.done, "Quantum branch cue should show the four banked future proofs");
+    assertEquals("quantum-branch", cue.progress.nextId, "Quantum branch cue should point at the branch seed");
+    assertEquals(true, /Branch Lab card/.test(cue.progress.nextReward), "Quantum branch cue should preview the formula-card payoff");
 
+    g.discoveryPassCounts = {
+      ...g.discoveryPassCounts,
+      "quantum-branch-proof:0:test-a-branch-condition:test": 1
+    };
     g.lastStagedExperiment = { source: "start-quantum-chance" };
     cue = g.getFutureLabRunCue();
     assertEquals("QUANTUM CHANCE", cue.label, "Quantum chance staging should show the probability cue");
     assertEquals("chance", cue.mode, "Quantum chance cue should use the probability visualization");
     assertEquals(true, /measured pattern/.test(cue.formula), "Quantum chance cue should connect chance to evidence");
+    assertEquals(5, cue.progress.done, "Quantum chance cue should show that only probability remains");
+    assertEquals("quantum-chance", cue.progress.nextId, "Quantum chance cue should point at the probability seed");
 
     g.state = 'start';
     assertEquals(null, g.getFutureLabRunCue(), "Future-lab cue should stay out of the start screen");

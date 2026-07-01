@@ -7184,6 +7184,34 @@ class StarHopperGame {
     return { target, visible: false, offscreen: true, color, x: markerX, y: markerY, angle, label, kind };
   }
 
+  getFutureLabRunProgress(preferredStageId = null) {
+    if (typeof getFutureLabRoadmapStages !== 'function') return null;
+    let stages = null;
+    try {
+      stages = getFutureLabRoadmapStages(this);
+    } catch (err) {
+      stages = null;
+    }
+    if (!Array.isArray(stages) || !stages.length) return null;
+    const done = stages.filter(stage => stage && stage.status === "done").length;
+    const preferred = preferredStageId ? stages.find(stage => stage && stage.id === preferredStageId) : null;
+    const next = stages.find(stage => stage && stage.status === "next") || stages.find(stage => stage && stage.status !== "done") || stages[stages.length - 1];
+    const target = preferred && preferred.status === "next" ? preferred : next;
+    return {
+      done,
+      total: stages.length,
+      nextId: target ? target.id : null,
+      nextTitle: target ? target.title : "Future lab record",
+      nextReward: target ? target.reward : "Reward: source lab ready",
+      progressLine: `${done}/${stages.length} proofs -> ${target ? target.title : "source ready"}`,
+      statuses: stages.map(stage => ({
+        id: stage.id,
+        status: stage.status,
+        title: stage.title
+      }))
+    };
+  }
+
   getFutureLabRunCue() {
     if (this.state !== 'playing') return null;
     const staged = this.lastStagedExperiment || null;
@@ -7195,7 +7223,8 @@ class StarHopperGame {
         body: "Compare path curve, speed, and force to infer an unseen pull.",
         formula: "motion clue -> hidden force",
         color: "#818cf8",
-        mode: "curve"
+        mode: "curve",
+        progress: this.getFutureLabRunProgress("dark-matter-evidence")
       };
     }
     if (source === "start-anomaly-trace") {
@@ -7205,7 +7234,8 @@ class StarHopperGame {
         body: "Use the magnet event rule as a prototype for hidden forces.",
         formula: "event -> field response",
         color: "#a78bfa",
-        mode: "field"
+        mode: "field",
+        progress: this.getFutureLabRunProgress("hidden-force-trace")
       };
     }
     if (source === "start-quantum-branch") {
@@ -7215,7 +7245,8 @@ class StarHopperGame {
         body: "One game state chooses one code path.",
         formula: "if state -> path A/B",
         color: "#22d3ee",
-        mode: "branch"
+        mode: "branch",
+        progress: this.getFutureLabRunProgress("quantum-branch")
       };
     }
     if (source === "start-quantum-chance") {
@@ -7225,7 +7256,8 @@ class StarHopperGame {
         body: "Repeat chance trials and compare the observed rate.",
         formula: "chance p -> measured pattern",
         color: "#38bdf8",
-        mode: "chance"
+        mode: "chance",
+        progress: this.getFutureLabRunProgress("quantum-chance")
       };
     }
     return null;
@@ -7236,10 +7268,10 @@ class StarHopperGame {
     if (!ctx || !cue || !this.canvas) return null;
     const W = this.canvas.width || 720;
     const H = this.canvas.height || 448;
-    const x = Math.max(14, W - 226);
-    const y = Math.max(124, H - 104);
-    const w = 206;
-    const h = 78;
+    const x = Math.max(14, W - 238);
+    const y = Math.max(124, H - 128);
+    const w = 218;
+    const h = 102;
     const t = this.reducedMotion ? 0 : Date.now() / 700;
     const pulse = this.reducedMotion ? 0.5 : 0.5 + 0.5 * Math.sin(t);
     const color = cue.color || "#67e8f9";
@@ -7274,9 +7306,34 @@ class StarHopperGame {
     ctx.fillStyle = "#bef264";
     ctx.fillText(this.fitCardText(ctx, cue.formula, w - 20), x + 10, y + 61);
 
+    if (cue.progress) {
+      ctx.globalAlpha = 0.92;
+      ctx.fillStyle = "#e0f2fe";
+      ctx.font = "bold 7px 'Share Tech Mono', monospace";
+      ctx.fillText(this.fitCardText(ctx, cue.progress.progressLine, w - 20), x + 10, y + 76);
+      const pips = Array.isArray(cue.progress.statuses) ? cue.progress.statuses : [];
+      const pipY = y + h - 13;
+      for (let i = 0; i < pips.length; i++) {
+        const status = pips[i] && pips[i].status;
+        const px = x + 10 + i * 15;
+        ctx.globalAlpha = status === "locked" ? 0.34 : 0.92;
+        ctx.fillStyle = status === "done" ? color : (status === "next" ? "#fef08a" : "rgba(148, 163, 184, 0.7)");
+        ctx.strokeStyle = status === "next" ? "#fef08a" : "rgba(226, 232, 240, 0.42)";
+        ctx.lineWidth = status === "next" ? 1.4 : 1;
+        ctx.beginPath();
+        ctx.roundRect(px, pipY, 10, 5, 2);
+        if (status === "done") ctx.fill();
+        else ctx.stroke();
+      }
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = color;
+      ctx.fillText(`${cue.progress.done}/${cue.progress.total}`, x + w - 36, pipY + 3);
+    }
+
     ctx.strokeStyle = color;
     ctx.lineWidth = 1.5;
     ctx.globalAlpha = 0.72;
+    ctx.font = "bold 8px 'Share Tech Mono', monospace";
     if (cue.mode === "branch" || cue.mode === "chance") {
       const cx = x + w - 42;
       const cy = y + 27;

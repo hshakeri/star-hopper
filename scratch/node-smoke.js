@@ -1,5 +1,5 @@
 // Render smoke test — exercises the NEW draw paths (start backdrop, ink outlines,
-// pop-text, locked-gem reject ring) through a canvas mock to catch runtime errors that
+// pop-text, locked-gem reject ring, Future Lab cue) through a canvas mock to catch runtime errors that
 // the logic tests don't (draw() is never called in the unit suites). Not pixel-accurate;
 // it only asserts "drawing these does not throw". Usage: node scratch/node-smoke.js
 const fs = require('fs');
@@ -111,6 +111,20 @@ const smoke = `
   gp.drawMeteorBanner(gp.ctx); gp.drawHealthHUD(gp.ctx); gp.drawFuelHUD(gp.ctx); gp.drawWeaponHUD(gp.ctx);
   global.__wave4ok = true;
 
+  // Future Lab in-run cue with the six-step proof ladder pips.
+  global.getFutureLabRoadmapStages = () => [
+    { id:'star-map', status:'done', title:'Restore the star-map', reward:'Reward: Frontier Challenge' },
+    { id:'dark-matter-echo', status:'done', title:'Decode Dark Matter Echo', reward:'Reward: Dark Matter Echo' },
+    { id:'hidden-force-trace', status:'done', title:'Trace hidden force', reward:'Reward: Hidden Force Trace' },
+    { id:'dark-matter-evidence', status:'next', title:'Bank curve evidence', reward:'Reward: hidden-force evidence' },
+    { id:'quantum-branch', status:'locked', title:'Seed a branch condition', reward:'Reward: Branch Lab card' },
+    { id:'quantum-chance', status:'locked', title:'Seed chance probability', reward:'Reward: Probability Lab card' }
+  ];
+  var getFutureLabRoadmapStages = global.getFutureLabRoadmapStages;
+  gp.dailyInfo = { isFrontier: true, darkMatterPrep: true };
+  gp.drawFutureLabRunCue(gp.ctx);
+  global.__futureCueOk = !!(gp.lastFutureLabRunCue && gp.lastFutureLabRunCue.progress && gp.lastFutureLabRunCue.progress.done === 3);
+
   // Every drawn mob species renders without throwing (incl. blink + hit-flash + squash).
   ['hog', 'snake', 'critter', 'blob', 'bot', 'floater'].forEach((sp, i) => {
     const mob = new Mob(50 + i * 30, 100, sp, '#a78bfa', 1.4);
@@ -150,6 +164,7 @@ eval(bundle + '\n' + smoke);
 check('pop-text draws without throwing and caps at 2', () => { if (global.__popCap !== 2) throw new Error('pop cap was ' + global.__popCap + ', expected 2'); });
 check('player + gem + start backdrop drew without throwing', () => { if (!global.__ok) throw new Error('smoke did not complete'); });
 check('Wave 4 hazards (debris/meteors/flash/shake/hearts) draw without throwing', () => { if (!global.__wave4ok) throw new Error('wave4 draw did not complete'); });
+check('Future Lab cue draws proof ladder without throwing', () => { if (!global.__futureCueOk) throw new Error('future cue draw did not complete'); });
 check('all drawn mob species render without throwing', () => { if (!global.__mobsok) throw new Error('mob species draw did not complete'); });
 check('all villager role gear renders without throwing', () => { if (!global.__npcsok) throw new Error('NPC role gear draw did not complete'); });
 
