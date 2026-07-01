@@ -1498,6 +1498,112 @@ class StarHopperGame {
     };
   }
 
+  getFrontierRivalProofSourceKey(result, stateOverride = null) {
+    if (!result || !result.entry) return "";
+    const state = stateOverride || result.state || "rival";
+    const entry = result.entry || {};
+    const clean = (value, fallback = "x") => {
+      const text = String(value == null ? "" : value).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+      return text || fallback;
+    };
+    const share = clean(result.shareCode || entry.shareCode, "frontier");
+    const pilot = clean(entry.pilot || "classmate", "classmate");
+    const tier = Math.max(1, Math.floor(Number(entry.tier) || 1));
+    const stars = Math.max(0, Math.min(3, Math.floor(Number(entry.stars) || 0)));
+    const time = Number.isFinite(entry.bestTime) ? String(Math.round(entry.bestTime * 10)) : "notime";
+    return `frontier-rival:${state}:${share}:${pilot}:t${tier}:s${stars}:time${time}`;
+  }
+
+  grantFrontierRivalProof(result) {
+    if (!result || (result.state !== "beaten" && result.state !== "matched")) return null;
+    this.discoveryPassCounts = this.discoveryPassCounts || {};
+    const sourceKey = this.getFrontierRivalProofSourceKey(result);
+    if (!sourceKey) return null;
+    if (this.discoveryPassCounts[sourceKey]) return null;
+    if (result.state === "matched") {
+      const beatenKey = this.getFrontierRivalProofSourceKey(result, "beaten");
+      if (beatenKey && this.discoveryPassCounts[beatenKey]) return null;
+      if (beatenKey && typeof this.normalizeWorldMasteryMeter === 'function') {
+        const meter = this.normalizeWorldMasteryMeter(this.currentPlanetIndex);
+        if (meter && meter.sources && meter.sources[beatenKey]) return null;
+      }
+    }
+
+    const rewardXP = result.state === "beaten" ? 8 : 5;
+    const masteryXP = result.state === "beaten" ? 12 : 8;
+    const label = result.state === "beaten" ? "RIVAL PROOF" : "RIVAL MATCH";
+    const pilot = result.entry && result.entry.pilot ? result.entry.pilot : "classmate";
+    const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+    const mastery = typeof this.awardWorldMasteryXP === 'function'
+      ? this.awardWorldMasteryXP(masteryXP, "frontier rival proof", { sourceKey, silent: true })
+      : { addedXP: 0, duplicate: false };
+    if (mastery && mastery.duplicate) {
+      this.discoveryPassCounts[sourceKey] = 1;
+      return null;
+    }
+
+    this.discoveryPassCounts[sourceKey] = 1;
+    this.researchXP = Math.max(0, (this.researchXP || 0) + rewardXP);
+    const afterRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+    const rankUp = !!(beforeRank && afterRank && afterRank.level > beforeRank.level);
+    const proof = {
+      label,
+      title: result.state === "beaten" ? "Frontier Rival Beaten" : "Frontier Rival Matched",
+      rewardXP,
+      worldMasteryAddedXP: mastery && Number.isFinite(mastery.addedXP) ? mastery.addedXP : 0,
+      sourceKey,
+      state: result.state,
+      pilot,
+      shareCode: result.shareCode || ""
+    };
+    result.rivalProof = proof;
+    result.monitorText = `${result.monitorText || result.label} · +${rewardXP} Research XP`;
+    result.body = `${result.body} Rival proof banked: +${rewardXP} Research XP.`;
+
+    const pulse = {
+      kind: "frontier",
+      title: proof.title,
+      formula: "rival proof = same seed + stars + time",
+      insight: `${pilot}'s Frontier line became a measurable target. Same seed, same rules, better evidence proves the improvement.`,
+      cue: "Share the updated Frontier line, then chase the next rival with one variable at a time.",
+      missionId: sourceKey,
+      missionTitle: "Frontier Challenge",
+      passed: 1,
+      total: 1,
+      progressLabel: result.state === "beaten" ? `beat ${pilot}` : `matched ${pilot}`,
+      openedGems: 0,
+      rewardXP,
+      combo: this.discoveryCombo || 0,
+      worldMasteryAddedXP: proof.worldMasteryAddedXP,
+      rankUp,
+      rankTitle: afterRank ? afterRank.title : null,
+      rankPerk: rankUp && afterRank ? afterRank.perk : null,
+      frontierRivalProof: proof
+    };
+    if (afterRank && typeof getResearchUnlockPreview === 'function') {
+      pulse.nextLabUnlock = getResearchUnlockPreview(afterRank);
+    }
+    this.discoveryPulse = pulse;
+    this.discoveryLog = [pulse].concat(Array.isArray(this.discoveryLog) ? this.discoveryLog : []).slice(0, 8);
+    if (rankUp && typeof showBadgeToast === 'function' && afterRank) {
+      showBadgeToast({
+        icon: "FR",
+        label: `Research Rank: ${afterRank.title}`,
+        description: `Frontier rival proof unlocked ${afterRank.perk.label}.`
+      });
+    }
+    if (rankUp && typeof this.spawnResearchRankEffect === 'function') {
+      pulse.rankEffect = this.spawnResearchRankEffect(pulse);
+    }
+    if (typeof updateDiscoveryPulse === 'function') updateDiscoveryPulse(this);
+    if (typeof updateResearchProgress === 'function') updateResearchProgress(this);
+    if (typeof ui_log_output === 'function') {
+      const masteryText = proof.worldMasteryAddedXP > 0 ? `, +${proof.worldMasteryAddedXP} world mastery XP` : "";
+      ui_log_output(`${label}: +${rewardXP} Research XP${masteryText}.`, "success");
+    }
+    return proof;
+  }
+
   spawnFrontierRivalClearEffect(result) {
     if (!result || (result.state !== "beaten" && result.state !== "matched")) return null;
     const px = this.player
@@ -1513,6 +1619,7 @@ class StarHopperGame {
       state: result.state,
       pilot: result.entry ? result.entry.pilot : "",
       shareCode: result.shareCode || "",
+      rivalProof: result.rivalProof || null,
       x: px,
       y: py
     };
@@ -1522,6 +1629,9 @@ class StarHopperGame {
     }
     if (typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
       ComicBubbles.pop(px, py - 36, label, color, 1.12);
+      if (result.rivalProof && result.rivalProof.rewardXP) {
+        ComicBubbles.pop(px, py - 18, `+${result.rivalProof.rewardXP} RESEARCH`, "#a7f3d0", 0.76);
+      }
     }
     if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
       Particles.spawnBurst(px, py - 6, color, 18, 2.8, 2.4, "glow");
@@ -5977,6 +6087,11 @@ class StarHopperGame {
     }
     if (frontierRivalResult) {
       this.lastFrontierRivalResult = frontierRivalResult;
+      const rivalProof = this.grantFrontierRivalProof(frontierRivalResult);
+      if (rivalProof && labStars) {
+        labStars.worldMastery = this.getWorldMasteryProgress(this.currentPlanetIndex);
+        labStars.worldMasteryAddedXP = (labStars.worldMasteryAddedXP || 0) + (rivalProof.worldMasteryAddedXP || 0);
+      }
       this.spawnFrontierRivalClearEffect(frontierRivalResult);
     } else {
       this.lastFrontierRivalResult = null;
@@ -6093,7 +6208,7 @@ class StarHopperGame {
           <strong>${safe(rivalResult.label)}</strong>
         </div>
         <p>${safe(rivalResult.body)}</p>
-        <em>${safe(rivalResult.shareCode || "Frontier share code ready")}</em>
+        <em>${safe(`${rivalResult.shareCode || "Frontier share code ready"}${rivalResult.rivalProof ? ` · ${rivalResult.rivalProof.label} +${rivalResult.rivalProof.rewardXP} XP` : ""}`)}</em>
         <button type="button" class="clear-frontier-copy-btn" onclick="if (window.Game) window.Game.copyFrontierShareCode()">${safe(rivalResult.state === "beaten" ? "COPY WIN LINE" : "COPY MATCH LINE")}</button>
       </div>
     ` : "";

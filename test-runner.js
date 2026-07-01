@@ -6438,10 +6438,37 @@ function runRetryRemixTests() {
     });
     assertEquals("beaten", beatenResult.state, "A faster same-star clear beats the imported rival");
     assertEquals(true, /RIVAL BEATEN: Grace/.test(beatenResult.label), "Beaten result should label the classmate win");
+    const pulsePanel = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };
+    document.getElementById = (id) => id === "discovery-pulse" ? pulsePanel : null;
+    const matchedResult = g.getFrontierRivalClearResult({
+      frontierInfo: frontier,
+      labStars: { stars: 3 },
+      clearTime: { elapsed: 35.0 }
+    });
+    const matchGame = new StarHopperGame();
+    matchGame.currentPlanet = PLANETS[0];
+    matchGame.currentPlanetIndex = 0;
+    matchGame.masteryMeters = {};
+    const matchedProof = matchGame.grantFrontierRivalProof(matchedResult);
+    assertEquals("RIVAL MATCH", matchedProof && matchedProof.label, "Matching a rival should bank a smaller proof reward");
+    assertEquals(5, matchGame.researchXP, "Matched rival proof should add Research XP once");
+    assertEquals(8, matchGame.getWorldMasteryProgress(0).xp, "Matched rival proof should add world mastery XP");
     g.player = { x: 80, y: 90, w: 24, h: 32 };
+    const rivalProof = g.grantFrontierRivalProof(beatenResult);
+    assertEquals("RIVAL PROOF", rivalProof && rivalProof.label, "Beating a rival should bank a Frontier rival proof");
+    assertEquals(8, g.researchXP, "Beaten rival proof should add Research XP once");
+    assertEquals(132, g.getWorldMasteryProgress(0).xp, "Beaten rival proof should add world mastery XP");
+    assertEquals("Frontier Rival Beaten", g.discoveryPulse && g.discoveryPulse.title, "Rival proof should create a discovery pulse");
+    assertEquals(true, /RIVAL PROOF \+8 XP/.test(pulsePanel.innerHTML), "Discovery pulse should render the rival proof chip");
+    assertEquals(null, g.grantFrontierRivalProof(beatenResult), "Repeating the same rival proof should not farm XP");
+    assertEquals(8, g.researchXP, "Repeated rival proof should not add Research XP");
+    assertEquals(null, g.grantFrontierRivalProof(matchedResult), "A lower matched proof should not pay after the same rival was beaten");
     const rivalEffect = g.spawnFrontierRivalClearEffect(beatenResult);
     assertEquals("RIVAL BEATEN!", rivalEffect.label, "Beating a rival should create an in-level payoff cue");
     assertEquals("FRONTIER CRT", g.missionBalloon && g.missionBalloon.title, "Rival payoff should write to the mission CRT");
+    assertEquals(true, /RIVAL BEATEN: Grace/.test(g.missionBalloon && g.missionBalloon.text), "Rival payoff should keep the classmate label in the Mission CRT");
+    assertEquals(true, /\+8 Research XP/.test(g.missionBalloon && g.missionBalloon.text), "Rival payoff should show the banked Research XP");
+    assertEquals(true, shareLabels.includes("+8 RESEARCH"), "Rival payoff should pop the Research XP cue");
 
     const els = {
       "daily-signal-label": { textContent: "" },
@@ -6496,6 +6523,7 @@ function runRetryRemixTests() {
     assertEquals(true, /FRONTIER RIVAL/.test(els["clear-lab-report"].innerHTML), "Clear report should add a Frontier rival card");
     assertEquals(true, /RIVAL BEATEN: Grace/.test(els["clear-lab-report"].innerHTML), "Clear report should celebrate the beaten classmate");
     assertEquals(true, /Share your updated Frontier line/.test(els["clear-lab-report"].innerHTML), "Clear report should turn the win into a share loop");
+    assertEquals(true, /RIVAL PROOF \+8 XP/.test(els["clear-lab-report"].innerHTML), "Clear report should show the rival proof reward");
     assertEquals(true, /COPY WIN LINE/.test(els["clear-lab-report"].innerHTML), "Clear report should expose a direct copy action for the updated Frontier line");
     g.recordFrontierClear({
       frontierInfo: frontier,

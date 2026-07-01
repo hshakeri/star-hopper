@@ -3907,6 +3907,9 @@ function updateDiscoveryPulse(game) {
   const petProof = pulse.petProof
     ? `<div class="discovery-hypothesis discovery-signal-lab">${escapeHTML(pulse.petProof.label)} +${escapeHTML(String(pulse.petProof.rewardXP || 0))} XP</div>`
     : "";
+  const frontierRivalProof = pulse.frontierRivalProof
+    ? `<div class="discovery-hypothesis discovery-signal-lab">${escapeHTML(pulse.frontierRivalProof.label || "RIVAL PROOF")} +${escapeHTML(String(pulse.frontierRivalProof.rewardXP || 0))} XP · ${escapeHTML(pulse.frontierRivalProof.pilot || "classmate")}</div>`
+    : "";
   const villageTrust = pulse.villageTrust
     ? `<div class="discovery-hypothesis discovery-village-trust">${escapeHTML(pulse.villageTrust.label || "TRUST")} +${escapeHTML(String(pulse.villageTrust.added || 0))} · ${escapeHTML(pulse.villageTrust.title || "Village Trust")} (${escapeHTML(String(pulse.villageTrust.points || 0))})</div>`
     : "";
@@ -3945,6 +3948,7 @@ function updateDiscoveryPulse(game) {
     ${drillProof}
     ${villageTradeProof}
     ${petProof}
+    ${frontierRivalProof}
     ${villageTrust}
     ${villagePact}
     ${rankPerk}
