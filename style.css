@@ -4080,6 +4080,11 @@ html {
   background: rgba(120, 53, 15, 0.34);
   color: #fde68a;
 }
+.discovery-phase-mastery {
+  border-color: rgba(190, 242, 100, 0.56);
+  background: rgba(63, 98, 18, 0.38);
+  color: #ecfccb;
+}
 .discovery-combo {
   border-color: rgba(56, 189, 248, 0.46);
   background: rgba(8, 47, 73, 0.42);

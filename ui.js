@@ -594,6 +594,98 @@ function attachLessonPhaseStageButtons(root, game, fullMission) {
   });
 }
 
+function getLessonPathMasterySourceKey(missionId) {
+  return `lesson-path:${String(missionId || "mission").replace(/[^a-z0-9_-]+/gi, "-").toLowerCase()}`;
+}
+
+function grantLessonPathMastery(game, fullMission, phaseResult, rows, pulse = null) {
+  if (!game || !fullMission || !phaseResult || !Array.isArray(rows) || !rows.length) return null;
+  if (!rows.every(row => row && row.status === "complete")) return null;
+  const missionId = phaseResult.missionId || fullMission.id || "mission";
+  const sourceKey = getLessonPathMasterySourceKey(missionId);
+  game.discoveryPassCounts = game.discoveryPassCounts || {};
+  let masterySources = null;
+  if (typeof game.normalizeWorldMasteryMeter === "function") {
+    const meter = game.normalizeWorldMasteryMeter(game.currentPlanetIndex);
+    masterySources = meter && meter.sources ? meter.sources : null;
+  }
+  if (game.discoveryPassCounts[sourceKey] || (masterySources && masterySources[sourceKey])) {
+    game.discoveryPassCounts[sourceKey] = 1;
+    return null;
+  }
+
+  const rewardXP = 8;
+  const masteryXP = 16;
+  const beforeRank = (typeof getResearchRank === "function") ? getResearchRank(game.researchXP || 0) : null;
+  const mastery = typeof game.awardWorldMasteryXP === "function"
+    ? game.awardWorldMasteryXP(masteryXP, "lesson path mastery", { sourceKey, silent: true })
+    : { addedXP: 0, duplicate: false };
+  if (mastery && mastery.duplicate) {
+    game.discoveryPassCounts[sourceKey] = 1;
+    return null;
+  }
+  game.discoveryPassCounts[sourceKey] = 1;
+  game.researchXP = Math.max(0, (game.researchXP || 0) + rewardXP);
+  const afterRank = (typeof getResearchRank === "function") ? getResearchRank(game.researchXP || 0) : null;
+  const rankUp = !!(beforeRank && afterRank && afterRank.level > beforeRank.level);
+  const result = {
+    label: "LESSON PATH COMPLETE",
+    missionId,
+    missionTitle: fullMission.title || "Lesson path",
+    sourceKey,
+    phases: rows.length,
+    rewardXP,
+    worldMasteryAddedXP: mastery && Number.isFinite(mastery.addedXP) ? mastery.addedXP : 0,
+    rankUp,
+    rankTitle: afterRank ? afterRank.title : null,
+    rankPerk: rankUp && afterRank ? afterRank.perk : null
+  };
+  phaseResult.lessonPathMastery = result;
+  if (pulse) {
+    pulse.lessonPathMastery = result;
+    pulse.rewardXP = Math.max(0, (pulse.rewardXP || 0) + rewardXP);
+    if (rankUp) {
+      pulse.rankUp = true;
+      pulse.rankTitle = afterRank.title;
+      pulse.rankPerk = afterRank.perk;
+      if (typeof showBadgeToast === "function") {
+        showBadgeToast({
+          icon: "LP",
+          label: `Research Rank: ${afterRank.title}`,
+          description: `Lesson Path Mastery unlocked ${afterRank.perk.label}.`
+        });
+      }
+      if (typeof game.spawnResearchRankEffect === "function") {
+        pulse.rankEffect = game.spawnResearchRankEffect(pulse);
+      }
+    }
+  }
+  if (typeof ui_log_output === "function") {
+    const masteryText = result.worldMasteryAddedXP > 0 ? `, +${result.worldMasteryAddedXP} world mastery XP` : "";
+    ui_log_output(`Lesson path complete: +${rewardXP} Research XP${masteryText}.`, "success");
+  }
+  if (typeof game.showMissionBalloon === "function") {
+    game.showMissionBalloon(`LESSON PATH COMPLETE: +${rewardXP} Research XP`, {
+      title: "LESSON PATH",
+      color: "#fbbf24",
+      timer: 280
+    });
+  }
+  if (game.player && typeof ComicBubbles !== "undefined" && ComicBubbles.pop) {
+    const px = (Number.isFinite(game.player.x) ? game.player.x : 0) + (game.player.w || 24) / 2;
+    const py = Number.isFinite(game.player.y) ? game.player.y : 0;
+    ComicBubbles.pop(px, py - 72, "PATH COMPLETE!", "#fbbf24", 1.02);
+    ComicBubbles.pop(px, py - 52, `+${rewardXP} LAB XP`, "#a7f3d0", 0.72);
+    if (typeof Particles !== "undefined" && Particles.spawnBurst) {
+      Particles.spawnBurst(px, py - 8, "#fbbf24", 16, 2.4, 2.1, "glow");
+      Particles.spawnBurst(px, py - 8, "#a7f3d0", 8, 1.8, 1.7, "glow");
+    }
+  }
+  if (typeof updateResearchProgress === "function") updateResearchProgress(game);
+  if (typeof saveLocalProgress === "function" && typeof window !== "undefined" && window.Game === game) saveLocalProgress();
+  return result;
+}
+
 function recordLessonPhaseAdvance(game, activeMission, resultState, pulse = null) {
   const fullMission = activeMission && activeMission.fullMission ? activeMission.fullMission : null;
   if (!game || !fullMission || !Array.isArray(fullMission.lessonPhases) || !resultState || !Array.isArray(resultState.items)) return null;
@@ -627,7 +719,6 @@ function recordLessonPhaseAdvance(game, activeMission, resultState, pulse = null
   game.lastLessonPhaseAdvance = result;
   if (pulse) {
     pulse.lessonPhaseAdvance = result;
-    updateDiscoveryPulse(game);
   }
 
   const nextText = result.nextTitle ? ` Next: ${result.nextTitle}.` : " Lesson path complete.";
@@ -651,6 +742,8 @@ function recordLessonPhaseAdvance(game, activeMission, resultState, pulse = null
       Particles.spawnBurst(px, py - 4, "#67e8f9", 6, 1.5, 1.5, "glow");
     }
   }
+  grantLessonPathMastery(game, fullMission, result, rows, pulse);
+  if (pulse) updateDiscoveryPulse(game);
   return result;
 }
 
@@ -5024,12 +5117,13 @@ function finishSuccessfulCodeRunDiscovery(game, activeMission, code, resultState
   }
   const pulse = recordDiscoveryPulse(game, activeMission, code, resultState, opened);
   const lessonPhaseAdvance = recordLessonPhaseAdvance(game, activeMission, resultState, pulse);
+  const lessonPathMastery = lessonPhaseAdvance && lessonPhaseAdvance.lessonPathMastery ? lessonPhaseAdvance.lessonPathMastery : null;
   const signalLabProof = awardSignalLabContractProof(game, code, pulse);
   const repairProof = awardFailureRepairProof(game, code, pulse);
   const anomalyTraceProof = awardAnomalyTraceProof(game, code, pulse);
   const quantumBranchProof = awardQuantumBranchProof(game, code, pulse);
   const quantumChanceProof = awardQuantumChanceProof(game, code, pulse);
-  return { opened, pulse, lessonPhaseAdvance, signalLabProof, repairProof, anomalyTraceProof, quantumBranchProof, quantumChanceProof, lockedAfter };
+  return { opened, pulse, lessonPhaseAdvance, lessonPathMastery, signalLabProof, repairProof, anomalyTraceProof, quantumBranchProof, quantumChanceProof, lockedAfter };
 }
 
 function getDiscoveryChainHint(pulse, game = null) {
@@ -5088,6 +5182,9 @@ function updateDiscoveryPulse(game) {
   const lessonPhaseNextCommandLabel = lessonPhaseNextCommand.replace(/\s+/g, " ");
   const lessonPhase = pulse.lessonPhaseAdvance
     ? `<div class="discovery-hypothesis discovery-phase">${escapeHTML(pulse.lessonPhaseAdvance.label || "PHASE DONE")} · ${escapeHTML(pulse.lessonPhaseAdvance.title || "Lesson phase")}${pulse.lessonPhaseAdvance.nextTitle ? ` · Next: ${escapeHTML(pulse.lessonPhaseAdvance.nextTitle)}` : ""}${lessonPhaseNextCommand ? ` · Try <code>${escapeHTML(lessonPhaseNextCommandLabel)}</code><button type="button" class="discovery-phase-stage-btn" data-phase-next-command="${escapeHTML(lessonPhaseNextCommand)}" data-phase-next-title="${escapeHTML(pulse.lessonPhaseAdvance.nextTitle || "Next phase")}">STAGE NEXT</button>` : ""}</div>`
+    : "";
+  const lessonPathMastery = pulse.lessonPathMastery
+    ? `<div class="discovery-hypothesis discovery-phase-mastery">${escapeHTML(pulse.lessonPathMastery.label || "LESSON PATH COMPLETE")} +${escapeHTML(String(pulse.lessonPathMastery.rewardXP || 0))} XP · ${escapeHTML(String(pulse.lessonPathMastery.phases || 0))} phases</div>`
     : "";
   const formulaDeckMastery = pulse.formulaDeckMastery
     ? `<div class="discovery-hypothesis discovery-perk">${escapeHTML(pulse.formulaDeckMastery.label || "DECK MASTERED")} +${escapeHTML(String(pulse.formulaDeckMastery.rewardXP || 0))} XP · ${escapeHTML(String(pulse.formulaDeckMastery.count || 0))}/${escapeHTML(String(pulse.formulaDeckMastery.total || 0))} cards</div>`
@@ -5168,6 +5265,7 @@ function updateDiscoveryPulse(game) {
     ${comboMilestone}
     ${hypothesis}
     ${lessonPhase}
+    ${lessonPathMastery}
     ${formulaDeckMastery}
     ${aiStateDeckMastery}
     ${signalLabProof}

@@ -1101,7 +1101,11 @@ function runEngineTests() {
     const panel = {
       classList: { add: () => {}, remove: () => {} },
       innerHTML: "",
-      querySelectorAll(selector) { return selector === "[data-phase-next-command]" ? [phaseRewardButton] : []; }
+      querySelectorAll(selector) {
+        return selector === "[data-phase-next-command]" && /data-phase-next-command/.test(this.innerHTML)
+          ? [phaseRewardButton]
+          : [];
+      }
     };
     const input17c1b = {
       value: "",
@@ -1170,6 +1174,31 @@ function runEngineTests() {
     const repeat = finishSuccessfulCodeRunDiscovery(game, activeMission, "hopper.mass = 4.0", massState, 0, []);
     assertEquals(null, repeat.lessonPhaseAdvance, "Repeating the same completed phase should not replay the phase cue");
     assertEquals(1, labels.filter(label => label === "PHASE DONE!").length, "Phase cue should remain one-time per session phase");
+
+    Compiler.env.elasticity = 1.0;
+    const completeState = {
+      allPassed: true,
+      items: [
+        { id: "asteroid-mass-check", label: "First shove: Hopper mass 4.0", passed: true, message: "Mass proof passed" },
+        { id: "asteroid-elasticity-check", label: "Second tweak: elasticity 1.0", passed: true, message: "Bounce proof passed" }
+      ]
+    };
+    const beforePathXP = game.researchXP;
+    const finalOutcome = finishSuccessfulCodeRunDiscovery(game, activeMission, "elasticity = 1.0", completeState, 0, []);
+    assertEquals("2 Bounce control", finalOutcome.lessonPhaseAdvance && finalOutcome.lessonPhaseAdvance.title, "Final phase cue should name the completed bounce phase");
+    assertEquals("LESSON PATH COMPLETE", finalOutcome.lessonPathMastery && finalOutcome.lessonPathMastery.label, "Completing every phase should create a lesson-path capstone");
+    assertEquals(8, finalOutcome.lessonPathMastery && finalOutcome.lessonPathMastery.rewardXP, "Lesson path capstone should award focused Research XP");
+    assertEquals(2, finalOutcome.lessonPathMastery && finalOutcome.lessonPathMastery.phases, "Lesson path capstone should record the completed phase count");
+    assertEquals(1, game.discoveryPassCounts["lesson-path:asteroid-forge-momentum"], "Lesson path capstone stores a one-time source key");
+    assertEquals(true, game.researchXP >= beforePathXP + finalOutcome.lessonPathMastery.rewardXP, "Lesson path capstone adds Research XP on top of normal proof rewards");
+    assertEquals("LESSON PATH COMPLETE: +8 Research XP", game.missionBalloon && game.missionBalloon.text, "Lesson path capstone should own the final Mission CRT line");
+    assertEquals(true, labels.includes("PATH COMPLETE!"), "Lesson path capstone should pop an in-world completion label");
+    assertEquals(true, /LESSON PATH COMPLETE/.test(panel.innerHTML), "Discovery Pulse should render the lesson path mastery chip");
+    assertEquals(true, /2 phases/.test(panel.innerHTML), "Lesson path mastery chip should show the completed phase count");
+    const afterPathXP = game.researchXP;
+    const duplicatePath = grantLessonPathMastery(game, forgeMission, finalOutcome.lessonPhaseAdvance, getMissionLessonPhaseRows(game, forgeMission), finalOutcome.pulse);
+    assertEquals(null, duplicatePath, "Lesson path capstone should not replay after its source key is stored");
+    assertEquals(afterPathXP, game.researchXP, "Duplicate lesson path capstone should not farm Research XP");
 
     document.getElementById = oldGetElementById17c1b;
     window.Game = oldWindowGame17c1b;
