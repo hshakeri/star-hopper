@@ -2881,6 +2881,36 @@ function runEngineTests() {
     assertEquals(true, /The waiting probe answers/.test(els["signal-story-panel"].innerHTML), "Quantum source scene should render the payoff title");
     assertEquals(true, /probability is a pattern measured over many trials/.test(els["signal-story-panel"].innerHTML), "Quantum source scene should render the science takeaway");
 
+    const quantumSourceTested = {
+      ...quantumChanceComplete,
+      discoveryPassCounts: {
+        ...quantumChanceComplete.discoveryPassCounts,
+        "signal-lab-proof:future-source:frontier-earth-5050:t5:0:future-source-key-source-rehearsal:test": 1
+      }
+    };
+    storyContract = getSignalStoryContract(quantumSourceTested);
+    assertEquals("SOURCE KEY TESTED", storyContract.kicker, "Source proof should turn the story contract toward notebook explanation");
+    assertEquals("Explain the source key", storyContract.title, "Source proof should name the capstone explanation task");
+    updateSignalStoryPanel(quantumSourceTested);
+    assertEquals(true, /SOURCE KEY TESTED/.test(els["signal-story-panel"].innerHTML), "Story panel should show the tested source-key state");
+    assertEquals(true, /Source Key Reflection Proof/.test(els["signal-story-panel"].innerHTML), "Story panel should name the source reflection reward");
+
+    const quantumSourceReflected = {
+      ...quantumSourceTested,
+      masteryMeters: {
+        0: {
+          ...((quantumSourceTested.masteryMeters && quantumSourceTested.masteryMeters[0]) || {}),
+          sources: {
+            ...(((quantumSourceTested.masteryMeters && quantumSourceTested.masteryMeters[0]) || {}).sources || {}),
+            "reflection-proof:signal-reflection:signal-lab-proof:future-source:frontier-earth-5050:t5:0:future-source-key-source-rehearsal:test": 14
+          }
+        }
+      }
+    };
+    storyContract = getSignalStoryContract(quantumSourceReflected);
+    assertEquals("SOURCE KEY COMPLETE", storyContract.kicker, "Source reflection should mark the source-key record complete");
+    assertEquals("Source Key record complete", storyContract.title, "Complete source key should stop asking for another source rehearsal");
+
     document.getElementById = oldGetElementById22cb;
     ComicBubbles.pop = oldBubblePop22cb;
     Particles.spawnBurst = oldParticleBurst22cb;
@@ -2894,6 +2924,7 @@ function runEngineTests() {
 
   // Test 22cb1: Future Lab Roadmap turns Dark Matter / Quantum prep into a visible proof ladder.
   const oldGetElementById22cbr = document.getElementById;
+  const oldSwitchMainMode22cbr = typeof switchMainMode === 'function' ? switchMainMode : null;
   try {
     const panel = { innerHTML: "" };
     document.getElementById = (id) => id === "future-lab-roadmap-panel" ? panel : null;
@@ -2954,9 +2985,41 @@ function runEngineTests() {
     assertEquals(true, runFutureLabRoadmapAction("future-source-key", quantumSourceReady), "Complete roadmap action should launch the source rehearsal");
     assertEquals("future-source", sourceStarts[0] && sourceStarts[0].source, "Complete roadmap source action should tag the Frontier launch");
 
+    const quantumSourceTested = {
+      ...quantumSourceReady,
+      discoveryPassCounts: {
+        ...quantumSourceReady.discoveryPassCounts,
+        "signal-lab-proof:future-source:frontier-earth-5050:t5:0:future-source-key-source-rehearsal:test": 1
+      }
+    };
+    updateFutureLabRoadmap(quantumSourceTested);
+    assertEquals(true, /Explain source key/.test(panel.innerHTML), "Tested source key should move the roadmap to notebook explanation");
+    assertEquals(true, /OPEN LOG/.test(panel.innerHTML), "Tested source key should expose the Log action");
+    const modeSwitches = [];
+    switchMainMode = (mode) => { modeSwitches.push(mode); };
+    assertEquals(true, runFutureLabRoadmapAction("future-source-key", quantumSourceTested), "Tested source key roadmap action should open the Log");
+    assertEquals("notebook", modeSwitches[0], "Tested source key roadmap action should switch to the notebook");
+
+    const quantumSourceReflected = {
+      ...quantumSourceTested,
+      masteryMeters: {
+        0: {
+          sources: {
+            "reflection-proof:signal-reflection:signal-lab-proof:future-source:frontier-earth-5050:t5:0:future-source-key-source-rehearsal:test": 14
+          }
+        }
+      }
+    };
+    updateFutureLabRoadmap(quantumSourceReflected);
+    assertEquals(true, /Source key record complete/.test(panel.innerHTML), "Reflected source key should mark the capstone complete");
+    assertEquals(false, /RUN SOURCE|OPEN LOG/.test(panel.innerHTML), "Complete source key should not keep advertising unfinished actions");
+    assertEquals(false, runFutureLabRoadmapAction("future-source-key", quantumSourceReflected), "Complete source key roadmap action should be inert");
+
+    if (oldSwitchMainMode22cbr) switchMainMode = oldSwitchMainMode22cbr;
     document.getElementById = oldGetElementById22cbr;
     renderTestResult("engine-suite", "Curriculum: future lab roadmap tracks prep proofs", true);
   } catch (err) {
+    if (oldSwitchMainMode22cbr) switchMainMode = oldSwitchMainMode22cbr;
     document.getElementById = oldGetElementById22cbr;
     renderTestResult("engine-suite", "Curriculum: future lab roadmap tracks prep proofs", false, err.message);
   }
@@ -3074,6 +3137,7 @@ function runEngineTests() {
   const oldGetElementById22cc = document.getElementById;
   const oldWindowGame22cc = window.Game;
   const oldProfiles22cc = window.StarHopperProfiles;
+  const oldSwitchMainMode22cc = typeof switchMainMode === 'function' ? switchMainMode : null;
   const oldNotebookEntries22cc = (typeof notebookEntries !== 'undefined' && notebookEntries) ? { ...notebookEntries } : null;
   try {
     window.StarHopperProfiles = { getActive: () => ({ name: "Nova", emoji: "🚀" }) };
@@ -3396,8 +3460,43 @@ function runEngineTests() {
     assertEquals(1, sourceCalls, "Source radar action should start one Frontier challenge");
     assertEquals("future-source", sourceOptions && sourceOptions.source, "Source radar action should pass the Future Source tag");
 
+    game.discoveryPassCounts = {
+      ...game.discoveryPassCounts,
+      "signal-lab-proof:future-source:frontier-earth-5050:t5:0:future-source-key-source-rehearsal:test": 1
+    };
+    updateStartMissionRadar(game);
+    assertEquals("SOURCE KEY TESTED", els["start-story-preview-label"].textContent, "Source proof should mark the source key as tested");
+    assertEquals("Explain the source key", els["start-story-preview-title"].textContent, "Source proof story preview should ask for explanation");
+    assertEquals(true, /Science Notebook explanation/.test(els["start-story-preview-body"].textContent), "Source proof story preview should point to notebook evidence writing");
+    assertEquals("Explain the source key", els["start-mission-radar-title"].textContent, "After source proof, the radar should surface source explanation");
+    assertEquals(true, /Open the Log/.test(els["start-mission-radar-body"].textContent), "Source explanation quest should direct the player to the Log");
+    assertEquals(true, /Source Key Reflection Proof/.test(els["start-mission-radar-reward"].textContent), "Source explanation quest should name the reflection payoff");
+    assertEquals("WRITE PROOF", els["start-mission-radar-btn"].textContent, "Source explanation should expose a write-proof action");
+    assertEquals("log", els["start-mission-radar-btn"].dataset.action, "Source explanation should open the Log");
+    const modeSwitches22cc = [];
+    switchMainMode = (mode) => { modeSwitches22cc.push(mode); };
+    window.Game = game;
+    assertEquals(true, runStartMissionRadarAction(), "Source explanation radar action should execute");
+    assertEquals("notebook", modeSwitches22cc[0], "Source explanation radar action should switch to the notebook");
+
+    game.masteryMeters = {
+      0: {
+        ...(game.masteryMeters && game.masteryMeters[0] ? game.masteryMeters[0] : {}),
+        sources: {
+          ...(game.masteryMeters && game.masteryMeters[0] && game.masteryMeters[0].sources ? game.masteryMeters[0].sources : {}),
+          "reflection-proof:signal-reflection:signal-lab-proof:future-source:frontier-earth-5050:t5:0:future-source-key-source-rehearsal:test": 14
+        }
+      }
+    };
+    updateStartMissionRadar(game);
+    assertEquals("SOURCE KEY COMPLETE", els["start-story-preview-label"].textContent, "Source reflection should mark the source-key record complete");
+    assertEquals("Source Key record complete", els["start-story-preview-title"].textContent, "Complete source key should show a final capstone state");
+
     game.frontierRecords = {};
     game.discoveryPassCounts = {};
+    game.masteryMeters = {
+      0: { xp: 80, badges: ["scout"], sources: { "village-rescue:0:geary": 12 } }
+    };
     updateStartMissionRadar(game);
     assertEquals("Clear today's signal", els["start-mission-radar-title"].textContent, "Without a decoded anomaly, complete progress should surface the daily practice loop");
     assertEquals("ACCEPT SIGNAL", els["start-mission-radar-btn"].textContent, "Daily quest should get a direct accept button");
@@ -3417,6 +3516,7 @@ function runEngineTests() {
     assertEquals(2, startedLevels[0], "Quest radar action should start the requested planet");
     window.Game = oldWindowGame22cc;
     window.StarHopperProfiles = oldProfiles22cc;
+    if (oldSwitchMainMode22cc) switchMainMode = oldSwitchMainMode22cc;
 
     document.getElementById = oldGetElementById22cc;
     if (oldNotebookEntries22cc) {
@@ -3428,6 +3528,7 @@ function runEngineTests() {
     document.getElementById = oldGetElementById22cc;
     window.Game = oldWindowGame22cc;
     window.StarHopperProfiles = oldProfiles22cc;
+    if (oldSwitchMainMode22cc) switchMainMode = oldSwitchMainMode22cc;
     if (oldNotebookEntries22cc) {
       Object.keys(notebookEntries).forEach(key => delete notebookEntries[key]);
       Object.assign(notebookEntries, oldNotebookEntries22cc);
@@ -6840,6 +6941,43 @@ function runRetryRemixTests() {
     assertEquals("Reward: source key record + share code", sourceContract.reward, "Source clear contract names the source-key reward");
     assertEquals("future-source", sourceContract.action, "Source clear contract restarts another tagged source run");
     assertEquals("RUN SOURCE", sourceContract.cta, "Source clear contract uses the source CTA");
+    let sourceReplayOptions = null;
+    sourceGame.startFrontierChallenge = (options) => { sourceReplayOptions = options || null; return true; };
+    assertEquals(true, sourceGame.runClearReplayContract(sourceContract), "Source clear contract action should start another source rehearsal");
+    assertEquals("future-source", sourceReplayOptions && sourceReplayOptions.source, "Source clear action should preserve the Future Source tag");
+
+    sourceGame.discoveryPassCounts = {
+      "signal-lab-proof:future-source:frontier-earth-5050:t5:0:future-source-key-source-rehearsal:test": 1
+    };
+    const sourceExplainContract = sourceGame.getClearReplayContract({
+      labStars: { stars: 3, maxStars: 3, checks: [{ id: "missions", earned: true }, { id: "gems", earned: true }, { id: "science", earned: true }] },
+      clearTime: null,
+      isDailyRun: true,
+      isFrontierRun: true,
+      nextIndex: null
+    });
+    assertEquals("SOURCE KEY TESTED", sourceExplainContract.kicker, "After source proof, clear contract should shift to explanation");
+    assertEquals("Explain the source key", sourceExplainContract.title, "After source proof, clear contract should name the capstone explanation");
+    assertEquals("Reward: Source Key Reflection Proof", sourceExplainContract.reward, "After source proof, clear contract should name the reflection payoff");
+    assertEquals("log", sourceExplainContract.action, "After source proof, clear contract should open the Log instead of rerunning source");
+    assertEquals("WRITE PROOF", sourceExplainContract.cta, "After source proof, clear contract should use the write-proof CTA");
+
+    sourceGame.masteryMeters = {
+      0: {
+        sources: {
+          "reflection-proof:signal-reflection:signal-lab-proof:future-source:frontier-earth-5050:t5:0:future-source-key-source-rehearsal:test": 14
+        }
+      }
+    };
+    const sourceCompleteContract = sourceGame.getClearReplayContract({
+      labStars: { stars: 3, maxStars: 3, checks: [{ id: "missions", earned: true }, { id: "gems", earned: true }, { id: "science", earned: true }] },
+      clearTime: null,
+      isDailyRun: true,
+      isFrontierRun: true,
+      nextIndex: null
+    });
+    assertEquals("SOURCE KEY COMPLETE", sourceCompleteContract.kicker, "Source reflection should make clear contract stop looping on source rehearsal");
+    assertEquals("frontier", sourceCompleteContract.action, "Complete source key should move back to normal Frontier practice");
     renderTestResult(SUITE, "Frontier Challenge: unlocks after star-map completion", true);
   } catch (err) {
     renderTestResult(SUITE, "Frontier Challenge: unlocks after star-map completion", false, err.message);

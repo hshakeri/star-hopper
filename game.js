@@ -3839,6 +3839,28 @@ class StarHopperGame {
     if (isFrontierRun && this.dailyInfo && this.dailyInfo.isFrontier && this.dailyInfo.futureSourcePrep) {
       const focus = this.dailyInfo.labContract || null;
       const command = focus && focus.command ? ` Try: ${String(focus.command).replace(/\s*\n\s*/g, " / ")}` : "";
+      const sourceTested = typeof hasFutureLabSourceProofCredit === 'function' && hasFutureLabSourceProofCredit(this);
+      const sourceReflected = typeof hasFutureLabSourceReflectionCredit === 'function' && hasFutureLabSourceReflectionCredit(this);
+      if (sourceTested && !sourceReflected) {
+        return {
+          kicker: "SOURCE KEY TESTED",
+          title: "Explain the source key",
+          body: "The source rehearsal is tested. Open the Science Notebook and explain how hidden-force clues plus branch/chance evidence tune the source key.",
+          reward: "Reward: Source Key Reflection Proof",
+          action: "log",
+          cta: "WRITE PROOF"
+        };
+      }
+      if (sourceReflected) {
+        return {
+          kicker: "SOURCE KEY COMPLETE",
+          title: "Source Key record complete",
+          body: "The source rehearsal and notebook explanation are banked. Chase a new Frontier rival or Daily Signal next.",
+          reward: "Reward: Future Lab launch-ready record",
+          action: "frontier",
+          cta: "NEXT FRONTIER"
+        };
+      }
       return {
         kicker: "SOURCE KEY CONTRACT",
         title: focus ? focus.title : "Run source rehearsal",
@@ -3916,6 +3938,28 @@ class StarHopperGame {
       const command = focus && focus.command ? ` Try: ${String(focus.command).replace(/\s*\n\s*/g, " / ")}` : "";
       const darkMatterPrep = !!(frontier && frontier.darkMatterPrep);
       const futureSourcePrep = !!(frontier && frontier.futureSourcePrep);
+      const sourceTested = futureSourcePrep && typeof hasFutureLabSourceProofCredit === 'function' && hasFutureLabSourceProofCredit(this);
+      const sourceReflected = futureSourcePrep && typeof hasFutureLabSourceReflectionCredit === 'function' && hasFutureLabSourceReflectionCredit(this);
+      if (sourceTested && !sourceReflected) {
+        return {
+          kicker: "SOURCE KEY TESTED",
+          title: "Explain the source key",
+          body: "Open the Science Notebook and connect hidden-force clues with branch/chance evidence for the capstone proof.",
+          reward: "Reward: Source Key Reflection Proof",
+          action: "log",
+          cta: "WRITE PROOF"
+        };
+      }
+      if (sourceReflected) {
+        return {
+          kicker: "SOURCE KEY COMPLETE",
+          title: "Source Key record complete",
+          body: "The source key has a tested run and written explanation. Take the next Frontier challenge to keep the record alive.",
+          reward: "Reward: new Frontier evidence",
+          action: "frontier",
+          cta: "NEXT FRONTIER"
+        };
+      }
       return {
         kicker: futureSourcePrep ? "SOURCE KEY CONTRACT" : (darkMatterPrep ? "DARK MATTER PREP CONTRACT" : "NEXT FRONTIER CONTRACT"),
         title: focus ? focus.title : (frontier ? `Climb Frontier Tier ${frontier.tier}` : "Climb the frontier ladder"),
@@ -4049,6 +4093,9 @@ class StarHopperGame {
     }
     if (action === "dark-matter-prep" && typeof this.startFrontierChallenge === 'function') {
       return this.startFrontierChallenge({ source: "dark-matter-prep" });
+    }
+    if (action === "future-source" && typeof this.startFrontierChallenge === 'function') {
+      return this.startFrontierChallenge({ source: "future-source" });
     }
     if (action === "daily" && typeof this.startDailySignal === 'function') {
       return this.startDailySignal();

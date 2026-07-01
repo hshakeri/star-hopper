@@ -1997,6 +1997,28 @@ function hasFutureLabSourceReady(game) {
     hasQuantumChanceProofCredit(game));
 }
 
+function hasFutureLabSourceProofCredit(game) {
+  if (!game) return false;
+  const hasSourceProof = (sources) => !!(sources && typeof sources === 'object' && Object.keys(sources)
+    .some(source => String(source).indexOf("signal-lab-proof:future-source:") === 0 && Number(sources[source]) > 0));
+  if (hasSourceProof(game.discoveryPassCounts)) return true;
+  if (game.masteryMeters && typeof game.masteryMeters === 'object') {
+    return Object.values(game.masteryMeters).some(meter => hasSourceProof(meter && meter.sources));
+  }
+  return false;
+}
+
+function hasFutureLabSourceReflectionCredit(game) {
+  if (!game) return false;
+  const hasSourceReflection = (sources) => !!(sources && typeof sources === 'object' && Object.keys(sources)
+    .some(source => String(source).indexOf("reflection-proof:signal-reflection:signal-lab-proof:future-source:") === 0 && Number(sources[source]) > 0));
+  if (hasSourceReflection(game.discoveryPassCounts)) return true;
+  if (game.masteryMeters && typeof game.masteryMeters === 'object') {
+    return Object.values(game.masteryMeters).some(meter => hasSourceReflection(meter && meter.sources));
+  }
+  return false;
+}
+
 function hasVillageRescueStoryCredit(game) {
   if (!game || !game.masteryMeters) return false;
   return Object.values(game.masteryMeters).some(meter =>
@@ -2036,6 +2058,22 @@ function getSignalStoryContract(game = window.Game, story = null) {
       if (hasDarkMatterPrepEvidenceCredit(game)) {
         if (hasQuantumBranchProofCredit(game)) {
           if (hasQuantumChanceProofCredit(game)) {
+            if (typeof hasFutureLabSourceProofCredit === 'function' && hasFutureLabSourceProofCredit(game)) {
+              if (typeof hasFutureLabSourceReflectionCredit === 'function' && hasFutureLabSourceReflectionCredit(game)) {
+                return {
+                  kicker: "SOURCE KEY COMPLETE",
+                  title: "Source Key record complete",
+                  body: "The source rehearsal and notebook explanation are both banked. Future Lab is ready for the next world.",
+                  reward: "Reward: Future Lab launch-ready record"
+                };
+              }
+              return {
+                kicker: "SOURCE KEY TESTED",
+                title: "Explain the source key",
+                body: "The source rehearsal is tested. Save a Science Notebook explanation that connects hidden-force clues with branch and chance evidence.",
+                reward: "Reward: Source Key Reflection Proof"
+              };
+            }
             return {
               kicker: "QUANTUM SOURCE",
               title: "Future Source Key ready",
@@ -2089,7 +2127,7 @@ function getSignalSourceScene(game = window.Game, contract = null) {
   if (!game) return null;
   const active = contract || getSignalStoryContract(game);
   const kicker = active && active.kicker ? String(active.kicker) : "";
-  if (kicker === "QUANTUM SOURCE" || hasQuantumChanceProofCredit(game)) {
+  if (kicker === "QUANTUM SOURCE" || kicker === "SOURCE KEY TESTED" || kicker === "SOURCE KEY COMPLETE" || hasQuantumChanceProofCredit(game)) {
     return {
       label: "SOURCE SCENE",
       speaker: "HOPPER-ZERO",
@@ -2196,6 +2234,22 @@ function getStartSignalStoryPreview(game = window.Game) {
     return {
       label: "QUANTUM SOURCE",
       title: contract.title || "Future Source Key ready",
+      body: appendSourceSceneToStoryBody(`${contract.title}. ${contract.body}`, sourceScene),
+      progress: `${story.total}/${story.total} decoded`
+    };
+  }
+  if (contract && contract.kicker === "SOURCE KEY TESTED") {
+    return {
+      label: "SOURCE KEY TESTED",
+      title: contract.title || "Explain the source key",
+      body: appendSourceSceneToStoryBody(`${contract.title}. ${contract.body}`, sourceScene),
+      progress: `${story.total}/${story.total} decoded`
+    };
+  }
+  if (contract && contract.kicker === "SOURCE KEY COMPLETE") {
+    return {
+      label: "SOURCE KEY COMPLETE",
+      title: contract.title || "Source Key record complete",
       body: appendSourceSceneToStoryBody(`${contract.title}. ${contract.body}`, sourceScene),
       progress: `${story.total}/${story.total} decoded`
     };
@@ -2795,6 +2849,9 @@ function getActiveLabQuest(game) {
   const darkMatterEvidenceReady = typeof hasDarkMatterPrepEvidenceCredit === 'function' && hasDarkMatterPrepEvidenceCredit(game);
   const quantumBranchSeeded = typeof hasQuantumBranchProofCredit === 'function' && hasQuantumBranchProofCredit(game);
   const quantumChanceSeeded = typeof hasQuantumChanceProofCredit === 'function' && hasQuantumChanceProofCredit(game);
+  const futureSourceReady = typeof hasFutureLabSourceReady === 'function' && hasFutureLabSourceReady(game);
+  const futureSourceTested = typeof hasFutureLabSourceProofCredit === 'function' && hasFutureLabSourceProofCredit(game);
+  const futureSourceReflected = typeof hasFutureLabSourceReflectionCredit === 'function' && hasFutureLabSourceReflectionCredit(game);
   if (typeof hasClearedFullStarMap === 'function' && typeof hasFrontierStoryCredit === 'function' &&
       hasClearedFullStarMap(game) && hasFrontierStoryCredit(game) && !anomalyAlreadyTraced) {
     return {
@@ -2851,7 +2908,19 @@ function getActiveLabQuest(game) {
     };
   }
 
-  if (typeof hasFutureLabSourceReady === 'function' && hasFutureLabSourceReady(game)) {
+  if (futureSourceReady && futureSourceTested && !futureSourceReflected) {
+    return {
+      kicker: "SOURCE KEY TESTED",
+      title: "Explain the source key",
+      body: "Source rehearsal is tested. Open the Log and write how hidden-force clues plus branch/chance evidence tune the source key.",
+      reward: "Reward: Source Key Reflection Proof",
+      action: "log",
+      kind: "source-reflection",
+      cta: "WRITE PROOF"
+    };
+  }
+
+  if (futureSourceReady && !futureSourceTested) {
     return {
       kicker: "FUTURE SOURCE",
       title: "Run source rehearsal",
@@ -3106,6 +3175,15 @@ function getStartMissionRadarAction(game = window.Game, quest = null) {
       title: "Start a Frontier source-key rehearsal.",
       levelIndex: currentLevel,
       kind: q.kind || "future-source"
+    };
+  }
+  if (q && q.action === "log") {
+    return {
+      action: "log",
+      label: q.cta || "OPEN LOG",
+      title: "Open the Log to save the current proof.",
+      levelIndex: currentLevel,
+      kind: q.kind || "log"
     };
   }
   if (q && q.action === "quantum") {
