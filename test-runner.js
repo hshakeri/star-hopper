@@ -2003,12 +2003,27 @@ function runEngineTests() {
 
   // Test 22a1d: Code Concept Deck makes programming ideas reviewable in the Log.
   const oldGetElementById22codeDeck = document.getElementById;
+  const oldWindowGame22codeDeck = window.Game;
   try {
     const panel = {
       innerHTML: "",
       querySelectorAll() { return []; }
     };
-    document.getElementById = (id) => id === "code-concept-deck-panel" ? panel : null;
+    const radarButton = { dataset: {}, textContent: "", title: "" };
+    const inputEl = {
+      value: "",
+      focused: false,
+      style: {},
+      scrollHeight: 20,
+      focus() { this.focused = true; },
+      setSelectionRange() {}
+    };
+    document.getElementById = (id) => {
+      if (id === "code-concept-deck-panel") return panel;
+      if (id === "start-mission-radar-btn") return radarButton;
+      if (id === "console-input") return inputEl;
+      return null;
+    };
     const game = new StarHopperGame();
     game.codeConcepts = new Set(["ASSIGN"]);
     updateResearchProgress(game);
@@ -2021,6 +2036,54 @@ function runEngineTests() {
     assertEquals(true, /STAGE NEXT/.test(panel.innerHTML), "Code Concept Deck should expose a stage action for the next concept");
     const cadetRecord = getCadetIdentityPreview(game);
     assertEquals(true, /Code Concepts 1\/4 · next Loop/.test(cadetRecord.body), "Cadet Record should summarize Code Concept Deck progress");
+    const target = getActiveCodeConceptTarget(game);
+    assertEquals("LOOP", target && target.concept, "Code Concept target should identify the next missing idea");
+    assertEquals("repeat 3 { spawn_block() }", target && target.command, "Code Concept target should carry the runnable sample");
+    assertEquals("Reward: code concept card", target && target.reward, "Code Concept target should name the next deck payoff");
+
+    const queueGame = new StarHopperGame();
+    queueGame.state = "playing";
+    queueGame.currentPlanet = { name: "Code Lab", missions: [] };
+    queueGame.currentPlanetIndex = 0;
+    queueGame.completedMissions = new Set();
+    queueGame.discoveryPassCounts = {};
+    queueGame.codeConcepts = new Set(["ASSIGN"]);
+    const queue = getRunObjectiveQueue(queueGame);
+    assertEquals("CODE CONCEPT", queue[0] && queue[0].label, "Run objective queue should surface the next Code Concept when no immediate lab step is ahead");
+    assertEquals("Collect Loop", queue[0] && queue[0].title, "Run objective queue should name the next Code Concept target");
+    assertEquals("STAGE IDEA", queue[0] && queue[0].cta, "Run objective queue should expose a stage action for the next Code Concept");
+    assertEquals("code-concept-target", queue[0] && queue[0].source, "Run objective queue should preserve Code Concept source metadata");
+
+    const radarGame = new StarHopperGame();
+    const earthMission = PLANETS[0].missions.find(mission => mission.id === "earth-gravity-wall");
+    radarGame.currentPlanet = PLANETS[0];
+    radarGame.currentPlanetIndex = 0;
+    radarGame.completedMissions = new Set();
+    radarGame.coachPredictions = { [earthMission.id]: "lighter-longer" };
+    radarGame.discoveredFormulaKinds = new Set(DISCOVERY_RULES.map(rule => rule.kind));
+    radarGame.codeConcepts = new Set(["ASSIGN"]);
+    radarGame.researchXP = 60;
+    const quest = getActiveLabQuest(radarGame);
+    assertEquals("NEXT CODE CONCEPT", quest && quest.kicker, "Start radar should promote a Code Concept quest after formula targets are covered");
+    assertEquals("Collect Loop", quest && quest.title, "Start radar Code Concept quest should name the missing idea");
+    const action = getStartMissionRadarAction(radarGame, quest);
+    assertEquals("code-concept", action && action.action, "Start radar Code Concept quest should use a dedicated action");
+    assertEquals("STAGE IDEA", action && action.label, "Start radar Code Concept action should stage the idea");
+    Object.assign(radarButton.dataset, {
+      action: action.action,
+      level: String(action.levelIndex),
+      command: action.command,
+      kind: action.kind,
+      stageTitle: action.stageTitle
+    });
+    const radarStarts = [];
+    radarGame.startLevel = (level) => { radarStarts.push(level); };
+    window.Game = radarGame;
+    assertEquals(true, runStartMissionRadarAction(), "Start radar Code Concept action should execute");
+    assertEquals(0, radarStarts[0], "Start radar Code Concept action should launch the current world");
+    assertEquals("repeat 3 { spawn_block() }", inputEl.value, "Start radar Code Concept action should stage the sample command");
+    assertEquals(true, inputEl.focused, "Start radar Code Concept action should focus the terminal");
+    assertEquals("start-code-concept", radarGame.lastStagedExperiment && radarGame.lastStagedExperiment.source, "Start radar Code Concept staging should remember its source");
 
     game.codeConcepts = new Set(["ASSIGN", "LOOP", "IF", "CALL"]);
     updateCodeConceptDeck(game);
@@ -2028,9 +2091,11 @@ function runEngineTests() {
     assertEquals(true, /CODE DECK COMPLETE/.test(panel.innerHTML), "Complete Code Concept Deck should celebrate completion");
     assertEquals(false, /STAGE NEXT/.test(panel.innerHTML), "Complete Code Concept Deck should not show a stale next action");
     document.getElementById = oldGetElementById22codeDeck;
+    window.Game = oldWindowGame22codeDeck;
     renderTestResult("engine-suite", "Curriculum: Code Concept Deck reviews coding ideas", true);
   } catch (err) {
     document.getElementById = oldGetElementById22codeDeck;
+    window.Game = oldWindowGame22codeDeck;
     renderTestResult("engine-suite", "Curriculum: Code Concept Deck reviews coding ideas", false, err.message);
   }
 
@@ -4541,8 +4606,14 @@ function runEngineTests() {
 
     game.discoveredFormulaKinds = new Set(DISCOVERY_RULES.map(rule => rule.kind));
     game.researchXP = 60;
+    game.codeConcepts = new Set(["ASSIGN"]);
     quest = getActiveLabQuest(game);
-    assertEquals("Reach Loop Engineer", quest.title, "After the formula deck, the quest should target the next rank perk");
+    assertEquals("Collect Loop", quest.title, "After the formula deck, the quest should target the next missing Code Concept before rank grinding");
+    assertEquals(true, /Repeat one instruction/.test(quest.body), "Code Concept quest should explain the programming idea");
+    assertEquals("Reward: code concept card", quest.reward, "Code Concept quest should name the deck-card payoff");
+    game.codeConcepts = new Set(["ASSIGN", "LOOP", "IF", "CALL"]);
+    quest = getActiveLabQuest(game);
+    assertEquals("Reach Loop Engineer", quest.title, "After formula and Code Concept decks, the quest should target the next rank perk");
     assertEquals(true, /Combo Amplifier/.test(quest.reward), "Rank quest should name the next lab perk reward");
 
     const startKicker = { textContent: "" };
@@ -4830,6 +4901,7 @@ function runEngineTests() {
     game.planetClears = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 };
     game.masteryCleared = { 0: true };
     game.dailySignalClears = 1;
+    game.codeConcepts = new Set(["ASSIGN", "LOOP", "IF", "CALL"]);
     game.masteryMeters = { 0: { xp: 80, badges: ["scout"], sources: { "village-rescue:0:geary": 12 } } };
     updateStartMissionRadar(game);
     assertEquals("Clear today's signal", els["start-mission-radar-title"].textContent, "Complete formula/rank progress should surface the daily practice loop");
@@ -5029,6 +5101,7 @@ function runEngineTests() {
 
     game.frontierRecords = {};
     game.discoveryPassCounts = {};
+    game.codeConcepts = new Set(["ASSIGN", "LOOP", "IF", "CALL"]);
     game.masteryMeters = {
       0: { xp: 80, badges: ["scout"], sources: { "village-rescue:0:geary": 12 } }
     };

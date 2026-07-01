@@ -629,6 +629,22 @@ function getRunObjectiveQueue(game) {
     });
   }
 
+  const codeConceptTarget = typeof getActiveCodeConceptTarget === "function" ? getActiveCodeConceptTarget(game) : null;
+  if (codeConceptTarget && codeConceptTarget.command) {
+    addRunObjectiveQueueItem(queue, seen, {
+      key: `code-concept:${codeConceptTarget.concept}`,
+      label: "CODE CONCEPT",
+      title: `Collect ${codeConceptTarget.title}`,
+      body: `${codeConceptTarget.body} Try ${codeConceptTarget.command}.`,
+      reward: codeConceptTarget.reward,
+      cta: "STAGE IDEA",
+      command: codeConceptTarget.command,
+      kind: codeConceptTarget.concept,
+      source: "code-concept-target",
+      color: "#93c5fd"
+    });
+  }
+
   const labChain = typeof getLabChainTarget === "function" ? getLabChainTarget(game) : null;
   if (labChain && labChain.command) {
     addRunObjectiveQueueItem(queue, seen, {
@@ -1916,9 +1932,12 @@ function getStagedExperimentSourceLabel(source) {
     "formula-focus": "Formula Deck",
     "formula-card-reward": "Formula reward",
     "formula-target": "Formula target",
+    "code-concept-deck": "Code concept",
+    "code-concept-target": "Code concept",
     "failure-lab": "Crash Lab",
     "signal-lab-contract": "Signal Lab",
     "start-anomaly-trace": "Anomaly Trace",
+    "start-code-concept": "Code concept",
     "staged-reminder": "Mission CRT"
   };
   return labels[source] || "Mission CRT";
@@ -3799,6 +3818,23 @@ function getCadetCodeConceptPortfolioText(game = window.Game) {
   return `Code Concepts ${progress.count}/${progress.total} · next ${nextTitle}`;
 }
 
+function getActiveCodeConceptTarget(game = window.Game) {
+  const progress = getCodeConceptProgress(game);
+  const next = progress && progress.next ? progress.next : null;
+  const command = next && next.sampleCode ? String(next.sampleCode).trim() : "";
+  if (!next || progress.complete || !command) return null;
+  const finalCard = progress.count >= Math.max(0, progress.total - 1);
+  return {
+    concept: next.concept,
+    title: next.title,
+    body: next.body,
+    command,
+    progress: `${progress.count}/${progress.total}`,
+    reward: finalCard ? "Reward: code deck mastery" : "Reward: code concept card",
+    color: "#93c5fd"
+  };
+}
+
 function bindCodeConceptDeckStage(panel, game, progress) {
   if (!panel || typeof panel.querySelectorAll !== "function" || !progress || !progress.next) return;
   const buttons = panel.querySelectorAll("[data-code-concept-command]");
@@ -4219,6 +4255,20 @@ function getActiveLabQuest(game) {
       title: `Collect ${target.title}`,
       body: target.cue,
       reward: "Reward: formula card + Research XP"
+    };
+  }
+
+  const codeConceptTarget = getActiveCodeConceptTarget(game);
+  if (codeConceptTarget) {
+    return {
+      kicker: "NEXT CODE CONCEPT",
+      title: `Collect ${codeConceptTarget.title}`,
+      body: `${codeConceptTarget.body} Try ${codeConceptTarget.command}.`,
+      reward: codeConceptTarget.reward,
+      action: "code-concept",
+      kind: codeConceptTarget.concept,
+      command: codeConceptTarget.command,
+      stageTitle: `Code Concept: ${codeConceptTarget.title}`
     };
   }
 
@@ -4830,6 +4880,17 @@ function getStartMissionRadarAction(game = window.Game, quest = null) {
       stageTitle: q.title || "Test chance branch"
     };
   }
+  if (q && q.action === "code-concept") {
+    return {
+      action: "code-concept",
+      label: "STAGE IDEA",
+      title: "Stage the next coding idea sample.",
+      levelIndex: currentLevel,
+      command: q.command || "",
+      kind: q.kind || "code-concept",
+      stageTitle: q.stageTitle || q.title || "Code Concept"
+    };
+  }
   if (q && /^Reach\s+/i.test(q.title)) {
     return {
       action: "log",
@@ -4914,6 +4975,22 @@ function runStartMissionRadarAction() {
       return true;
     }
     return !!staged;
+  }
+  if (action === "code-concept") {
+    const command = button && button.dataset ? String(button.dataset.command || "").trim() : "";
+    const level = button && button.dataset ? Number(button.dataset.level) : NaN;
+    if (game && typeof game.startLevel === 'function') {
+      game.startLevel(Number.isFinite(level) ? level : (Number.isFinite(Number(game.currentPlanetIndex)) ? Number(game.currentPlanetIndex) : 0));
+    }
+    const staged = command && typeof stageScienceDeltaCommand === 'function'
+      ? stageScienceDeltaCommand(command, {
+        title: button.dataset.stageTitle || "Code Concept",
+        kind: button.dataset.kind || "code-concept",
+        source: "start-code-concept",
+        color: "#93c5fd"
+      })
+      : false;
+    return !!(staged || (game && typeof game.startLevel === 'function'));
   }
   if (game && typeof game.startLevel === 'function') {
     const level = button && button.dataset ? Number(button.dataset.level) : NaN;
