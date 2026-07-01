@@ -611,6 +611,11 @@ function getRunObjectiveQueue(game) {
 
   const checkpoint = typeof getScienceCheckpointPreview === "function" ? getScienceCheckpointPreview(game) : null;
   if (checkpoint && checkpoint.command && !checkpoint.claimed) {
+    const checkpointContext = `${checkpoint.title || ""} ${checkpoint.statLine || ""} ${checkpoint.gapLine || ""} ${checkpoint.reward || ""}`;
+    const checkpointCommand = game && typeof game.getSalientCommandLine === "function"
+      ? game.getSalientCommandLine(checkpoint.command, checkpointContext)
+      : (String(checkpoint.command || "").split(/\n+/).map(line => line.trim()).filter(line => /=/.test(line)).pop()
+        || String(checkpoint.command || "").trim().split("\n").filter(Boolean).pop());
     addRunObjectiveQueueItem(queue, seen, {
       key: `science-checkpoint:${checkpoint.sourceKey || checkpoint.checkpoint || checkpoint.command}`,
       label: checkpoint.label || "NEXT CHECKPOINT",
@@ -626,6 +631,11 @@ function getRunObjectiveQueue(game) {
         value: checkpoint.progress,
         target: checkpoint.checkpointProgress,
         label: checkpoint.checkpoint || "checkpoint"
+      },
+      lessonSteps: {
+        learn: checkpoint.checkpoint || checkpoint.statLine || "Measure target progress",
+        code: checkpointCommand || "Tune one variable",
+        win: checkpoint.reward || "Science proof"
       }
     });
   }

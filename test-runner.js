@@ -4325,6 +4325,9 @@ function runEngineTests() {
     assertEquals(true, /Agility 12\/30/.test(queue[0] && queue[0].body), "Run queue checkpoint item should show the live stat");
     assertEquals(0.4, queue[0] && queue[0].progress && queue[0].progress.value, "Run queue checkpoint item should carry live progress");
     assertEquals(0.5, queue[0] && queue[0].progress && queue[0].progress.target, "Run queue checkpoint item should carry the next target marker");
+    assertEquals("50% TARGET", queue[0] && queue[0].lessonSteps && queue[0].lessonSteps.learn, "Run queue checkpoint item should carry the learn checkpoint");
+    assertEquals("hopper.engine = 6", queue[0] && queue[0].lessonSteps && queue[0].lessonSteps.code, "Run queue checkpoint item should carry the staged command");
+    assertEquals("+3 XP proof", queue[0] && queue[0].lessonSteps && queue[0].lessonSteps.win, "Run queue checkpoint item should carry the proof payoff");
 
     const cue = game.getRunObjectiveCompassCue();
     assertEquals("NEXT CHECKPOINT", cue && cue.label, "Objective compass should show checkpoint label when it is the top queue item");
@@ -4337,6 +4340,9 @@ function runEngineTests() {
     assertEquals(true, /Need \+3\.0 to 50% TARGET/.test(cue && cue.reasonLine), "Objective compass should show the checkpoint gap as the reason line");
     assertEquals(0.4, cue && cue.progress && cue.progress.value, "Objective compass should carry checkpoint progress for a visual rail");
     assertEquals(0.5, cue && cue.progress && cue.progress.target, "Objective compass should carry checkpoint target marker");
+    assertEquals("50% TARGET", cue && cue.lessonSteps && cue.lessonSteps.learn, "Objective compass should carry checkpoint learn step");
+    assertEquals("hopper.engine = 6", cue && cue.lessonSteps && cue.lessonSteps.code, "Objective compass should carry checkpoint code step");
+    assertEquals("+3 XP proof", cue && cue.lessonSteps && cue.lessonSteps.win, "Objective compass should carry checkpoint win step");
 
     const railOps = [];
     const checkpointLabels = [];
@@ -4358,6 +4364,7 @@ function runEngineTests() {
     assertEquals(true, checkpointLabels.includes("hopper.engine = 6"), "Compass draw should write the salient checkpoint command");
     assertEquals(true, checkpointLabels.includes("F->motion"), "Compass draw should write the checkpoint formula chip");
     assertEquals(true, checkpointLabels.includes("ASSIGN"), "Compass draw should write the checkpoint coding concept chip");
+    assertEquals(true, checkpointLabels.includes("LEARN") && checkpointLabels.includes("CODE") && checkpointLabels.includes("WIN"), "Compass draw should write the checkpoint learning strip");
     assertEquals(true, checkpointLabels.some(text => /^WIN \+3 XP proof/.test(text)), "Compass draw should write the checkpoint payoff chip");
     assertEquals(0.4, drawn && drawn.progress && drawn.progress.value, "Compass draw should preserve checkpoint progress");
     assertEquals(true, drawn && drawn.h > 60, "Compass draw should reserve compact space for the checkpoint rail");
