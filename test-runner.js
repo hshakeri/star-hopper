@@ -3828,15 +3828,28 @@ function runEngineTests() {
   // Test 22e: Clear screen lab report summarizes telemetry, formula progress, and next quest.
   const oldGetElementById22e = document.getElementById;
   const oldProfiles22e = window.StarHopperProfiles;
+  const oldWindowGame22e = window.Game;
   const oldAttemptRows22e = (typeof AttemptLog !== 'undefined' && AttemptLog.byPlanet) ? AttemptLog.byPlanet : null;
   const oldSwitchMainMode22e = typeof switchMainMode === 'function' ? switchMainMode : null;
   try {
     window.StarHopperProfiles = { getActive: () => ({ name: "Nova", emoji: "🚀" }) };
     if (typeof AttemptLog !== 'undefined') AttemptLog.byPlanet = { 0: [{ maxH: 222, maxV: 6.4, result: "cleared" }] };
     const report = { innerHTML: "" };
-    document.getElementById = (id) => id === "clear-lab-report" ? report : null;
+    const inputEl = {
+      value: "",
+      focused: false,
+      style: {},
+      focus() { this.focused = true; },
+      setSelectionRange() {}
+    };
+    document.getElementById = (id) => {
+      if (id === "clear-lab-report") return report;
+      if (id === "console-input") return inputEl;
+      return null;
+    };
 
     const game = new StarHopperGame();
+    window.Game = game;
     game.currentPlanet = PLANETS[0];
     game.currentPlanetIndex = 0;
     game.completedMissions = new Set(PLANETS[0].missions.map(mission => mission.id));
@@ -3848,6 +3861,17 @@ function runEngineTests() {
     game.researchXP = 60;
     game.planetClears = { 0: 1 };
     game.villageTrust = { 0: { points: 7, badges: ["friend", "ally"], sources: { "village-trade:0:geary:engine_1": 3, "village-rescue:0:geary": 4 } } };
+    game.discoveryCombo = 2;
+    game.discoveryPulse = { code: "hopper.mass = 1.0", combo: 2, rewardXP: 8 };
+    game.lastScienceDelta = {
+      code: "hopper.mass = 1.0",
+      nextExperiment: {
+        title: "Compare a lighter Hopper",
+        body: "Lower mass one step, rerun the jump, and compare the height.",
+        command: "hopper.mass = 0.8",
+        kind: "mass"
+      }
+    };
     let labStars22e = game.recordClearLabStars({ isDailyRun: false });
     labStars22e = game.grantMasteryClearReward(labStars22e);
     game.renderClearLabReport({
@@ -3913,13 +3937,25 @@ function runEngineTests() {
     assertEquals(true, /#1 NEXT RUN CONTRACT/.test(report.innerHTML), "Objective queue should put the replay contract first");
     assertEquals(true, /#2 EXPLAIN THE EVIDENCE/.test(report.innerHTML), "Objective queue should make proof writing the second lab step");
     assertEquals(true, /#3 SIGNAL DECODED/.test(report.innerHTML), "Objective queue should keep story momentum visible");
-    assertEquals(true, /#4 AI STATE DECK/.test(report.innerHTML), "Objective queue should include the next AI-state collection target");
+    assertEquals(true, /#4 LAB CHAIN x2/.test(report.innerHTML), "Objective queue should preserve the active lab chain after a clear");
+    assertEquals(true, /Compare a lighter Hopper/.test(report.innerHTML), "Lab-chain objective should name the next one-variable tweak");
+    assertEquals(true, /clear-objective-action-btn/.test(report.innerHTML), "Lab-chain objective should expose a direct staging button");
+    assertEquals(true, /STAGE CHAIN/.test(report.innerHTML), "Lab-chain objective should label the staging action");
+    assertEquals(true, /#5 AI STATE DECK/.test(report.innerHTML), "Objective queue should still include the next AI-state collection target");
     assertEquals(true, /Pet Pact/.test(report.innerHTML), "Objective queue should name the next missing AI-state card");
     assertEquals(true, /GET LOTION/.test(report.innerHTML), "Objective queue should expose the AI-state deck action label");
     assertEquals("Collect Mass Lab", game.lastClearObjectiveQueue[0].title, "Objective queue data should preserve the top replay target");
     assertEquals("WRITE EXPLANATION", game.lastClearObjectiveQueue[1].cta, "Objective queue data should preserve the explanation action");
     assertEquals("Emerald Wall Signal", game.lastClearObjectiveQueue[2].title, "Objective queue data should preserve the decoded story target");
-    assertEquals("Pet Pact", game.lastClearObjectiveQueue[3].title, "Objective queue data should preserve the AI-state card target");
+    assertEquals("Compare a lighter Hopper", game.lastClearObjectiveQueue[3].title, "Objective queue data should preserve the lab-chain target");
+    assertEquals("Pet Pact", game.lastClearObjectiveQueue[4].title, "Objective queue data should preserve the AI-state card target");
+    const clearChainModes = [];
+    switchMainMode = (mode) => { clearChainModes.push(mode); };
+    assertEquals(true, game.runClearLabChainTarget(), "Clear report lab-chain action should stage the next experiment");
+    assertEquals("terminal", clearChainModes[0], "Lab-chain clear action should return to the terminal");
+    assertEquals("hopper.mass = 0.8", inputEl.value, "Lab-chain clear action should stage the next command");
+    assertEquals(true, inputEl.focused, "Lab-chain clear action should focus the terminal input");
+    assertEquals("clear-lab-chain", game.lastStagedExperiment && game.lastStagedExperiment.source, "Lab-chain staging should record the clear-report source");
     const clearAIStarts = [];
     const clearAIModes = [];
     game.startLevel = (level) => { clearAIStarts.push(level); };
@@ -3934,12 +3970,14 @@ function runEngineTests() {
 
     if (typeof AttemptLog !== 'undefined') AttemptLog.byPlanet = oldAttemptRows22e || {};
     window.StarHopperProfiles = oldProfiles22e;
+    window.Game = oldWindowGame22e;
     if (oldSwitchMainMode22e) switchMainMode = oldSwitchMainMode22e;
     document.getElementById = oldGetElementById22e;
     renderTestResult("engine-suite", "Curriculum: clear screen renders lab report", true);
   } catch (err) {
     if (typeof AttemptLog !== 'undefined') AttemptLog.byPlanet = oldAttemptRows22e || {};
     window.StarHopperProfiles = oldProfiles22e;
+    window.Game = oldWindowGame22e;
     if (oldSwitchMainMode22e) switchMainMode = oldSwitchMainMode22e;
     document.getElementById = oldGetElementById22e;
     renderTestResult("engine-suite", "Curriculum: clear screen renders lab report", false, err.message);

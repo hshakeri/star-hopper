@@ -4281,7 +4281,7 @@ class StarHopperGame {
     };
   }
 
-  getClearObjectiveQueue({ replayContract = null, explainPrompt = null, storyUnlock = null, storyPreview = null, villageTrust = null } = {}) {
+  getClearObjectiveQueue({ replayContract = null, explainPrompt = null, storyUnlock = null, storyPreview = null, labChainTarget = null, villageTrust = null } = {}) {
     const queue = [];
     const add = (item) => {
       if (!item || !item.title) return;
@@ -4290,7 +4290,8 @@ class StarHopperGame {
         title: item.title,
         body: item.body || "",
         reward: item.reward || "",
-        cta: item.cta || ""
+        cta: item.cta || "",
+        action: item.action || null
       });
     };
 
@@ -4325,6 +4326,17 @@ class StarHopperGame {
       });
     }
 
+    if (labChainTarget) {
+      add({
+        label: labChainTarget.label || "LAB CHAIN",
+        title: labChainTarget.title || "Make one fresh change",
+        body: labChainTarget.body || "Change one variable, run it, and compare the new result.",
+        reward: labChainTarget.reward || "Next new progress keeps the chain alive",
+        cta: labChainTarget.command ? "STAGE CHAIN" : "RUN NEXT",
+        action: labChainTarget.command ? "lab-chain" : null
+      });
+    }
+
     const aiDeck = typeof getAIStateDeckProgress === 'function' ? getAIStateDeckProgress(this) : null;
     const aiAction = typeof getAIStateDeckAction === 'function' && aiDeck && aiDeck.nextCard
       ? getAIStateDeckAction(this, aiDeck.nextCard.id)
@@ -4353,10 +4365,21 @@ class StarHopperGame {
       });
     }
 
-    return queue.slice(0, 4).map((item, index) => ({
+    return queue.slice(0, 5).map((item, index) => ({
       ...item,
       priority: index + 1
     }));
+  }
+
+  runClearLabChainTarget(target = this.lastClearLabChainTarget) {
+    if (!target || !target.command || typeof stageScienceDeltaCommand !== 'function') return false;
+    if (typeof switchMainMode === 'function') switchMainMode('terminal');
+    return stageScienceDeltaCommand(target.command, {
+      title: target.title || "Continue lab chain",
+      kind: target.kind || "lab-chain",
+      source: "clear-lab-chain",
+      color: "#bef264"
+    });
   }
 
   runClearReplayContract(contract = this.lastClearReplayContract) {
@@ -6960,11 +6983,14 @@ class StarHopperGame {
       </div>
     ` : "";
     const villageTrust = typeof this.getVillageTrustProgress === 'function' ? this.getVillageTrustProgress(this.currentPlanetIndex) : null;
+    const labChainTarget = typeof getLabChainTarget === 'function' ? getLabChainTarget(this) : null;
+    this.lastClearLabChainTarget = labChainTarget;
     const objectiveQueue = this.getClearObjectiveQueue({
       replayContract,
       explainPrompt,
       storyUnlock,
       storyPreview,
+      labChainTarget,
       villageTrust
     });
     this.lastClearObjectiveQueue = objectiveQueue;
@@ -6980,6 +7006,7 @@ class StarHopperGame {
             <strong>${safe(item.title)}</strong>
             <p>${safe(item.body)}</p>
             ${(item.reward || item.cta) ? `<em>${safe(`${item.reward || "Reward ready"}${item.cta ? ` · ${item.cta}` : ""}`)}</em>` : ""}
+            ${item.action === "lab-chain" ? `<button type="button" class="clear-objective-action-btn" onclick="if (window.Game) window.Game.runClearLabChainTarget()">${safe(item.cta || "STAGE CHAIN")}</button>` : ""}
           </div>
         `).join("")}
       </div>
