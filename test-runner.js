@@ -4644,6 +4644,8 @@ function runEngineTests() {
     assertEquals(true, /Recover previous shard/.test(nodes[2]._meta.innerHTML), "Locked node should explain how to unlock");
     assertEquals(true, /Next concept: High Gravity & Rocket Force/.test(nodes[2].title), "Locked node title should name the coming concept");
     assertEquals(true, /Transmission incoming/.test(teasers[0]._meta.innerHTML), "Future Dark Matter node should start as an incoming transmission");
+    assertEquals(true, /0\/6 seeds/.test(teasers[0]._meta.innerHTML), "Future Dark Matter node should show unopened Future Lab seed progress");
+    assertEquals(true, /Restore the star-map/.test(teasers[0]._meta.innerHTML), "Future Lab seed strip should name the first seed before the star-map is restored");
     assertEquals(false, teasers[0].classList.contains("anomaly-next"), "Future Dark Matter node should not pulse as the next anomaly before the star-map is restored");
 
     game.villageTrust = { 0: { points: 3, badges: ["friend"], sources: { "village-trade:0:geary:engine_1": 3 } } };
@@ -4708,9 +4710,12 @@ function runEngineTests() {
     assertEquals(true, /ANOMALY/.test(teasers[0]._meta.innerHTML), "Active anomaly node should label the map hook");
     assertEquals(true, /Infer hidden forces/.test(teasers[0]._meta.innerHTML), "Active anomaly should preview the hidden-force concept");
     assertEquals(true, /Clear one Frontier Challenge/.test(teasers[0]._meta.innerHTML), "Active anomaly should name the retention action");
+    assertEquals(true, /1\/6 seeds/.test(teasers[0]._meta.innerHTML), "Restored star-map should advance the Future Lab seed counter");
+    assertEquals(true, /Decode Dark Matter Echo/.test(teasers[0]._meta.innerHTML), "Restored star-map should name the next Future Lab seed on the map");
     assertEquals(true, /hidden-force anomaly detected/.test(teasers[0].title), "Active anomaly title should explain the next story step");
     assertEquals(true, teasers[1].classList.contains("anomaly-waiting"), "Quantum Gate should wait behind the Dark Matter Echo");
     assertEquals(true, /Decode Dark Matter Echo first/.test(teasers[1]._meta.innerHTML), "Quantum Gate teaser should explain its lock");
+    assertEquals(true, /1\/6 seeds/.test(teasers[1]._meta.innerHTML), "Quantum Gate should mirror the shared Future Lab seed counter while locked");
 
     game.frontierRecords = {
       "2026-06-30": {
@@ -4744,6 +4749,8 @@ function runEngineTests() {
     assertEquals(true, teasers[1].classList.contains("anomaly-next"), "Dark Matter evidence should make Quantum Gate the active prep teaser");
     assertEquals(true, /QUANTUM PREP/.test(teasers[1]._meta.innerHTML), "Quantum Gate should label its prep state");
     assertEquals(true, /Test a branch condition/.test(teasers[1]._meta.innerHTML), "Quantum Gate prep should name the branch action");
+    assertEquals(true, /4\/6 seeds/.test(teasers[1]._meta.innerHTML), "Dark Matter evidence should advance the Quantum Gate seed counter");
+    assertEquals(true, /Seed a branch condition/.test(teasers[1]._meta.innerHTML), "Quantum Gate seed strip should name the branch proof");
     game.discoveryPassCounts = {
       "anomaly-trace-proof:4:trace-hidden-force:test": 1,
       "signal-lab-proof:frontier:frontier-earth-1234:t1:0:dark-matter-prep-curve-evidence:test": 1,
@@ -4763,6 +4770,8 @@ function runEngineTests() {
     assertEquals(true, teasers[1].classList.contains("anomaly-decoded"), "Quantum chance proof should switch Quantum Gate to a logged seed state");
     assertEquals(true, /PROBABILITY SEED/.test(teasers[1]._meta.innerHTML), "Quantum Gate should label the logged probability seed");
     assertEquals(true, /chance paths/.test(teasers[1]._meta.innerHTML), "Quantum Gate seed should preview chance paths");
+    assertEquals(true, /6\/6 seeds/.test(teasers[1]._meta.innerHTML), "Complete Quantum prep should show all Future Lab seeds banked");
+    assertEquals(true, /Source key ready/.test(teasers[1]._meta.innerHTML), "Complete Future Lab seed strip should point to the source key");
     document.querySelectorAll = oldQuerySelectorAll22g;
     switchMainMode = oldSwitchMainMode22g;
     renderTestResult("engine-suite", "Curriculum: galaxy map surfaces lab-star mastery", true);

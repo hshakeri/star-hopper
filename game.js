@@ -2588,6 +2588,33 @@ class StarHopperGame {
     return `<span class="map-concept-chip">${safe(this.getPlanetMapConcept(index))}</span>`;
   }
 
+  renderFutureLabMapSeedProgress(preferredStageId = null) {
+    if (typeof this.getFutureLabRunProgress !== 'function') return "";
+    let progress = null;
+    try {
+      progress = this.getFutureLabRunProgress(preferredStageId);
+    } catch (err) {
+      progress = null;
+    }
+    if (!progress || !Number.isFinite(progress.done) || !Number.isFinite(progress.total) || progress.total <= 0) return "";
+    const safe = (typeof escapeHTML === 'function')
+      ? escapeHTML
+      : (value) => String(value || "").replace(/[&<>"']/g, ch => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[ch]));
+    const total = Math.max(1, Math.min(12, Math.floor(progress.total)));
+    const done = Math.max(0, Math.min(total, Math.floor(progress.done)));
+    const complete = done >= total;
+    const nextTitle = progress.nextTitle || (complete ? "Source key ready" : "Next proof");
+    const statuses = Array.isArray(progress.statuses) ? progress.statuses : [];
+    const pips = Array.from({ length: total }).map((_, index) => {
+      const rawStatus = statuses[index] && statuses[index].status ? statuses[index].status : (index < done ? "done" : (index === done ? "next" : "locked"));
+      const status = rawStatus === "done" || rawStatus === "next" || rawStatus === "locked" ? rawStatus : "locked";
+      return `<i class="${safe(status)}" aria-hidden="true"></i>`;
+    }).join("");
+    return `<span class="map-seed-progress"><b>${safe(`${done}/${total} seeds`)}</b><em>${safe(nextTitle)}</em><span class="map-seed-pips">${pips}</span></span>`;
+  }
+
   getFutureWorldTeaserState(teaserId) {
     const id = String(teaserId || "");
     const safe = (typeof escapeHTML === 'function')
@@ -2617,53 +2644,54 @@ class StarHopperGame {
       ? "Branching & probability"
       : "Infer hidden forces";
     const chip = `<span class="map-concept-chip">${safe(concept)}</span>`;
+    const seedProgress = this.renderFutureLabMapSeedProgress(id === "quantum-gate" ? "quantum-branch" : "dark-matter-echo");
 
     if (id === "quantum-gate") {
       if (quantumChanceSeeded) {
         return {
           className: "anomaly-decoded",
-          metaHTML: `PROBABILITY SEED · ${chip}<span class="map-lock-hint">Future lab: chance paths</span>`,
+          metaHTML: `PROBABILITY SEED · ${chip}<span class="map-lock-hint">Future lab: chance paths</span>${seedProgress}`,
           title: "Quantum Gate: probability proof logged. The source lab has a chance seed for branching paths."
         };
       }
       if (quantumSeeded) {
         return {
           className: "anomaly-next",
-          metaHTML: `CHANCE PREP · ${chip}<span class="map-lock-hint">Test chance(50)</span>`,
+          metaHTML: `CHANCE PREP · ${chip}<span class="map-lock-hint">Test chance(50)</span>${seedProgress}`,
           title: "Quantum Gate: branch proof logged. Test a chance branch to seed probability paths."
         };
       }
       if (darkMatterEvidence) {
         return {
           className: "anomaly-next",
-          metaHTML: `QUANTUM PREP · ${chip}<span class="map-lock-hint">Test a branch condition</span>`,
+          metaHTML: `QUANTUM PREP · ${chip}<span class="map-lock-hint">Test a branch condition</span>${seedProgress}`,
           title: "Quantum Gate: hidden-force evidence banked. Test one conditional branch to seed the probability lab."
         };
       }
       if (anomalyTraced) {
         return {
           className: "anomaly-decoded",
-          metaHTML: `FORCE TRACED · ${chip}<span class="map-lock-hint">Next: bank curve evidence</span>`,
+          metaHTML: `FORCE TRACED · ${chip}<span class="map-lock-hint">Next: bank curve evidence</span>${seedProgress}`,
           title: "Quantum Gate: hidden-force trace logged. Bank Dark Matter evidence before branching into probability."
         };
       }
       if (frontierDecoded) {
         return {
           className: "anomaly-waiting",
-          metaHTML: `TRACE NEEDED · ${chip}<span class="map-lock-hint">Run Trace hidden force</span>`,
+          metaHTML: `TRACE NEEDED · ${chip}<span class="map-lock-hint">Run Trace hidden force</span>${seedProgress}`,
           title: "Quantum Gate: echo decoded, but the hidden-force trace must be tested before the source opens."
         };
       }
       if (storyComplete) {
         return {
           className: "anomaly-waiting",
-          metaHTML: `SOURCE LOCKED · ${chip}<span class="map-lock-hint">Decode Dark Matter Echo first</span>`,
+          metaHTML: `SOURCE LOCKED · ${chip}<span class="map-lock-hint">Decode Dark Matter Echo first</span>${seedProgress}`,
           title: "Quantum Gate: source locked. Clear a Frontier Challenge to triangulate the Dark Matter Echo first."
         };
       }
       return {
         className: "",
-        metaHTML: `Signal source · ${chip}`,
+        metaHTML: `Signal source · ${chip}${seedProgress}`,
         title: "Quantum Gate - source of the signal. Concept: branching and probability."
       };
     }
@@ -2671,27 +2699,27 @@ class StarHopperGame {
     if (anomalyTraced) {
       return {
         className: "anomaly-decoded",
-        metaHTML: `SOURCE TRACED · ${chip}<span class="map-lock-hint">Future lab: curve clues</span>`,
+        metaHTML: `SOURCE TRACED · ${chip}<span class="map-lock-hint">Future lab: curve clues</span>${seedProgress}`,
         title: "Dark Matter Lab: hidden-force trace logged with a Mag-Net prototype. Future lab under construction."
       };
     }
     if (frontierDecoded) {
       return {
         className: "anomaly-decoded",
-        metaHTML: `ECHO DECODED · ${chip}<span class="map-lock-hint">Next: Trace hidden force</span>`,
+        metaHTML: `ECHO DECODED · ${chip}<span class="map-lock-hint">Next: Trace hidden force</span>${seedProgress}`,
         title: "Dark Matter Lab: Echo decoded. Run the Mag-Net trace prototype to prove hidden-force inference."
       };
     }
     if (storyComplete) {
       return {
         className: "anomaly-next",
-        metaHTML: `ANOMALY · ${chip}<span class="map-lock-hint">Clear one Frontier Challenge</span>`,
+        metaHTML: `ANOMALY · ${chip}<span class="map-lock-hint">Clear one Frontier Challenge</span>${seedProgress}`,
         title: "Dark Matter Lab: hidden-force anomaly detected. Clear one Frontier Challenge to decode the echo."
       };
     }
     return {
       className: "",
-      metaHTML: `Transmission incoming · ${chip}`,
+      metaHTML: `Transmission incoming · ${chip}${seedProgress}`,
       title: "Dark Matter Lab - something invisible is bending the signal. Concept: inferring hidden forces from motion."
     };
   }
