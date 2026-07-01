@@ -2870,14 +2870,16 @@ function awardSignalLabContractProof(game, code, pulse = null) {
     return null;
   }
 
-  const rewardXP = proof.isFrontier ? 6 : 4;
-  const masteryXP = proof.isFrontier ? 9 : 6;
-  const label = proof.isFrontier ? "FRONTIER LAB TESTED" : "SIGNAL LAB TESTED";
-  const color = proof.isFrontier ? "#c4b5fd" : "#67e8f9";
+  const darkMatterPrep = !!(proof.signal && proof.signal.darkMatterPrep);
+  const rewardXP = darkMatterPrep ? 7 : (proof.isFrontier ? 6 : 4);
+  const masteryXP = darkMatterPrep ? 10 : (proof.isFrontier ? 9 : 6);
+  const label = darkMatterPrep ? "DARK MATTER EVIDENCE" : (proof.isFrontier ? "FRONTIER LAB TESTED" : "SIGNAL LAB TESTED");
+  const proofSource = darkMatterPrep ? "Dark Matter Prep" : (proof.isFrontier ? "Frontier Challenge" : "Daily Signal");
+  const color = darkMatterPrep ? "#818cf8" : (proof.isFrontier ? "#c4b5fd" : "#67e8f9");
   const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(game.researchXP || 0) : null;
   const existingReward = !!(pulse && ((pulse.rewardXP || 0) > 0 || pulse.cardUnlocked || pulse.hypothesisConfirmed || (pulse.openedGems || 0) > 0));
   const mastery = typeof game.awardWorldMasteryXP === 'function'
-    ? game.awardWorldMasteryXP(masteryXP, "signal lab proof", { sourceKey, silent: true })
+    ? game.awardWorldMasteryXP(masteryXP, darkMatterPrep ? "dark matter prep proof" : "signal lab proof", { sourceKey, silent: true })
     : { addedXP: 0, duplicate: false };
   if (mastery && mastery.duplicate) {
     game.discoveryPassCounts[sourceKey] = 1;
@@ -2903,7 +2905,7 @@ function awardSignalLabContractProof(game, code, pulse = null) {
     pulse.signalLabProof = {
       label,
       title: proof.title,
-      source: proof.isFrontier ? "Frontier Challenge" : "Daily Signal",
+      source: proofSource,
       rewardXP,
       worldMasteryAddedXP: mastery && Number.isFinite(mastery.addedXP) ? mastery.addedXP : 0,
       sourceKey,
@@ -2922,10 +2924,10 @@ function awardSignalLabContractProof(game, code, pulse = null) {
     showBadgeToast({
       icon: "SL",
       label: `Research Rank: ${afterRank.title}`,
-      description: `Signal proof unlocked ${afterRank.perk.label}.`
+      description: `${darkMatterPrep ? "Dark Matter prep" : "Signal proof"} unlocked ${afterRank.perk.label}.`
     });
   }
-  if (rankUp && typeof game.spawnResearchRankEffect === 'function') {
+  if (rankUp && pulse && typeof game.spawnResearchRankEffect === 'function') {
     pulse.rankEffect = game.spawnResearchRankEffect(pulse);
   }
   if (typeof ui_log_output === 'function') {
@@ -2934,7 +2936,7 @@ function awardSignalLabContractProof(game, code, pulse = null) {
   }
   if (typeof game.showMissionBalloon === 'function') {
     game.showMissionBalloon(`${label}: +${rewardXP} Research XP`, {
-      title: "SIGNAL LAB",
+      title: darkMatterPrep ? "DARK MATTER PREP" : "SIGNAL LAB",
       color,
       timer: 240
     });

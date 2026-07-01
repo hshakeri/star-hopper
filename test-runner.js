@@ -1651,6 +1651,48 @@ function runEngineTests() {
     assertEquals(9, frontier.getWorldMasteryProgress(0).xp, "Frontier proof should grant stronger world mastery");
     assertEquals("FRONTIER LAB TESTED: +6 Research XP", frontier.missionBalloon && frontier.missionBalloon.text, "Mission CRT should announce the Frontier proof reward");
 
+    const prep = new StarHopperGame();
+    prep.currentPlanet = PLANETS[0];
+    prep.currentPlanetIndex = 0;
+    prep.player = { x: 80, y: 100, w: 24, h: 32 };
+    prep.masteryMeters = {};
+    prep.researchXP = 0;
+    prep.remixContext = 'daily';
+    prep.dailyInfo = {
+      isFrontier: true,
+      darkMatterPrep: true,
+      tier: 4,
+      shareCode: "FRONTIER-EARTH-4040",
+      concept: "Infer hidden forces from motion",
+      labContract: {
+        title: "Dark Matter Prep: curve evidence",
+        body: "Compare path curve, speed, and force changes.",
+        concept: "Infer hidden forces from motion",
+        command: "hopper.mass = 1.2"
+      }
+    };
+    prep.lastStagedExperiment = {
+      title: "Dark Matter Prep: curve evidence",
+      source: "signal-lab-contract",
+      command: "hopper.mass = 1.2",
+      time: Date.now()
+    };
+    const prepOutcome = finishSuccessfulCodeRunDiscovery(prep, activeMission, "hopper.mass = 1.2", noProgress, 0, []);
+    assertEquals("DARK MATTER EVIDENCE", prepOutcome.signalLabProof && prepOutcome.signalLabProof.label, "Dark Matter prep proof should get its own evidence label");
+    assertEquals("Dark Matter Prep", prepOutcome.signalLabProof && prepOutcome.signalLabProof.source, "Prep proof should name the hidden-force source");
+    assertEquals(7, prep.researchXP, "Prep proof should grant the strongest focused Research XP bonus");
+    assertEquals(10, prep.getWorldMasteryProgress(0).xp, "Prep proof should feed extra world mastery");
+    assertEquals("DARK MATTER PREP", prep.missionBalloon && prep.missionBalloon.title, "Mission CRT should label prep evidence distinctly");
+    assertEquals("DARK MATTER EVIDENCE: +7 Research XP", prep.missionBalloon && prep.missionBalloon.text, "Mission CRT should announce the prep proof reward");
+    assertEquals(true, /DARK MATTER EVIDENCE \+7 XP/.test(panel.innerHTML), "Discovery pulse should render the Dark Matter evidence chip");
+    assertEquals(true, labels.includes("DARK MATTER EVIDENCE"), "Prep proof should pop a visible evidence cue");
+    const prepXPAfterFirst = prep.researchXP;
+    const prepMasteryAfterFirst = prep.getWorldMasteryProgress(0).xp;
+    const prepRepeat = finishSuccessfulCodeRunDiscovery(prep, activeMission, "hopper.mass = 1.2", noProgress, 0, []);
+    assertEquals(null, prepRepeat.signalLabProof, "Repeating the same prep proof should not award again");
+    assertEquals(prepXPAfterFirst, prep.researchXP, "Repeated prep proofs should not farm Research XP");
+    assertEquals(prepMasteryAfterFirst, prep.getWorldMasteryProgress(0).xp, "Repeated prep proofs should not farm world mastery");
+
     document.getElementById = oldGetElementById22b3;
     ComicBubbles.pop = oldBubblePop22b3;
     Particles.spawnBurst = oldParticleBurst22b3;
