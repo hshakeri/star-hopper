@@ -2518,6 +2518,16 @@ class StarHopperGame {
     return { progress, card, action };
   }
 
+  getMapAIStateMastery(index) {
+    if (typeof getAIStateDeckProgress !== 'function') return null;
+    const targetIndex = Number(index);
+    const currentIndex = Number(this.currentPlanetIndex);
+    if (!Number.isFinite(targetIndex) || !Number.isFinite(currentIndex) || targetIndex !== currentIndex) return null;
+    const progress = getAIStateDeckProgress(this);
+    if (!progress || !progress.complete) return null;
+    return progress;
+  }
+
   renderMapAIStateChip(index, target = null) {
     const stateTarget = target || this.getMapAIStateTarget(index);
     if (!stateTarget) return "";
@@ -2528,6 +2538,17 @@ class StarHopperGame {
         }[ch]));
     const label = stateTarget.action.label || "RUN STATE";
     return `<span class="map-ai-state-chip" aria-label="${safe(`AI State Deck next: ${stateTarget.card.title} - ${label}`)}"><strong>AI NEXT</strong><em>${safe(stateTarget.card.title)} · ${safe(label)}</em></span>`;
+  }
+
+  renderMapAIStateMasteryChip(index, progress = null) {
+    const deck = progress || this.getMapAIStateMastery(index);
+    if (!deck) return "";
+    const safe = (typeof escapeHTML === 'function')
+      ? escapeHTML
+      : (value) => String(value || "").replace(/[&<>"']/g, ch => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[ch]));
+    return `<span class="map-ai-state-chip mastered" aria-label="${safe(`AI State Deck mastered: ${deck.earnedCount}/${deck.total} behavior states logged`)}"><strong>AI MASTERED</strong><em>${safe(`${deck.earnedCount}/${deck.total} states`)}</em></span>`;
   }
 
   getPlanetMapConcept(index) {
@@ -2686,14 +2707,17 @@ class StarHopperGame {
       node.disabled = !available;
       const aiTarget = this.getMapAIStateTarget(index);
       const aiChip = this.renderMapAIStateChip(index, aiTarget);
+      const aiMastery = this.getMapAIStateMastery(index);
+      const aiMasteryChip = !aiTarget ? this.renderMapAIStateMasteryChip(index, aiMastery) : "";
       node.classList.toggle('ai-state-next', !!aiTarget);
+      node.classList.toggle('ai-state-mastered', !!aiMastery && !aiTarget);
       if (meta) {
         const conceptChip = this.renderMapConceptChip(index);
         if (!available) {
-          meta.innerHTML = `Locked · ${conceptChip}${aiChip}<span class="map-lock-hint">Recover previous shard</span>`;
+          meta.innerHTML = `Locked · ${conceptChip}${aiChip}${aiMasteryChip}<span class="map-lock-hint">Recover previous shard</span>`;
         } else {
           const label = mastered ? "Mastered" : (clears > 0 ? `Clear ${clears}` : (index === 0 ? "Start" : "Unlocked"));
-          meta.innerHTML = `${label} · ${conceptChip}${this.renderMapStarMeter(index)}${this.renderMapMasteryMeter(index)}${this.renderMapVillageTrustMeter(index)}${aiChip}`;
+          meta.innerHTML = `${label} · ${conceptChip}${this.renderMapStarMeter(index)}${this.renderMapMasteryMeter(index)}${this.renderMapVillageTrustMeter(index)}${aiChip}${aiMasteryChip}`;
         }
       }
       const stars = this.getPlanetLabStarCount(index);
@@ -2701,9 +2725,10 @@ class StarHopperGame {
       const villageTrust = this.getVillageTrustProgress(index);
       const concept = this.getPlanetMapConcept(index);
       const aiTitle = aiTarget ? ` · AI State: ${aiTarget.card.title} (${aiTarget.action.label || "RUN STATE"})` : "";
+      const aiMasteryTitle = aiMastery && !aiTarget ? ` · AI State Deck mastered (${aiMastery.earnedCount}/${aiMastery.total})` : "";
       node.title = available
-        ? `${planets[index].name}: ${concept} · ${stars}/3 Lab Stars · ${worldMastery.title} (${worldMastery.xp} XP) · ${villageTrust.title} (${villageTrust.points} trust)${aiTitle}${mastered ? " · Mastered" : (clears > 0 ? " · Mastery Remix ready" : "")}`
-        : `${planets[index].name}: locked. Next concept: ${concept}.${aiTitle} Recover the previous signal shard.`;
+        ? `${planets[index].name}: ${concept} · ${stars}/3 Lab Stars · ${worldMastery.title} (${worldMastery.xp} XP) · ${villageTrust.title} (${villageTrust.points} trust)${aiTitle}${aiMasteryTitle}${mastered ? " · Mastered" : (clears > 0 ? " · Mastery Remix ready" : "")}`
+        : `${planets[index].name}: locked. Next concept: ${concept}.${aiTitle}${aiMasteryTitle} Recover the previous signal shard.`;
     });
     this.refreshFutureWorldTeasers();
   }

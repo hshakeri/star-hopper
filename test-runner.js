@@ -4302,6 +4302,36 @@ function runEngineTests() {
     game.survivalMode = false;
     switchMainMode = oldSwitchMainMode22g;
 
+    game.currentPlanetIndex = 0;
+    game.villageTrust = {
+      0: {
+        points: 12,
+        badges: ["friend", "ally", "guardian"],
+        sources: {
+          "village-trade:0:geary:engine_1": 3,
+          "village-rescue:0:geary": 4
+        }
+      }
+    };
+    game.masteryMeters = {
+      0: {
+        xp: 110,
+        badges: ["scout", "engineer"],
+        sources: {
+          "pet:tame:0": 7,
+          "pet:guard:0": 10
+        }
+      }
+    };
+    game.discoveryPassCounts = { "village-pact:0:guardian": 1 };
+    game.refreshGalaxyMapProgress();
+    assertEquals(false, nodes[0].classList.contains("ai-state-next"), "Completed AI deck should clear the next-target map class");
+    assertEquals(true, nodes[0].classList.contains("ai-state-mastered"), "Current map node should show completed AI State Deck mastery");
+    assertEquals(true, /AI MASTERED/.test(nodes[0]._meta.innerHTML), "Completed AI deck should render a compact map trophy");
+    assertEquals(true, /5\/5 states/.test(nodes[0]._meta.innerHTML), "AI mastered trophy should show behavior card count");
+    assertEquals(true, /AI State Deck mastered \(5\/5\)/.test(nodes[0].title), "Current node tooltip should include AI deck mastery");
+    assertEquals(false, nodes[1].classList.contains("ai-state-mastered"), "AI deck mastery trophy should not duplicate onto other map nodes");
+
     game.planetClears = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 };
     game.frontierRecords = {};
     game.refreshGalaxyMapProgress();
