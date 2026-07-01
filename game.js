@@ -8021,6 +8021,114 @@ class StarHopperGame {
     return cue;
   }
 
+  getLabChainRunCue() {
+    if (this.state !== 'playing') return null;
+    const combo = Math.max(0, Math.floor(Number(this.discoveryCombo) || 0));
+    if (combo <= 0) return null;
+    const target = typeof getActiveLabChainMilestone === 'function'
+      ? getActiveLabChainMilestone(this)
+      : (typeof this.getNextDiscoveryComboMilestone === 'function' ? this.getNextDiscoveryComboMilestone(combo) : null);
+    const labTarget = typeof getLabChainTarget === 'function' ? getLabChainTarget(this) : null;
+    const state = labTarget && labTarget.state ? labTarget.state : (combo > 1 ? "active" : "ready");
+    const nextCombo = target && Number.isFinite(target.target)
+      ? target.target
+      : (target && Number.isFinite(target.combo) ? target.combo : Math.min(99, combo + 1));
+    const reward = target && Number.isFinite(target.reward)
+      ? target.reward
+      : (target && Number.isFinite(target.rewardXP) ? target.rewardXP : 0);
+    const remaining = target && Number.isFinite(target.remaining)
+      ? Math.max(0, target.remaining)
+      : Math.max(0, nextCombo - combo);
+    const pipTotal = Math.max(2, Math.min(6, nextCombo));
+    const pipFilled = Math.max(0, Math.min(pipTotal, combo));
+    const milestoneLabel = target && target.label ? target.label : `x${nextCombo}`;
+    const title = state === "paused"
+      ? "Fresh evidence needed"
+      : (combo > 1 ? `Experiment chain x${combo}` : "Chain ready");
+    const body = state === "paused"
+      ? "Change one new target to restart combo proof."
+      : (remaining <= 1
+        ? `One fresh proof reaches ${milestoneLabel}.`
+        : `${remaining} fresh proofs to ${milestoneLabel}.`);
+    const color = state === "paused" ? "#cbd5e1" : (combo >= 3 ? "#facc15" : "#67e8f9");
+    return {
+      label: state === "paused" ? "CHAIN PAUSED" : "LAB CHAIN",
+      title,
+      body,
+      combo,
+      state,
+      color,
+      nextCombo,
+      milestoneLabel,
+      reward,
+      remaining,
+      pipTotal,
+      pipFilled
+    };
+  }
+
+  drawLabChainRunCue(ctx) {
+    const cue = this.getLabChainRunCue();
+    if (!ctx || !cue || !this.canvas) return null;
+    const W = this.canvas.width || 720;
+    const x = Math.max(190, W - 196);
+    const y = 10;
+    const w = 182;
+    const h = 58;
+    const color = cue.color || "#67e8f9";
+    const pulse = this.reducedMotion ? 0.45 : 0.45 + 0.35 * Math.sin(Date.now() / 520);
+
+    ctx.save();
+    ctx.globalAlpha = cue.state === "paused" ? 0.78 : 0.9;
+    ctx.shadowBlur = cue.state === "paused" ? 0 : 8 + pulse * 4;
+    ctx.shadowColor = color;
+    ctx.fillStyle = "rgba(2, 6, 23, 0.72)";
+    ctx.strokeStyle = cue.state === "paused" ? "rgba(203, 213, 225, 0.42)" : color;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, 8);
+    ctx.fill();
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = color;
+    ctx.font = "bold 8px 'Share Tech Mono', monospace";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    const rewardText = cue.reward > 0 ? ` +${cue.reward} XP` : "";
+    ctx.fillText(this.fitCardText(ctx, `${cue.label}${rewardText}`, w - 18), x + 10, y + 11);
+    ctx.fillStyle = "#f8fafc";
+    ctx.font = "bold 10px 'Share Tech Mono', monospace";
+    ctx.fillText(this.fitCardText(ctx, cue.title, w - 18), x + 10, y + 27);
+    ctx.fillStyle = cue.state === "paused" ? "#e2e8f0" : "#bbf7d0";
+    ctx.font = "7px 'Share Tech Mono', monospace";
+    ctx.fillText(this.fitCardText(ctx, cue.body, w - 18), x + 10, y + 41);
+
+    const pipY = y + h - 10;
+    const pipW = 13;
+    for (let i = 0; i < cue.pipTotal; i++) {
+      const px = x + 10 + i * (pipW + 4);
+      const filled = i < cue.pipFilled;
+      const next = i === cue.pipFilled && cue.state !== "paused";
+      ctx.globalAlpha = filled || next ? 0.96 : 0.36;
+      ctx.fillStyle = filled ? color : "rgba(148, 163, 184, 0.7)";
+      ctx.strokeStyle = next ? "#fef08a" : "rgba(226, 232, 240, 0.38)";
+      ctx.lineWidth = next ? 1.3 : 1;
+      ctx.beginPath();
+      ctx.roundRect(px, pipY, pipW, 4, 2);
+      if (filled) ctx.fill();
+      else ctx.stroke();
+    }
+    ctx.globalAlpha = 0.94;
+    ctx.fillStyle = color;
+    ctx.font = "bold 7px 'Share Tech Mono', monospace";
+    ctx.textAlign = "right";
+    ctx.fillText(`x${cue.combo}->x${cue.nextCombo}`, x + w - 10, pipY + 2);
+    ctx.restore();
+    this.lastLabChainRunCue = cue;
+    return cue;
+  }
+
   draw() {
     if (window.navigatorModeActive) {
       if (typeof drawNavigator === 'function') {
@@ -8146,6 +8254,7 @@ class StarHopperGame {
     this.drawFuelHUD(this.ctx);
     this.drawWeaponHUD(this.ctx);
     this.drawDrillHUD(this.ctx);
+    this.drawLabChainRunCue(this.ctx);
 
     // 9f. Meteor-shower "take shelter" warning banner (screen-space).
     this.drawMeteorBanner(this.ctx);

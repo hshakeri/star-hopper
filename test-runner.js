@@ -2808,6 +2808,59 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: combo amplifier rewards chained progress", false, err.message);
   }
 
+  // Test 22bc1: the active canvas HUD keeps the next lab-chain milestone visible during play.
+  try {
+    const game = new StarHopperGame();
+    game.state = 'playing';
+    game.canvas = { width: 720, height: 448 };
+    game.discoveryCombo = 2;
+    game.discoveryPulse = {
+      code: "hopper.engine = 6",
+      combo: 2,
+      rewardXP: 10,
+      cardUnlocked: true,
+      openedGems: 0
+    };
+    game.discoveryPassCounts = {};
+    game.masteryMeters = {};
+    const cue = game.getLabChainRunCue();
+    assertEquals("LAB CHAIN", cue.label, "Active lab-chain HUD should label the chain");
+    assertEquals("active", cue.state, "Two fresh discoveries should create an active chain cue");
+    assertEquals(2, cue.combo, "Active lab-chain HUD should show the current combo");
+    assertEquals(3, cue.nextCombo, "Active lab-chain HUD should target the next milestone combo");
+    assertEquals("TRIPLE TEST", cue.milestoneLabel, "Active lab-chain HUD should name the next milestone");
+    assertEquals(6, cue.reward, "Active lab-chain HUD should show the next milestone XP");
+    assertEquals(3, cue.pipTotal, "Active lab-chain HUD should size pips to the next milestone");
+    assertEquals(2, cue.pipFilled, "Active lab-chain HUD should fill pips for earned fresh experiments");
+
+    let fillTextCount = 0;
+    const fakeCtx = {
+      save() {},
+      restore() {},
+      beginPath() {},
+      roundRect() {},
+      fill() {},
+      stroke() {},
+      fillText() { fillTextCount++; },
+      measureText(text) { return { width: String(text || "").length * 6 }; }
+    };
+    const drawn = game.drawLabChainRunCue(fakeCtx);
+    assertEquals("TRIPLE TEST", drawn.milestoneLabel, "Drawing should return the same lab-chain cue");
+    assertEquals(true, fillTextCount >= 3, "Drawing should write the label, title, and next-step copy");
+    assertEquals("LAB CHAIN", game.lastLabChainRunCue && game.lastLabChainRunCue.label, "Drawing should cache the visible lab-chain cue");
+
+    game.discoveryPulse = { code: "hopper.engine = 6", combo: 2, rewardXP: 0, openedGems: 0 };
+    const pausedCue = game.getLabChainRunCue();
+    assertEquals("CHAIN PAUSED", pausedCue.label, "Repeat progress should show the paused chain state");
+    assertEquals("paused", pausedCue.state, "Paused lab-chain HUD should not look like an active reward");
+    assertEquals(true, /Fresh evidence/.test(pausedCue.title), "Paused lab-chain HUD should explain the next valid move");
+    game.state = 'start';
+    assertEquals(null, game.getLabChainRunCue(), "Lab-chain HUD should stay out of the start screen");
+    renderTestResult("engine-suite", "Curriculum: active lab-chain HUD previews next milestone", true);
+  } catch (err) {
+    renderTestResult("engine-suite", "Curriculum: active lab-chain HUD previews next milestone", false, err.message);
+  }
+
   // Test 22c: Research rank and discovery deck render a readable learning collection.
   const oldGetElementById22c = document.getElementById;
   const oldWindowGame22c = window.Game;
