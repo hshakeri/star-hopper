@@ -750,8 +750,11 @@ function getObjectiveLearningContract(item) {
   if (/resume/.test(raw)) return "Hypothesis -> compare";
   if (/daily/.test(raw)) return "Fresh remix -> share code";
   if (/frontier/.test(raw)) return "Remix proof -> share code";
+  if (/replay|next run/.test(raw)) return "One tweak -> better evidence";
   if (/radar|lab quest|formula/.test(raw)) return "Science proof -> formula card";
-  if (/log|explain|story/.test(raw)) return "Evidence -> explanation";
+  if (/story|signal/.test(raw)) return "Signal clue -> next chapter";
+  if (/village/.test(raw)) return "Help -> trust pact";
+  if (/log|explain/.test(raw)) return "Evidence -> explanation";
   return "";
 }
 

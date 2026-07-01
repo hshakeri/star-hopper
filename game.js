@@ -7581,6 +7581,23 @@ class StarHopperGame {
         </div>
       `;
     };
+    const getClearObjectiveContract = (item) => {
+      if (typeof getObjectiveLearningContract === 'function') return getObjectiveLearningContract(item);
+      if (!item) return "";
+      const raw = `${item.source || ""} ${item.action || ""} ${item.kind || ""} ${item.label || ""}`.toLowerCase();
+      if (/code-concept/.test(raw)) return "Code idea -> concept card";
+      if (/lab-chain/.test(raw)) return "Fresh test -> combo";
+      if (/ai-state/.test(raw) || /ai state/.test(raw)) return "state + event -> next state";
+      if (/replay|next run/.test(raw)) return "One tweak -> better evidence";
+      if (/story|signal/.test(raw)) return "Signal clue -> next chapter";
+      if (/village/.test(raw)) return "Help -> trust pact";
+      if (/log|explain/.test(raw)) return "Evidence -> explanation";
+      return "";
+    };
+    const renderClearObjectiveContract = (item) => {
+      const contract = getClearObjectiveContract(item);
+      return contract ? `<div class="clear-objective-contract">${safe(contract)}</div>` : "";
+    };
 
     const rows = (typeof AttemptLog !== 'undefined' && AttemptLog.byPlanet)
       ? (AttemptLog.byPlanet[this.currentPlanetIndex] || [])
@@ -7750,6 +7767,7 @@ class StarHopperGame {
             <span>#${item.priority} ${safe(item.label)}</span>
             <strong>${safe(item.title)}</strong>
             <p>${safe(item.body)}</p>
+            ${renderClearObjectiveContract(item)}
             ${item.command ? `<code class="clear-objective-code">${safe(compactClearCommand(item.command))}</code>` : ""}
             ${renderClearObjectiveProgress(item)}
             ${(item.reward || item.cta) ? `<em>${safe(`${item.reward || "Reward ready"}${item.cta ? ` · ${item.cta}` : ""}`)}</em>` : ""}

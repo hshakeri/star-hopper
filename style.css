@@ -2427,6 +2427,21 @@ body.resizing-panes * {
   color: #bef264;
 }
 
+.clear-objective-contract {
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid rgba(250, 204, 21, 0.24);
+  border-radius: 4px;
+  background: rgba(69, 26, 3, 0.34);
+  color: #fde68a;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  font-weight: 900;
+  line-height: 1.05;
+  padding: 3px 5px;
+  overflow-wrap: anywhere;
+}
+
 .clear-objective-code {
   display: inline-block;
   max-width: 100%;
@@ -11135,6 +11150,7 @@ body.readable-text-mode .clear-objective-item span,
 body.readable-text-mode .clear-objective-item strong,
 body.readable-text-mode .clear-objective-item p,
 body.readable-text-mode .clear-objective-item em,
+body.readable-text-mode .clear-objective-contract,
 body.readable-text-mode .clear-objective-code,
 body.readable-text-mode .clear-objective-progress span,
 body.readable-text-mode .clear-objective-action-btn,

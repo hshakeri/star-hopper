@@ -2249,6 +2249,7 @@ function runEngineTests() {
     assertEquals("repeat 3 { spawn_block() }", clearQueue[0] && clearQueue[0].command, "Clear objective Code Concept should preserve the sample command");
     assertEquals("code-concept", clearQueue[0] && clearQueue[0].progress && clearQueue[0].progress.mode, "Clear objective Code Concept should carry progress metadata");
     assertEquals("1/4 ideas", clearQueue[0] && clearQueue[0].progress && clearQueue[0].progress.label, "Clear objective Code Concept should preserve deck progress");
+    assertEquals("Code idea -> concept card", getObjectiveLearningContract(clearQueue[0]), "Clear objective Code Concept should share the same learning contract");
     clearQueueGame.lastClearObjectiveQueue = clearQueue;
     clearQueueGame.lastClearCodeConceptTarget = target;
     window.Game = clearQueueGame;
@@ -5715,6 +5716,12 @@ function runEngineTests() {
     assertEquals(true, /#2 EXPLAIN THE EVIDENCE/.test(report.innerHTML), "Objective queue should make proof writing the second lab step");
     assertEquals(true, /#3 SIGNAL DECODED/.test(report.innerHTML), "Objective queue should keep story momentum visible");
     assertEquals(true, /#4 LAB CHAIN x2/.test(report.innerHTML), "Objective queue should preserve the active lab chain after a clear");
+    assertEquals(true, /clear-objective-contract/.test(report.innerHTML), "Clear objective queue should render learning-contract strips");
+    assertEquals(true, /One tweak -&gt; better evidence/.test(report.innerHTML), "Clear replay objective should explain the one-more-run contract");
+    assertEquals(true, /Evidence -&gt; explanation/.test(report.innerHTML), "Clear explanation objective should name the evidence loop");
+    assertEquals(true, /Signal clue -&gt; next chapter/.test(report.innerHTML), "Clear story objective should name the signal-story loop");
+    assertEquals(true, /Fresh test -&gt; combo/.test(report.innerHTML), "Clear lab-chain objective should name the combo loop");
+    assertEquals(true, /state \+ event -&gt; next state/.test(report.innerHTML), "Clear AI objective should name the state-machine loop");
     assertEquals(true, /Compare a lighter Hopper/.test(report.innerHTML), "Lab-chain objective should name the next one-variable tweak");
     assertEquals(true, /clear-objective-item clear-lab-chain/.test(report.innerHTML), "Lab-chain clear objective should get a distinct collectible style");
     assertEquals(true, /clear-objective-code/.test(report.innerHTML), "Clear objective queue should render command chips for stageable items");
