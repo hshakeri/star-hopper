@@ -1088,12 +1088,33 @@ function runEngineTests() {
 
   // Test 17c1b: completing a visible Forge phase creates a non-farmable visual cue.
   const oldGetElementById17c1b = document.getElementById;
+  const oldWindowGame17c1b = window.Game;
   const oldBubblePop17c1b = ComicBubbles.pop;
   const oldParticleBurst17c1b = Particles.spawnBurst;
   try {
     Compiler.reset();
-    const panel = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };
-    document.getElementById = (id) => id === "discovery-pulse" ? panel : null;
+    let phaseRewardClick = null;
+    const phaseRewardButton = {
+      dataset: { phaseNextCommand: "elasticity = 1.0", phaseNextTitle: "2 Bounce control" },
+      addEventListener(event, handler) { if (event === "click") phaseRewardClick = handler; }
+    };
+    const panel = {
+      classList: { add: () => {}, remove: () => {} },
+      innerHTML: "",
+      querySelectorAll(selector) { return selector === "[data-phase-next-command]" ? [phaseRewardButton] : []; }
+    };
+    const input17c1b = {
+      value: "",
+      focused: false,
+      style: {},
+      focus() { this.focused = true; },
+      setSelectionRange() {}
+    };
+    document.getElementById = (id) => {
+      if (id === "discovery-pulse") return panel;
+      if (id === "console-input") return input17c1b;
+      return null;
+    };
     const labels = [];
     let bursts = 0;
     ComicBubbles.pop = (x, y, text) => { labels.push(text); };
@@ -1125,6 +1146,17 @@ function runEngineTests() {
     assertEquals(true, /PHASE DONE/.test(panel.innerHTML), "Discovery Pulse should render the phase chip");
     assertEquals(true, /Next: 2 Bounce control/.test(panel.innerHTML), "Discovery Pulse phase chip should preview the next phase");
     assertEquals(true, /Try <code>elasticity = 1\.0<\/code>/.test(panel.innerHTML), "Discovery Pulse phase chip should show the next runnable command");
+    assertEquals(true, /STAGE NEXT/.test(panel.innerHTML), "Discovery Pulse phase chip should expose a stage-next action");
+    assertEquals(true, typeof phaseRewardClick === "function", "Discovery Pulse phase action should attach a click handler");
+    const restoredPhasePlanet = game.currentPlanet;
+    game.currentPlanet = null;
+    window.Game = game;
+    phaseRewardClick();
+    game.currentPlanet = restoredPhasePlanet;
+    assertEquals("elasticity = 1.0", input17c1b.value, "Phase reward stage button should write the next command to the console");
+    assertEquals(true, input17c1b.focused, "Phase reward stage button should focus the console");
+    assertEquals("phase-reward", game.lastStagedExperiment && game.lastStagedExperiment.source, "Phase reward stage button should preserve its source");
+    assertEquals("Phase reward", getStagedExperimentSourceLabel(game.lastStagedExperiment.source), "Phase reward staged reminder should name the reward source");
     const explainPrompt = game.getClearExplainPrompt();
     assertEquals("EXPLAIN THE PHASE", explainPrompt.kicker, "Clear report should switch to phase-specific explanation after a phase proof");
     assertEquals("Explain 1 Momentum shove", explainPrompt.title, "Clear report should name the completed lesson phase");
@@ -1140,11 +1172,13 @@ function runEngineTests() {
     assertEquals(1, labels.filter(label => label === "PHASE DONE!").length, "Phase cue should remain one-time per session phase");
 
     document.getElementById = oldGetElementById17c1b;
+    window.Game = oldWindowGame17c1b;
     ComicBubbles.pop = oldBubblePop17c1b;
     Particles.spawnBurst = oldParticleBurst17c1b;
     renderTestResult("engine-suite", "Curriculum: Forge phase completion gets visual cue", true);
   } catch (err) {
     document.getElementById = oldGetElementById17c1b;
+    window.Game = oldWindowGame17c1b;
     ComicBubbles.pop = oldBubblePop17c1b;
     Particles.spawnBurst = oldParticleBurst17c1b;
     renderTestResult("engine-suite", "Curriculum: Forge phase completion gets visual cue", false, err.message);

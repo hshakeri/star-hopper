@@ -1595,6 +1595,7 @@ function getStagedExperimentSourceLabel(source) {
   const labels = {
     "lesson-lens": "Lesson Lens",
     "lesson-phase": "Lesson phase",
+    "phase-reward": "Phase reward",
     "mentor-signal": "Village mentor",
     "science-delta": "What Changed",
     "tested-result": "Tested result",
@@ -5081,8 +5082,12 @@ function updateDiscoveryPulse(game) {
   const hypothesis = pulse.hypothesisConfirmed
     ? `<div class="discovery-hypothesis">HYPOTHESIS CONFIRMED +${escapeHTML(String(pulse.hypothesisBonusXP || 0))} XP</div>`
     : "";
+  const lessonPhaseNextCommand = pulse.lessonPhaseAdvance && pulse.lessonPhaseAdvance.nextCommand
+    ? String(pulse.lessonPhaseAdvance.nextCommand).trim()
+    : "";
+  const lessonPhaseNextCommandLabel = lessonPhaseNextCommand.replace(/\s+/g, " ");
   const lessonPhase = pulse.lessonPhaseAdvance
-    ? `<div class="discovery-hypothesis discovery-phase">${escapeHTML(pulse.lessonPhaseAdvance.label || "PHASE DONE")} · ${escapeHTML(pulse.lessonPhaseAdvance.title || "Lesson phase")}${pulse.lessonPhaseAdvance.nextTitle ? ` · Next: ${escapeHTML(pulse.lessonPhaseAdvance.nextTitle)}` : ""}${pulse.lessonPhaseAdvance.nextCommand ? ` · Try <code>${escapeHTML(String(pulse.lessonPhaseAdvance.nextCommand).replace(/\s+/g, " ").trim())}</code>` : ""}</div>`
+    ? `<div class="discovery-hypothesis discovery-phase">${escapeHTML(pulse.lessonPhaseAdvance.label || "PHASE DONE")} · ${escapeHTML(pulse.lessonPhaseAdvance.title || "Lesson phase")}${pulse.lessonPhaseAdvance.nextTitle ? ` · Next: ${escapeHTML(pulse.lessonPhaseAdvance.nextTitle)}` : ""}${lessonPhaseNextCommand ? ` · Try <code>${escapeHTML(lessonPhaseNextCommandLabel)}</code><button type="button" class="discovery-phase-stage-btn" data-phase-next-command="${escapeHTML(lessonPhaseNextCommand)}" data-phase-next-title="${escapeHTML(pulse.lessonPhaseAdvance.nextTitle || "Next phase")}">STAGE NEXT</button>` : ""}</div>`
     : "";
   const formulaDeckMastery = pulse.formulaDeckMastery
     ? `<div class="discovery-hypothesis discovery-perk">${escapeHTML(pulse.formulaDeckMastery.label || "DECK MASTERED")} +${escapeHTML(String(pulse.formulaDeckMastery.rewardXP || 0))} XP · ${escapeHTML(String(pulse.formulaDeckMastery.count || 0))}/${escapeHTML(String(pulse.formulaDeckMastery.total || 0))} cards</div>`
@@ -5185,6 +5190,30 @@ function updateDiscoveryPulse(game) {
     ${chainHintCard}
     <div class="discovery-pulse-foot">${escapeHTML(pulse.missionTitle)} · ${escapeHTML(progress)}${pulse.openedGems ? ` · ${escapeHTML(String(pulse.openedGems))} gem gate${pulse.openedGems === 1 ? "" : "s"}` : ""}</div>
   `;
+  attachDiscoveryPulseStageButtons(panel, game, pulse);
+}
+
+function attachDiscoveryPulseStageButtons(panel, game, pulse) {
+  if (!panel || typeof panel.querySelectorAll !== "function" || typeof stageScienceDeltaCommand !== "function") return;
+  const phase = pulse && pulse.lessonPhaseAdvance ? pulse.lessonPhaseAdvance : null;
+  panel.querySelectorAll("[data-phase-next-command]").forEach(button => {
+    if (!button || typeof button.addEventListener !== "function") return;
+    button.addEventListener("click", () => {
+      const command = button.dataset && button.dataset.phaseNextCommand
+        ? button.dataset.phaseNextCommand
+        : (phase && phase.nextCommand ? phase.nextCommand : "");
+      if (!String(command || "").trim()) return false;
+      const title = button.dataset && button.dataset.phaseNextTitle
+        ? button.dataset.phaseNextTitle
+        : (phase && phase.nextTitle ? phase.nextTitle : "Next lesson phase");
+      return stageScienceDeltaCommand(command, {
+        title,
+        kind: "lesson-phase",
+        source: "phase-reward",
+        color: "#fbbf24"
+      });
+    });
+  });
 }
 
 function evaluateMissionResultChecks(game, fullMission) {

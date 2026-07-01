@@ -4054,6 +4054,22 @@ html {
   font-size: 0.56rem;
   font-weight: 900;
 }
+.discovery-phase-stage-btn {
+  border: 1px solid rgba(251, 191, 36, 0.48);
+  border-radius: 4px;
+  background: rgba(69, 26, 3, 0.52);
+  color: #fef3c7;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  font-weight: 900;
+  margin-left: 6px;
+  padding: 2px 5px;
+}
+.discovery-phase-stage-btn:hover {
+  background: rgba(120, 53, 15, 0.72);
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.18);
+}
 .discovery-perk {
   border-color: rgba(250, 204, 21, 0.46);
   background: rgba(113, 63, 18, 0.36);
@@ -9873,6 +9889,7 @@ body.readable-text-mode .discovery-pulse-head,
 body.readable-text-mode .discovery-pulse-body,
 body.readable-text-mode .discovery-pulse-foot,
 body.readable-text-mode .discovery-hypothesis,
+body.readable-text-mode .discovery-phase-stage-btn,
 body.readable-text-mode .discovery-chain-next span,
 body.readable-text-mode .discovery-chain-next p,
 body.readable-text-mode .run-replay-contract-head,
