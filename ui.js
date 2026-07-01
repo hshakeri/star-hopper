@@ -1596,6 +1596,13 @@ const SIGNAL_STORY_CHAPTERS = [
     }
   },
   {
+    id: "anomaly-echo",
+    title: "Dark Matter Echo",
+    concept: "Infer hidden forces from motion",
+    unlock: (game) => hasClearedFullStarMap(game) && hasFrontierStoryCredit(game),
+    body: "A Frontier record bends the restored map toward Dark Matter Lab and Quantum Gate. The next science is reading an invisible force from the way a path curves."
+  },
+  {
     id: "mastery-remix",
     title: "Remix Key",
     concept: "Evidence survives a new layout",
@@ -1654,6 +1661,11 @@ const SIGNAL_STORY_CONTRACTS = {
     body: "Clear every story world so Vector can connect the full science model.",
     reward: "Reward: Star-Map Restored"
   },
+  "anomaly-echo": {
+    title: "Clear one Frontier Challenge",
+    body: "Run a restored-world remix and bank a stars/time record so Vector can triangulate the hidden-force anomaly.",
+    reward: "Reward: Dark Matter Echo"
+  },
   "mastery-remix": {
     title: "Earn one 3-star mastery",
     body: "Replay a cleared world with tasks, samples, and science proof all complete.",
@@ -1683,6 +1695,18 @@ function hasClearedFullStarMap(game) {
     if (!hasClearedStoryPlanet(game, i)) return false;
   }
   return true;
+}
+
+function hasFrontierStoryCredit(game) {
+  if (!game) return false;
+  if (typeof game.getFrontierRecordList === 'function') {
+    try {
+      return game.getFrontierRecordList().length > 0;
+    } catch (err) {
+      return false;
+    }
+  }
+  return !!(game.frontierRecords && Object.keys(game.frontierRecords).length > 0);
 }
 
 function hasVillageRescueStoryCredit(game) {

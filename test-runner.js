@@ -2006,8 +2006,51 @@ function runEngineTests() {
     storyGame.lastSignalStoryUnlocks = [];
     assertEquals(null, storyGame.getClearSignalStoryUnlock({ isDailyRun: true }), "Daily side runs should not fall back to campaign story chapters");
 
+    const starMapReady = {
+      planetClears: { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 },
+      masteryCleared: {},
+      masteryMeters: {},
+      dailySignalClears: 0,
+      researchXP: 0,
+      discoveryLog: []
+    };
+    story = getSignalStoryProgress(starMapReady);
+    assertEquals("Dark Matter Echo", story.nextChapter.title, "Restoring the star-map should point toward the next anomaly before optional chapters");
+    storyContract = getSignalStoryContract(starMapReady, story);
+    assertEquals("Clear one Frontier Challenge", storyContract.title, "The anomaly contract should give one concrete post-campaign action");
+    assertEquals("Reward: Dark Matter Echo", storyContract.reward, "The anomaly contract should name the future-world payoff");
+
+    const frontierStoryGame = new StarHopperGame();
+    frontierStoryGame.planetClears = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 };
+    const beforeFrontierStoryIds = frontierStoryGame.getUnlockedSignalStoryIds();
+    frontierStoryGame.recordFrontierClear({
+      frontierInfo: {
+        isFrontier: true,
+        dateStr: "2026-06-30",
+        shareCode: "FRONTIER-EARTH-1234",
+        tier: 1,
+        planetIndex: 0,
+        variant: { variantLabel: "standard" }
+      },
+      labStars: { stars: 2 },
+      clearTime: { elapsed: 42.2 }
+    });
+    const frontierStoryUnlocks = frontierStoryGame.getNewSignalStoryChapters(beforeFrontierStoryIds);
+    assertEquals(1, frontierStoryUnlocks.length, "The first Frontier record should decode one new anomaly chapter");
+    assertEquals("anomaly-echo", frontierStoryUnlocks[0].id, "Frontier evidence should unlock the Dark Matter Echo");
+
     const complete = {
       planetClears: { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 },
+      frontierRecords: {
+        "2026-06-30": {
+          dateStr: "2026-06-30",
+          shareCode: "FRONTIER-EARTH-1234",
+          tier: 1,
+          planetIndex: 0,
+          stars: 2,
+          bestTime: 42.2
+        }
+      },
       masteryCleared: { 0: true },
       masteryMeters: { 0: { xp: 80, badges: ["scout"], sources: { "village-rescue:0:geary": 12 } } },
       dailySignalClears: 1,
@@ -2015,7 +2058,7 @@ function runEngineTests() {
       discoveryLog: []
     };
     story = getSignalStoryProgress(complete);
-    assertEquals(10, story.unlocked.length, "Campaign, finale, mastery, daily, and village progress should unlock every chapter");
+    assertEquals(11, story.unlocked.length, "Campaign, finale, Frontier, mastery, daily, and village progress should unlock every chapter");
     assertEquals(null, story.nextChapter, "Complete story should have no next locked chapter");
 
     const els = {
@@ -2025,7 +2068,7 @@ function runEngineTests() {
     };
     document.getElementById = (id) => els[id] || null;
     updateResearchProgress(partial);
-    assertEquals(true, /2\/10 decoded/.test(els["signal-story-panel"].innerHTML), "Story panel should show decoded chapter count");
+    assertEquals(true, /2\/11 decoded/.test(els["signal-story-panel"].innerHTML), "Story panel should show decoded chapter count");
     assertEquals(true, /Emerald Wall Signal/.test(els["signal-story-panel"].innerHTML), "Story panel should show unlocked chapters");
     assertEquals(true, /Next: Amber Gravity Well/.test(els["signal-story-panel"].innerHTML), "Story panel should show the next chapter hook");
     assertEquals(true, /STORY CONTRACT/.test(els["signal-story-panel"].innerHTML), "Story panel should pin one next story contract");
@@ -2038,8 +2081,9 @@ function runEngineTests() {
     assertEquals(true, /Run the focus command/.test(els["discovery-deck"].innerHTML), "Empty formula deck should still render while story updates");
 
     updateSignalStoryPanel(complete);
-    assertEquals(true, /10\/10 decoded/.test(els["signal-story-panel"].innerHTML), "Complete story should render all chapters decoded");
+    assertEquals(true, /11\/11 decoded/.test(els["signal-story-panel"].innerHTML), "Complete story should render all chapters decoded");
     assertEquals(true, /Star-Map Restored/.test(els["signal-story-panel"].innerHTML), "Finale chapter should render");
+    assertEquals(true, /Dark Matter Echo/.test(els["signal-story-panel"].innerHTML), "Frontier anomaly chapter should render");
     assertEquals(true, /Remix Key/.test(els["signal-story-panel"].innerHTML), "Mastery chapter should render");
     assertEquals(true, /Daily Beacon/.test(els["signal-story-panel"].innerHTML), "Daily chapter should render");
     assertEquals(true, /Village Pact/.test(els["signal-story-panel"].innerHTML), "Village rescue chapter should render");
@@ -2213,7 +2257,7 @@ function runEngineTests() {
     assertEquals(true, /Loops build repeatable patterns/.test(els["start-story-preview-body"].textContent), "Start radar should show the next story concept");
     assertEquals(true, /Next: Clear Moon \(Luna Outpost\)/.test(els["start-story-preview-body"].textContent), "Start radar should name the next story action");
     assertEquals(true, /Reward: Moon Loop Echo/.test(els["start-story-preview-body"].textContent), "Start radar should name the next story reward");
-    assertEquals("1/10 decoded", els["start-story-preview-progress"].textContent, "Start radar should show decoded story progress");
+    assertEquals("1/11 decoded", els["start-story-preview-progress"].textContent, "Start radar should show decoded story progress");
     assertEquals(false, resumeCard.classList.contains("hidden"), "Start radar should show a saved next test when notebook proof has one");
     assertEquals("RESUME LAB CHAIN", els["start-resume-test-label"].textContent, "Resume card should label the saved proof loop");
     assertEquals("Raise engine", els["start-resume-test-title"].textContent, "Resume card should show the saved next-test title");
@@ -2253,10 +2297,26 @@ function runEngineTests() {
     assertEquals("LAB FULLY ONLINE", els["start-rank-preview-label"].textContent, "Max research rank should switch the preview label");
     assertEquals("All lab perks online", els["start-rank-preview-title"].textContent, "Max research rank should show completion copy");
     assertEquals("100%", els["start-rank-preview-bar"].style.width, "Max research rank should fill the preview meter");
+    assertEquals("NEXT TRANSMISSION", els["start-story-preview-label"].textContent, "Post star-map story should point to the anomaly before a Frontier record exists");
+    assertEquals("Dark Matter Echo", els["start-story-preview-title"].textContent, "Post star-map story should preview the future-world anomaly");
+    assertEquals(true, /Clear one Frontier Challenge/.test(els["start-story-preview-body"].textContent), "Post star-map story should give one concrete Frontier action");
+    assertEquals("10/11 decoded", els["start-story-preview-progress"].textContent, "Optional story progress should wait on the Frontier anomaly");
+
+    game.frontierRecords = {
+      "2026-06-30": {
+        dateStr: "2026-06-30",
+        shareCode: "FRONTIER-EARTH-1234",
+        tier: 1,
+        planetIndex: 0,
+        stars: 2,
+        bestTime: 42.2
+      }
+    };
+    updateStartMissionRadar(game);
     assertEquals("SIGNAL COMPLETE", els["start-story-preview-label"].textContent, "Complete story should switch the start radar label");
     assertEquals("Star-map restored", els["start-story-preview-title"].textContent, "Complete story should show finale copy on start radar");
     assertEquals(true, /Daily Signals and Frontier/.test(els["start-story-preview-body"].textContent), "Complete story should point into ongoing signal practice");
-    assertEquals("10/10 decoded", els["start-story-preview-progress"].textContent, "Complete story should show all chapters decoded");
+    assertEquals("11/11 decoded", els["start-story-preview-progress"].textContent, "Complete story should show all chapters decoded");
     assertEquals("ACCEPT SIGNAL", els["start-mission-radar-btn"].textContent, "Daily quest should get a direct accept button");
     assertEquals("daily", els["start-mission-radar-btn"].dataset.action, "Daily quest button should use the daily action");
 
@@ -2396,7 +2456,7 @@ function runEngineTests() {
     assertEquals(true, /NEXT SIGNAL CHAPTER/.test(report.innerHTML), "Clear report should preview the next story chapter");
     assertEquals(true, /Moon Loop Echo/.test(report.innerHTML), "Clear report should name the next Signal Story chapter");
     assertEquals(true, /Loops build repeatable patterns/.test(report.innerHTML), "Clear report should show the next chapter concept");
-    assertEquals(true, /2\/10 decoded/.test(report.innerHTML), "Clear report should show story progress");
+    assertEquals(true, /2\/11 decoded/.test(report.innerHTML), "Clear report should show story progress");
     assertEquals(true, /EXPLAIN THE EVIDENCE/.test(report.innerHTML), "Clear report should prompt the post-run explanation step");
     assertEquals(true, /Finish the lab loop/.test(report.innerHTML), "Clear report should frame explanation as the lab-loop finish");
     assertEquals(true, /Evidence starter/.test(report.innerHTML), "Clear report should include the notebook evidence starter");
@@ -2903,7 +2963,7 @@ function runEngineTests() {
     assertEquals(true, /tasks, samples, science proof, rescues, and remixes/.test(worldMasteryText), "World mastery card should explain educational sources");
     assertEquals(true, !!signalStory, "Mission panel should show the active Signal Story contract");
     assertEquals(true, /STAR-MAP SIGNAL/.test(signalStoryText), "Signal Story card should identify itself");
-    assertEquals(true, /2\/10 decoded/.test(signalStoryText), "Signal Story card should show decoded progress");
+    assertEquals(true, /2\/11 decoded/.test(signalStoryText), "Signal Story card should show decoded progress");
     assertEquals(true, /Amber Gravity Well/.test(signalStoryText), "Signal Story card should name the next chapter");
     assertEquals(true, /Thrust must beat gravity/.test(signalStoryText), "Signal Story card should show the science concept");
     assertEquals(true, /Clear Jupiter \(Gas Giant Core\)/.test(signalStoryText), "Signal Story card should show the next story action");

@@ -4954,13 +4954,13 @@ class StarHopperGame {
     labStars.worldMasteryAddedXP = (labStars.worldMasteryAddedXP || 0) + clearMastery.addedXP;
     labStars.worldMasteryTierAwards = (labStars.worldMasteryTierAwards || []).concat(clearMastery.tierAwards || []);
     labStars = this.grantMasteryClearReward(labStars);
+    const clearTime = this.recordClearTime({ isDailyRun, isFrontierRun });
+    const frontierRivalResult = isFrontierRun ? this.getFrontierRivalClearResult({ labStars, clearTime }) : null;
+    const frontierRecord = isFrontierRun ? this.recordFrontierClear({ labStars, clearTime }) : null;
     this.lastSignalStoryUnlocks = this.getNewSignalStoryChapters(storyBeforeIds);
     if (this.lastSignalStoryUnlocks.length) {
       this.spawnSignalStoryUnlockEffect(this.lastSignalStoryUnlocks[0]);
     }
-    const clearTime = this.recordClearTime({ isDailyRun, isFrontierRun });
-    const frontierRivalResult = isFrontierRun ? this.getFrontierRivalClearResult({ labStars, clearTime }) : null;
-    const frontierRecord = isFrontierRun ? this.recordFrontierClear({ labStars, clearTime }) : null;
     if (frontierRivalResult) {
       this.lastFrontierRivalResult = frontierRivalResult;
       this.spawnFrontierRivalClearEffect(frontierRivalResult);
