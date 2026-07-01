@@ -1550,6 +1550,115 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: terminal code earns discovery rewards", false, err.message);
   }
 
+  // Test 22b3: staged Daily/Frontier Signal Lab contracts pay off as one-time proofs.
+  const oldGetElementById22b3 = document.getElementById;
+  const oldBubblePop22b3 = ComicBubbles.pop;
+  const oldParticleBurst22b3 = Particles.spawnBurst;
+  try {
+    const labels = [];
+    let bursts = 0;
+    const panel = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };
+    document.getElementById = (id) => id === "discovery-pulse" ? panel : null;
+    ComicBubbles.pop = (x, y, text) => { labels.push(text); };
+    Particles.spawnBurst = () => { bursts++; };
+
+    const activeMission = PLANETS[0].missions.find(mission => mission.id === "earth-gravity-wall");
+    const noProgress = {
+      allPassed: false,
+      items: [
+        { id: "earth-hopper-active", label: "Hopper activated", passed: false, message: "Need Hopper" },
+        { id: "earth-emerald-gates", label: "Agility 30+ reached", passed: false, message: "Still locked" }
+      ]
+    };
+
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[0];
+    game.currentPlanetIndex = 0;
+    game.player = { x: 80, y: 100, w: 24, h: 32 };
+    game.masteryMeters = {};
+    game.researchXP = 0;
+    game.remixContext = 'daily';
+    game.dailyInfo = {
+      dateStr: "2026-06-30",
+      shareCode: "EARTH-20260630",
+      concept: "Force and mass",
+      labContract: {
+        title: "Mass remix proof",
+        body: "Run the mass tweak and compare the motion.",
+        concept: "Force and mass",
+        command: "hopper.mass = 1.2"
+      }
+    };
+    game.lastStagedExperiment = {
+      title: "Mass remix proof",
+      source: "signal-lab-contract",
+      command: "hopper.mass = 1.2",
+      time: Date.now()
+    };
+
+    const outcome = finishSuccessfulCodeRunDiscovery(game, activeMission, "hopper.mass = 1.2", noProgress, 0, []);
+    assertEquals(true, !!outcome.signalLabProof, "Exact staged Daily Signal command should award a lab proof");
+    assertEquals("SIGNAL LAB TESTED", outcome.signalLabProof.label, "Daily proof should use the signal-lab label");
+    assertEquals(4, outcome.signalLabProof.rewardXP, "Daily proof should grant the focused Research XP bonus");
+    assertEquals(4, game.researchXP, "Signal proof should pay even when no mission checklist item changed");
+    assertEquals(6, game.getWorldMasteryProgress(0).xp, "Daily proof should feed world mastery");
+    assertEquals(1, game.discoveryPassCounts[outcome.signalLabProof.sourceKey], "Signal proof should persist its one-time source key");
+    assertEquals(1, game.discoveryCombo, "A standalone signal proof should start the lab chain");
+    assertEquals(true, /SIGNAL LAB TESTED \+4 XP/.test(panel.innerHTML), "Discovery pulse should render the signal proof chip");
+    assertEquals("SIGNAL LAB TESTED: +4 Research XP", game.missionBalloon && game.missionBalloon.text, "Mission CRT should announce the Daily proof reward");
+    assertEquals(true, labels.includes("SIGNAL LAB TESTED"), "Daily proof should pop a visible reward cue");
+    assertEquals(true, bursts > 0, "Daily proof should spawn celebratory particles");
+
+    const xpAfterFirst = game.researchXP;
+    const masteryAfterFirst = game.getWorldMasteryProgress(0).xp;
+    const repeat = finishSuccessfulCodeRunDiscovery(game, activeMission, "hopper.mass = 1.2", noProgress, 0, []);
+    assertEquals(null, repeat.signalLabProof, "Repeating the same Signal Lab proof should not award again");
+    assertEquals(xpAfterFirst, game.researchXP, "Repeated Signal Lab proofs should not farm Research XP");
+    assertEquals(masteryAfterFirst, game.getWorldMasteryProgress(0).xp, "Repeated Signal Lab proofs should not farm world mastery");
+    assertEquals(1, game.discoveryCombo, "Repeated Signal Lab proofs should not extend the chain");
+
+    const frontier = new StarHopperGame();
+    frontier.currentPlanet = PLANETS[0];
+    frontier.currentPlanetIndex = 0;
+    frontier.player = { x: 80, y: 100, w: 24, h: 32 };
+    frontier.masteryMeters = {};
+    frontier.researchXP = 0;
+    frontier.remixContext = 'daily';
+    frontier.dailyInfo = {
+      isFrontier: true,
+      tier: 3,
+      shareCode: "FRONTIER-EARTH-3030",
+      concept: "Force and mass",
+      labContract: {
+        title: "Frontier mass proof",
+        body: "Prove the mass lever in a harder seed.",
+        concept: "Force and mass",
+        command: "hopper.mass = 1.2"
+      }
+    };
+    frontier.lastStagedExperiment = {
+      title: "Frontier mass proof",
+      source: "signal-lab-contract",
+      command: "hopper.mass = 1.2",
+      time: Date.now()
+    };
+    const frontierOutcome = finishSuccessfulCodeRunDiscovery(frontier, activeMission, "hopper.mass = 1.2", noProgress, 0, []);
+    assertEquals("FRONTIER LAB TESTED", frontierOutcome.signalLabProof && frontierOutcome.signalLabProof.label, "Frontier proof should use the harder-challenge label");
+    assertEquals(6, frontier.researchXP, "Frontier proof should grant the stronger Research XP bonus");
+    assertEquals(9, frontier.getWorldMasteryProgress(0).xp, "Frontier proof should grant stronger world mastery");
+    assertEquals("FRONTIER LAB TESTED: +6 Research XP", frontier.missionBalloon && frontier.missionBalloon.text, "Mission CRT should announce the Frontier proof reward");
+
+    document.getElementById = oldGetElementById22b3;
+    ComicBubbles.pop = oldBubblePop22b3;
+    Particles.spawnBurst = oldParticleBurst22b3;
+    renderTestResult("engine-suite", "Curriculum: Signal Lab contracts reward completed proofs", true);
+  } catch (err) {
+    document.getElementById = oldGetElementById22b3;
+    ComicBubbles.pop = oldBubblePop22b3;
+    Particles.spawnBurst = oldParticleBurst22b3;
+    renderTestResult("engine-suite", "Curriculum: Signal Lab contracts reward completed proofs", false, err.message);
+  }
+
   // Test 22ba: successful KidCode runs summarize the live science delta.
   const oldGetElementById22ba = document.getElementById;
   const oldBubblePop22ba = ComicBubbles.pop;

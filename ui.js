@@ -2551,6 +2551,159 @@ function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems
   return pulse;
 }
 
+function normalizeSignalLabProofPart(value) {
+  return String(value || "")
+    .replace(/[^a-z0-9_-]+/gi, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase()
+    .slice(0, 48) || "signal";
+}
+
+function hashSignalLabCommand(command) {
+  let hash = 2166136261;
+  const text = String(command || "");
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+function getSignalLabProofCandidate(game, code) {
+  if (!game || game.remixContext !== 'daily' || !game.dailyInfo || !game.dailyInfo.labContract) return null;
+  const signal = game.dailyInfo;
+  const contract = signal.labContract;
+  const runCode = String(code || "").trim();
+  const contractCommand = String(contract.command || "").trim();
+  if (!runCode || !contractCommand || runCode !== contractCommand) return null;
+
+  const staged = game.lastStagedExperiment || null;
+  const stagedMatch = !!(staged && staged.source === "signal-lab-contract" && String(staged.command || "").trim() === runCode);
+  const sourceId = signal.isFrontier ? "frontier" : "daily";
+  const identity = signal.shareCode || signal.dateStr || sourceId;
+  const tier = signal.isFrontier ? `t${Math.max(1, Math.floor(Number(signal.tier) || 1))}` : "day";
+  const planet = Number.isFinite(game.currentPlanetIndex) ? game.currentPlanetIndex : 0;
+  const title = contract.title || (staged && staged.title) || "Signal Lab";
+  const sourceKey = [
+    "signal-lab-proof",
+    sourceId,
+    normalizeSignalLabProofPart(identity),
+    tier,
+    planet,
+    normalizeSignalLabProofPart(title),
+    hashSignalLabCommand(runCode)
+  ].join(":");
+
+  return {
+    contract,
+    signal,
+    command: runCode,
+    title,
+    sourceKey,
+    stagedMatch,
+    isFrontier: !!signal.isFrontier
+  };
+}
+
+function awardSignalLabContractProof(game, code, pulse = null) {
+  const proof = getSignalLabProofCandidate(game, code);
+  if (!proof) return null;
+  game.discoveryPassCounts = game.discoveryPassCounts || {};
+  const sourceKey = proof.sourceKey;
+  if (game.discoveryPassCounts[sourceKey]) return null;
+
+  let masterySources = null;
+  if (typeof game.normalizeWorldMasteryMeter === 'function') {
+    const meter = game.normalizeWorldMasteryMeter(game.currentPlanetIndex);
+    masterySources = meter && meter.sources ? meter.sources : null;
+  }
+  if (masterySources && masterySources[sourceKey]) {
+    game.discoveryPassCounts[sourceKey] = 1;
+    return null;
+  }
+
+  const rewardXP = proof.isFrontier ? 6 : 4;
+  const masteryXP = proof.isFrontier ? 9 : 6;
+  const label = proof.isFrontier ? "FRONTIER LAB TESTED" : "SIGNAL LAB TESTED";
+  const color = proof.isFrontier ? "#c4b5fd" : "#67e8f9";
+  const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(game.researchXP || 0) : null;
+  const existingReward = !!(pulse && ((pulse.rewardXP || 0) > 0 || pulse.cardUnlocked || pulse.hypothesisConfirmed || (pulse.openedGems || 0) > 0));
+  const mastery = typeof game.awardWorldMasteryXP === 'function'
+    ? game.awardWorldMasteryXP(masteryXP, "signal lab proof", { sourceKey, silent: true })
+    : { addedXP: 0, duplicate: false };
+  if (mastery && mastery.duplicate) {
+    game.discoveryPassCounts[sourceKey] = 1;
+    return null;
+  }
+
+  game.discoveryPassCounts[sourceKey] = 1;
+  game.researchXP = Math.max(0, (game.researchXP || 0) + rewardXP);
+  if (pulse && !existingReward) {
+    game.discoveryCombo = Math.min(99, (game.discoveryCombo || 0) + 1);
+    pulse.combo = game.discoveryCombo;
+    if (pulse.combo === 1 && typeof game.spawnDiscoveryComboPrimerEffect === 'function') {
+      pulse.comboPrimer = game.spawnDiscoveryComboPrimerEffect(pulse);
+    } else if (pulse.combo > 1 && typeof game.spawnDiscoveryComboEffect === 'function') {
+      pulse.signalLabComboEffect = game.spawnDiscoveryComboEffect(pulse);
+    }
+  }
+
+  const afterRank = (typeof getResearchRank === 'function') ? getResearchRank(game.researchXP || 0) : null;
+  const rankUp = !!(beforeRank && afterRank && afterRank.level > beforeRank.level);
+  if (pulse) {
+    pulse.rewardXP = Math.max(0, (pulse.rewardXP || 0) + rewardXP);
+    pulse.signalLabProof = {
+      label,
+      title: proof.title,
+      source: proof.isFrontier ? "Frontier Challenge" : "Daily Signal",
+      rewardXP,
+      worldMasteryAddedXP: mastery && Number.isFinite(mastery.addedXP) ? mastery.addedXP : 0,
+      sourceKey,
+      stagedMatch: proof.stagedMatch
+    };
+    pulse.rankUp = pulse.rankUp || rankUp;
+    pulse.rankTitle = pulse.rankTitle || (afterRank ? afterRank.title : null);
+    pulse.rankPerk = pulse.rankPerk || (rankUp && afterRank ? afterRank.perk : null);
+    game.discoveryPulse = pulse;
+    if (Array.isArray(game.discoveryLog) && game.discoveryLog[0] !== pulse) {
+      game.discoveryLog = [pulse].concat(game.discoveryLog).slice(0, 8);
+    }
+  }
+
+  if (rankUp && afterRank && typeof showBadgeToast === 'function') {
+    showBadgeToast({
+      icon: "SL",
+      label: `Research Rank: ${afterRank.title}`,
+      description: `Signal proof unlocked ${afterRank.perk.label}.`
+    });
+  }
+  if (typeof ui_log_output === 'function') {
+    const masteryText = mastery && mastery.addedXP > 0 ? `, +${mastery.addedXP} world mastery XP` : "";
+    ui_log_output(`${label}: +${rewardXP} Research XP${masteryText}.`, "success");
+  }
+  if (typeof game.showMissionBalloon === 'function') {
+    game.showMissionBalloon(`${label}: +${rewardXP} Research XP`, {
+      title: "SIGNAL LAB",
+      color,
+      timer: 240
+    });
+  }
+  if (game.player && typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+    const px = (Number.isFinite(game.player.x) ? game.player.x : 0) + (game.player.w || 24) / 2;
+    const py = Number.isFinite(game.player.y) ? game.player.y : 0;
+    ComicBubbles.pop(px, py - 52, label, color, proof.isFrontier ? 1.02 : 0.96);
+    if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+      Particles.spawnBurst(px, py - 10, color, proof.isFrontier ? 14 : 10, 2.2, 2.0, "glow");
+      Particles.spawnBurst(px, py - 10, "#fef08a", proof.isFrontier ? 7 : 5, 1.6, 1.5, "glow");
+    }
+  }
+  if (typeof updateDiscoveryPulse === 'function') updateDiscoveryPulse(game);
+  if (typeof updateResearchProgress === 'function') updateResearchProgress(game);
+  if (typeof game.checkLabStarProgress === 'function') game.checkLabStarProgress("science");
+  if (typeof saveLocalProgress === 'function' && typeof window !== 'undefined' && window.Game === game) saveLocalProgress();
+  return pulse ? pulse.signalLabProof : null;
+}
+
 function finishSuccessfulCodeRunDiscovery(game, activeMission, code, resultState, lockedBefore = 0, lockedBeforeList = []) {
   if (!game || !activeMission || !activeMission.fullMission || !resultState) return { opened: 0, pulse: null };
   const lockedAfter = typeof game.getLockedRequiredCollectibleCount === 'function' ? game.getLockedRequiredCollectibleCount() : lockedBefore;
@@ -2564,7 +2717,8 @@ function finishSuccessfulCodeRunDiscovery(game, activeMission, code, resultState
     }
   }
   const pulse = recordDiscoveryPulse(game, activeMission, code, resultState, opened);
-  return { opened, pulse, lockedAfter };
+  const signalLabProof = awardSignalLabContractProof(game, code, pulse);
+  return { opened, pulse, signalLabProof, lockedAfter };
 }
 
 function getDiscoveryChainHint(pulse) {
@@ -2613,6 +2767,9 @@ function updateDiscoveryPulse(game) {
   const hypothesis = pulse.hypothesisConfirmed
     ? `<div class="discovery-hypothesis">HYPOTHESIS CONFIRMED +${escapeHTML(String(pulse.hypothesisBonusXP || 0))} XP</div>`
     : "";
+  const signalLabProof = pulse.signalLabProof
+    ? `<div class="discovery-hypothesis discovery-signal-lab">${escapeHTML(pulse.signalLabProof.label)} +${escapeHTML(String(pulse.signalLabProof.rewardXP || 0))} XP</div>`
+    : "";
   const rankPerk = pulse.rankPerk
     ? `<div class="discovery-hypothesis discovery-perk">LAB PERK UNLOCKED: ${escapeHTML(pulse.rankPerk.label)}</div>`
     : "";
@@ -2636,6 +2793,7 @@ function updateDiscoveryPulse(game) {
     ${comboChip}
     ${comboAmplifier}
     ${hypothesis}
+    ${signalLabProof}
     ${rankPerk}
     ${unlockCard}
     <div class="discovery-pulse-body">${escapeHTML(pulse.insight)}</div>
