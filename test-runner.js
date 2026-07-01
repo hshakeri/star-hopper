@@ -1486,6 +1486,9 @@ function runEngineTests() {
     assertEquals(3, game.researchXP, "First bridge alias run should award the proof XP");
     assertEquals("Syntax Bridge Proof", game.discoveryPulse && game.discoveryPulse.title, "Bridge proof should become the active Discovery Pulse");
     assertEquals("SYNTAX BRIDGE", game.discoveryPulse && game.discoveryPulse.syntaxBridgeProof && game.discoveryPulse.syntaxBridgeProof.label, "Pulse should carry the bridge proof chip data");
+    assertEquals(true, game.codeConcepts && game.codeConcepts.has("ALIAS"), "Bridge syntax should collect the API Alias code concept");
+    assertEquals("ALIAS", game.discoveryPulse && game.discoveryPulse.codeConceptProof && game.discoveryPulse.codeConceptProof.concept, "Bridge proof should carry the API Alias concept chip");
+    assertEquals("1/5", game.discoveryPulse && game.discoveryPulse.codeConceptProof && game.discoveryPulse.codeConceptProof.progress, "API Alias concept should count toward the five-card deck");
     assertEquals(1, game.discoveryPassCounts[game.getSyntaxBridgeProofSourceKey()], "Bridge proof should be source-key gated");
 
     const repeat = Compiler.runCommand("hopper.rocketPower = 70", game);
@@ -2159,7 +2162,7 @@ function runEngineTests() {
     const game = new StarHopperGame();
     game.codeConcepts = new Set(["ASSIGN"]);
     updateResearchProgress(game);
-    assertEquals(true, /Code Concepts 1\/4/.test(panel.innerHTML), "Code Concept Deck should render partial collection progress");
+    assertEquals(true, /Code Concepts 1\/5/.test(panel.innerHTML), "Code Concept Deck should render partial collection progress");
     assertEquals(true, /Next: Loop/.test(panel.innerHTML), "Code Concept Deck should name the next programming idea");
     assertEquals(true, /NEXT CODING IDEA/.test(panel.innerHTML) && /Loop/.test(panel.innerHTML), "Code Concept Deck should render a next-concept contract");
     assertEquals(true, /repeat 3 \{ spawn_block\(\) \}/.test(panel.innerHTML), "Code Concept Deck should expose a runnable sample for the next idea");
@@ -2167,13 +2170,13 @@ function runEngineTests() {
     assertEquals(true, /Loop/.test(panel.innerHTML) && /next concept/.test(panel.innerHTML), "Code Concept Deck should mark the next card");
     assertEquals(true, /STAGE NEXT/.test(panel.innerHTML), "Code Concept Deck should expose a stage action for the next concept");
     const cadetRecord = getCadetIdentityPreview(game);
-    assertEquals(true, /Code Concepts 1\/4 · next Loop/.test(cadetRecord.body), "Cadet Record should summarize Code Concept Deck progress");
+    assertEquals(true, /Code Concepts 1\/5 · next Loop/.test(cadetRecord.body), "Cadet Record should summarize Code Concept Deck progress");
     const target = getActiveCodeConceptTarget(game);
     assertEquals("LOOP", target && target.concept, "Code Concept target should identify the next missing idea");
     assertEquals("repeat 3 { spawn_block() }", target && target.command, "Code Concept target should carry the runnable sample");
     assertEquals("Reward: code concept card", target && target.reward, "Code Concept target should name the next deck payoff");
     assertEquals(1, target && target.count, "Code Concept target should expose collected count");
-    assertEquals(4, target && target.total, "Code Concept target should expose deck total");
+    assertEquals(5, target && target.total, "Code Concept target should expose deck total");
 
     const queueGame = new StarHopperGame();
     queueGame.state = "playing";
@@ -2188,7 +2191,7 @@ function runEngineTests() {
     assertEquals("STAGE IDEA", queue[0] && queue[0].cta, "Run objective queue should expose a stage action for the next Code Concept");
     assertEquals("code-concept-target", queue[0] && queue[0].source, "Run objective queue should preserve Code Concept source metadata");
     assertEquals(1, queue[0] && queue[0].progress && queue[0].progress.value, "Run objective queue should carry Code Concept pip progress");
-    assertEquals(4, queue[0] && queue[0].progress && queue[0].progress.target, "Run objective queue should carry Code Concept pip total");
+    assertEquals(5, queue[0] && queue[0].progress && queue[0].progress.target, "Run objective queue should carry Code Concept pip total");
     assertEquals("Code idea -> concept card", getObjectiveLearningContract(queue[0]), "Run objective queue should name the learning contract behind a Code Concept");
 
     const startQueue = getStartObjectiveQueue(queueGame, { quest: {}, resumeCue: null, cadetPreview: {} });
@@ -2203,7 +2206,7 @@ function runEngineTests() {
     assertEquals(true, /Code idea -&gt; concept card/.test(startQueuePanel22codeDeck.innerHTML), "Start objective learning contract should explain the Code Concept payoff");
     assertEquals(true, /repeat 3 \{ spawn_block\(\) \}/.test(startQueuePanel22codeDeck.innerHTML), "Start objective command chip should show the Code Concept sample");
     assertEquals(true, /start-objective-progress code-concept/.test(startQueuePanel22codeDeck.innerHTML), "Start objective queue should render Code Concept progress pips");
-    assertEquals(true, /1\/4 ideas/.test(startQueuePanel22codeDeck.innerHTML), "Start objective Code Concept progress should show idea count");
+    assertEquals(true, /1\/5 ideas/.test(startQueuePanel22codeDeck.innerHTML), "Start objective Code Concept progress should show idea count");
     queueGame.lastStartObjectiveQueue = startQueue;
     const startQueueStarts = [];
     const startQueueModes = [];
@@ -2222,7 +2225,7 @@ function runEngineTests() {
     const chainQueueGame = new StarHopperGame();
     chainQueueGame.currentPlanet = { name: "Chain Lab", missions: [] };
     chainQueueGame.currentPlanetIndex = 2;
-    chainQueueGame.codeConcepts = new Set(["ASSIGN", "LOOP", "IF", "CALL"]);
+    chainQueueGame.codeConcepts = new Set(["ASSIGN", "LOOP", "IF", "CALL", "ALIAS"]);
     chainQueueGame.discoveryPulse = { combo: 2, rewardXP: 5, formula: "engine changed", insight: "Fresh proof." };
     chainQueueGame.lastScienceDelta = {
       nextExperiment: {
@@ -2297,10 +2300,10 @@ function runEngineTests() {
     const cartridge = findQueueByClass(queuePanel, "code-concept-cartridge");
     const cartridgeText = flattenQueueText(cartridge || queuePanel);
     assertEquals(true, !!cartridge, "Run objective queue should render a Code Concept lesson cartridge");
-    assertEquals(true, /IDEA 1\/4/.test(cartridgeText), "Code Concept cartridge should show deck progress");
+    assertEquals(true, /IDEA 1\/5/.test(cartridgeText), "Code Concept cartridge should show deck progress");
     assertEquals(true, /LOOP/.test(cartridgeText), "Code Concept cartridge should show the next concept key");
     assertEquals(true, /Lesson cartridge: Collect Loop/.test(cartridgeText), "Code Concept cartridge should name the collectible lesson");
-    assertEquals(4, collectQueueByClass(cartridge, "code-concept-pip").length, "Code Concept cartridge should render one pip per idea");
+    assertEquals(5, collectQueueByClass(cartridge, "code-concept-pip").length, "Code Concept cartridge should render one pip per idea");
     assertEquals(1, collectQueueByClass(cartridge, "filled").length, "Code Concept cartridge should fill collected ideas");
     assertEquals(1, collectQueueByClass(cartridge, "next").length, "Code Concept cartridge should mark the next idea");
     const queueStageButton = findQueueByClass(queuePanel, "run-objective-queue-action-btn");
@@ -2341,7 +2344,7 @@ function runEngineTests() {
     assertEquals("code-concept", clearQueue[0] && clearQueue[0].action, "Clear objective queue should preserve Code Concept action metadata");
     assertEquals("repeat 3 { spawn_block() }", clearQueue[0] && clearQueue[0].command, "Clear objective Code Concept should preserve the sample command");
     assertEquals("code-concept", clearQueue[0] && clearQueue[0].progress && clearQueue[0].progress.mode, "Clear objective Code Concept should carry progress metadata");
-    assertEquals("1/4 ideas", clearQueue[0] && clearQueue[0].progress && clearQueue[0].progress.label, "Clear objective Code Concept should preserve deck progress");
+    assertEquals("1/5 ideas", clearQueue[0] && clearQueue[0].progress && clearQueue[0].progress.label, "Clear objective Code Concept should preserve deck progress");
     assertEquals("Code idea -> concept card", getObjectiveLearningContract(clearQueue[0]), "Clear objective Code Concept should share the same learning contract");
     clearQueueGame.lastClearObjectiveQueue = clearQueue;
     clearQueueGame.lastClearCodeConceptTarget = target;
@@ -2390,9 +2393,9 @@ function runEngineTests() {
     assertEquals(true, inputEl.focused, "Start radar Code Concept action should focus the terminal");
     assertEquals("start-code-concept", radarGame.lastStagedExperiment && radarGame.lastStagedExperiment.source, "Start radar Code Concept staging should remember its source");
 
-    game.codeConcepts = new Set(["ASSIGN", "LOOP", "IF", "CALL"]);
+    game.codeConcepts = new Set(["ASSIGN", "LOOP", "IF", "CALL", "ALIAS"]);
     updateCodeConceptDeck(game);
-    assertEquals(true, /Code Concepts 4\/4/.test(panel.innerHTML), "Complete Code Concept Deck should render full progress");
+    assertEquals(true, /Code Concepts 5\/5/.test(panel.innerHTML), "Complete Code Concept Deck should render full progress");
     assertEquals(true, /CODE DECK COMPLETE/.test(panel.innerHTML), "Complete Code Concept Deck should celebrate completion");
     assertEquals(false, /STAGE NEXT/.test(panel.innerHTML), "Complete Code Concept Deck should not show a stale next action");
     document.getElementById = oldGetElementById22codeDeck;
@@ -2424,7 +2427,7 @@ function runEngineTests() {
     game.currentPlanetIndex = 0;
     game.currentPlanet = PLANETS[0];
     game.player = { x: 90, y: 110, w: 24, h: 32 };
-    game.codeConcepts = new Set(["ASSIGN", "LOOP", "IF"]);
+    game.codeConcepts = new Set(["ASSIGN", "LOOP", "IF", "ALIAS"]);
     game.researchXP = 0;
     game.masteryMeters = {};
     game.discoveryPassCounts = {};
@@ -2438,14 +2441,14 @@ function runEngineTests() {
     assertEquals("CALL", pulse.codeConceptProof && pulse.codeConceptProof.concept, "Pulse should name the final collected code concept");
     assertEquals(true, pulse.codeConceptProof && pulse.codeConceptProof.complete, "Final concept proof should mark the code deck complete");
     assertEquals("CODE DECK MASTERED", pulse.codeConceptDeckMastery && pulse.codeConceptDeckMastery.label, "Full code deck should create a mastery chip");
-    assertEquals(4, pulse.codeConceptDeckMastery && pulse.codeConceptDeckMastery.count, "Code deck mastery should count all ideas");
-    assertEquals(4, pulse.codeConceptDeckMastery && pulse.codeConceptDeckMastery.total, "Code deck mastery should know the deck total");
+    assertEquals(5, pulse.codeConceptDeckMastery && pulse.codeConceptDeckMastery.count, "Code deck mastery should count all ideas");
+    assertEquals(5, pulse.codeConceptDeckMastery && pulse.codeConceptDeckMastery.total, "Code deck mastery should know the deck total");
     assertEquals(1, game.discoveryPassCounts["code-concept-deck-mastery"], "Code deck mastery should store a one-time source");
     assertEquals(true, game.researchXP >= 8, "Code deck mastery should add Research XP to the discovery reward");
     assertEquals(true, game.getWorldMasteryProgress(0).xp >= 10, "Code deck mastery should feed world mastery");
     assertEquals("CODE DECK MASTERED: +8 Research XP", game.missionBalloon && game.missionBalloon.text, "Code deck mastery should write to the Mission CRT");
     assertEquals(true, labels.includes("CODE DECK!"), "Code deck mastery should pop a visible collection cue");
-    assertEquals(true, labels.includes("4/4 IDEAS"), "Code deck mastery should name the full-deck payoff");
+    assertEquals(true, labels.includes("5/5 IDEAS"), "Code deck mastery should name the full-deck payoff");
     assertEquals(true, bursts > 0, "Code deck mastery should spawn reward particles");
     assertEquals(true, /CODE DECK MASTERED \+8 XP/.test(panel.innerHTML), "Discovery Pulse should render the Code Concept Deck mastery chip");
     assertEquals(true, /CODE DECK COMPLETE/.test(panel.innerHTML), "Discovery Pulse should show the completed code-deck unlock card");
@@ -2677,7 +2680,7 @@ function runEngineTests() {
     assertEquals(true, game.codeConcepts.has("ASSIGN"), "Assignment concept should be collected from the first successful tweak");
     assertEquals("CODE CONCEPT", firstPulse.codeConceptProof && firstPulse.codeConceptProof.label, "Discovery pulse should carry the code concept proof");
     assertEquals("ASSIGN", firstPulse.codeConceptProof && firstPulse.codeConceptProof.concept, "Code concept proof should identify the assignment");
-    assertEquals("1/4", firstPulse.codeConceptProof && firstPulse.codeConceptProof.progress, "Code concept proof should show deck progress");
+    assertEquals("1/5", firstPulse.codeConceptProof && firstPulse.codeConceptProof.progress, "Code concept proof should show deck progress");
     assertEquals("LOOP", firstPulse.codeConceptProof && firstPulse.codeConceptProof.nextConcept, "Code concept proof should identify the next idea");
     assertEquals("repeat 3 { spawn_block() }", firstPulse.codeConceptProof && firstPulse.codeConceptProof.nextCommand, "Code concept proof should carry the next runnable idea");
     assertEquals(true, game.discoveredFormulaKinds.has("mass"), "Mass formula should be collected");
@@ -4365,7 +4368,7 @@ function runEngineTests() {
     assertEquals("CODE CONCEPT", queue[0] && queue[0].label, "Run queue should promote the next Code Concept when no science target is ahead");
     assertEquals("LOOP", queue[0] && queue[0].kind, "Run queue should preserve the next Code Concept key");
     assertEquals(1, queue[0] && queue[0].progress && queue[0].progress.value, "Run queue keeps raw Code Concept count for the CRT cartridge");
-    assertEquals(4, queue[0] && queue[0].progress && queue[0].progress.target, "Run queue keeps raw Code Concept total for the CRT cartridge");
+    assertEquals(5, queue[0] && queue[0].progress && queue[0].progress.target, "Run queue keeps raw Code Concept total for the CRT cartridge");
 
     const cue = game.getRunObjectiveCompassCue();
     assertEquals("CODE CONCEPT", cue && cue.label, "Objective compass should show the Code Concept label");
@@ -4373,11 +4376,11 @@ function runEngineTests() {
     assertEquals("code-concept-target", cue && cue.source, "Objective compass should preserve Code Concept source metadata");
     assertEquals("repeat 3 { spawn_block() }", cue && cue.commandLine, "Objective compass should show the runnable Code Concept sample");
     assertEquals("LOOP", cue && cue.codeSkillChip, "Objective compass should identify the programming construct");
-    assertEquals(0.25, cue && cue.progress && cue.progress.value, "Objective compass should normalize 1/4 Code Concept progress");
-    assertEquals(0.5, cue && cue.progress && cue.progress.target, "Objective compass should mark the next 2/4 Code Concept target");
+    assertEquals(0.2, cue && cue.progress && cue.progress.value, "Objective compass should normalize 1/5 Code Concept progress");
+    assertEquals(0.4, cue && cue.progress && cue.progress.target, "Objective compass should mark the next 2/5 Code Concept target");
     assertEquals(1, cue && cue.conceptProgress && cue.conceptProgress.current, "Objective compass should carry Code Concept pip current count");
     assertEquals(2, cue && cue.conceptProgress && cue.conceptProgress.next, "Objective compass should carry Code Concept next pip");
-    assertEquals(4, cue && cue.conceptProgress && cue.conceptProgress.total, "Objective compass should carry Code Concept pip total");
+    assertEquals(5, cue && cue.conceptProgress && cue.conceptProgress.total, "Objective compass should carry Code Concept pip total");
 
     const pipRects = [];
     const labels = [];
@@ -4398,8 +4401,8 @@ function runEngineTests() {
     assertEquals("CODE CONCEPT", drawn && drawn.label, "Compass draw should return the Code Concept cue");
     assertEquals(true, labels.includes("LOOP"), "Compass draw should write the Code Concept chip");
     assertEquals(true, labels.some(text => /repeat 3/.test(text)), "Compass draw should write the Code Concept command");
-    assertEquals(true, labels.some(text => /^1\/4/.test(text)), "Compass draw should write the Code Concept pip label");
-    assertEquals(true, pipRects.length >= 4, "Compass draw should render one compact pip per Code Concept card");
+    assertEquals(true, labels.some(text => /^1\/5/.test(text)), "Compass draw should write the Code Concept pip label");
+    assertEquals(true, pipRects.length >= 5, "Compass draw should render one compact pip per Code Concept card");
 
     getAttemptLogNextQuestion = oldGetAttemptLogNextQuestion22bc4;
     getLabChainTarget = oldGetLabChainTarget22bc4;
@@ -5056,7 +5059,7 @@ function runEngineTests() {
     assertEquals("Collect Loop", quest.title, "After the formula deck, the quest should target the next missing Code Concept before rank grinding");
     assertEquals(true, /Repeat one instruction/.test(quest.body), "Code Concept quest should explain the programming idea");
     assertEquals("Reward: code concept card", quest.reward, "Code Concept quest should name the deck-card payoff");
-    game.codeConcepts = new Set(["ASSIGN", "LOOP", "IF", "CALL"]);
+    game.codeConcepts = new Set(["ASSIGN", "LOOP", "IF", "CALL", "ALIAS"]);
     quest = getActiveLabQuest(game);
     assertEquals("Reach Loop Engineer", quest.title, "After formula and Code Concept decks, the quest should target the next rank perk");
     assertEquals(true, /Combo Amplifier/.test(quest.reward), "Rank quest should name the next lab perk reward");
@@ -5206,7 +5209,7 @@ function runEngineTests() {
     assertEquals(true, /Passport 1\/6 stamps · next Moon/.test(els["start-cadet-identity-body"].textContent), "Cadet record should show Science Passport stamp progress");
     assertEquals(true, /Lesson Paths 0\/3 · next Hopper Engineering Shakedown/.test(els["start-cadet-identity-body"].textContent), "Cadet record should show persistent lesson-path progress");
     assertEquals(true, /1\/\d+ formulas/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include formula deck progress");
-    assertEquals(true, /Code Concepts 1\/4 · next Loop/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include Code Concept Deck progress");
+    assertEquals(true, /Code Concepts 1\/5 · next Loop/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include Code Concept Deck progress");
     assertEquals(true, /1\/12 transmissions/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include story transmission progress");
     assertEquals(true, /1\/5 AI states/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include AI State Deck progress");
     assertEquals(true, /next Shelter Loop/.test(els["start-cadet-identity-body"].textContent), "Cadet record should name the next AI State Deck card");
@@ -5350,7 +5353,7 @@ function runEngineTests() {
     game.planetClears = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 };
     game.masteryCleared = { 0: true };
     game.dailySignalClears = 1;
-    game.codeConcepts = new Set(["ASSIGN", "LOOP", "IF", "CALL"]);
+    game.codeConcepts = new Set(["ASSIGN", "LOOP", "IF", "CALL", "ALIAS"]);
     game.masteryMeters = { 0: { xp: 80, badges: ["scout"], sources: { "village-rescue:0:geary": 12 } } };
     updateStartMissionRadar(game);
     assertEquals("Clear today's signal", els["start-mission-radar-title"].textContent, "Complete formula/rank progress should surface the daily practice loop");
@@ -5550,7 +5553,7 @@ function runEngineTests() {
 
     game.frontierRecords = {};
     game.discoveryPassCounts = {};
-    game.codeConcepts = new Set(["ASSIGN", "LOOP", "IF", "CALL"]);
+    game.codeConcepts = new Set(["ASSIGN", "LOOP", "IF", "CALL", "ALIAS"]);
     game.masteryMeters = {
       0: { xp: 80, badges: ["scout"], sources: { "village-rescue:0:geary": 12 } }
     };

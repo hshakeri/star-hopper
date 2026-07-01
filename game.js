@@ -907,6 +907,9 @@ class StarHopperGame {
     const afterRank = (typeof getResearchRank === "function") ? getResearchRank(this.researchXP || 0) : null;
     const rankUp = !!(beforeRank && afterRank && afterRank.level > beforeRank.level);
     const planetName = this.currentPlanet && this.currentPlanet.name ? this.currentPlanet.name : "World";
+    const codeConcept = typeof awardCodeConceptCard === "function"
+      ? awardCodeConceptCard(this, "ALIAS", { popText: "CODE ALIAS", color })
+      : null;
     const result = {
       label: "SYNTAX BRIDGE",
       title: "Syntax Bridge Proof",
@@ -944,6 +947,12 @@ class StarHopperGame {
         progress: 1
       }
     };
+    if (codeConcept) {
+      pulse.codeConceptProof = codeConcept;
+      if (codeConcept.complete && typeof this.grantCodeConceptDeckMastery === "function") {
+        this.grantCodeConceptDeckMastery(pulse);
+      }
+    }
     this.discoveryPulse = pulse;
     this.discoveryLog = [pulse].concat(Array.isArray(this.discoveryLog) ? this.discoveryLog : []).slice(0, 8);
 

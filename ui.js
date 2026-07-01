@@ -3893,6 +3893,12 @@ const CODE_CONCEPT_CARDS = [
     title: "Function Call",
     body: "Run a named action or helper.",
     sampleCode: "use_hopper()"
+  },
+  {
+    concept: "ALIAS",
+    title: "API Alias",
+    body: "Use a friendly bridge name that maps to the game's canonical command.",
+    sampleCode: "spawnSpring()"
   }
 ];
 
@@ -4008,8 +4014,8 @@ function updateCodeConceptDeck(game = window.Game) {
     ` : `
     <div class="code-concept-next-card complete">
       <span>CODE DECK COMPLETE</span>
-      <strong>Four core coding moves collected</strong>
-      <p>Keep combining variables, loops, conditionals, and calls with science missions.</p>
+      <strong>Five core coding moves collected</strong>
+      <p>Keep combining variables, loops, conditionals, calls, and aliases with science missions.</p>
     </div>
     `}
     <div class="code-concept-grid">
@@ -4029,6 +4035,7 @@ function updateCodeConceptDeck(game = window.Game) {
 }
 
 function getCodeConceptForPulse(game, pulse) {
+  if (pulse && pulse.syntaxBridgeProof) return "ALIAS";
   if (!game || !pulse || typeof game.getCommandCodeSkillChip !== "function") return "";
   const candidates = [];
   if (pulse.scienceDeltaProof && pulse.scienceDeltaProof.codeLine) {
@@ -4040,15 +4047,25 @@ function getCodeConceptForPulse(game, pulse) {
     code.split(/\n/).map(line => line.trim()).filter(Boolean).forEach(line => candidates.push(line));
   }
   for (const candidate of candidates) {
+    if (codeUsesBridgeAlias(candidate)) return "ALIAS";
+  }
+  for (const candidate of candidates) {
     const concept = game.getCommandCodeSkillChip(candidate);
     if (getCodeConceptCard(concept)) return concept;
   }
   return "";
 }
 
-function grantCodeConceptProgress(game, pulse) {
-  if (!game || !pulse) return null;
-  const concept = getCodeConceptForPulse(game, pulse);
+function codeUsesBridgeAlias(code) {
+  const text = String(code || "");
+  if (!text) return false;
+  return /\b(?:useHopper|useRover|spawnGem|spawnCoin|spawnBox|spawnBlock|spawnSpring|invertGravity|raveMode|survivalMode|meteorShower|equipBlaster|shrinkEnemies|bounceUp|playMusic)\s*\(/.test(text)
+    || /\b(?:hopper|player)\.(?:jumpPower|rocketPower|rocketOn)\b/.test(text)
+    || /\b(?:jumpPower|rocketPower)\b\s*=/.test(text);
+}
+
+function awardCodeConceptCard(game, concept, options = {}) {
+  if (!game) return null;
   const card = getCodeConceptCard(concept);
   if (!card) return null;
   const collected = getCodeConceptSet(game);
@@ -4075,9 +4092,14 @@ function grantCodeConceptProgress(game, pulse) {
     const baseX = Number.isFinite(game.player.x) ? game.player.x : 0;
     const baseY = Number.isFinite(game.player.y) ? game.player.y : 0;
     const width = Number.isFinite(game.player.w) ? game.player.w : 24;
-    ComicBubbles.pop(baseX + width / 2, baseY - 84, `CODE ${card.concept}`, "#93c5fd", 0.82);
+    ComicBubbles.pop(baseX + width / 2, baseY - 84, options.popText || `CODE ${card.concept}`, options.color || "#93c5fd", 0.82);
   }
   return proof;
+}
+
+function grantCodeConceptProgress(game, pulse) {
+  if (!game || !pulse) return null;
+  return awardCodeConceptCard(game, getCodeConceptForPulse(game, pulse));
 }
 
 function getPulseFormulaKind(pulse) {
