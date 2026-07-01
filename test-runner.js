@@ -3348,6 +3348,13 @@ function runEngineTests() {
     assertEquals(true, /NEXT RUN CONTRACT/.test(report.innerHTML), "Clear report should include a replay contract");
     assertEquals(true, /Collect Mass Lab/.test(report.innerHTML), "Replay contract should target the next formula card");
     assertEquals(true, /RETRY FOR FORMULA/.test(report.innerHTML), "Replay contract should include an actionable next-run button");
+    assertEquals(true, /NEXT OBJECTIVE QUEUE/.test(report.innerHTML), "Clear report should rank the best next objectives");
+    assertEquals(true, /#1 NEXT RUN CONTRACT/.test(report.innerHTML), "Objective queue should put the replay contract first");
+    assertEquals(true, /#2 EXPLAIN THE EVIDENCE/.test(report.innerHTML), "Objective queue should make proof writing the second lab step");
+    assertEquals(true, /#3 SIGNAL DECODED/.test(report.innerHTML), "Objective queue should keep story momentum visible");
+    assertEquals("Collect Mass Lab", game.lastClearObjectiveQueue[0].title, "Objective queue data should preserve the top replay target");
+    assertEquals("WRITE EXPLANATION", game.lastClearObjectiveQueue[1].cta, "Objective queue data should preserve the explanation action");
+    assertEquals("Emerald Wall Signal", game.lastClearObjectiveQueue[2].title, "Objective queue data should preserve the decoded story target");
     assertEquals(true, new RegExp(`1\\/${DISCOVERY_RULES.length}`).test(report.innerHTML), "Clear report should include formula deck progress");
     assertEquals(true, /\+2 emerald/.test(report.innerHTML), "Clear report should include newly banked gems");
     assertEquals(true, /Collect Mass Lab/.test(report.innerHTML), "Clear report should include the next lab quest");

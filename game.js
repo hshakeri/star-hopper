@@ -3932,6 +3932,70 @@ class StarHopperGame {
     };
   }
 
+  getClearObjectiveQueue({ replayContract = null, explainPrompt = null, storyUnlock = null, storyPreview = null, villageTrust = null } = {}) {
+    const queue = [];
+    const add = (item) => {
+      if (!item || !item.title) return;
+      queue.push({
+        label: item.label || "NEXT",
+        title: item.title,
+        body: item.body || "",
+        reward: item.reward || "",
+        cta: item.cta || ""
+      });
+    };
+
+    if (replayContract) {
+      add({
+        label: replayContract.kicker || "NEXT RUN",
+        title: replayContract.title,
+        body: replayContract.body,
+        reward: replayContract.reward,
+        cta: replayContract.cta
+      });
+    }
+
+    if (explainPrompt) {
+      add({
+        label: explainPrompt.kicker || "LAB PROOF",
+        title: explainPrompt.title,
+        body: explainPrompt.question,
+        reward: "Reward: notebook proof + Research XP",
+        cta: explainPrompt.cta
+      });
+    }
+
+    const story = storyUnlock || storyPreview;
+    if (story) {
+      add({
+        label: story.kicker || (storyUnlock ? "SIGNAL DECODED" : "STORY"),
+        title: story.title,
+        body: story.body,
+        reward: storyUnlock ? (story.progress || "Story chapter decoded") : `Decode: ${story.concept || story.progress || "next chapter"}`,
+        cta: storyUnlock ? "READ SIGNAL" : "NEXT CHAPTER"
+      });
+    }
+
+    const pact = villageTrust && villageTrust.nextPact ? villageTrust.nextPact : null;
+    if (pact) {
+      const nextTier = villageTrust.nextTier
+        ? `${villageTrust.nextTier.label} at ${villageTrust.nextTier.points} trust`
+        : "Max village trust reached";
+      add({
+        label: "VILLAGE QUEST",
+        title: pact.title,
+        body: `${pact.action || "Help the village"} to practice ${pact.concept || "relationship state changes"}.`,
+        reward: nextTier,
+        cta: "BUILD TRUST"
+      });
+    }
+
+    return queue.slice(0, 3).map((item, index) => ({
+      ...item,
+      priority: index + 1
+    }));
+  }
+
   runClearReplayContract(contract = this.lastClearReplayContract) {
     const action = contract && contract.action ? contract.action : "replay";
     if (action === "frontier" && typeof this.startFrontierChallenge === 'function') {
@@ -6512,6 +6576,31 @@ class StarHopperGame {
         <p>${safe(storyPreview.body)}</p>
       </div>
     ` : "";
+    const villageTrust = typeof this.getVillageTrustProgress === 'function' ? this.getVillageTrustProgress(this.currentPlanetIndex) : null;
+    const objectiveQueue = this.getClearObjectiveQueue({
+      replayContract,
+      explainPrompt,
+      storyUnlock,
+      storyPreview,
+      villageTrust
+    });
+    this.lastClearObjectiveQueue = objectiveQueue;
+    const objectiveQueueBlock = objectiveQueue.length ? `
+      <div class="clear-objective-queue">
+        <div class="clear-objective-queue-head">
+          <span>NEXT OBJECTIVE QUEUE</span>
+          <strong>${safe(objectiveQueue[0].cta || "ONE MORE RUN")}</strong>
+        </div>
+        ${objectiveQueue.map(item => `
+          <div class="clear-objective-item">
+            <span>#${item.priority} ${safe(item.label)}</span>
+            <strong>${safe(item.title)}</strong>
+            <p>${safe(item.body)}</p>
+            ${item.reward ? `<em>${safe(item.reward)}</em>` : ""}
+          </div>
+        `).join("")}
+      </div>
+    ` : "";
     const starIcons = Array.from({ length: starSummary.maxStars }, (_, index) =>
       `<span class="clear-lab-star${index < starSummary.stars ? " earned" : ""}" aria-hidden="true">★</span>`
     ).join("");
@@ -6549,7 +6638,6 @@ class StarHopperGame {
         <p>${safe(`${worldMastery.xp} XP${starSummary.worldMasteryAddedXP ? ` · +${starSummary.worldMasteryAddedXP} this run` : ""} · ${worldMasteryNext}`)}</p>
       </div>
     ` : "";
-    const villageTrust = typeof this.getVillageTrustProgress === 'function' ? this.getVillageTrustProgress(this.currentPlanetIndex) : null;
     const villageTrustPct = villageTrust ? Math.max(0, Math.min(100, Number(villageTrust.pct) || 0)) : 0;
     const villageTrustNext = villageTrust && villageTrust.nextTier
       ? `${villageTrust.nextTier.label} at ${villageTrust.nextTier.points} trust`
@@ -6592,6 +6680,7 @@ class StarHopperGame {
       ${unlockBlock}
       ${timeBadge}
       ${rivalBlock}
+      ${objectiveQueueBlock}
       ${storyUnlockBlock}
       ${storyPreviewBlock}
       ${explainBlock}
