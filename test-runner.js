@@ -5169,6 +5169,7 @@ function runEngineTests() {
     });
     const cadetAIButton = makeCadetButton();
     const cadetLessonButton = makeCadetButton();
+    const cadetHypothesisButton = makeCadetButton();
     const startObjectiveQueue = {
       innerHTML: "",
       style: {},
@@ -5204,6 +5205,7 @@ function runEngineTests() {
       "start-cadet-identity-bar": { style: { width: "" } },
       "start-cadet-ai-btn": cadetAIButton,
       "start-cadet-lesson-btn": cadetLessonButton,
+      "start-cadet-hypothesis-btn": cadetHypothesisButton,
       "start-rank-preview-label": { textContent: "" },
       "start-rank-preview-title": { textContent: "" },
       "start-rank-preview-body": { textContent: "" },
@@ -5297,6 +5299,10 @@ function runEngineTests() {
     assertEquals("earth-gravity-wall", cadetLessonButton.dataset.mission, "Cadet lesson route should target the first unfinished lesson path");
     assertEquals("0", cadetLessonButton.dataset.level, "Cadet lesson route should target the lesson planet");
     assertEquals(true, /use_hopper\(\)/.test(cadetLessonButton.dataset.command), "Cadet lesson route should carry the first one-tweak command");
+    assertEquals(false, cadetHypothesisButton.classList.contains("hidden"), "Cadet record should show the next hypothesis proof route button");
+    assertEquals("RUN PROOF", cadetHypothesisButton.textContent, "Cadet hypothesis route should switch to proof mode after a prediction is chosen");
+    assertEquals("earth-gravity-wall", cadetHypothesisButton.dataset.mission, "Cadet hypothesis route should target the first unconfirmed prediction mission");
+    assertEquals("0", cadetHypothesisButton.dataset.level, "Cadet hypothesis route should target the prediction planet");
     assertEquals(false, cadetAIButton.classList.contains("hidden"), "Cadet record should show the next AI route button");
     assertEquals("RUN RESCUE", cadetAIButton.textContent, "Cadet record AI button should use the next route label");
     assertEquals("shelter-loop", cadetAIButton.dataset.state, "Cadet record AI button should target the next missing state");
@@ -5306,28 +5312,43 @@ function runEngineTests() {
     assertEquals(true, /Collect Mass Lab/.test(startObjectiveQueue.innerHTML), "Start objective queue should include the active formula quest");
     assertEquals(true, /#2 RESUME LAB/.test(startObjectiveQueue.innerHTML), "Start objective queue should include saved notebook follow-up second");
     assertEquals(true, /Raise engine/.test(startObjectiveQueue.innerHTML), "Start objective queue should preserve the saved next-test title");
-    assertEquals(true, /#3 LESSON PATH/.test(startObjectiveQueue.innerHTML), "Start objective queue should include the next focused lesson path");
+    assertEquals(true, /#3 HYPOTHESIS PROOF/.test(startObjectiveQueue.innerHTML), "Start objective queue should include the next hypothesis proof route");
+    assertEquals(true, /Prove Hopper Engineering Shakedown/.test(startObjectiveQueue.innerHTML), "Start objective queue should name the next hypothesis proof");
+    assertEquals(true, /RUN PROOF/.test(startObjectiveQueue.innerHTML), "Start objective queue should expose the hypothesis proof action");
+    assertEquals(true, /Predict before code/.test(startObjectiveQueue.innerHTML), "Start objective queue should explain the hypothesis proof learning step");
+    assertEquals(true, /One tested tweak/.test(startObjectiveQueue.innerHTML), "Start objective queue should explain the hypothesis proof coding step");
+    assertEquals(true, /Proof \+ XP/.test(startObjectiveQueue.innerHTML), "Start objective queue should explain the hypothesis proof payoff");
+    assertEquals(true, /#4 LESSON PATH/.test(startObjectiveQueue.innerHTML), "Start objective queue should include the next focused lesson path");
     assertEquals(true, /Hopper Engineering Shakedown/.test(startObjectiveQueue.innerHTML), "Start objective queue should name the next lesson path");
-    assertEquals(true, /#4 AI STATE/.test(startObjectiveQueue.innerHTML), "Start objective queue should include the next AI-state proof");
+    assertEquals(true, /#5 AI STATE/.test(startObjectiveQueue.innerHTML), "Start objective queue should include the next AI-state proof");
     assertEquals(true, /Shelter Loop/.test(startObjectiveQueue.innerHTML), "Start objective queue should name the next AI-state card");
     assertEquals(true, /Science proof -&gt; formula card/.test(startObjectiveQueue.innerHTML), "Start objective queue should explain the lab quest payoff loop");
     assertEquals(true, /Hypothesis -&gt; compare/.test(startObjectiveQueue.innerHTML), "Start objective queue should explain the saved experiment loop");
     assertEquals(true, /Observe -&gt; Code -&gt; Test/.test(startObjectiveQueue.innerHTML), "Start objective queue should explain the lesson-path loop");
     assertEquals(true, /state \+ event -&gt; next state/.test(startObjectiveQueue.innerHTML), "Start objective queue should explain the AI-state loop");
-    assertEquals(4, game.lastStartObjectiveQueue && game.lastStartObjectiveQueue.length, "Start objective queue should keep a compact four-item stack");
+    assertEquals(5, game.lastStartObjectiveQueue && game.lastStartObjectiveQueue.length, "Start objective queue should keep a compact five-item stack");
     assertEquals("radar", game.lastStartObjectiveQueue[0].action, "Start objective queue first item should dispatch through Mission Radar");
     assertEquals("resume", game.lastStartObjectiveQueue[1].action, "Start objective queue second item should stage the saved test");
-    assertEquals("lesson-path", game.lastStartObjectiveQueue[2].action, "Start objective queue third item should launch the focused lesson");
-    assertEquals("ai-state", game.lastStartObjectiveQueue[3].action, "Start objective queue fourth item should route AI-state proof");
+    assertEquals("hypothesis", game.lastStartObjectiveQueue[2].action, "Start objective queue third item should launch the hypothesis proof");
+    assertEquals("lesson-path", game.lastStartObjectiveQueue[3].action, "Start objective queue fourth item should launch the focused lesson");
+    assertEquals("ai-state", game.lastStartObjectiveQueue[4].action, "Start objective queue fifth item should route AI-state proof");
     window.Game = game;
     assertEquals(true, runStartObjectiveQueueAction(2), "Start objective queue resume action should dispatch");
     assertEquals("hopper.engine = 6", els["console-input"].value, "Start queue resume action should stage the saved command");
     assertEquals("start-objective-queue", game.lastStagedExperiment && game.lastStagedExperiment.source, "Start queue resume action should preserve its surface source");
+    const queueHypothesisStarts = [];
+    const queueHypothesisModes = [];
+    game.startLevel = (level) => { queueHypothesisStarts.push(level); };
+    switchMainMode = (mode) => { queueHypothesisModes.push(mode); };
+    assertEquals(true, runStartObjectiveQueueAction(3), "Start objective queue hypothesis action should dispatch");
+    assertEquals(0, queueHypothesisStarts[0], "Start queue hypothesis action should launch Earth for the first proof");
+    assertEquals("terminal", queueHypothesisModes[0], "Start queue hypothesis action should return to the terminal");
+    assertEquals("earth-gravity-wall", game.activeHypothesisMissionId, "Start queue hypothesis action should remember the active proof mission");
     const queueLessonStarts = [];
     const queueLessonModes = [];
     game.startLevel = (level) => { queueLessonStarts.push(level); };
     switchMainMode = (mode) => { queueLessonModes.push(mode); };
-    assertEquals(true, runStartObjectiveQueueAction(3), "Start objective queue lesson action should dispatch");
+    assertEquals(true, runStartObjectiveQueueAction(4), "Start objective queue lesson action should dispatch");
     assertEquals(0, queueLessonStarts[0], "Start queue lesson action should launch Earth for the first lesson path");
     assertEquals("terminal", queueLessonModes[0], "Start queue lesson action should return to the terminal");
     assertEquals("cadet-lesson-path", game.lastStagedExperiment && game.lastStagedExperiment.source, "Start queue lesson action should enter the lesson staging loop");
@@ -5335,6 +5356,15 @@ function runEngineTests() {
     const cadetAIModes = [];
     const cadetLessonStarts = [];
     const cadetLessonModes = [];
+    const cadetHypothesisStarts = [];
+    const cadetHypothesisModes = [];
+    game.startLevel = (level) => { cadetHypothesisStarts.push(level); };
+    switchMainMode = (mode) => { cadetHypothesisModes.push(mode); };
+    window.Game = game;
+    assertEquals(true, runStartCadetHypothesisAction(), "Cadet record hypothesis action should launch the next prediction proof");
+    assertEquals(0, cadetHypothesisStarts[0], "Cadet record hypothesis action should launch Earth for the first proof");
+    assertEquals("terminal", cadetHypothesisModes[0], "Cadet record hypothesis action should return to the playable terminal");
+    assertEquals("earth-gravity-wall", game.activeHypothesisMissionId, "Cadet hypothesis action should remember the active proof mission");
     game.startLevel = (level) => { cadetLessonStarts.push(level); };
     switchMainMode = (mode) => { cadetLessonModes.push(mode); };
     window.Game = game;
@@ -5840,6 +5870,8 @@ function runEngineTests() {
     assertEquals(true, /runClearCadetAIAction\('pet-pact'\)/.test(report.innerHTML), "Clear report AI button should target the next missing state");
     assertEquals(true, /clear-cadet-lesson-btn/.test(report.innerHTML), "Clear report cadet record should expose a direct lesson-path route button");
     assertEquals(true, /runClearCadetLessonPathAction\('earth-gravity-wall'\)/.test(report.innerHTML), "Clear report lesson button should target the next unfinished lesson path");
+    assertEquals(true, /clear-cadet-hypothesis-btn/.test(report.innerHTML), "Clear report cadet record should expose a direct hypothesis proof route button");
+    assertEquals(true, /runClearCadetHypothesisAction\('earth-gravity-wall'\)/.test(report.innerHTML), "Clear report hypothesis button should target the next unconfirmed prediction proof");
     assertEquals(true, /NEW MASTERY BADGE/.test(report.innerHTML), "Clear report should celebrate a first 3-star mastery");
     assertEquals(true, /\+25 Research XP/.test(report.innerHTML), "Clear report should show the mastery XP reward");
     assertEquals(true, /WORLD MASTERY/.test(report.innerHTML), "Clear report should include per-world mastery progress");
@@ -5894,6 +5926,9 @@ function runEngineTests() {
     assertEquals(true, /Evidence -&gt; explanation/.test(report.innerHTML), "Clear explanation objective should name the evidence loop");
     assertEquals(true, /Signal clue -&gt; next chapter/.test(report.innerHTML), "Clear story objective should name the signal-story loop");
     assertEquals(true, /LEARN/.test(report.innerHTML) && /WIN/.test(report.innerHTML) && /Compare a lighter Hopper/.test(report.innerHTML), "Clear lab-chain objective should render the one-more-run learning chips");
+    assertEquals(true, /Predict before code/.test(report.innerHTML), "Clear hypothesis objective should explain the prediction proof learning step");
+    assertEquals(true, /One tested tweak/.test(report.innerHTML), "Clear hypothesis objective should explain the prediction proof coding step");
+    assertEquals(true, /Proof \+ XP/.test(report.innerHTML), "Clear hypothesis objective should explain the prediction proof payoff");
     assertEquals(true, /state \+ event -&gt; next state/.test(report.innerHTML), "Clear AI objective should name the state-machine loop");
     assertEquals(true, /Compare a lighter Hopper/.test(report.innerHTML), "Lab-chain objective should name the next one-variable tweak");
     assertEquals(true, /clear-objective-item clear-lab-chain/.test(report.innerHTML), "Lab-chain clear objective should get a distinct collectible style");
@@ -5903,16 +5938,22 @@ function runEngineTests() {
     assertEquals(true, /2\/3 to TRIPLE TEST/.test(report.innerHTML), "Lab-chain clear objective should show next combo milestone progress");
     assertEquals(true, /clear-objective-action-btn/.test(report.innerHTML), "Lab-chain objective should expose a direct staging button");
     assertEquals(true, /STAGE CHAIN/.test(report.innerHTML), "Lab-chain objective should label the staging action");
-    assertEquals(true, /#5 AI STATE DECK/.test(report.innerHTML), "Objective queue should still include the next AI-state collection target");
+    assertEquals(true, /#5 HYPOTHESIS PROOF/.test(report.innerHTML), "Objective queue should include the next hypothesis collection target");
+    assertEquals(true, /Prove Hopper Engineering Shakedown/.test(report.innerHTML), "Objective queue should name the next hypothesis proof");
+    assertEquals(true, /RUN PROOF/.test(report.innerHTML), "Objective queue should expose the hypothesis proof action");
+    assertEquals(true, /clear-objective-progress hypothesis-proof/.test(report.innerHTML), "Hypothesis objective should render proof progress pips");
+    assertEquals(true, /0\/6 proofs/.test(report.innerHTML), "Hypothesis objective should show collection progress");
+    assertEquals(true, /#6 AI STATE DECK/.test(report.innerHTML), "Objective queue should still include the next AI-state collection target");
     assertEquals(true, /Pet Pact/.test(report.innerHTML), "Objective queue should name the next missing AI-state card");
     assertEquals(true, /GET LOTION/.test(report.innerHTML), "Objective queue should expose the AI-state deck action label");
     const queueActionButtons = (report.innerHTML.match(/clear-objective-action-btn/g) || []).length;
-    assertEquals(5, queueActionButtons, "Every ranked clear objective in this report should have a direct action button");
+    assertEquals(6, queueActionButtons, "Every ranked clear objective in this report should have a direct action button");
     assertEquals(true, /runClearObjectiveQueueAction\(1\)/.test(report.innerHTML), "Replay objective should route through the queue dispatcher");
     assertEquals(true, /runClearObjectiveQueueAction\(2\)/.test(report.innerHTML), "Explain objective should route through the queue dispatcher");
     assertEquals(true, /runClearObjectiveQueueAction\(3\)/.test(report.innerHTML), "Story objective should route through the queue dispatcher");
     assertEquals(true, /runClearObjectiveQueueAction\(4\)/.test(report.innerHTML), "Lab-chain objective should route through the queue dispatcher");
-    assertEquals(true, /runClearObjectiveQueueAction\(5\)/.test(report.innerHTML), "AI objective should route through the queue dispatcher");
+    assertEquals(true, /runClearObjectiveQueueAction\(5\)/.test(report.innerHTML), "Hypothesis objective should route through the queue dispatcher");
+    assertEquals(true, /runClearObjectiveQueueAction\(6\)/.test(report.innerHTML), "AI objective should route through the queue dispatcher");
     assertEquals("Collect Mass Lab", game.lastClearObjectiveQueue[0].title, "Objective queue data should preserve the top replay target");
     assertEquals("replay", game.lastClearObjectiveQueue[0].action, "Replay objective should preserve its action type");
     assertEquals("WRITE EXPLANATION", game.lastClearObjectiveQueue[1].cta, "Objective queue data should preserve the explanation action");
@@ -5923,17 +5964,23 @@ function runEngineTests() {
     assertEquals("lab-chain", game.lastClearObjectiveQueue[3].action, "Lab-chain objective should preserve its action type");
     assertEquals("hopper.mass = 0.8", game.lastClearObjectiveQueue[3].command, "Lab-chain objective data should preserve the next command");
     assertEquals("lab-chain", game.lastClearObjectiveQueue[3].progress && game.lastClearObjectiveQueue[3].progress.mode, "Lab-chain objective data should preserve progress metadata");
-    assertEquals("Pet Pact", game.lastClearObjectiveQueue[4].title, "Objective queue data should preserve the AI-state card target");
-    assertEquals("ai-state", game.lastClearObjectiveQueue[4].action, "AI objective should preserve its action type");
-    assertEquals("pet-pact", game.lastClearObjectiveQueue[4].cardId, "AI objective should preserve the deck card route");
+    assertEquals("Prove Hopper Engineering Shakedown", game.lastClearObjectiveQueue[4].title, "Objective queue data should preserve the hypothesis proof target");
+    assertEquals("hypothesis", game.lastClearObjectiveQueue[4].action, "Hypothesis objective should preserve its action type");
+    assertEquals("earth-gravity-wall", game.lastClearObjectiveQueue[4].missionId, "Hypothesis objective should preserve the mission route");
+    assertEquals("hypothesis-proof", game.lastClearObjectiveQueue[4].progress && game.lastClearObjectiveQueue[4].progress.mode, "Hypothesis objective data should preserve progress metadata");
+    assertEquals("Pet Pact", game.lastClearObjectiveQueue[5].title, "Objective queue data should preserve the AI-state card target");
+    assertEquals("ai-state", game.lastClearObjectiveQueue[5].action, "AI objective should preserve its action type");
+    assertEquals("pet-pact", game.lastClearObjectiveQueue[5].cardId, "AI objective should preserve the deck card route");
     let queuedReplay = 0;
     let queuedExplain = null;
     let queuedLab = 0;
+    let queuedHypothesis = null;
     let queuedAI = null;
     const queuedStoryModes = [];
     game.runClearReplayContract = (contract) => { queuedReplay++; return contract === game.lastClearReplayContract; };
     game.runClearExplainPrompt = (options) => { queuedExplain = options || {}; return true; };
     game.runClearLabChainTarget = (target) => { queuedLab++; return target === game.lastClearLabChainTarget; };
+    game.runClearCadetHypothesisAction = (missionId) => { queuedHypothesis = missionId; return true; };
     game.runClearCadetAIAction = (cardId) => { queuedAI = cardId; return true; };
     switchMainMode = (mode) => { queuedStoryModes.push(mode); };
     assertEquals(true, game.runClearObjectiveQueueAction(1), "Queue replay action should dispatch");
@@ -5944,11 +5991,14 @@ function runEngineTests() {
     assertEquals("notebook", queuedStoryModes[0], "Queue story action should open the notebook/log surface");
     assertEquals(true, game.runClearObjectiveQueueAction(4), "Queue lab-chain action should dispatch");
     assertEquals(1, queuedLab, "Queue lab-chain action should call the lab-chain handler");
-    assertEquals(true, game.runClearObjectiveQueueAction(5), "Queue AI action should dispatch");
+    assertEquals(true, game.runClearObjectiveQueueAction(5), "Queue hypothesis action should dispatch");
+    assertEquals("earth-gravity-wall", queuedHypothesis, "Queue hypothesis action should route the next prediction proof");
+    assertEquals(true, game.runClearObjectiveQueueAction(6), "Queue AI action should dispatch");
     assertEquals("pet-pact", queuedAI, "Queue AI action should route the next deck card");
     delete game.runClearReplayContract;
     delete game.runClearExplainPrompt;
     delete game.runClearLabChainTarget;
+    delete game.runClearCadetHypothesisAction;
     delete game.runClearCadetAIAction;
     const clearChainModes = [];
     switchMainMode = (mode) => { clearChainModes.push(mode); };
@@ -5957,6 +6007,14 @@ function runEngineTests() {
     assertEquals("hopper.mass = 0.8", inputEl.value, "Lab-chain clear action should stage the next command");
     assertEquals(true, inputEl.focused, "Lab-chain clear action should focus the terminal input");
     assertEquals("clear-lab-chain", game.lastStagedExperiment && game.lastStagedExperiment.source, "Lab-chain staging should record the clear-report source");
+    const clearHypothesisStarts = [];
+    const clearHypothesisModes = [];
+    game.startLevel = (level) => { clearHypothesisStarts.push(level); };
+    switchMainMode = (mode) => { clearHypothesisModes.push(mode); };
+    assertEquals(true, game.runClearCadetHypothesisAction("earth-gravity-wall"), "Clear report hypothesis action should launch the next prediction proof");
+    assertEquals(0, clearHypothesisStarts[0], "Clear report hypothesis action should launch Earth for the first proof");
+    assertEquals("earth-gravity-wall", game.activeHypothesisMissionId, "Clear report hypothesis action should remember the active proof mission");
+    assertEquals("terminal", clearHypothesisModes[0], "Clear report hypothesis action should return to the playable terminal");
     const clearAIStarts = [];
     const clearAIModes = [];
     game.startLevel = (level) => { clearAIStarts.push(level); };

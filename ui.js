@@ -760,6 +760,7 @@ function getObjectiveLearningContract(item) {
   if (!item) return "";
   const raw = `${item.source || ""} ${item.action || ""} ${item.kind || ""} ${item.label || ""}`.toLowerCase();
   if (/code-concept/.test(raw)) return "Code idea -> concept card";
+  if (/hypothesis-proof|hypothesis proof/.test(raw)) return "Predict -> Code -> Compare";
   if (/lab-chain/.test(raw)) return "Fresh test -> combo";
   if (/science-checkpoint/.test(raw)) return "Measure -> checkpoint";
   if (/lesson-path/.test(raw)) return "Observe -> Code -> Test";
@@ -3450,7 +3451,7 @@ function getCadetDailyHabitPortfolioText(game = window.Game) {
   return `Daily Streak d${streak}${focusTitle}`;
 }
 
-function getHypothesisPortfolioProgress(game = window.Game) {
+function getHypothesisPortfolioMissions() {
   const missions = [];
   if (typeof PLANETS !== "undefined" && Array.isArray(PLANETS)) {
     PLANETS.forEach((planet, planetIndex) => {
@@ -3466,6 +3467,11 @@ function getHypothesisPortfolioProgress(game = window.Game) {
       });
     });
   }
+  return missions;
+}
+
+function getHypothesisPortfolioProgress(game = window.Game) {
+  const missions = getHypothesisPortfolioMissions();
   const confirmed = typeof getConfirmedHypothesisSet === "function"
     ? getConfirmedHypothesisSet(game)
     : new Set();
@@ -3478,7 +3484,8 @@ function getHypothesisPortfolioProgress(game = window.Game) {
     done,
     total: missions.length,
     next,
-    complete: missions.length > 0 && done >= missions.length
+    complete: missions.length > 0 && done >= missions.length,
+    missions
   };
 }
 
@@ -3488,6 +3495,23 @@ function getCadetHypothesisPortfolioText(game = window.Game) {
   if (progress.complete) return `Hypothesis Proofs mastered ${progress.done}/${progress.total}`;
   const nextTitle = progress.next && progress.next.title ? progress.next.title : "next prediction";
   return `Hypothesis Proofs ${progress.done}/${progress.total} · next ${nextTitle}`;
+}
+
+function getCadetHypothesisAction(game = window.Game) {
+  const progress = getHypothesisPortfolioProgress(game);
+  const next = progress && !progress.complete ? progress.next : null;
+  if (!next || !next.id) return null;
+  const selected = !!(game && game.coachPredictions && game.coachPredictions[next.id]);
+  return {
+    missionId: next.id,
+    levelIndex: next.planetIndex,
+    label: selected ? "RUN PROOF" : "RUN PREDICT",
+    title: `${selected ? "Prove" : "Predict"} ${next.title || "next hypothesis"}`,
+    body: selected
+      ? "Run the selected prediction, compare the result, and bank the proof."
+      : "Choose the hypothesis before touching the code, then test one change.",
+    progress
+  };
 }
 
 function getCadetIdentityPreview(game = window.Game) {
@@ -3536,13 +3560,15 @@ function getCadetIdentityPreview(game = window.Game) {
     }
   }
   const lessonPathAction = getCadetLessonPathAction(game);
+  const hypothesisAction = getCadetHypothesisAction(game);
   return {
     label: "CADET RECORD",
     title: `${callsign} // ${rank.title}`,
     body: `${Math.round(rank.xp || 0)} XP · ${dailyHabit} · ${labChain} · ${passport} · ${lessonPaths} · ${formulas} · ${codeConcepts} · ${hypotheses} · ${transmissions} · ${futureLab} · ${aiStates} · ${trust}`,
     progress: Math.max(0, Math.min(1, Number(rank.progress) || 0)),
     aiAction,
-    lessonPathAction
+    lessonPathAction,
+    hypothesisAction
   };
 }
 
@@ -4737,6 +4763,38 @@ function getStartObjectiveQueue(game = window.Game, context = {}) {
     });
   }
 
+  const hypothesisAction = cadetPreview && cadetPreview.hypothesisAction;
+  const currentMission = typeof getActivePlatformerMission === "function" ? getActivePlatformerMission(game) : null;
+  const currentMissionId = currentMission && currentMission.id ? currentMission.id : "";
+  const radarAlreadyPrediction = !!(quest && /^Make a prediction$/i.test(quest.title || "") && hypothesisAction && hypothesisAction.missionId === currentMissionId);
+  if (hypothesisAction && hypothesisAction.missionId && !radarAlreadyPrediction) {
+    const progress = hypothesisAction.progress || getHypothesisPortfolioProgress(game);
+    add({
+      key: `hypothesis:${hypothesisAction.missionId}`,
+      label: "HYPOTHESIS PROOF",
+      title: hypothesisAction.title || "Run next prediction proof",
+      body: hypothesisAction.body || "Choose a prediction, run one code change, and compare the evidence.",
+      reward: progress && progress.total ? `Hypothesis Proofs ${progress.done}/${progress.total}` : "Hypothesis proof + Research XP",
+      cta: hypothesisAction.label || "RUN PREDICT",
+      action: "hypothesis",
+      missionId: hypothesisAction.missionId,
+      kind: "hypothesis-proof",
+      source: "start-hypothesis",
+      levelIndex: Number.isFinite(Number(hypothesisAction.levelIndex)) ? Number(hypothesisAction.levelIndex) : 0,
+      lessonSteps: {
+        learn: "Predict before code",
+        code: "One tested tweak",
+        win: "Proof + XP"
+      },
+      progress: progress && progress.total ? {
+        mode: "hypothesis-proof",
+        value: progress.done,
+        total: progress.total,
+        label: `${progress.done}/${progress.total} proofs`
+      } : null
+    });
+  }
+
   const lessonAction = cadetPreview && cadetPreview.lessonPathAction;
   if (lessonAction && lessonAction.missionId) {
     const progress = getLessonPathPortfolioProgress(game);
@@ -4843,7 +4901,7 @@ function getStartObjectiveQueue(game = window.Game, context = {}) {
     });
   }
 
-  return queue.slice(0, 4).map((item, index) => ({
+  return queue.slice(0, 5).map((item, index) => ({
     ...item,
     priority: index + 1
   }));
@@ -4945,6 +5003,7 @@ function updateStartMissionRadar(game = window.Game) {
   const cadetBar = document.getElementById("start-cadet-identity-bar");
   const cadetAIButton = document.getElementById("start-cadet-ai-btn");
   const cadetLessonButton = document.getElementById("start-cadet-lesson-btn");
+  const cadetHypothesisButton = document.getElementById("start-cadet-hypothesis-btn");
   const unlockLabel = document.getElementById("start-rank-preview-label");
   const unlockTitle = document.getElementById("start-rank-preview-title");
   const unlockBody = document.getElementById("start-rank-preview-body");
@@ -5007,6 +5066,21 @@ function updateStartMissionRadar(game = window.Game) {
       cadetLessonButton.dataset.level = visible ? String(lessonAction.levelIndex) : "";
       cadetLessonButton.dataset.command = visible ? (lessonAction.command || "") : "";
       cadetLessonButton.dataset.stageTitle = visible ? (lessonAction.stageTitle || "") : "";
+    }
+  }
+  if (cadetHypothesisButton) {
+    const hypothesisAction = cadetPreview.hypothesisAction;
+    const visible = !!(hypothesisAction && hypothesisAction.missionId);
+    if (cadetHypothesisButton.classList && typeof cadetHypothesisButton.classList.toggle === "function") {
+      cadetHypothesisButton.classList.toggle("hidden", !visible);
+    } else if (cadetHypothesisButton.style) {
+      cadetHypothesisButton.style.display = visible ? "" : "none";
+    }
+    cadetHypothesisButton.textContent = visible ? hypothesisAction.label : "RUN PREDICT";
+    cadetHypothesisButton.title = visible ? hypothesisAction.title : "";
+    if (cadetHypothesisButton.dataset) {
+      cadetHypothesisButton.dataset.mission = visible ? hypothesisAction.missionId : "";
+      cadetHypothesisButton.dataset.level = visible ? String(hypothesisAction.levelIndex) : "";
     }
   }
   if (unlockLabel) unlockLabel.textContent = unlockPreview.label;
@@ -5096,6 +5170,36 @@ function runStartCadetLessonPathAction() {
   return runCadetLessonPathAction(missionId, game);
 }
 
+function runCadetHypothesisAction(missionId = null, game = window.Game || (typeof Game !== 'undefined' ? Game : null)) {
+  if (!game || typeof game.startLevel !== "function") return false;
+  const fallback = typeof getCadetIdentityPreview === "function"
+    ? (getCadetIdentityPreview(game).hypothesisAction || null)
+    : null;
+  const id = missionId || (fallback && fallback.missionId) || "";
+  const mission = (typeof PlatformerMissions !== "undefined" && Array.isArray(PlatformerMissions))
+    ? PlatformerMissions.find(item => item && item.id === id)
+    : null;
+  if (!mission) return false;
+  const levelIndex = Number.isFinite(Number(mission.planetId))
+    ? Number(mission.planetId)
+    : (fallback && Number.isFinite(Number(fallback.levelIndex)) ? Number(fallback.levelIndex) : 0);
+  game.activeHypothesisMissionId = mission.id;
+  game.startLevel(levelIndex);
+  if (typeof switchMainMode === "function") switchMainMode("terminal");
+  if (typeof ui_log_output === "function") {
+    const selected = !!(game.coachPredictions && game.coachPredictions[mission.id]);
+    ui_log_output(`${selected ? "Run proof" : "Pick a prediction"}: ${mission.title || "Hypothesis proof"}.`, "info");
+  }
+  return true;
+}
+
+function runStartCadetHypothesisAction() {
+  const game = window.Game || (typeof Game !== 'undefined' ? Game : null);
+  const button = document.getElementById("start-cadet-hypothesis-btn");
+  const missionId = button && button.dataset ? String(button.dataset.mission || "").trim() : "";
+  return runCadetHypothesisAction(missionId, game);
+}
+
 function runStartResumeTestAction() {
   const button = document.getElementById("start-resume-test-btn");
   const command = button && button.dataset ? String(button.dataset.command || "").trim() : "";
@@ -5129,6 +5233,9 @@ function runStartObjectiveQueueAction(priority = 1) {
   if (item.action === "ai-state") {
     if (!item.cardId || typeof runAIStateDeckAction !== 'function') return false;
     return runAIStateDeckAction(item.cardId, game);
+  }
+  if (item.action === "hypothesis") {
+    return runCadetHypothesisAction(item.missionId || null, game);
   }
   if (item.action === "code-concept" || item.action === "lab-chain") {
     const command = item.command ? String(item.command).trim() : "";

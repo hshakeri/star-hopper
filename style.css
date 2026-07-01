@@ -1871,6 +1871,17 @@ body.resizing-panes * {
   background: rgba(250, 204, 21, 0.22);
 }
 
+.clear-cadet-hypothesis-btn {
+  border-color: rgba(167, 243, 208, 0.52);
+  background: rgba(16, 185, 129, 0.14);
+  color: #bbf7d0;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.12);
+}
+
+.clear-cadet-hypothesis-btn:hover {
+  background: rgba(16, 185, 129, 0.23);
+}
+
 .clear-passport-stamp {
   border: 1px solid rgba(250, 204, 21, 0.34);
   border-radius: 6px;
@@ -3323,6 +3334,17 @@ body.resizing-panes * {
 
 .start-cadet-lesson-btn:hover {
   background: rgba(250, 204, 21, 0.22);
+}
+
+.start-cadet-hypothesis-btn {
+  border-color: rgba(167, 243, 208, 0.52);
+  background: rgba(16, 185, 129, 0.14);
+  color: #bbf7d0;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.12);
+}
+
+.start-cadet-hypothesis-btn:hover {
+  background: rgba(16, 185, 129, 0.23);
 }
 
 .start-cadet-identity em {

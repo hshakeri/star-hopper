@@ -4889,6 +4889,8 @@ class StarHopperGame {
         command: item.command || "",
         kind: item.kind || "",
         source: item.source || "",
+        missionId: item.missionId || "",
+        levelIndex: Number.isFinite(Number(item.levelIndex)) ? Number(item.levelIndex) : null,
         progress: item.progress && typeof item.progress === "object" ? item.progress : null,
         lessonSteps: item.lessonSteps && typeof item.lessonSteps === "object" ? item.lessonSteps : null,
         preserveReflectionContext: !!item.preserveReflectionContext
@@ -4974,6 +4976,38 @@ class StarHopperGame {
       });
     }
 
+    const hypothesisAction = typeof getCadetIdentityPreview === 'function'
+      ? (getCadetIdentityPreview(this).hypothesisAction || null)
+      : null;
+    if (hypothesisAction && hypothesisAction.missionId) {
+      const hypothesisProgress = hypothesisAction.progress || (typeof getHypothesisPortfolioProgress === 'function' ? getHypothesisPortfolioProgress(this) : null);
+      add({
+        label: "HYPOTHESIS PROOF",
+        title: hypothesisAction.title || "Run next prediction proof",
+        body: hypothesisAction.body || "Choose a prediction, run one code change, and compare the evidence.",
+        reward: hypothesisProgress && hypothesisProgress.total
+          ? `Hypothesis Proofs ${hypothesisProgress.done}/${hypothesisProgress.total}`
+          : "Hypothesis proof + Research XP",
+        cta: hypothesisAction.label || "RUN PREDICT",
+        action: "hypothesis",
+        missionId: hypothesisAction.missionId,
+        levelIndex: Number.isFinite(Number(hypothesisAction.levelIndex)) ? Number(hypothesisAction.levelIndex) : null,
+        kind: "hypothesis-proof",
+        source: "clear-hypothesis",
+        lessonSteps: {
+          learn: "Predict before code",
+          code: "One tested tweak",
+          win: "Proof + XP"
+        },
+        progress: hypothesisProgress && hypothesisProgress.total ? {
+          mode: "hypothesis-proof",
+          value: hypothesisProgress.done,
+          total: hypothesisProgress.total,
+          label: `${hypothesisProgress.done}/${hypothesisProgress.total} proofs`
+        } : null
+      });
+    }
+
     const aiDeck = typeof getAIStateDeckProgress === 'function' ? getAIStateDeckProgress(this) : null;
     const aiAction = typeof getAIStateDeckAction === 'function' && aiDeck && aiDeck.nextCard
       ? getAIStateDeckAction(this, aiDeck.nextCard.id)
@@ -5004,7 +5038,7 @@ class StarHopperGame {
       });
     }
 
-    return queue.slice(0, 5).map((item, index) => ({
+    return queue.slice(0, 6).map((item, index) => ({
       ...item,
       priority: index + 1
     }));
@@ -5042,6 +5076,7 @@ class StarHopperGame {
     if (item.action === "explain") return this.runClearExplainPrompt({ preserveReflectionContext: !!item.preserveReflectionContext });
     if (item.action === "lab-chain") return this.runClearLabChainTarget(this.lastClearLabChainTarget);
     if (item.action === "code-concept") return this.runClearCodeConceptTarget(this.lastClearCodeConceptTarget);
+    if (item.action === "hypothesis") return this.runClearCadetHypothesisAction(item.missionId || null);
     if (item.action === "ai-state") return this.runClearCadetAIAction(item.cardId || null);
     if (item.action === "story") {
       if (typeof switchMainMode === 'function') switchMainMode('notebook');
@@ -5103,6 +5138,15 @@ class StarHopperGame {
     const id = missionId || fallback;
     if (!id || typeof runCadetLessonPathAction !== 'function') return false;
     return runCadetLessonPathAction(id, this);
+  }
+
+  runClearCadetHypothesisAction(missionId = null) {
+    const fallback = typeof getCadetIdentityPreview === 'function'
+      ? (getCadetIdentityPreview(this).hypothesisAction || {}).missionId
+      : null;
+    const id = missionId || fallback;
+    if (!id || typeof runCadetHypothesisAction !== 'function') return false;
+    return runCadetHypothesisAction(id, this);
   }
 
   getClearExplainMission() {
@@ -7777,6 +7821,7 @@ class StarHopperGame {
       const raw = `${item.source || ""} ${item.action || ""} ${item.kind || ""} ${item.label || ""}`.toLowerCase();
       if (/code-concept/.test(raw)) return "Code idea -> concept card";
       if (/lab-chain/.test(raw)) return "Fresh test -> combo";
+      if (/hypothesis-proof|hypothesis proof/.test(raw)) return "Predict -> Code -> Compare";
       if (/ai-state/.test(raw) || /ai state/.test(raw)) return "state + event -> next state";
       if (/replay|next run/.test(raw)) return "One tweak -> better evidence";
       if (/story|signal/.test(raw)) return "Signal clue -> next chapter";
@@ -7831,6 +7876,13 @@ class StarHopperGame {
     const cadetLessonActionBlock = cadetLessonAction && cadetLessonActionId ? `
       <button type="button" class="clear-cadet-ai-btn clear-cadet-lesson-btn" onclick="if (window.Game) window.Game.runClearCadetLessonPathAction('${safe(cadetLessonActionId)}')">${safe(cadetLessonAction.label || "RUN LESSON")}</button>
     ` : "";
+    const cadetHypothesisAction = cadetIdentity && cadetIdentity.hypothesisAction && cadetIdentity.hypothesisAction.missionId
+      ? cadetIdentity.hypothesisAction
+      : null;
+    const cadetHypothesisActionId = cadetHypothesisAction ? String(cadetHypothesisAction.missionId || "").replace(/[^a-z0-9_-]/gi, "") : "";
+    const cadetHypothesisActionBlock = cadetHypothesisAction && cadetHypothesisActionId ? `
+      <button type="button" class="clear-cadet-ai-btn clear-cadet-hypothesis-btn" onclick="if (window.Game) window.Game.runClearCadetHypothesisAction('${safe(cadetHypothesisActionId)}')">${safe(cadetHypothesisAction.label || "RUN PREDICT")}</button>
+    ` : "";
     const cadetIdentityBlock = cadetIdentity ? `
       <div class="clear-cadet-record">
         <div class="clear-cadet-record-head">
@@ -7841,6 +7893,7 @@ class StarHopperGame {
         <p>${safe(cadetIdentity.body)}</p>
         ${cadetAIActionBlock}
         ${cadetLessonActionBlock}
+        ${cadetHypothesisActionBlock}
       </div>
     ` : "";
     const starSummary = labStars || this.getClearLabStarSummary({ isDailyRun });
