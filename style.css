@@ -3126,6 +3126,13 @@ body.resizing-panes * {
   font-size: 0.64rem;
   line-height: 1.25;
 }
+.return-streak-banner .streak-focus {
+  color: #bae6fd;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  line-height: 1.25;
+  max-width: 100%;
+}
 .return-streak-banner .streak-action {
   border: 1px solid rgba(253, 224, 71, 0.45);
   border-radius: 999px;

@@ -6535,18 +6535,28 @@ function runRetryRemixTests() {
     const banner = { style: {} };
     const count = { textContent: "" };
     const reward = { textContent: "" };
+    const focus = { textContent: "" };
     const action = { textContent: "", title: "", dataset: {}, style: {} };
     document.getElementById = (id) => ({
       "discovery-pulse": panel,
       "return-streak-banner": banner,
       "return-streak-count": count,
       "return-streak-reward": reward,
+      "return-streak-focus": focus,
       "return-streak-action": action
     }[id] || null);
 
     const g = new StarHopperGame();
     g.researchXP = 16;
     g.player = { x: 90, y: 110, w: 24, h: 32 };
+    g.getDailySignal = () => ({
+      concept: "Force changes motion",
+      planetName: "Earth",
+      labContract: {
+        title: "Mass remix proof",
+        command: "hopper.mass = 1.5\nhopper.engine = 6"
+      }
+    });
     g.getTodayDateStr = () => "2026-06-10";
     g.updateReturnStreak();
     assertEquals("2026-06-10", g.lastPlayedDate, "First local day should be recorded");
@@ -6554,8 +6564,13 @@ function runRetryRemixTests() {
     assertEquals(16, g.researchXP, "First-ever play should not grant free Research XP");
     assertEquals(null, g.lastReturnStreakReward, "No reward pulse is created on the first-ever day");
     assertEquals("Next daily experiment: +5 Research XP", reward.textContent, "Start chip should preview the next daily lab reward");
+    assertEquals("Focus: Mass remix proof", focus.textContent, "Start chip should name today's Daily Signal learning focus");
     assertEquals("DAILY", action.textContent, "Start chip should expose a direct Daily Signal action");
     assertEquals("daily", action.dataset.action, "Streak action should tag the Daily Signal route");
+    assertEquals("Mass remix proof", action.dataset.focus, "Streak action should carry the Daily Signal focus");
+    assertEquals("hopper.mass = 1.5", action.dataset.command, "Streak action should carry the first stageable command");
+    assertEquals(true, /Mass remix proof/.test(action.title), "Streak action title should name the learning focus");
+    assertEquals(true, /hopper\.mass = 1\.5/.test(action.title), "Streak action title should expose the first sample command");
     assertEquals("inline-flex", action.style.display, "Streak action should be visible while the streak chip is visible");
     g.updateReturnStreak();
     assertEquals(1, saveCalls, "Same-day streak refresh should not save or farm rewards");
@@ -6587,6 +6602,7 @@ function runRetryRemixTests() {
     assertEquals(1, dailyCalls, "Streak action should call the Daily Signal starter once");
     g.streakCount = 0;
     g.refreshStreakBanner();
+    assertEquals("", focus.textContent, "Streak focus should clear when the streak chip is hidden");
     assertEquals("none", action.style.display, "Streak action should hide when the streak chip is hidden");
     assertEquals(10, g.getReturnStreakRewardXP(99), "Daily streak XP should stay capped");
     const afterRewardXP = g.researchXP;

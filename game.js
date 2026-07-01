@@ -1748,6 +1748,20 @@ class StarHopperGame {
     };
   }
 
+  getReturnStreakDailyFocus() {
+    const daily = typeof this.getDailySignal === 'function' ? this.getDailySignal() : null;
+    const contract = daily && daily.labContract ? daily.labContract : null;
+    const title = (contract && contract.title) || (daily && daily.concept) || (daily && daily.planetName) || "Daily Signal";
+    const command = contract && contract.command ? String(contract.command).trim() : "";
+    const firstCommand = command.split(/\n/).map(line => line.trim()).find(Boolean) || "";
+    return {
+      title,
+      command,
+      firstCommand,
+      label: `Focus: ${title}`
+    };
+  }
+
   grantReturnStreakReward(previousDate, today) {
     if (!previousDate || previousDate === today) {
       this.lastReturnStreakReward = null;
@@ -1823,8 +1837,10 @@ class StarHopperGame {
     if (!banner) return;
     const countEl = document.getElementById('return-streak-count');
     const rewardEl = document.getElementById('return-streak-reward');
+    const focusEl = document.getElementById('return-streak-focus');
     const actionEl = document.getElementById('return-streak-action');
     if (this.streakCount > 0) {
+      const focus = this.getReturnStreakDailyFocus();
       if (countEl) countEl.textContent = this.streakCount;
       if (rewardEl) {
         const next = this.getNextReturnStreakPreview();
@@ -1832,16 +1848,30 @@ class StarHopperGame {
           ? `+${this.lastReturnStreakReward.rewardXP} Research XP today`
           : next.label;
       }
+      if (focusEl) focusEl.textContent = focus.label;
       if (actionEl) {
         actionEl.textContent = "DAILY";
-        actionEl.title = "Start today's Daily Signal";
-        if (actionEl.dataset) actionEl.dataset.action = "daily";
+        actionEl.title = focus.firstCommand
+          ? `Start today's Daily Signal: ${focus.title} · Try: ${focus.firstCommand}`
+          : `Start today's Daily Signal: ${focus.title}`;
+        if (actionEl.dataset) {
+          actionEl.dataset.action = "daily";
+          actionEl.dataset.focus = focus.title;
+          actionEl.dataset.command = focus.firstCommand;
+        }
         if (actionEl.style) actionEl.style.display = "inline-flex";
       }
       banner.style.display = 'flex';
     } else {
       if (rewardEl) rewardEl.textContent = "";
-      if (actionEl && actionEl.style) actionEl.style.display = "none";
+      if (focusEl) focusEl.textContent = "";
+      if (actionEl) {
+        if (actionEl.dataset) {
+          actionEl.dataset.focus = "";
+          actionEl.dataset.command = "";
+        }
+        if (actionEl.style) actionEl.style.display = "none";
+      }
       banner.style.display = 'none';
     }
   }
