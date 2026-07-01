@@ -641,7 +641,12 @@ function getRunObjectiveQueue(game) {
       command: codeConceptTarget.command,
       kind: codeConceptTarget.concept,
       source: "code-concept-target",
-      color: "#93c5fd"
+      color: "#93c5fd",
+      progress: {
+        value: codeConceptTarget.count,
+        target: codeConceptTarget.total,
+        label: `${codeConceptTarget.count}/${codeConceptTarget.total} ideas`
+      }
     });
   }
 
@@ -667,6 +672,39 @@ function getRunObjectiveQueue(game) {
   }));
 }
 
+function appendCodeConceptQueueCartridge(row, item) {
+  if (!row || !item || item.source !== "code-concept-target") return;
+  const progress = item.progress && typeof item.progress === "object" ? item.progress : null;
+  const total = Math.max(1, Math.floor(Number(progress && progress.target) || 4));
+  const value = Math.max(0, Math.min(total, Math.floor(Number(progress && progress.value) || 0)));
+  const cartridge = document.createElement("div");
+  cartridge.className = "code-concept-cartridge";
+
+  const head = document.createElement("div");
+  head.className = "code-concept-cartridge-head";
+  const label = document.createElement("span");
+  label.textContent = `IDEA ${value}/${total}`;
+  const concept = document.createElement("strong");
+  concept.textContent = item.kind || "CODE";
+  head.appendChild(label);
+  head.appendChild(concept);
+  cartridge.appendChild(head);
+
+  const pips = document.createElement("div");
+  pips.className = "code-concept-cartridge-pips";
+  for (let i = 0; i < total; i++) {
+    const pip = document.createElement("i");
+    pip.className = `code-concept-pip${i < value ? " filled" : (i === value ? " next" : "")}`;
+    pips.appendChild(pip);
+  }
+  cartridge.appendChild(pips);
+
+  const body = document.createElement("p");
+  body.textContent = `Lesson cartridge: ${item.title || "collect the next coding idea"}`;
+  cartridge.appendChild(body);
+  row.appendChild(cartridge);
+}
+
 function appendRunObjectiveQueueCard(listContainer, game) {
   if (!listContainer || !game) return;
   const queue = getRunObjectiveQueue(game);
@@ -688,7 +726,7 @@ function appendRunObjectiveQueueCard(listContainer, game) {
   list.className = "run-objective-queue-list";
   queue.forEach(item => {
     const row = document.createElement("div");
-    row.className = `run-objective-queue-item${item.disabled ? " disabled" : ""}`;
+    row.className = `run-objective-queue-item${item.disabled ? " disabled" : ""}${item.source === "code-concept-target" ? " code-concept-queue-item" : ""}`;
 
     const itemLabel = document.createElement("span");
     itemLabel.textContent = `#${item.priority} ${item.label}`;
@@ -705,6 +743,8 @@ function appendRunObjectiveQueueCard(listContainer, game) {
       reward.textContent = `${item.reward || "Reward ready"}${item.cta ? ` · ${item.cta}` : ""}`;
       row.appendChild(reward);
     }
+
+    appendCodeConceptQueueCartridge(row, item);
 
     if (item.command && !item.disabled) {
       const code = document.createElement("code");
@@ -3831,6 +3871,8 @@ function getActiveCodeConceptTarget(game = window.Game) {
     body: next.body,
     command,
     progress: `${progress.count}/${progress.total}`,
+    count: progress.count,
+    total: progress.total,
     reward: finalCard ? "Reward: code deck mastery" : "Reward: code concept card",
     color: "#93c5fd"
   };

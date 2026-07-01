@@ -4666,6 +4666,13 @@ html {
   background: rgba(71, 47, 11, 0.26);
 }
 
+.run-objective-queue-item.code-concept-queue-item {
+  border-color: rgba(147, 197, 253, 0.34);
+  background:
+    linear-gradient(180deg, rgba(30, 64, 175, 0.2), rgba(2, 6, 23, 0.5)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.026) 0 1px, transparent 1px 4px);
+}
+
 .run-objective-queue-item span,
 .run-objective-queue-item em {
   display: block;
@@ -4744,6 +4751,78 @@ html {
 .run-objective-queue-action-btn:hover {
   background: rgba(45, 212, 191, 0.82);
   color: #042f2e;
+}
+
+.code-concept-cartridge {
+  grid-column: 1;
+  min-width: 0;
+  border: 1px solid rgba(147, 197, 253, 0.24);
+  border-radius: 5px;
+  background: rgba(2, 6, 23, 0.5);
+  display: grid;
+  gap: 4px;
+  padding: 5px;
+}
+
+.code-concept-cartridge-head {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.code-concept-cartridge-head span,
+.code-concept-cartridge-head strong {
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  line-height: 1;
+}
+
+.code-concept-cartridge-head span {
+  color: #bfdbfe;
+  font-weight: 900;
+}
+
+.code-concept-cartridge-head strong {
+  color: #fef08a;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.code-concept-cartridge-pips {
+  display: grid;
+  gap: 3px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.code-concept-pip {
+  border: 1px solid rgba(147, 197, 253, 0.2);
+  border-radius: 2px;
+  display: block;
+  height: 5px;
+  min-width: 0;
+  background: rgba(15, 23, 42, 0.88);
+}
+
+.code-concept-pip.filled {
+  background: #93c5fd;
+  box-shadow: 0 0 8px rgba(147, 197, 253, 0.34);
+}
+
+.code-concept-pip.next {
+  background: #fef08a;
+  box-shadow: 0 0 8px rgba(254, 240, 138, 0.32);
+}
+
+.code-concept-cartridge p {
+  color: #dbeafe;
+  font-size: 0.54rem;
+  line-height: 1.2;
+  margin: 0;
+  min-width: 0;
 }
 
 .lesson-lens-card {
@@ -10468,6 +10547,8 @@ body.readable-text-mode .run-objective-queue-item p,
 body.readable-text-mode .run-objective-queue-item em,
 body.readable-text-mode .run-objective-queue-item code,
 body.readable-text-mode .run-objective-queue-action-btn,
+body.readable-text-mode .code-concept-cartridge-head,
+body.readable-text-mode .code-concept-cartridge p,
 body.readable-text-mode .lesson-lens-head,
 body.readable-text-mode .lesson-lens-card p,
 body.readable-text-mode .lesson-lens-card code,

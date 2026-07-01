@@ -2003,6 +2003,7 @@ function runEngineTests() {
 
   // Test 22a1d: Code Concept Deck makes programming ideas reviewable in the Log.
   const oldGetElementById22codeDeck = document.getElementById;
+  const oldCreateElement22codeDeck = document.createElement;
   const oldWindowGame22codeDeck = window.Game;
   try {
     const panel = {
@@ -2040,6 +2041,8 @@ function runEngineTests() {
     assertEquals("LOOP", target && target.concept, "Code Concept target should identify the next missing idea");
     assertEquals("repeat 3 { spawn_block() }", target && target.command, "Code Concept target should carry the runnable sample");
     assertEquals("Reward: code concept card", target && target.reward, "Code Concept target should name the next deck payoff");
+    assertEquals(1, target && target.count, "Code Concept target should expose collected count");
+    assertEquals(4, target && target.total, "Code Concept target should expose deck total");
 
     const queueGame = new StarHopperGame();
     queueGame.state = "playing";
@@ -2053,6 +2056,56 @@ function runEngineTests() {
     assertEquals("Collect Loop", queue[0] && queue[0].title, "Run objective queue should name the next Code Concept target");
     assertEquals("STAGE IDEA", queue[0] && queue[0].cta, "Run objective queue should expose a stage action for the next Code Concept");
     assertEquals("code-concept-target", queue[0] && queue[0].source, "Run objective queue should preserve Code Concept source metadata");
+    assertEquals(1, queue[0] && queue[0].progress && queue[0].progress.value, "Run objective queue should carry Code Concept pip progress");
+    assertEquals(4, queue[0] && queue[0].progress && queue[0].progress.target, "Run objective queue should carry Code Concept pip total");
+
+    const makeQueueEl = () => ({
+      className: "",
+      textContent: "",
+      innerHTML: "",
+      children: [],
+      style: {},
+      appendChild(child) { this.children.push(child); return child; },
+      addEventListener(event, handler) { this._events = this._events || {}; this._events[event] = handler; },
+      classList: { add: () => {}, remove: () => {}, toggle: () => {}, contains: () => false }
+    });
+    const flattenQueueText = (el) => [el.textContent || "", el.innerHTML || ""]
+      .concat((el.children || []).map(flattenQueueText))
+      .join(" ");
+    const findQueueByClass = (el, className) => {
+      if ((el.className || "").split(/\s+/).includes(className)) return el;
+      for (const child of el.children || []) {
+        const found = findQueueByClass(child, className);
+        if (found) return found;
+      }
+      return null;
+    };
+    const collectQueueByClass = (el, className, out = []) => {
+      if (!el) return out;
+      if ((el.className || "").split(/\s+/).includes(className)) out.push(el);
+      (el.children || []).forEach(child => collectQueueByClass(child, className, out));
+      return out;
+    };
+    const queuePanel = makeQueueEl();
+    document.createElement = () => makeQueueEl();
+    appendRunObjectiveQueueCard(queuePanel, queueGame);
+    const cartridge = findQueueByClass(queuePanel, "code-concept-cartridge");
+    const cartridgeText = flattenQueueText(cartridge || queuePanel);
+    assertEquals(true, !!cartridge, "Run objective queue should render a Code Concept lesson cartridge");
+    assertEquals(true, /IDEA 1\/4/.test(cartridgeText), "Code Concept cartridge should show deck progress");
+    assertEquals(true, /LOOP/.test(cartridgeText), "Code Concept cartridge should show the next concept key");
+    assertEquals(true, /Lesson cartridge: Collect Loop/.test(cartridgeText), "Code Concept cartridge should name the collectible lesson");
+    assertEquals(4, collectQueueByClass(cartridge, "code-concept-pip").length, "Code Concept cartridge should render one pip per idea");
+    assertEquals(1, collectQueueByClass(cartridge, "filled").length, "Code Concept cartridge should fill collected ideas");
+    assertEquals(1, collectQueueByClass(cartridge, "next").length, "Code Concept cartridge should mark the next idea");
+    const queueStageButton = findQueueByClass(queuePanel, "run-objective-queue-action-btn");
+    inputEl.value = "";
+    inputEl.focused = false;
+    queueStageButton._events.click();
+    assertEquals("repeat 3 { spawn_block() }", inputEl.value, "Code Concept cartridge action should stage the sample command");
+    assertEquals(true, inputEl.focused, "Code Concept cartridge action should focus the terminal");
+    assertEquals("code-concept-target", queueGame.lastStagedExperiment && queueGame.lastStagedExperiment.source, "Code Concept cartridge action should preserve the source metadata");
+    document.createElement = oldCreateElement22codeDeck;
 
     const radarGame = new StarHopperGame();
     const earthMission = PLANETS[0].missions.find(mission => mission.id === "earth-gravity-wall");
@@ -2091,10 +2144,12 @@ function runEngineTests() {
     assertEquals(true, /CODE DECK COMPLETE/.test(panel.innerHTML), "Complete Code Concept Deck should celebrate completion");
     assertEquals(false, /STAGE NEXT/.test(panel.innerHTML), "Complete Code Concept Deck should not show a stale next action");
     document.getElementById = oldGetElementById22codeDeck;
+    document.createElement = oldCreateElement22codeDeck;
     window.Game = oldWindowGame22codeDeck;
     renderTestResult("engine-suite", "Curriculum: Code Concept Deck reviews coding ideas", true);
   } catch (err) {
     document.getElementById = oldGetElementById22codeDeck;
+    document.createElement = oldCreateElement22codeDeck;
     window.Game = oldWindowGame22codeDeck;
     renderTestResult("engine-suite", "Curriculum: Code Concept Deck reviews coding ideas", false, err.message);
   }
