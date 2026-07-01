@@ -4430,6 +4430,36 @@ html {
   padding-left: 5px;
 }
 
+.lesson-phase-proof {
+  border: 1px solid rgba(103, 232, 249, 0.24);
+  border-radius: 4px;
+  background: rgba(8, 47, 73, 0.34);
+  display: grid;
+  gap: 1px;
+  padding: 4px 5px;
+}
+
+.lesson-phase-proof b {
+  color: #67e8f9;
+  font-size: 0.46rem;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.lesson-phase-proof span {
+  color: #dff6ff;
+  font-size: 0.52rem;
+  line-height: 1.18;
+  overflow-wrap: anywhere;
+}
+
+.lesson-phase-proof.complete {
+  border-color: rgba(134, 239, 172, 0.36);
+  background: rgba(20, 83, 45, 0.28);
+}
+
+.lesson-phase-proof.complete b { color: #86efac; }
+
 .lesson-phase-stage-btn {
   justify-self: start;
   min-height: 22px;
@@ -9754,6 +9784,8 @@ body.readable-text-mode .lesson-phase-detail b,
 body.readable-text-mode .lesson-phase-step em,
 body.readable-text-mode .lesson-phase-step code,
 body.readable-text-mode .lesson-phase-unlock,
+body.readable-text-mode .lesson-phase-proof b,
+body.readable-text-mode .lesson-phase-proof span,
 body.readable-text-mode .lesson-phase-stage-btn,
 body.readable-text-mode .mentor-signal-head,
 body.readable-text-mode .mentor-signal-copy strong,

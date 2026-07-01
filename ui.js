@@ -510,7 +510,8 @@ function getMissionLessonPhaseRows(game, fullMission) {
   if (!phases.length) return [];
   const rows = phases.map((phase, index) => {
     const locked = !!(phase.unlockAfterCheck && !missionResultCheckPassed(game, fullMission, phase.unlockAfterCheck));
-    const complete = !locked && !!(phase.checkId && missionResultCheckPassed(game, fullMission, phase.checkId));
+    const checkState = !locked && phase.checkId ? getMissionResultCheckState(game, fullMission, phase.checkId) : null;
+    const complete = !!(checkState && checkState.passed);
     const status = locked ? "locked" : (complete ? "complete" : "active");
     return {
       ...phase,
@@ -521,7 +522,9 @@ function getMissionLessonPhaseRows(game, fullMission) {
       detail: status === "locked"
         ? (phase.lockedHint || "Finish the previous phase to reveal this code.")
         : (status === "complete" ? (phase.payoff || phase.formula || "") : (phase.formula || phase.payoff || "")),
-      command: status === "locked" ? "" : (phase.command || "")
+      command: status === "locked" ? "" : (phase.command || ""),
+      proofLabel: checkState && checkState.label ? checkState.label : "",
+      proofText: checkState && checkState.message ? checkState.message : ""
     };
   });
   const lastCompleteIndex = rows.reduce((best, row) => row.status === "complete" ? row.index : best, -1);
@@ -561,6 +564,7 @@ function renderMissionLessonPhaseLadder(game, fullMission, label = "LESSON PATH"
             <strong>${escapeHTML(row.label || `Phase ${row.index + 1}`)}</strong>
             <div class="lesson-phase-detail"><b>${escapeHTML(row.cueLabel || "SCIENCE")}</b><em>${escapeHTML(row.detail || "")}</em></div>
             ${row.unlockLabel ? `<div class="lesson-phase-unlock">${escapeHTML(row.unlockLabel)}</div>` : ""}
+            ${row.proofText ? `<div class="lesson-phase-proof ${escapeHTML(row.status)}"><b>PROOF</b><span>${escapeHTML(row.proofText)}</span></div>` : ""}
             ${row.command ? `<code>${escapeHTML(row.command)}</code>` : ""}
             ${row.status === "active" && row.command ? `<button type="button" class="lesson-phase-stage-btn" data-lesson-phase-stage="${escapeHTML(String(row.index))}">STAGE</button>` : ""}
           </div>
@@ -3315,6 +3319,24 @@ function missionResultCheckPassed(game, fullMission, checkId) {
   } catch (err) {
     return false;
   }
+}
+
+function getMissionResultCheckState(game, fullMission, checkId) {
+  if (!game || !fullMission || !checkId || !Array.isArray(fullMission.resultChecks)) return null;
+  const check = fullMission.resultChecks.find(item => item && item.id === checkId);
+  if (!check || typeof check.check !== 'function') return null;
+  let passed = false;
+  try {
+    passed = !!check.check(game, Compiler);
+  } catch (err) {
+    passed = false;
+  }
+  return {
+    id: check.id,
+    label: check.label || "",
+    passed,
+    message: passed ? (check.success || "") : (check.waiting || "")
+  };
 }
 
 function getActiveScaffoldSlots(scaffold, game = null, fullMission = null) {
