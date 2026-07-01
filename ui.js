@@ -1975,6 +1975,7 @@ function getStagedExperimentSourceLabel(source) {
     "code-concept-deck": "Code concept",
     "code-concept-target": "Code concept",
     "code-concept-reward": "Code concept",
+    "clear-code-concept": "Code concept",
     "failure-lab": "Crash Lab",
     "signal-lab-contract": "Signal Lab",
     "start-anomaly-trace": "Anomaly Trace",

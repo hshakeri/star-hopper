@@ -2005,6 +2005,7 @@ function runEngineTests() {
   const oldGetElementById22codeDeck = document.getElementById;
   const oldCreateElement22codeDeck = document.createElement;
   const oldWindowGame22codeDeck = window.Game;
+  const oldSwitchMainMode22codeDeck = switchMainMode;
   try {
     const panel = {
       innerHTML: "",
@@ -2107,6 +2108,30 @@ function runEngineTests() {
     assertEquals("code-concept-target", queueGame.lastStagedExperiment && queueGame.lastStagedExperiment.source, "Code Concept cartridge action should preserve the source metadata");
     document.createElement = oldCreateElement22codeDeck;
 
+    const clearQueueGame = new StarHopperGame();
+    clearQueueGame.currentPlanet = PLANETS[0];
+    clearQueueGame.currentPlanetIndex = 0;
+    const clearQueue = clearQueueGame.getClearObjectiveQueue({ codeConceptTarget: target });
+    assertEquals("CODE CONCEPT", clearQueue[0] && clearQueue[0].label, "Clear objective queue should offer a Code Concept follow-up");
+    assertEquals("Collect Loop", clearQueue[0] && clearQueue[0].title, "Clear objective queue should name the next Code Concept");
+    assertEquals("STAGE IDEA", clearQueue[0] && clearQueue[0].cta, "Clear objective queue should expose the Code Concept stage action");
+    assertEquals("code-concept", clearQueue[0] && clearQueue[0].action, "Clear objective queue should preserve Code Concept action metadata");
+    clearQueueGame.lastClearObjectiveQueue = clearQueue;
+    clearQueueGame.lastClearCodeConceptTarget = target;
+    window.Game = clearQueueGame;
+    const clearModes = [];
+    switchMainMode = (mode) => { clearModes.push(mode); };
+    inputEl.value = "";
+    inputEl.focused = false;
+    assertEquals(true, clearQueueGame.runClearObjectiveQueueAction(1), "Clear Code Concept queue action should dispatch");
+    assertEquals("terminal", clearModes[0], "Clear Code Concept action should return to the terminal");
+    assertEquals("repeat 3 { spawn_block() }", inputEl.value, "Clear Code Concept action should stage the sample command");
+    assertEquals(true, inputEl.focused, "Clear Code Concept action should focus the terminal");
+    assertEquals("clear-code-concept", clearQueueGame.lastStagedExperiment && clearQueueGame.lastStagedExperiment.source, "Clear Code Concept action should preserve its source");
+    assertEquals("Code concept", getStagedExperimentSourceLabel(clearQueueGame.lastStagedExperiment.source), "Clear Code Concept staged reminder should name the source");
+    window.Game = oldWindowGame22codeDeck;
+    switchMainMode = oldSwitchMainMode22codeDeck;
+
     const radarGame = new StarHopperGame();
     const earthMission = PLANETS[0].missions.find(mission => mission.id === "earth-gravity-wall");
     radarGame.currentPlanet = PLANETS[0];
@@ -2146,11 +2171,13 @@ function runEngineTests() {
     document.getElementById = oldGetElementById22codeDeck;
     document.createElement = oldCreateElement22codeDeck;
     window.Game = oldWindowGame22codeDeck;
+    switchMainMode = oldSwitchMainMode22codeDeck;
     renderTestResult("engine-suite", "Curriculum: Code Concept Deck reviews coding ideas", true);
   } catch (err) {
     document.getElementById = oldGetElementById22codeDeck;
     document.createElement = oldCreateElement22codeDeck;
     window.Game = oldWindowGame22codeDeck;
+    switchMainMode = oldSwitchMainMode22codeDeck;
     renderTestResult("engine-suite", "Curriculum: Code Concept Deck reviews coding ideas", false, err.message);
   }
 

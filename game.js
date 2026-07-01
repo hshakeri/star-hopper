@@ -4611,7 +4611,7 @@ class StarHopperGame {
     };
   }
 
-  getClearObjectiveQueue({ replayContract = null, explainPrompt = null, storyUnlock = null, storyPreview = null, labChainTarget = null, villageTrust = null } = {}) {
+  getClearObjectiveQueue({ replayContract = null, explainPrompt = null, storyUnlock = null, storyPreview = null, labChainTarget = null, codeConceptTarget = null, villageTrust = null } = {}) {
     const queue = [];
     const add = (item) => {
       if (!item || !item.title) return;
@@ -4673,6 +4673,17 @@ class StarHopperGame {
       });
     }
 
+    if (codeConceptTarget && codeConceptTarget.command) {
+      add({
+        label: "CODE CONCEPT",
+        title: `Collect ${codeConceptTarget.title}`,
+        body: `${codeConceptTarget.body || "Practice the next coding idea."} Try ${codeConceptTarget.command}.`,
+        reward: codeConceptTarget.reward || "Reward: code concept card",
+        cta: "STAGE IDEA",
+        action: "code-concept"
+      });
+    }
+
     const aiDeck = typeof getAIStateDeckProgress === 'function' ? getAIStateDeckProgress(this) : null;
     const aiAction = typeof getAIStateDeckAction === 'function' && aiDeck && aiDeck.nextCard
       ? getAIStateDeckAction(this, aiDeck.nextCard.id)
@@ -4720,6 +4731,17 @@ class StarHopperGame {
     });
   }
 
+  runClearCodeConceptTarget(target = this.lastClearCodeConceptTarget) {
+    if (!target || !target.command || typeof stageScienceDeltaCommand !== 'function') return false;
+    if (typeof switchMainMode === 'function') switchMainMode('terminal');
+    return stageScienceDeltaCommand(target.command, {
+      title: `Code Concept: ${target.title || "Coding idea"}`,
+      kind: target.concept || "code-concept",
+      source: "clear-code-concept",
+      color: target.color || "#93c5fd"
+    });
+  }
+
   runClearObjectiveQueueAction(priorityOrAction = 1) {
     const queue = Array.isArray(this.lastClearObjectiveQueue) ? this.lastClearObjectiveQueue : [];
     const item = typeof priorityOrAction === "number"
@@ -4729,6 +4751,7 @@ class StarHopperGame {
     if (item.action === "replay") return this.runClearReplayContract(this.lastClearReplayContract);
     if (item.action === "explain") return this.runClearExplainPrompt({ preserveReflectionContext: !!item.preserveReflectionContext });
     if (item.action === "lab-chain") return this.runClearLabChainTarget(this.lastClearLabChainTarget);
+    if (item.action === "code-concept") return this.runClearCodeConceptTarget(this.lastClearCodeConceptTarget);
     if (item.action === "ai-state") return this.runClearCadetAIAction(item.cardId || null);
     if (item.action === "story") {
       if (typeof switchMainMode === 'function') switchMainMode('notebook');
@@ -7436,12 +7459,18 @@ class StarHopperGame {
     const villageTrust = typeof this.getVillageTrustProgress === 'function' ? this.getVillageTrustProgress(this.currentPlanetIndex) : null;
     const labChainTarget = typeof getLabChainTarget === 'function' ? getLabChainTarget(this) : null;
     this.lastClearLabChainTarget = labChainTarget;
+    const pendingFormulaTarget = typeof getActiveFormulaTarget === 'function' ? getActiveFormulaTarget(this) : null;
+    const codeConceptTarget = !pendingFormulaTarget && typeof getActiveCodeConceptTarget === 'function'
+      ? getActiveCodeConceptTarget(this)
+      : null;
+    this.lastClearCodeConceptTarget = codeConceptTarget;
     const objectiveQueue = this.getClearObjectiveQueue({
       replayContract,
       explainPrompt,
       storyUnlock,
       storyPreview,
       labChainTarget,
+      codeConceptTarget,
       villageTrust
     });
     this.lastClearObjectiveQueue = objectiveQueue;
