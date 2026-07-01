@@ -36,6 +36,47 @@ function enrichDiagnosisChoices(choices) {
   }));
 }
 
+function diagnosisEscapeHTML(value) {
+  if (typeof escapeHTML === "function") return escapeHTML(value);
+  return String(value == null ? "" : value).replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#39;"
+  }[ch]));
+}
+
+function diagnosisFirstCommand(choices) {
+  const first = (choices || []).find((choice) => choice && String(choice.command || "").trim());
+  return first ? String(first.command).trim() : "";
+}
+
+function getFailureRetryLadder(diagnosis) {
+  const choices = diagnosis && Array.isArray(diagnosis.choices) ? diagnosis.choices : [];
+  const command = diagnosisFirstCommand(choices);
+  const prediction = choices
+    .map((choice) => choice && (choice.prediction || diagnosisPredictionForCommand(choice.command)))
+    .find(Boolean);
+  return [
+    {
+      label: "1 PREDICT",
+      value: prediction ? `${prediction} result` : "route/timing",
+      state: prediction || "route"
+    },
+    {
+      label: "2 STAGE",
+      value: command || "choose a route fix",
+      state: command ? "code" : "route"
+    },
+    {
+      label: "3 TEST",
+      value: command ? "press Enter -> repair proof" : "retry -> compare",
+      state: "test"
+    }
+  ];
+}
+
 function diagnoseFailure(game) {
   const f = (game && game.lastFailure) || {};
   const tag = f.tag || "unknown";
@@ -190,6 +231,7 @@ function renderFailureLab(game) {
   const causeEl = document.getElementById("failure-cause");
   const msgEl = document.getElementById("failure-msg");
   const formulaEl = document.getElementById("failure-formula");
+  const ladderEl = document.getElementById("failure-retry-ladder");
   const choicesEl = document.getElementById("failure-choices");
   const hypothesisEl = document.getElementById("failure-hypothesis");
 
@@ -199,6 +241,16 @@ function renderFailureLab(game) {
   if (formulaEl) {
     formulaEl.textContent = d.formula || "";
     formulaEl.style.display = d.formula ? "block" : "none";
+  }
+  if (ladderEl) {
+    const ladder = getFailureRetryLadder(d);
+    ladderEl.innerHTML = ladder.map((step) => `
+      <span class="${diagnosisEscapeHTML(step.state || "")}">
+        <b>${diagnosisEscapeHTML(step.label)}</b>
+        <em>${diagnosisEscapeHTML(step.value)}</em>
+      </span>
+    `).join("");
+    ladderEl.style.display = ladder.length ? "grid" : "none";
   }
   if (choicesEl) {
     choicesEl.innerHTML = "";
@@ -310,7 +362,8 @@ if (typeof window !== "undefined") {
   window.diagnoseFailure = diagnoseFailure;
   window.renderFailureLab = renderFailureLab;
   window.stageDiagnosisFix = stageDiagnosisFix;
+  window.getFailureRetryLadder = getFailureRetryLadder;
 }
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { diagnoseFailure, renderFailureLab, stageDiagnosisFix, diagnosisPredictionForCommand };
+  module.exports = { diagnoseFailure, renderFailureLab, stageDiagnosisFix, diagnosisPredictionForCommand, getFailureRetryLadder };
 }

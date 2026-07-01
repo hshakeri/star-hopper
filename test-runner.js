@@ -11642,6 +11642,11 @@ function runDiagnosticsTests() {
     assertEquals(true, /timing/i.test(dEnemy.title), "Enemy death should coach timing: " + dEnemy.title);
     assertEquals(true, /stomp/i.test(dEnemy.message), "Enemy death should mention stomping");
     assertEquals(true, /Control or timing/i.test(dOk.title), "Strong build should fall back to route/timing: " + dOk.title);
+    const routeLadder = getFailureRetryLadder(dEnemy);
+    assertEquals("1 PREDICT", routeLadder[0].label, "Route fallback still starts with a prediction step");
+    assertEquals("route/timing", routeLadder[0].value, "Route fallback predicts the route/timing outcome");
+    assertEquals("choose a route fix", routeLadder[1].value, "Route fallback stages a route decision instead of fake code");
+    assertEquals("retry -> compare", routeLadder[2].value, "Route fallback still ends with a comparison test");
     renderTestResult(SUITE, "Diagnosis: healthy build falls back to timing advice", true);
   } catch (err) {
     renderTestResult(SUITE, "Diagnosis: healthy build falls back to timing advice", false, err.message);
@@ -11692,6 +11697,7 @@ function runDiagnosticsTests() {
     const cause = makeEl();
     const msg = makeEl();
     const formula = makeEl();
+    const retryLadder = makeEl();
     const choices = makeEl();
     const input = makeEl();
     const hypLabel = makeEl();
@@ -11705,6 +11711,7 @@ function runDiagnosticsTests() {
       "failure-cause": cause,
       "failure-msg": msg,
       "failure-formula": formula,
+      "failure-retry-ladder": retryLadder,
       "failure-choices": choices,
       "failure-hypothesis": hypothesis,
       "console-input": input
@@ -11725,6 +11732,11 @@ function runDiagnosticsTests() {
     }));
 
     assertEquals(true, choices.children.length >= 1, "Crash lab should render at least one staged fix");
+    assertEquals("grid", retryLadder.style.display, "Crash Lab should show the retry ladder");
+    assertEquals(true, /1 PREDICT/.test(retryLadder.innerHTML), "Retry ladder should show the prediction step");
+    assertEquals(true, /higher result/.test(retryLadder.innerHTML), "Retry ladder should name the recommended outcome");
+    assertEquals(true, /2 STAGE/.test(retryLadder.innerHTML) && /hopper\.mass/.test(retryLadder.innerHTML), "Retry ladder should show the staged code");
+    assertEquals(true, /3 TEST/.test(retryLadder.innerHTML) && /repair proof/.test(retryLadder.innerHTML), "Retry ladder should point to repair proof testing");
     const firstFix = choices.children[0];
     assertEquals("higher", firstFix.dataset.prediction, "Jump-arc fix should recommend a higher-height hypothesis");
     assertEquals(true, hypButtons[0].classList.contains("recommended"), "Higher hypothesis button is marked as recommended");

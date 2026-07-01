@@ -2927,6 +2927,52 @@ body.resizing-panes * {
   padding: 5px 8px;
   margin-top: 8px;
 }
+.failure-retry-ladder {
+  display: none;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 9px;
+}
+.failure-retry-ladder span {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 7px;
+  background: rgba(15, 23, 42, 0.66);
+  border: 1px solid rgba(125, 211, 252, 0.34);
+  border-radius: 8px;
+  box-shadow: inset 0 0 14px rgba(56, 189, 248, 0.08);
+}
+.failure-retry-ladder span.higher,
+.failure-retry-ladder span.lower,
+.failure-retry-ladder span.same {
+  border-color: rgba(250, 204, 21, 0.44);
+}
+.failure-retry-ladder span.code {
+  border-color: rgba(74, 222, 128, 0.48);
+}
+.failure-retry-ladder span.test {
+  border-color: rgba(250, 204, 21, 0.5);
+}
+.failure-retry-ladder b {
+  color: var(--neon-yellow);
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0;
+  line-height: 1.15;
+}
+.failure-retry-ladder em {
+  color: #e0f2fe;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-style: normal;
+  line-height: 1.25;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .failure-choices {
   display: none;
   flex-wrap: wrap;
@@ -3023,6 +3069,12 @@ body.resizing-panes * {
 .hypothesis-btn.recommended::after {
   content: " try";
   color: var(--neon-yellow);
+}
+
+@media (max-width: 520px) {
+  .failure-retry-ladder {
+    grid-template-columns: 1fr;
+  }
 }
 .hypothesis-btn.selected {
   background: var(--neon-cyan);
