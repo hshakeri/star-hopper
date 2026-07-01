@@ -78,6 +78,7 @@ function updateNotebook(game) {
     researchEl.textContent = `${Math.round(game.researchXP || 0)} XP`;
   }
   updateResearchProgress(game);
+  updateFutureLabRoadmap(game);
   updateSciencePassport(game);
   updateVillageAlmanac(game);
 
@@ -749,6 +750,167 @@ function runSciencePassportAction(levelIndex = null, game = window.Game) {
   game.startLevel(action.levelIndex);
   if (typeof switchMainMode === 'function') switchMainMode('terminal');
   return true;
+}
+
+function getFutureLabRoadmapStages(game = window.Game) {
+  const fullMap = typeof hasClearedFullStarMap === 'function' ? hasClearedFullStarMap : null;
+  const frontierCredit = typeof hasFrontierStoryCredit === 'function' ? hasFrontierStoryCredit : null;
+  const traceCredit = typeof hasAnomalyTraceStoryCredit === 'function' ? hasAnomalyTraceStoryCredit : null;
+  const darkMatterEvidence = typeof hasDarkMatterPrepEvidenceCredit === 'function' ? hasDarkMatterPrepEvidenceCredit : null;
+  const quantumBranch = typeof hasQuantumBranchProofCredit === 'function' ? hasQuantumBranchProofCredit : null;
+  const quantumChance = typeof hasQuantumChanceProofCredit === 'function' ? hasQuantumChanceProofCredit : null;
+  const complete = {
+    starMap: fullMap ? !!fullMap(game) : false,
+    echo: frontierCredit ? !!frontierCredit(game) : false,
+    trace: traceCredit ? !!traceCredit(game) : false,
+    darkMatter: darkMatterEvidence ? !!darkMatterEvidence(game) : false,
+    branch: quantumBranch ? !!quantumBranch(game) : false,
+    chance: quantumChance ? !!quantumChance(game) : false
+  };
+  const stages = [
+    {
+      id: "star-map",
+      title: "Restore the star-map",
+      concept: "Six worlds combine into one science model.",
+      action: "Clear each passport world to unlock future lab signals.",
+      reward: "Reward: Frontier Challenge",
+      complete: complete.starMap,
+      actionType: "passport",
+      cta: "RUN NEXT STAMP"
+    },
+    {
+      id: "dark-matter-echo",
+      title: "Decode Dark Matter Echo",
+      concept: "Infer hidden forces from motion.",
+      action: "Clear one Frontier Challenge and bank stars/time evidence.",
+      reward: "Reward: Dark Matter Echo",
+      complete: complete.echo,
+      actionType: "frontier",
+      cta: "RUN FRONTIER"
+    },
+    {
+      id: "hidden-force-trace",
+      title: "Trace hidden force",
+      concept: "Prototype an invisible field with event code.",
+      action: "Stage the Mag-Net touch rule and test the anomaly.",
+      reward: "Reward: Hidden Force Trace",
+      complete: complete.trace,
+      actionType: "anomaly",
+      levelIndex: 4,
+      command: "use_hopper()\nwhen player.touching('magnet'): hopper.pole = 'south'",
+      cta: "TRACE FORCE"
+    },
+    {
+      id: "dark-matter-evidence",
+      title: "Bank curve evidence",
+      concept: "Compare path curve, speed, and force changes.",
+      action: "Run a tagged Frontier prep remix for Dark Matter Lab.",
+      reward: "Reward: hidden-force evidence",
+      complete: complete.darkMatter,
+      actionType: "dark-matter-prep",
+      cta: "RUN PREP"
+    },
+    {
+      id: "quantum-branch",
+      title: "Seed a branch condition",
+      concept: "One condition chooses one code path.",
+      action: "Set fuel low, then let an if rule choose the warning path.",
+      reward: "Reward: Branch Lab card",
+      complete: complete.branch,
+      actionType: "quantum-branch",
+      levelIndex: 0,
+      command: "player.fuel = 40\nif player.fuel < 50: player.say('branch A')",
+      cta: "TEST BRANCH"
+    },
+    {
+      id: "quantum-chance",
+      title: "Seed chance probability",
+      concept: "Probability is a branch measured over trials.",
+      action: "Run chance(50) to make repeated code produce measurable outcomes.",
+      reward: "Reward: Probability Lab card",
+      complete: complete.chance,
+      actionType: "quantum-chance",
+      levelIndex: 0,
+      command: "if chance(50): player.say('path A')",
+      cta: "TEST CHANCE"
+    }
+  ];
+  let unlocked = true;
+  let nextAssigned = false;
+  return stages.map((stage, index) => {
+    const status = stage.complete ? "done" : (unlocked && !nextAssigned ? "next" : "locked");
+    if (status === "next") nextAssigned = true;
+    unlocked = unlocked && !!stage.complete;
+    return {
+      ...stage,
+      index: index + 1,
+      status
+    };
+  });
+}
+
+function runFutureLabRoadmapAction(stageId = null, game = window.Game) {
+  const stages = getFutureLabRoadmapStages(game);
+  const target = (stageId && stages.find(stage => stage.id === stageId)) || stages.find(stage => stage.status === "next");
+  if (!target || target.status === "locked") return false;
+  if (target.actionType === "passport" && typeof runSciencePassportAction === 'function') {
+    return runSciencePassportAction(null, game);
+  }
+  if ((target.actionType === "frontier" || target.actionType === "dark-matter-prep") && game && typeof game.startFrontierChallenge === 'function') {
+    return game.startFrontierChallenge(target.actionType === "dark-matter-prep" ? { source: "dark-matter-prep" } : undefined) !== false;
+  }
+  const stageCommand = String(target.command || "").trim();
+  const stageSource = target.actionType === "anomaly"
+    ? "start-anomaly-trace"
+    : (target.actionType === "quantum-branch" ? "start-quantum-branch" : "start-quantum-chance");
+  if (stageCommand && typeof stageScienceDeltaCommand === 'function') {
+    stageScienceDeltaCommand(stageCommand, {
+      title: target.title,
+      kind: target.actionType,
+      source: stageSource,
+      color: target.actionType === "anomaly" ? "#818cf8" : "#22d3ee"
+    });
+  }
+  if (game && typeof game.startLevel === 'function') {
+    game.startLevel(Number.isFinite(Number(target.levelIndex)) ? Number(target.levelIndex) : 0);
+    return true;
+  }
+  return !!stageCommand;
+}
+
+function updateFutureLabRoadmap(game = window.Game) {
+  const panel = document.getElementById("future-lab-roadmap-panel");
+  if (!panel) return;
+  const stages = getFutureLabRoadmapStages(game);
+  const done = stages.filter(stage => stage.status === "done").length;
+  const next = stages.find(stage => stage.status === "next") || stages[stages.length - 1] || null;
+  const action = next && next.status !== "done" ? next : null;
+  panel.innerHTML = `
+    <div class="future-lab-roadmap-head">
+      <div>
+        <span>FUTURE LAB SEEDS</span>
+        <strong>${escapeHTML(`${done}/${stages.length} proofs banked`)}</strong>
+      </div>
+      <div class="future-lab-roadmap-next">
+        <em>${escapeHTML(next ? `${next.title}: ${next.concept}` : "Future lab record complete")}</em>
+        ${action ? `<button type="button" class="future-lab-roadmap-btn" data-stage="${escapeHTML(action.id)}" onclick="runFutureLabRoadmapAction('${escapeHTML(action.id)}')">${escapeHTML(action.cta || "RUN NEXT")}</button>` : ""}
+      </div>
+    </div>
+    <div class="future-lab-roadmap-track">
+      ${stages.map(stage => `
+        <div class="future-lab-roadmap-stage ${escapeHTML(stage.status)}">
+          <span class="future-lab-roadmap-index">${stage.status === "done" ? "OK" : String(stage.index).padStart(2, "0")}</span>
+          <div>
+            <span class="future-lab-roadmap-state">${escapeHTML(stage.status === "done" ? "PROOF BANKED" : (stage.status === "next" ? "NEXT SEED" : "LOCKED"))}</span>
+            <strong>${escapeHTML(stage.title)}</strong>
+            <p>${escapeHTML(stage.concept)}</p>
+            <code>${escapeHTML(stage.action)}</code>
+            <em>${escapeHTML(stage.reward)}</em>
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  `;
 }
 
 function updateSciencePassport(game = window.Game) {

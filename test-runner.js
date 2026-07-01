@@ -2847,6 +2847,70 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: signal story tracks science progression", false, err.message);
   }
 
+  // Test 22cb1: Future Lab Roadmap turns Dark Matter / Quantum prep into a visible proof ladder.
+  const oldGetElementById22cbr = document.getElementById;
+  try {
+    const panel = { innerHTML: "" };
+    document.getElementById = (id) => id === "future-lab-roadmap-panel" ? panel : null;
+    const fullStarMap = {
+      planetClears: { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 },
+      frontierRecords: {},
+      discoveryPassCounts: {},
+      masteryMeters: {}
+    };
+    let stages = getFutureLabRoadmapStages(fullStarMap);
+    assertEquals("done", stages[0].status, "Roadmap should mark the restored star-map as banked");
+    assertEquals("next", stages[1].status, "Roadmap should make Dark Matter Echo the next seed after star-map completion");
+    assertEquals("locked", stages[2].status, "Roadmap should lock the trace until Frontier evidence exists");
+    updateFutureLabRoadmap(fullStarMap);
+    assertEquals(true, /FUTURE LAB SEEDS/.test(panel.innerHTML), "Roadmap should render the future-lab header");
+    assertEquals(true, /1\/6 proofs banked/.test(panel.innerHTML), "Roadmap should count banked future proofs");
+    assertEquals(true, /Dark Matter Echo/.test(panel.innerHTML), "Roadmap should name the next Dark Matter proof");
+    assertEquals(true, /RUN FRONTIER/.test(panel.innerHTML), "Roadmap should expose the next Frontier action");
+    const frontierStarts = [];
+    fullStarMap.startFrontierChallenge = (opts) => { frontierStarts.push(opts || null); return true; };
+    assertEquals(true, runFutureLabRoadmapAction("dark-matter-echo", fullStarMap), "Roadmap action should launch the Frontier proof");
+    assertEquals(1, frontierStarts.length, "Roadmap action should call startFrontierChallenge once");
+
+    const quantumBranchReady = {
+      ...fullStarMap,
+      frontierRecords: { "2026-06-30": { shareCode: "FRONTIER-EARTH-1234", stars: 2 } },
+      discoveryPassCounts: {
+        "anomaly-trace-proof:4:trace-hidden-force:test": 1,
+        "signal-lab-proof:frontier:frontier-earth-1234:t2:0:dark-matter-prep:curve": 1
+      }
+    };
+    stages = getFutureLabRoadmapStages(quantumBranchReady);
+    assertEquals("done", stages[1].status, "Roadmap should mark Dark Matter Echo complete after Frontier evidence");
+    assertEquals("done", stages[2].status, "Roadmap should mark the hidden-force trace complete after trace proof");
+    assertEquals("done", stages[3].status, "Roadmap should mark Dark Matter evidence complete after prep proof");
+    assertEquals("next", stages[4].status, "Roadmap should make Quantum branch the next seed after Dark Matter evidence");
+    updateFutureLabRoadmap(quantumBranchReady);
+    assertEquals(true, /Seed a branch condition/.test(panel.innerHTML), "Roadmap should show the Quantum branch target");
+    assertEquals(true, /TEST BRANCH/.test(panel.innerHTML), "Roadmap should expose the Quantum branch action");
+    assertEquals(true, /Branch Lab card/.test(panel.innerHTML), "Roadmap should show the branch formula payoff");
+
+    const quantumSourceReady = {
+      ...quantumBranchReady,
+      discoveryPassCounts: {
+        ...quantumBranchReady.discoveryPassCounts,
+        "quantum-branch-proof:0:test-a-branch-condition:test": 1,
+        "quantum-chance-proof:0:test-chance-branch:test": 1
+      }
+    };
+    stages = getFutureLabRoadmapStages(quantumSourceReady);
+    assertEquals(6, stages.filter(stage => stage.status === "done").length, "Roadmap should mark all future proof seeds as banked");
+    updateFutureLabRoadmap(quantumSourceReady);
+    assertEquals(true, /6\/6 proofs banked/.test(panel.innerHTML), "Roadmap should render complete future-lab progress");
+    assertEquals(false, /future-lab-roadmap-btn/.test(panel.innerHTML), "Complete roadmap should not show a redundant action button");
+
+    document.getElementById = oldGetElementById22cbr;
+    renderTestResult("engine-suite", "Curriculum: future lab roadmap tracks prep proofs", true);
+  } catch (err) {
+    document.getElementById = oldGetElementById22cbr;
+    renderTestResult("engine-suite", "Curriculum: future lab roadmap tracks prep proofs", false, err.message);
+  }
+
   // Test 22cb2: Narrative spine uses the active cadet callsign, Vector CRT voice, suit quips, and final hero copy.
   const oldProfiles22cb2 = window.StarHopperProfiles;
   try {
