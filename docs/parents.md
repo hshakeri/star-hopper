@@ -30,6 +30,7 @@ You do not need to be a physics professor to help. Use these four prompts to gui
 
 ## 📚 Key Space Science Terms to Use Together
 * **Gravity ($g$)**: The invisible pulling force between objects. Higher gravity pulls you down faster; zero gravity lets you float.
+* **Mass ($m$)**: How hard an object is to accelerate. A heavier Hopper needs more force to speed up or jump, but the same gravity gives Star and Hopper the same free-fall acceleration.
 * **Friction ($\mu$)**: The resistance force when two surfaces slide past each other. Ice has low friction (slippery); ground has high friction (sticky).
 * **Kinetic Energy ($KE$)**: Energy of motion. The faster the ship or character moves, the higher their kinetic energy.
 * **Potential Energy ($PE$)**: Stored energy based on height. The higher the platform, the more potential energy they have.

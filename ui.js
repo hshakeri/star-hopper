@@ -1690,7 +1690,7 @@ const MENTOR_SIGNAL_PROFILES = {
   mass: {
     role: "Machinist Geary",
     mark: "E",
-    line: "Less mass lets the same push accelerate Hopper harder.",
+    line: "Less mass lets the same push accelerate Hopper harder; gravity still controls free fall.",
     reward: "Open lighter-build routes"
   },
   engine: {
@@ -3480,8 +3480,8 @@ const DISCOVERY_RULES = [
     pattern: /\bhopper\.mass\s*=/i,
     title: "Mass Lab",
     formula: "a = F / m",
-    insight: "Lower mass makes the same engine and jump force create more acceleration.",
-    cue: "Watch speed and jump height change when mass changes.",
+    insight: "Lower mass makes the same engine and jump force create more acceleration; it does not make free fall slower or faster.",
+    cue: "Watch speed and jump height change when mass changes. Gravity still sets falling acceleration.",
     axis: "Mass controls acceleration",
     move: "Tune hopper.mass once",
     payoff: "Open lighter-build routes",
@@ -6533,7 +6533,13 @@ function buildScienceDelta(game, before, after, code) {
     });
   }
 
-  add(makeScienceDeltaChange("Mass", before.mass, after.mass, "More inertia: harder to speed up.", "Less mass: same force makes more acceleration."));
+  add(makeScienceDeltaChange(
+    "Mass",
+    before.mass,
+    after.mass,
+    "More inertia: harder to speed up; gravity still sets falling acceleration.",
+    "Less mass: same force makes more acceleration; gravity still sets falling acceleration."
+  ));
   add(makeScienceDeltaChange("Engine force", before.engine, after.engine, "More force raises top speed.", "Less force lowers top speed."));
   add(makeScienceDeltaChange("Jump force", before.jump, after.jump, "Bigger upward impulse.", "Smaller upward impulse."));
   add(makeScienceDeltaChange("Rocket power", before.rocket, after.rocket, "More thrust for heavy worlds.", "Less thrust saves fuel but lifts less."));

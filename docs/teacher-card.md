@@ -39,5 +39,5 @@
 ## 📝 Classroom Inquiry Assessment Questions
 
 1.  *Where in a character's jump arc is Potential Energy (PE) at its absolute maximum? Where is Kinetic Energy (KE) largest?*
-2.  *Why does the heavy Hopper character fall much faster and jump lower than Star when using identical gravity?* (Hint: Resistance to acceleration is proportional to mass).
+2.  *Why does heavy Hopper jump lower or accelerate less from the same engine force, while falling at the same rate as Star under identical gravity?* (Hint: mass resists force-driven acceleration; gravity sets free fall).
 3.  *What happens to the spaceship trajectory vector when engine thrust is fired perpendicular to gravity vs. directly parallel?*

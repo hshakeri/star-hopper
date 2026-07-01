@@ -2141,6 +2141,9 @@ function runEngineTests() {
 
     assertEquals("mass", firstPulse.kind, "Mass command should map to the mass science rule");
     assertEquals(true, firstPulse.formula.indexOf("F / m") >= 0, "Pulse should expose the force/mass formula");
+    assertEquals(true, /free fall|falling acceleration/.test(`${firstPulse.insight} ${firstPulse.cue}`), "Mass Lab should guard against the heavy-falls-faster misconception");
+    const massDelta = buildScienceDelta(game, { mass: 2.5 }, { mass: 1.2 }, "hopper.mass = 1.2");
+    assertEquals(true, /gravity still sets falling acceleration/.test(massDelta && massDelta.changes && massDelta.changes[0] && massDelta.changes[0].cue), "Mass science delta should explain that gravity, not mass, controls free-fall acceleration");
     assertEquals(true, !!firstPulse.cardUnlocked, "First real mass progress should unlock the mass formula card");
     assertEquals(true, game.discoveredFormulaKinds.has("mass"), "Mass formula should be collected");
     assertEquals(1, game.formulaCardEffects.length, "Formula card unlock should spawn an in-world card effect");

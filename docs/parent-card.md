@@ -7,6 +7,7 @@ Welcome to the Star Hopper Flight Deck! Star Hopper is a programmable physics pl
 ## 🔬 Core Vocabulary to Use Together
 
 *   **Gravity ($g$):** The downward pulling force. Lower gravity lets you jump higher and float; higher gravity pulls you down quickly.
+*   **Mass ($m$):** How hard an object is to accelerate. More mass needs more force to speed up or jump, but it does not make free fall faster under the same gravity.
 *   **Friction ($\mu$):** The resistance force that opposes sliding. Ice has low friction (slippery); earth/dirt has high friction (sticky).
 *   **Kinetic Energy ($KE$):** Energy of movement. Fast speeds produce high Kinetic Energy.
 *   **Potential Energy ($PE$):** Stored energy based on height. High platforms store high Potential Energy.

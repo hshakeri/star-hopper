@@ -41,5 +41,5 @@ graph TD
 ## 📝 Inquiry & Reflection Assessment Prompts
 Use these questions to prompt students during lab reviews:
 1. *"When Star jumped, at what point in the trajectory was Potential Energy ($PE$) at its absolute maximum? What about Kinetic Energy ($KE$)?"*
-2. *"Why does Hopper require a different gravity setting than Star to reach the same height?"* (Answers should reference character mass: Star is $1.0$, Hopper is $2.5$).
+2. *"Why does Hopper need different force or mass tuning than Star to reach the same height, even though both fall at the same rate under the same gravity?"* (Answers should reference mass resisting acceleration: Star is $1.0$, Hopper is $2.5$).
 3. *"Describe how friction on planet Glacies behaves differently than on the Moon. What happens if friction is set to negative?"*
