@@ -3208,6 +3208,7 @@ function runEngineTests() {
     assertEquals("Mass Lab", cue.title, "Objective compass should name the queued experiment");
     assertEquals("hopper.mass = 1.0", cue.commandLine, "Objective compass should show the first runnable command");
     assertEquals("mentor-signal", cue.source, "Objective compass should preserve queue source metadata");
+    assertEquals(true, /READY TO TEST:Mass Lab/.test(cue.key), "Objective compass should expose a stable key for transition feedback");
     assertEquals(true, cue.queueCount >= 2, "Objective compass should know when more queued objectives follow");
     assertEquals("PREDICT", cue.trail[0] && cue.trail[0].label, "Objective compass trail should mirror the second ranked objective");
     assertEquals(true, /#2 PREDICT/.test(cue.trailLabel), "Objective compass trail should summarize the next queued step");
@@ -3233,6 +3234,12 @@ function runEngineTests() {
     assertEquals(true, labels.includes("hopper.mass = 1.0"), "Compass draw should write the command line");
     assertEquals(true, labels.some(text => /NEXT #2 PREDICT/.test(text)), "Compass draw should show the next queued objective trail");
     assertEquals("READY TO TEST", game.lastRunObjectiveCompassCue && game.lastRunObjectiveCompassCue.label, "Drawing should cache the visible objective cue");
+    assertEquals(0, drawn.flashFrames, "First compass draw should not pretend the objective changed");
+    game.lastStagedExperiment = null;
+    const nextDrawn = game.drawRunObjectiveCompass(fakeCtx);
+    assertEquals("PREDICT", nextDrawn.label, "Compass should advance to the next queued objective when the staged item clears");
+    assertEquals(24, nextDrawn.flashFrames, "Changing the top objective should start the compass flash");
+    assertEquals(23, game.runObjectiveCompassFlash, "Compass flash timer should decay after drawing");
     game.state = 'start';
     assertEquals(null, game.getRunObjectiveCompassCue(), "Objective compass should stay out of non-playing screens");
     renderTestResult("engine-suite", "Curriculum: run objective compass mirrors queue", true);

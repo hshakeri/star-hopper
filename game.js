@@ -7993,6 +7993,7 @@ class StarHopperGame {
       .map(line => line.trim())
       .find(Boolean) || "";
     return {
+      key: `${item.label || "NEXT"}:${item.title || "Next objective"}:${commandLine || item.body || item.reward || ""}:${item.source || "run-objective-queue"}`,
       priority: item.priority || 1,
       label: item.label || "NEXT",
       cta: item.cta || (commandLine ? "STAGE" : "CHECK"),
@@ -8014,7 +8015,10 @@ class StarHopperGame {
 
   drawRunObjectiveCompass(ctx) {
     const cue = this.getRunObjectiveCompassCue();
-    if (!ctx || !cue || !this.canvas || !this.player) return null;
+    if (!ctx || !cue || !this.canvas || !this.player) {
+      this.lastRunObjectiveCompassKey = null;
+      return null;
+    }
     const W = this.canvas.width || 720;
     const H = this.canvas.height || 448;
     const p = this.player;
@@ -8026,18 +8030,34 @@ class StarHopperGame {
     const y = Math.max(64, Math.min(H - h - 16, py - 62));
     const color = cue.color || "#67e8f9";
     const pulse = this.reducedMotion ? 0.45 : 0.45 + 0.35 * Math.sin(Date.now() / 480);
+    const previousKey = this.lastRunObjectiveCompassKey || "";
+    if (previousKey && previousKey !== cue.key) {
+      this.runObjectiveCompassFlash = 24;
+    }
+    this.lastRunObjectiveCompassKey = cue.key;
+    const flashFrames = Math.max(0, Math.floor(Number(this.runObjectiveCompassFlash) || 0));
+    if (flashFrames > 0) this.runObjectiveCompassFlash = flashFrames - 1;
+    const flash = Math.max(0, Math.min(1, flashFrames / 24));
 
     ctx.save();
-    ctx.globalAlpha = cue.disabled ? 0.72 : 0.86;
+    ctx.globalAlpha = Math.min(0.96, (cue.disabled ? 0.72 : 0.86) + flash * 0.08);
     ctx.strokeStyle = cue.disabled ? "rgba(203, 213, 225, 0.52)" : color;
     ctx.fillStyle = "rgba(2, 6, 23, 0.68)";
-    ctx.shadowBlur = cue.disabled ? 0 : 8 + pulse * 4;
+    ctx.shadowBlur = cue.disabled ? 0 : 8 + pulse * 4 + flash * 8;
     ctx.shadowColor = color;
-    ctx.lineWidth = 1.3;
+    ctx.lineWidth = 1.3 + flash * 0.8;
     ctx.beginPath();
     ctx.roundRect(x, y, w, h, 8);
     ctx.fill();
     ctx.stroke();
+    if (flash > 0) {
+      ctx.globalAlpha = 0.34 * flash;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(x - 4 - flash * 4, y - 4 - flash * 3, w + 8 + flash * 8, h + 8 + flash * 6, 11);
+      ctx.stroke();
+    }
     ctx.shadowBlur = 0;
 
     ctx.globalAlpha = 0.22;
@@ -8085,7 +8105,7 @@ class StarHopperGame {
     ctx.stroke();
     ctx.restore();
 
-    this.lastRunObjectiveCompassCue = { ...cue, x, y, w, h };
+    this.lastRunObjectiveCompassCue = { ...cue, x, y, w, h, flashFrames };
     return this.lastRunObjectiveCompassCue;
   }
 
