@@ -2646,6 +2646,33 @@ function getStartSignalStoryPreview(game = window.Game) {
   };
 }
 
+function getCadetFutureLabPortfolioText(game = window.Game) {
+  if (!game) return "Future Lab pending";
+  if (typeof hasFutureLabSourceReflectionCredit === "function" && hasFutureLabSourceReflectionCredit(game)) {
+    return "Future Lab: Source Key complete";
+  }
+  if (typeof hasFutureLabSourceProofCredit === "function" && hasFutureLabSourceProofCredit(game)) {
+    return "Future Lab: explain Source Key";
+  }
+  if (typeof hasFutureLabSourceReady === "function" && hasFutureLabSourceReady(game)) {
+    return "Future Lab: run Source Key";
+  }
+  if (typeof getFutureLabRoadmapStages === "function") {
+    try {
+      const stages = getFutureLabRoadmapStages(game);
+      if (Array.isArray(stages) && stages.length) {
+        const done = stages.filter(stage => stage && stage.status === "done").length;
+        const next = stages.find(stage => stage && stage.status === "next");
+        const nextLabel = next && next.title ? ` · next ${next.title}` : "";
+        return `Future Lab ${done}/${stages.length} seeds${nextLabel}`;
+      }
+    } catch (err) {
+      // The Cadet Record should still render if the optional Log roadmap is unavailable.
+    }
+  }
+  return "Future Lab: seeds pending";
+}
+
 function getCadetIdentityPreview(game = window.Game) {
   const callsign = game && typeof game.getCadetCallsign === "function" ? game.getCadetCallsign() : "Cadet";
   const rank = typeof getResearchRank === "function"
@@ -2657,6 +2684,7 @@ function getCadetIdentityPreview(game = window.Game) {
     : `${game && game.discoveredFormulaKinds ? game.discoveredFormulaKinds.size : 0} formulas`;
   const story = typeof getSignalStoryProgress === "function" ? getSignalStoryProgress(game) : null;
   const transmissions = story ? `${story.unlocked.length}/${story.total} transmissions` : "0 transmissions";
+  const futureLab = getCadetFutureLabPortfolioText(game);
   const village = game && typeof game.getVillageTrustProgress === "function" ? game.getVillageTrustProgress(game.currentPlanetIndex) : null;
   const trust = village ? `${village.title} · ${village.points} trust` : "Village trust pending";
   const aiDeck = typeof getAIStateDeckProgress === "function" ? getAIStateDeckProgress(game) : null;
@@ -2687,7 +2715,7 @@ function getCadetIdentityPreview(game = window.Game) {
   return {
     label: "CADET RECORD",
     title: `${callsign} // ${rank.title}`,
-    body: `${Math.round(rank.xp || 0)} XP · ${formulas} · ${transmissions} · ${aiStates} · ${trust}`,
+    body: `${Math.round(rank.xp || 0)} XP · ${formulas} · ${transmissions} · ${futureLab} · ${aiStates} · ${trust}`,
     progress: Math.max(0, Math.min(1, Number(rank.progress) || 0)),
     aiAction
   };

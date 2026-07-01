@@ -1649,6 +1649,17 @@ function runEngineTests() {
     const completeCadetRecord = getCadetIdentityPreview(completeGame);
     assertEquals(true, /AI Mastered 5\/5 states/.test(completeCadetRecord.body), "Cadet Record should celebrate completed AI State Deck mastery");
     assertEquals(null, completeCadetRecord.aiAction, "Completed AI State Deck should not leave a stale Cadet Record route action");
+    const sourceKeyCadetRecord = getCadetIdentityPreview({
+      researchXP: 0,
+      currentPlanetIndex: 0,
+      discoveredFormulaKinds: new Set(),
+      discoveryPassCounts: {
+        "reflection-proof:signal-reflection:signal-lab-proof:future-source:frontier-earth-5050:t5:0:future-source-key-source-rehearsal:test": 14
+      },
+      getCadetCallsign: () => "Source Cadet",
+      getVillageTrustProgress: () => ({ title: "Trading Friend", points: 3 })
+    });
+    assertEquals(true, /Future Lab: Source Key complete/.test(sourceKeyCadetRecord.body), "Cadet Record should carry the completed Future Lab source-key portfolio state");
 
     updateAIStateDeck(completeGame);
     assertEquals(true, /5\/5 AI states logged/.test(panel.innerHTML), "Complete AI State Deck should render full progress");
@@ -3921,6 +3932,7 @@ function runEngineTests() {
     updateStartMissionRadar(game);
     assertEquals("SOURCE KEY COMPLETE", els["start-story-preview-label"].textContent, "Source reflection should mark the source-key record complete");
     assertEquals("Source Key record complete", els["start-story-preview-title"].textContent, "Complete source key should show a final capstone state");
+    assertEquals(true, /Future Lab: Source Key complete/.test(els["start-cadet-identity-body"].textContent), "Start Cadet Record should show the completed Future Lab source-key portfolio state");
 
     game.frontierRecords = {};
     game.discoveryPassCounts = {};
@@ -4051,7 +4063,10 @@ function runEngineTests() {
     game.requiredCollectiblesTotal = 2;
     game.requiredCollectiblesCollected = 2;
     game.coachPredictions = { "earth-gravity-wall": "lighter-longer" };
-    game.discoveryPassCounts = { "earth-gravity-wall": 1 };
+    game.discoveryPassCounts = {
+      "earth-gravity-wall": 1,
+      "reflection-proof:signal-reflection:signal-lab-proof:future-source:frontier-earth-5050:t5:0:future-source-key-source-rehearsal:test": 14
+    };
     game.discoveredFormulaKinds = new Set(["antigravity"]);
     game.researchXP = 60;
     game.planetClears = { 0: 1 };
@@ -4095,6 +4110,7 @@ function runEngineTests() {
     assertEquals(true, /CADET RECORD/.test(report.innerHTML), "Clear report should include the named cadet record");
     assertEquals(true, /🚀 Nova \/\/ Physics Tinkerer/.test(report.innerHTML), "Clear report should show the cadet and research title");
     assertEquals(true, /1\/\d+ formulas/.test(report.innerHTML), "Clear report cadet record should show formula progress");
+    assertEquals(true, /Future Lab: Source Key complete/.test(report.innerHTML), "Clear report cadet record should show the completed Future Lab source-key portfolio state");
     assertEquals(true, /2\/5 AI states/.test(report.innerHTML), "Clear report cadet record should show AI State Deck progress");
     assertEquals(true, /next Pet Pact/.test(report.innerHTML), "Clear report cadet record should name the next AI behavior card");
     assertEquals(true, /GET LOTION/.test(report.innerHTML), "Clear report cadet record should include the next AI behavior action");
