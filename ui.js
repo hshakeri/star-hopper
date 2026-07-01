@@ -6333,6 +6333,9 @@ function updateDiscoveryPulse(game) {
   const lessonPathMastery = pulse.lessonPathMastery
     ? `<div class="discovery-hypothesis discovery-phase-mastery">${escapeHTML(pulse.lessonPathMastery.label || "LESSON PATH COMPLETE")} +${escapeHTML(String(pulse.lessonPathMastery.rewardXP || 0))} XP · ${escapeHTML(String(pulse.lessonPathMastery.phases || 0))} phases</div>`
     : "";
+  const passportStamp = pulse.passportStampProof
+    ? `<div class="discovery-hypothesis discovery-passport-stamp"><strong>${escapeHTML(pulse.passportStampProof.label || "PASSPORT STAMP")} +${escapeHTML(String(pulse.passportStampProof.rewardXP || 0))} XP</strong><span>${escapeHTML(pulse.passportStampProof.planetName || "World")} · ${escapeHTML(String(pulse.passportStampProof.stampCount || 1))}/${escapeHTML(String(pulse.passportStampProof.total || 1))} stamps</span><em>${escapeHTML(pulse.passportStampProof.concept || "Science concept logged")} · ${escapeHTML(String(pulse.passportStampProof.stars || 0))}/${escapeHTML(String(pulse.passportStampProof.maxStars || 3))} Lab Stars</em></div>`
+    : "";
   const formulaDeckMastery = pulse.formulaDeckMastery
     ? `<div class="discovery-hypothesis discovery-perk">${escapeHTML(pulse.formulaDeckMastery.label || "DECK MASTERED")} +${escapeHTML(String(pulse.formulaDeckMastery.rewardXP || 0))} XP · ${escapeHTML(String(pulse.formulaDeckMastery.count || 0))}/${escapeHTML(String(pulse.formulaDeckMastery.total || 0))} cards</div>`
     : "";
@@ -6461,6 +6464,7 @@ function updateDiscoveryPulse(game) {
     ${codeConceptDeckMastery}
     ${lessonPhase}
     ${lessonPathMastery}
+    ${passportStamp}
     ${formulaDeckMastery}
     ${formulaDeckNext}
     ${aiStateDeckMastery}

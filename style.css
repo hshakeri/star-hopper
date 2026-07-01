@@ -1811,6 +1811,49 @@ body.resizing-panes * {
   background: rgba(250, 204, 21, 0.22);
 }
 
+.clear-passport-stamp {
+  border: 1px solid rgba(250, 204, 21, 0.34);
+  border-radius: 6px;
+  background:
+    linear-gradient(135deg, rgba(113, 63, 18, 0.36), rgba(8, 47, 73, 0.24)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.024) 0 1px, transparent 1px 4px);
+  box-shadow: inset 0 0 12px rgba(250, 204, 21, 0.08);
+  margin-bottom: 6px;
+  padding: 6px 7px;
+}
+
+.clear-passport-stamp-head {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  color: #facc15;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-weight: 900;
+}
+
+.clear-passport-stamp-head strong {
+  color: #f8fafc;
+  text-align: right;
+}
+
+.clear-passport-stamp p {
+  color: #dff6ff;
+  font-size: 0.62rem;
+  line-height: 1.25;
+  margin: 5px 0 0;
+}
+
+.clear-passport-stamp em {
+  color: #fde68a;
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  font-style: normal;
+  margin-top: 4px;
+}
+
 .clear-lab-star-icons {
   display: flex;
   gap: 3px;
@@ -4411,6 +4454,26 @@ html {
   border-color: rgba(190, 242, 100, 0.56);
   background: rgba(63, 98, 18, 0.38);
   color: #ecfccb;
+}
+.discovery-passport-stamp {
+  display: grid;
+  gap: 2px;
+  border-color: rgba(250, 204, 21, 0.54);
+  background: rgba(113, 63, 18, 0.38);
+  color: #fde68a;
+}
+.discovery-passport-stamp strong {
+  color: #fef08a;
+  font-size: 0.62rem;
+}
+.discovery-passport-stamp span {
+  color: #e0f2fe;
+  font-size: 0.55rem;
+}
+.discovery-passport-stamp em {
+  color: #bbf7d0;
+  font-size: 0.54rem;
+  font-style: normal;
 }
 .discovery-combo {
   border-color: rgba(56, 189, 248, 0.46);
@@ -10648,6 +10711,12 @@ body.readable-text-mode .discovery-science-proof-stage-btn,
 body.readable-text-mode .discovery-science-checkpoint,
 body.readable-text-mode .discovery-science-checkpoint span,
 body.readable-text-mode .discovery-science-checkpoint em,
+body.readable-text-mode .discovery-passport-stamp,
+body.readable-text-mode .discovery-passport-stamp span,
+body.readable-text-mode .discovery-passport-stamp em,
+body.readable-text-mode .clear-passport-stamp-head,
+body.readable-text-mode .clear-passport-stamp p,
+body.readable-text-mode .clear-passport-stamp em,
 body.readable-text-mode .lab-chain-target-head,
 body.readable-text-mode .lab-chain-target-body p,
 body.readable-text-mode .lab-chain-target-card code,

@@ -5055,6 +5055,119 @@ class StarHopperGame {
     };
   }
 
+  getSciencePassportStampSourceKey(index = this.currentPlanetIndex) {
+    const key = Math.max(0, Math.floor(Number(index) || 0));
+    return `passport-stamp:${key}`;
+  }
+
+  getSciencePassportStampInfo(index = this.currentPlanetIndex, labStars = null) {
+    const planetIndex = Math.max(0, Math.floor(Number(index) || 0));
+    const worlds = typeof getPassportWorlds === 'function' ? getPassportWorlds() : [];
+    const passportWorld = worlds.find(world => world && world.index === planetIndex);
+    if (worlds.length && !passportWorld) return null;
+    const planet = passportWorld && passportWorld.planet
+      ? passportWorld.planet
+      : (typeof PLANETS !== 'undefined' && PLANETS[planetIndex] ? PLANETS[planetIndex] : this.currentPlanet);
+    if (!planet) return null;
+    const mission = typeof getPassportMission === 'function'
+      ? getPassportMission(planet)
+      : (planet.missions && planet.missions[0] ? (planet.missions[0].fullMission || planet.missions[0]) : null);
+    const concept = typeof getPassportConcept === 'function'
+      ? getPassportConcept(mission, planet)
+      : ((mission && (mission.concept || mission.beginnerConcept || mission.codingConcept)) || planet.tagline || "Science and coding");
+    const codeCue = typeof getPassportCodeCue === 'function'
+      ? getPassportCodeCue(mission)
+      : ((mission && mission.starterCode ? String(mission.starterCode).split("\n")[0] : "") || "Run one focused experiment");
+    const stampedCount = worlds.length && typeof isPassportWorldStamped === 'function'
+      ? worlds.filter(world => world && isPassportWorldStamped(this, world.index)).length
+      : Math.max(1, Object.keys(this.planetClears || {}).filter(key => Number((this.planetClears || {})[key]) > 0).length);
+    const total = worlds.length || (typeof PLANETS !== 'undefined' && Array.isArray(PLANETS) ? PLANETS.length : Math.max(1, stampedCount));
+    const stars = labStars && Number.isFinite(Number(labStars.stars)) ? Math.max(0, Math.floor(Number(labStars.stars))) : 0;
+    const maxStars = labStars && Number.isFinite(Number(labStars.maxStars)) ? Math.max(1, Math.floor(Number(labStars.maxStars))) : 3;
+    return {
+      index: planetIndex,
+      planetName: planet.name || `World ${planetIndex + 1}`,
+      concept,
+      codeCue,
+      stampCount: Math.max(1, Math.min(total, stampedCount)),
+      total: Math.max(1, total),
+      stars,
+      maxStars
+    };
+  }
+
+  grantSciencePassportStamp(index = this.currentPlanetIndex, labStars = null, options = {}) {
+    if (options && (options.isDailyRun || options.isFrontierRun)) return null;
+    const previousClears = Number.isFinite(Number(options && options.previousClears))
+      ? Math.max(0, Math.floor(Number(options.previousClears)))
+      : Math.max(0, Math.floor(Number((this.planetClears || {})[index] || (this.planetClears || {})[String(index)] || 0)) - 1);
+    if (previousClears > 0) return null;
+    const info = this.getSciencePassportStampInfo(index, labStars);
+    if (!info) return null;
+    const sourceKey = this.getSciencePassportStampSourceKey(index);
+    this.discoveryPassCounts = this.discoveryPassCounts || {};
+    if (this.discoveryPassCounts[sourceKey]) return null;
+    this.discoveryPassCounts[sourceKey] = 1;
+
+    const rewardXP = 5;
+    const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+    this.researchXP = Math.max(0, (this.researchXP || 0) + rewardXP);
+    const afterRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+    const rankUp = !!(beforeRank && afterRank && afterRank.level > beforeRank.level);
+    const result = {
+      label: "PASSPORT STAMP",
+      rewardXP,
+      sourceKey,
+      ...info
+    };
+    result.effect = this.spawnSciencePassportStampEffect(result);
+
+    let pulse = this.discoveryPulse && this.discoveryPulse.title === "Mastery Clear"
+      ? this.discoveryPulse
+      : null;
+    if (!pulse) {
+      pulse = {
+        kind: "passport",
+        title: "Science Passport Stamp",
+        formula: "planet clear -> concept stamp",
+        insight: `${info.planetName} stamped the passport with ${info.concept}.`,
+        cue: info.codeCue,
+        missionId: sourceKey,
+        missionTitle: info.planetName,
+        passed: info.stampCount,
+        total: info.total,
+        progressLabel: `${info.stampCount}/${info.total} stamps`,
+        openedGems: 0,
+        rewardXP: 0,
+        combo: this.discoveryCombo || 0
+      };
+      this.discoveryPulse = pulse;
+      this.discoveryLog = [pulse].concat(Array.isArray(this.discoveryLog) ? this.discoveryLog : []).slice(0, 8);
+    }
+    pulse.passportStampProof = result;
+    pulse.rewardXP = Math.max(0, (pulse.rewardXP || 0) + rewardXP);
+    pulse.rankUp = !!(pulse.rankUp || rankUp);
+    pulse.rankTitle = pulse.rankTitle || (rankUp && afterRank ? afterRank.title : null);
+    pulse.rankPerk = pulse.rankPerk || (rankUp && afterRank ? afterRank.perk : null);
+    if (rankUp && typeof this.spawnResearchRankEffect === 'function') {
+      pulse.rankEffect = this.spawnResearchRankEffect(pulse);
+    }
+    if (typeof this.showMissionBalloon === 'function') {
+      this.showMissionBalloon(`PASSPORT STAMP: ${info.planetName} +${rewardXP} Research XP`, {
+        title: "CADET PASSPORT",
+        color: "#facc15",
+        timer: 250
+      });
+    }
+    if (typeof ui_log_output === 'function') {
+      ui_log_output(`Passport stamp: ${info.planetName} (${info.stampCount}/${info.total}) +${rewardXP} Research XP.`, "success");
+    }
+    this.lastSciencePassportStamp = result;
+    if (typeof updateDiscoveryPulse === 'function') updateDiscoveryPulse(this);
+    if (typeof updateResearchProgress === 'function') updateResearchProgress(this);
+    return result;
+  }
+
   grantMasteryClearReward(labStars) {
     if (!labStars || !labStars.isNewMastery) return labStars;
     const futureLabScene = this.discoveryPulse && this.discoveryPulse.futureLabScene
@@ -7191,6 +7304,9 @@ class StarHopperGame {
       && this.dailyInfo
       && this.dailyInfo.planetIndex === this.currentPlanetIndex;
     const isFrontierRun = isDailyRun && !!this.dailyInfo.isFrontier;
+    const previousCampaignClears = !isDailyRun
+      ? Math.max(0, Math.floor(Number((this.planetClears || {})[this.currentPlanetIndex] || (this.planetClears || {})[String(this.currentPlanetIndex)] || 0)))
+      : 0;
 
     if (isDailyRun) {
       // Daily Signal is a side challenge. It should persist its own clear count, but must
@@ -7218,6 +7334,12 @@ class StarHopperGame {
     labStars.worldMasteryAddedXP = (labStars.worldMasteryAddedXP || 0) + clearMastery.addedXP;
     labStars.worldMasteryTierAwards = (labStars.worldMasteryTierAwards || []).concat(clearMastery.tierAwards || []);
     labStars = this.grantMasteryClearReward(labStars);
+    const passportStamp = this.grantSciencePassportStamp(this.currentPlanetIndex, labStars, {
+      isDailyRun,
+      isFrontierRun,
+      previousClears: previousCampaignClears
+    });
+    if (passportStamp) labStars.passportStamp = passportStamp;
     const clearTime = this.recordClearTime({ isDailyRun, isFrontierRun });
     const frontierRivalResult = isFrontierRun ? this.getFrontierRivalClearResult({ labStars, clearTime }) : null;
     const frontierRecord = isFrontierRun ? this.recordFrontierClear({ labStars, clearTime }) : null;
@@ -7510,6 +7632,17 @@ class StarHopperGame {
         <strong>${safe(starSummary.isNewMastery ? `3-star scientist clear unlocked${masteryReward}` : "World mastered")}</strong>
       </div>
     ` : "";
+    const passportStamp = starSummary.passportStamp || (this.discoveryPulse && this.discoveryPulse.passportStampProof) || null;
+    const passportStampBlock = passportStamp ? `
+      <div class="clear-passport-stamp">
+        <div class="clear-passport-stamp-head">
+          <span>${safe(passportStamp.label || "PASSPORT STAMP")}</span>
+          <strong>${safe(`${passportStamp.planetName || (this.currentPlanet && this.currentPlanet.name) || "World"} · ${passportStamp.stampCount || 1}/${passportStamp.total || 1}`)}</strong>
+        </div>
+        <p>${safe(`${passportStamp.concept || "Science concept logged"} · ${passportStamp.stars || starSummary.stars}/${passportStamp.maxStars || starSummary.maxStars} Lab Stars`)}</p>
+        <em>${safe(`${passportStamp.codeCue || "Run one focused experiment"} · +${passportStamp.rewardXP || 0} Research XP`)}</em>
+      </div>
+    ` : "";
     const worldMastery = starSummary.worldMastery || this.getWorldMasteryProgress(this.currentPlanetIndex);
     const worldMasteryPct = worldMastery ? Math.max(0, Math.min(100, Number(worldMastery.pct) || 0)) : 0;
     const newWorldTiers = Array.isArray(starSummary.worldMasteryTierAwards) && starSummary.worldMasteryTierAwards.length
@@ -7579,6 +7712,7 @@ class StarHopperGame {
       ${cadetIdentityBlock}
       <div class="clear-lab-star-list">${starChecklist}</div>
       ${masteryRibbon}
+      ${passportStampBlock}
       ${worldMasteryBlock}
       ${villageTrustBlock}
       ${villageChainBlock}
@@ -7858,6 +7992,41 @@ class StarHopperGame {
       y: py
     };
     return this.lastNotebookReflectionEffect;
+  }
+
+  spawnSciencePassportStampEffect(stamp) {
+    if (!this.player || !stamp) return null;
+    const baseX = Number.isFinite(this.player.x) ? this.player.x : 0;
+    const baseY = Number.isFinite(this.player.y) ? this.player.y : 0;
+    const width = Number.isFinite(this.player.w) ? this.player.w : 24;
+    const height = Number.isFinite(this.player.h) ? this.player.h : 32;
+    const px = baseX + width / 2;
+    const py = baseY + height / 2;
+    const label = "PASSPORT STAMP!";
+    const color = "#facc15";
+    const progress = `${Math.max(1, Math.floor(Number(stamp.stampCount) || 1))}/${Math.max(1, Math.floor(Number(stamp.total) || 1))} STAMPS`;
+
+    if (typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+      ComicBubbles.pop(px, baseY - 70, label, color, 1.08);
+      ComicBubbles.pop(px, baseY - 50, progress, "#a7f3d0", 0.8);
+      if (stamp.planetName) ComicBubbles.pop(px, baseY - 32, String(stamp.planetName).toUpperCase(), "#67e8f9", 0.7);
+    }
+    if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+      Particles.spawnBurst(px, py - 12, color, 16, 2.4, 2.1, "glow");
+      Particles.spawnBurst(px, py - 12, "#a7f3d0", 9, 1.8, 1.7, "glow");
+      Particles.spawnBurst(px, py - 12, "#67e8f9", 6, 1.5, 1.5, "glow");
+    }
+
+    this.lastSciencePassportStampEffect = {
+      label,
+      color,
+      progress,
+      planetName: stamp.planetName || "",
+      concept: stamp.concept || "",
+      x: px,
+      y: py
+    };
+    return this.lastSciencePassportStampEffect;
   }
 
   spawnReturnStreakEffect(pulse) {

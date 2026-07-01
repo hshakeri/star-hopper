@@ -1751,10 +1751,21 @@ function runEngineTests() {
   const oldSwitchMainMode22passport = switchMainMode;
   try {
     const panel = { innerHTML: "" };
-    document.getElementById = (id) => id === "science-passport-panel" ? panel : null;
+    const pulsePanel = {
+      classList: { add: () => {}, remove: () => {} },
+      innerHTML: "",
+      querySelectorAll() { return []; }
+    };
+    document.getElementById = (id) => {
+      if (id === "science-passport-panel") return panel;
+      if (id === "discovery-pulse") return pulsePanel;
+      return null;
+    };
     const game = new StarHopperGame();
     game.currentPlanetIndex = 2;
     game.currentPlanet = PLANETS[2];
+    game.player = { x: 80, y: 120, w: 24, h: 32 };
+    game.researchXP = 10;
     game.planetClears = { 0: 1, 1: 1 };
     game.bestLabStars = { 0: 3, 1: 2 };
     game.masteryMeters = {
@@ -1790,6 +1801,23 @@ function runEngineTests() {
     assertEquals(true, runSciencePassportAction(2), "Passport action helper should launch the target world");
     assertEquals(2, startedLevels22passport[0], "Passport action helper should call startLevel with the target world");
     assertEquals("terminal", modeSwitches22passport[0], "Passport action should return the UI to the playable terminal");
+    game.planetClears[2] = 1;
+    const stamp = game.grantSciencePassportStamp(2, { stars: 2, maxStars: 3 }, { previousClears: 0 });
+    assertEquals("PASSPORT STAMP", stamp && stamp.label, "First campaign clear should grant a Passport Stamp reward");
+    assertEquals(15, game.researchXP, "Passport Stamp should add a small one-time Research XP reward");
+    assertEquals("Jupiter (Gas Giant Core)", stamp && stamp.planetName, "Passport Stamp should name the stamped world");
+    assertEquals(true, /Mass resists acceleration/.test(stamp && stamp.concept), "Passport Stamp should carry the planet science concept");
+    assertEquals(3, stamp && stamp.stampCount, "Passport Stamp should count the newly stamped world");
+    assertEquals(true, !!game.lastSciencePassportStampEffect, "Passport Stamp should create an inspectable visual effect");
+    assertEquals(true, /PASSPORT STAMP \+5 XP/.test(pulsePanel.innerHTML), "Discovery Pulse should render the Passport Stamp chip");
+    assertEquals(true, /3\/6 stamps/.test(pulsePanel.innerHTML), "Discovery Pulse should show passport progress after the stamp");
+    assertEquals("PASSPORT STAMP: Jupiter (Gas Giant Core) +5 Research XP", game.missionBalloon && game.missionBalloon.text, "Passport Stamp should write a Mission CRT reward line");
+    assertEquals(null, game.grantSciencePassportStamp(2, { stars: 2, maxStars: 3 }, { previousClears: 0 }), "Passport Stamp should not repeat for the same world");
+    const replayStamp = new StarHopperGame();
+    replayStamp.currentPlanetIndex = 2;
+    replayStamp.currentPlanet = PLANETS[2];
+    replayStamp.planetClears = { 0: 1, 1: 1, 2: 2 };
+    assertEquals(null, replayStamp.grantSciencePassportStamp(2, { stars: 1, maxStars: 3 }, { previousClears: 1 }), "Replay clears should not grant a fresh Passport Stamp");
     window.Game = oldWindowGame22passport;
     switchMainMode = oldSwitchMainMode22passport;
     document.getElementById = oldGetElementById22passport;
@@ -10276,6 +10304,8 @@ function runRetryRemixTests() {
     assertEquals(3, g.dailySignalClears, "Daily clear count increments");
     assertEquals(undefined, g.planetClears[1], "Daily clear should not mark Moon as campaign-cleared");
     assertEquals("log", g.clearAction, "Daily clear button routes to log instead of next campaign planet");
+    assertEquals(null, g.lastSciencePassportStamp || null, "Daily clear should not grant a campaign Passport Stamp");
+    assertEquals(undefined, g.discoveryPassCounts && g.discoveryPassCounts["passport-stamp:1"], "Daily clear should not store a Passport Stamp source");
 
     const frontier = new StarHopperGame();
     frontier.currentPlanet = PLANETS[2];
@@ -10289,6 +10319,7 @@ function runRetryRemixTests() {
     assertEquals(3, frontier.dailySignalClears, "Frontier clear should not inflate Daily Signal clears");
     assertEquals(1, frontier.planetClears[2], "Frontier clear should not advance campaign clears");
     assertEquals("log", frontier.clearAction, "Frontier clear routes to log instead of next campaign planet");
+    assertEquals(null, frontier.lastSciencePassportStamp || null, "Frontier clear should not grant a campaign Passport Stamp");
     if (oldSaveR18) saveLocalProgress = oldSaveR18;
     if (oldAttemptFinishR18) attemptLogFinish = oldAttemptFinishR18;
     renderTestResult(SUITE, "Daily Signal/Frontier: side clears do not advance campaign", true);
