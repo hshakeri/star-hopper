@@ -209,6 +209,7 @@ class StarHopperGame {
     this.discoveryPassCounts = {};
     this.discoveredFormulaKinds = new Set();
     this.formulaCardEffects = [];
+    this.scienceBreadcrumbEffects = [];
     this.confirmedHypotheses = new Set();
     this._labStarPreviewCount = 0;
     this.lastLabStarPulse = null;
@@ -3566,6 +3567,7 @@ class StarHopperGame {
     this._lastPortalLockMsg = null;     // reset portal-lock message de-duplication
     this._portalReadyCueShown = false;  // reset the one-time portal-ready fanfare
     this.formulaCardEffects = [];
+    this.scienceBreadcrumbEffects = [];
     // Keep global completed missions across planet switches
     Particles.clear();
     if (typeof ComicBubbles !== 'undefined') {
@@ -5452,6 +5454,7 @@ class StarHopperGame {
     if (this.mobs) for (const m of this.mobs) { if (m.sayTimer > 0) m.sayTimer--; }
     if (typeof ComicBubbles !== 'undefined' && ComicBubbles.update) ComicBubbles.update();
     this.updateFormulaCardEffects();
+    this.updateScienceBreadcrumbEffects();
     if (this.hurtFlashTimer > 0) this.hurtFlashTimer--;
   }
 
@@ -5704,6 +5707,7 @@ class StarHopperGame {
       ComicBubbles.update();
     }
     this.updateFormulaCardEffects();
+    this.updateScienceBreadcrumbEffects();
 
     // 12b. Idle banter: a quiet thought bubble after standing still a while (once per pause).
     this.updateIdleBanter();
@@ -7562,6 +7566,11 @@ class StarHopperGame {
       Particles.spawnBurst(px, py, color, 12, 2.1, 2.0, 'glow');
       Particles.spawnBurst(px, py, '#fef08a', 6, 1.5, 1.5, 'glow');
     }
+    const breadcrumb = this.spawnScienceBreadcrumbEffect(delta, first, {
+      color,
+      x: px,
+      y: baseY - 12
+    });
     const target = delta.missionTarget || null;
     const targetReady = !!(target && target.crossed);
     let targetMilestone = null;
@@ -7633,7 +7642,7 @@ class StarHopperGame {
         }
       }
     }
-    const effect = { label, color, x: px, y: py, targetReady, targetMilestone, targetCloser };
+    const effect = { label, color, x: px, y: py, targetReady, targetMilestone, targetCloser, breadcrumb };
     this.lastScienceDeltaEffect = effect;
     return effect;
   }
@@ -7906,6 +7915,50 @@ class StarHopperGame {
     this.formulaCardEffects = this.formulaCardEffects.filter(fx => fx.life < fx.maxLife);
   }
 
+  spawnScienceBreadcrumbEffect(delta, change, options = {}) {
+    if (!delta || !change) return null;
+    const color = options.color || "#67e8f9";
+    const codeLine = typeof this.getScienceDeltaCodeLine === 'function'
+      ? this.getScienceDeltaCodeLine(delta, change)
+      : "CODE run";
+    const relation = typeof this.getScienceDeltaFormulaChip === 'function'
+      ? this.getScienceDeltaFormulaChip(change)
+      : "code->evidence";
+    const deltaChip = typeof this.getScienceDeltaValueDelta === 'function'
+      ? this.getScienceDeltaValueDelta(change)
+      : "";
+    const valueLabel = String(change.label || "Value");
+    const valueText = String(change.value || "changed");
+    const effect = {
+      x: Number.isFinite(options.x) ? options.x : 0,
+      y: Number.isFinite(options.y) ? options.y : 0,
+      vy: -0.12,
+      life: 0,
+      maxLife: 104,
+      color,
+      codeLine: codeLine || "CODE run",
+      relation,
+      deltaChip,
+      valueLabel,
+      valueText,
+      valueLine: `${valueLabel} ${valueText}`,
+      direction: change.direction || "same"
+    };
+    this.scienceBreadcrumbEffects = (this.scienceBreadcrumbEffects || []).slice(-2);
+    this.scienceBreadcrumbEffects.push(effect);
+    this.lastScienceBreadcrumbEffect = effect;
+    return effect;
+  }
+
+  updateScienceBreadcrumbEffects() {
+    if (!this.scienceBreadcrumbEffects || !this.scienceBreadcrumbEffects.length) return;
+    for (const fx of this.scienceBreadcrumbEffects) {
+      fx.life++;
+      fx.y += fx.vy || 0;
+    }
+    this.scienceBreadcrumbEffects = this.scienceBreadcrumbEffects.filter(fx => fx.life < fx.maxLife);
+  }
+
   fitCardText(ctx, text, maxWidth) {
     let out = String(text || "");
     while (out.length > 4 && ctx.measureText(out).width > maxWidth) {
@@ -7964,6 +8017,100 @@ class StarHopperGame {
       }
       ctx.restore();
     }
+  }
+
+  drawScienceBreadcrumbEffects(ctx) {
+    if (!ctx || !this.scienceBreadcrumbEffects || !this.scienceBreadcrumbEffects.length || !this.canvas) return [];
+    const drawn = [];
+    for (const fx of this.scienceBreadcrumbEffects) {
+      const t = fx.life / Math.max(1, fx.maxLife);
+      const alpha = t < 0.08 ? Math.max(0.45, t / 0.08) : (t > 0.74 ? Math.max(0, (1 - t) / 0.26) : 1);
+      const cx = fx.x - (this.cameraX || 0);
+      const cy = fx.y - Math.sin(Math.min(1, t) * Math.PI) * 5;
+      if (cx < -170 || cx > this.canvas.width + 170) continue;
+
+      const color = fx.color || "#67e8f9";
+      const resultColor = fx.direction === "down" ? "#bfdbfe" : (fx.direction === "up" ? "#bbf7d0" : "#fde68a");
+      const deltaLabel = fx.deltaChip ? `DELTA ${fx.deltaChip}` : "";
+      drawn.push({
+        codeLine: fx.codeLine,
+        relation: fx.relation,
+        valueLine: fx.valueLine,
+        deltaLabel
+      });
+
+      ctx.save();
+      ctx.globalAlpha = 0.68 * alpha;
+      ctx.translate(cx, cy);
+      ctx.shadowBlur = 10 * alpha;
+      ctx.shadowColor = color;
+      ctx.fillStyle = "rgba(2, 6, 23, 0.62)";
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(-146, -25, 120, 30, 6);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = "rgba(15, 23, 42, 0.58)";
+      ctx.strokeStyle = "#fef08a";
+      ctx.beginPath();
+      ctx.roundRect(-19, -20, 38, 18, 5);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = "rgba(2, 6, 23, 0.62)";
+      ctx.strokeStyle = resultColor;
+      ctx.beginPath();
+      ctx.roundRect(26, -25, 124, 42, 6);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = "#fef08a";
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(-24, -11);
+      ctx.lineTo(22, -11);
+      ctx.lineTo(16, -16);
+      ctx.moveTo(22, -11);
+      ctx.lineTo(16, -6);
+      ctx.stroke();
+
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#93c5fd";
+      ctx.font = "bold 6.5px 'Share Tech Mono', monospace";
+      ctx.fillText("CODE", -138, -17);
+      ctx.fillStyle = "#f8fafc";
+      ctx.font = "7px 'Share Tech Mono', monospace";
+      ctx.fillText(this.fitCardText(ctx, fx.codeLine, 104), -138, -6);
+
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#fef08a";
+      ctx.font = "bold 6px 'Share Tech Mono', monospace";
+      ctx.fillText(this.fitCardText(ctx, fx.relation || "evidence", 30), 0, -11);
+
+      ctx.textAlign = "left";
+      ctx.fillStyle = resultColor;
+      ctx.font = "bold 6.5px 'Share Tech Mono', monospace";
+      ctx.fillText("RESULT", 34, -17);
+      if (deltaLabel) {
+        ctx.textAlign = "right";
+        ctx.fillStyle = fx.direction === "down" ? "#bfdbfe" : "#bbf7d0";
+        ctx.fillText(this.fitCardText(ctx, deltaLabel, 56), 142, -17);
+        ctx.textAlign = "left";
+      }
+      ctx.fillStyle = "#f8fafc";
+      ctx.font = "bold 8px 'Share Tech Mono', monospace";
+      ctx.fillText(this.fitCardText(ctx, fx.valueLabel, 112), 34, -4);
+      ctx.fillStyle = "#cbd5e1";
+      ctx.font = "6.5px 'Share Tech Mono', monospace";
+      ctx.fillText(this.fitCardText(ctx, fx.valueText, 112), 34, 9);
+      ctx.restore();
+    }
+    this.lastScienceBreadcrumbDraw = drawn;
+    return drawn;
   }
 
   drawMissionSampleBeacon(ctx) {
@@ -9155,6 +9302,7 @@ class StarHopperGame {
       ComicBubbles.draw(this.ctx, this.cameraX);
     }
     this.drawFormulaCardEffects(this.ctx);
+    this.drawScienceBreadcrumbEffects(this.ctx);
 
     // End screen shake before the screen-space overlays so they don't jitter.
     if (_shaking) { this.ctx.restore(); _shaking = false; }

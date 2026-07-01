@@ -3062,6 +3062,12 @@ function runEngineTests() {
     assertEquals(delta, game.lastScienceDelta, "Latest delta should be stored on the game for the CRT");
     assertEquals(true, scienceDeltaBubbles22ba.some(text => /MASS/.test(text)), "Science delta should pop the changed value in the level");
     assertEquals(true, scienceDeltaBursts22ba >= 2, "Science delta should spawn a small particle reward");
+    assertEquals(1, game.scienceBreadcrumbEffects.length, "Science delta should spawn one in-scene experiment breadcrumb");
+    const breadcrumb22ba = game.scienceBreadcrumbEffects[0];
+    assertEquals("CODE hopper.mass = 1.2", breadcrumb22ba.codeLine, "Experiment breadcrumb should keep the causal code line");
+    assertEquals("F/m=a", breadcrumb22ba.relation, "Experiment breadcrumb should name the science relation");
+    assertEquals("Mass 2.5 -> 1.2 (-1.3)", breadcrumb22ba.valueLine, "Experiment breadcrumb should keep the changed value");
+    assertEquals("-1.3", breadcrumb22ba.deltaChip, "Experiment breadcrumb should expose the numeric delta");
     assertEquals("Agility 30+ reached", nextCue.title, "Next experiment cue should name the first failing mission check");
     assertEquals(true, /Lower mass/.test(nextCue.body), "Next experiment cue should reuse the mission waiting message");
     assertEquals(true, /use_hopper\(\)/.test(nextCue.command), "Next experiment cue should include runnable scaffold code");
@@ -3108,6 +3114,34 @@ function runEngineTests() {
     assertEquals(true, deltaLabels.some(text => /Mass:/.test(text)), "Drawing should write the changed science value");
     assertEquals(true, deltaLabels.includes("NEXT Agility 30+ reached"), "Drawing should write the next experiment title");
     assertEquals(true, drawnDeltaCue.h > 68, "Evidence ticker should reserve compact space for code plus next experiment rows");
+    const breadcrumbLabels = [];
+    const breadcrumbCtx = {
+      save() {},
+      restore() {},
+      beginPath() {},
+      roundRect() {},
+      fill() {},
+      stroke() {},
+      moveTo() {},
+      lineTo() {},
+      translate() {},
+      fillText(text) { breadcrumbLabels.push(text); },
+      measureText(text) { return { width: String(text || "").length * 5 }; }
+    };
+    const drawnBreadcrumbs = game.drawScienceBreadcrumbEffects(breadcrumbCtx);
+    assertEquals(1, drawnBreadcrumbs.length, "Drawing should return the experiment breadcrumb payload");
+    assertEquals("CODE hopper.mass = 1.2", drawnBreadcrumbs[0].codeLine, "Drawn breadcrumb should expose the causal code");
+    assertEquals("F/m=a", drawnBreadcrumbs[0].relation, "Drawn breadcrumb should expose the science relation");
+    assertEquals("Mass 2.5 -> 1.2 (-1.3)", drawnBreadcrumbs[0].valueLine, "Drawn breadcrumb should expose the changed value");
+    assertEquals("DELTA -1.3", drawnBreadcrumbs[0].deltaLabel, "Drawn breadcrumb should expose the signed delta label");
+    assertEquals(true, breadcrumbLabels.includes("CODE"), "Breadcrumb draw should label the code side");
+    assertEquals(true, breadcrumbLabels.includes("RESULT"), "Breadcrumb draw should label the result side");
+    assertEquals(true, breadcrumbLabels.includes("F/m=a"), "Breadcrumb draw should write the formula relation");
+    assertEquals(true, breadcrumbLabels.includes("DELTA -1.3"), "Breadcrumb draw should write the numeric delta");
+    assertEquals(true, breadcrumbLabels.includes("Mass"), "Breadcrumb draw should write the changed value label");
+    game.scienceBreadcrumbEffects[0].life = game.scienceBreadcrumbEffects[0].maxLife - 1;
+    game.updateScienceBreadcrumbEffects();
+    assertEquals(0, game.scienceBreadcrumbEffects.length, "Experiment breadcrumb should expire instead of becoming permanent clutter");
     game.lastScienceDelta.time = Date.now() - 19000;
     assertEquals(null, game.getScienceDeltaRunCue(), "In-run evidence ticker should expire instead of becoming permanent clutter");
 
