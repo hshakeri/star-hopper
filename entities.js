@@ -2507,9 +2507,10 @@ class NPC extends InteractiveObject {
         };
     const threat = shelter.threat;
     const nightShelter = shelter.reason === "night";
+    if (nightShelter && !this.rescuePending) this.shelterReason = "night";
     if (threat) {
       if (typeof game.markNPCShelterThreat === 'function') {
-        game.markNPCShelterThreat(this, "nearby mob", { bubble: true });
+        game.markNPCShelterThreat(this, "nearby mob", { bubble: true, panicTimer: 150 });
       } else {
         this.panicTimer = 120;
         this.rescuePending = true;

@@ -6498,6 +6498,12 @@ function runCombatTests() {
     assertEquals(true, loopSentry.x < beforeShelterX, "Game loop shelter pass starts the cave retreat immediately");
     assertEquals(true, loopSentry.rescuePending, "Close mob danger marks the villager rescue as pending");
     assertEquals(null, g.activeNPC, "Villager cannot stay trade-active while sheltering from a mob");
+    for (let i = 0; i < 40 && !loopSentry.hiddenInCave; i++) g.updateVillagerShelterStates();
+    assertEquals(true, loopSentry.hiddenInCave, "Game loop keeps routing a threatened villager into the cave");
+    g.mobs = [];
+    loopSentry.panicTimer = 0;
+    g.updateVillagerShelterStates();
+    assertEquals(false, loopSentry.hiddenInCave, "Game loop brings the villager back out once close mob danger clears");
 
     const npc = new NPC({ id: 'caver', name: 'Caver', profession: 'Miner', type: 'npc', x: 100, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60 });
     const mob = new Mob(102, 60, 'hog', '#9a6b4f', 1);
@@ -6614,6 +6620,26 @@ function runCombatTests() {
     assertEquals(150, midNpc.x, "Mid-retreat survival release returns the villager to the village home");
     assertEquals(null, midNpc.shelterReason, "Mid-retreat survival release clears stale shelter reason");
     assertEquals(null, midRetreat.activeNPC, "Mid-retreat survival release closes stale trade focus");
+    midRetreat.updateVillagerShelterStates();
+    assertEquals(false, midNpc.hiddenInCave, "Survival-off villagers stay visible after the next shelter tick");
+    assertEquals(150, midNpc.x, "Survival-off villagers remain at their village home after the next shelter tick");
+
+    const hiddenOff = new StarHopperGame();
+    hiddenOff.state = 'playing'; hiddenOff.currentPlanetIndex = 1; hiddenOff.currentPlanet = PLANETS[1];
+    hiddenOff.player = new Player(0, 0);
+    hiddenOff.researchXP = 0;
+    hiddenOff.masteryMeters = {};
+    const hiddenNpc = new NPC({ id: 'hidden-off', name: 'Hidden Off', profession: 'Miner', type: 'npc', x: 82, y: 60, color: '#cbd5e1', homeX: 150, homeY: 60, caveX: 72, caveY: 60, hiddenInCave: true });
+    hiddenNpc.rescuePending = true;
+    hiddenNpc.shelterReason = "nearby mob";
+    hiddenOff.interactiveObjects = [hiddenNpc];
+    hiddenOff.survivalMode = true;
+    hiddenOff.mobs = [new Mob(90, 60, 'hog', '#9a6b4f', 1)];
+    hiddenOff.toggleSurvival();
+    assertEquals(false, hiddenNpc.hiddenInCave, "Survival-off brings a hidden villager back outside when it is daytime");
+    assertEquals(150, hiddenNpc.x, "Survival-off restores a hidden villager to the village home");
+    hiddenOff.updateVillagerShelterStates();
+    assertEquals(false, hiddenNpc.hiddenInCave, "Released hidden villager does not disappear again after danger was cleared");
 
     const loopRelease = new StarHopperGame();
     loopRelease.state = 'playing'; loopRelease.currentPlanetIndex = 1; loopRelease.currentPlanet = PLANETS[1];

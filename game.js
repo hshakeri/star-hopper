@@ -935,13 +935,21 @@ class StarHopperGame {
     for (const obj of this.interactiveObjects || []) {
       if (!(typeof NPC !== 'undefined' && obj instanceof NPC)) continue;
       villagers++;
+      const hadShelterState = !!(obj.hiddenInCave || obj.rescuePending || obj.shelterReason || (obj.panicTimer || 0) > 0);
       obj.panicTimer = 0;
       obj.caveCooldown = 0;
       if (keepSheltered) {
+        if (!obj.rescuePending) obj.shelterReason = "night";
         this.parkNPCInCave(obj, "night");
         continue;
       }
-      this.releaseNPCFromCave(obj, { returnHome: true });
+      if (hadShelterState) {
+        this.releaseNPCFromCave(obj, { returnHome: true });
+      } else {
+        obj.hiddenInCave = false;
+        obj.proximity = false;
+        if (this.activeNPC === obj) this.activeNPC = null;
+      }
     }
     if (this.activeNPC && this.activeNPC.hiddenInCave) this.activeNPC = null;
     this.syncTradeTouchControls();
@@ -968,7 +976,8 @@ class StarHopperGame {
     npc.hiddenInCave = true;
     if (Number.isFinite(npc.caveX)) npc.x = npc.caveX + 10;
     if (Number.isFinite(npc.caveY)) npc.y = npc.caveY;
-    if (!npc.rescuePending && !npc.shelterReason) npc.shelterReason = reason;
+    if (reason === "night" && !npc.rescuePending) npc.shelterReason = "night";
+    else if (!npc.rescuePending && !npc.shelterReason) npc.shelterReason = reason;
     npc.proximity = false;
     if (this.activeNPC === npc) this.activeNPC = null;
   }
@@ -1011,15 +1020,15 @@ class StarHopperGame {
       const shelter = this.getVillagerShelterSignal(obj, { radius: 128 });
       const threat = shelter.threat;
       if (threat) {
-        if (this.markNPCShelterThreat(obj, "nearby mob")) touchNeedsSync = true;
-        if (!obj.hiddenInCave && typeof obj.stepTowardCave === 'function') obj.stepTowardCave(2.2);
+        if (this.markNPCShelterThreat(obj, "nearby mob", { bubble: true, panicTimer: 150 })) touchNeedsSync = true;
+        if (!obj.hiddenInCave && typeof obj.stepTowardCave === 'function' && obj.stepTowardCave(2.8)) touchNeedsSync = true;
         continue;
       }
       if (shelter.reason === "night") {
-        if (!obj.rescuePending && !obj.shelterReason) obj.shelterReason = "night";
+        if (!obj.rescuePending) obj.shelterReason = "night";
         if (this.activeNPC === obj) touchNeedsSync = true;
         if (obj.hiddenInCave) this.parkNPCInCave(obj, "night");
-        else if (typeof obj.stepTowardCave === 'function') obj.stepTowardCave(2.2);
+        else if (typeof obj.stepTowardCave === 'function' && obj.stepTowardCave(2.4)) touchNeedsSync = true;
         else obj.proximity = false;
         obj.proximity = false;
         if (this.activeNPC === obj) this.activeNPC = null;
@@ -1028,7 +1037,7 @@ class StarHopperGame {
       if (this.shouldNPCWaitInCave(obj, shelter)) {
         if (this.activeNPC === obj) touchNeedsSync = true;
         if (obj.hiddenInCave) this.parkNPCInCave(obj, obj.shelterReason || "nearby mob");
-        else if (typeof obj.stepTowardCave === 'function') obj.stepTowardCave(2.2);
+        else if (typeof obj.stepTowardCave === 'function' && obj.stepTowardCave(2.8)) touchNeedsSync = true;
         obj.proximity = false;
         if (this.activeNPC === obj) this.activeNPC = null;
         continue;
@@ -5899,19 +5908,17 @@ class StarHopperGame {
     if (!npc || !mob || (npc.hazardCooldown || 0) > 0) return false;
     npc.hazardCooldown = 54;
     npc.hitFlash = 14;
-    npc.panicTimer = 150;
-    npc.rescuePending = true;
-    npc.shelterReason = "mob attack";
+    this.markNPCShelterThreat(npc, "mob attack", { panicTimer: 180, caveCooldown: 90 });
     npc.health = Math.max(0, (npc.health || npc.maxHealth || 3) - 1);
     mob.attackCooldown = 42;
     mob.say(SPEECH.pick('mobChatter'));
     if (typeof SFX !== 'undefined' && SFX.playError) SFX.playError();
     if (typeof Particles !== 'undefined') Particles.spawnBurst(npc.x + npc.w / 2, npc.y + npc.h / 2, '#ef4444', 8, 2.2, 2.1, 'glow');
     if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(npc.x + npc.w / 2, npc.y - 5, "RUN!", "#facc15", 0.95);
+    if (!npc.hiddenInCave && typeof npc.stepTowardCave === 'function') npc.stepTowardCave(3.2);
     if (npc.health <= 0) {
       npc.health = npc.maxHealth || 3;
-      npc.hiddenInCave = true;
-      npc.x = npc.caveX + 10;
+      this.parkNPCInCave(npc, "mob attack");
     }
     if (this.activeNPC === npc) this.activeNPC = null;
     return true;
