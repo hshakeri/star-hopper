@@ -4528,6 +4528,20 @@ function runCombatTests() {
     sentry.panicTimer = 0;
     sentry.update(g);
     assertEquals(false, sentry.hiddenInCave, "Villager comes back out when nearby danger clears");
+    const homeGuard = new NPC({ id: 'home-guard', name: 'Home Guard', profession: 'Guard', type: 'npc', x: 250, y: 60, color: '#cbd5e1', homeX: 250, homeY: 60, caveX: 24, caveY: 60, hiddenInCave: true });
+    homeGuard.x = homeGuard.caveX + 10;
+    homeGuard.panicTimer = 0;
+    homeGuard.rescuePending = true;
+    homeGuard.shelterReason = "nearby mob";
+    g.interactiveObjects = [homeGuard];
+    g.mobs = [new Mob(252, 60, 'hog', '#9a6b4f', 1)];
+    g.updateVillagerShelterStates();
+    assertEquals(true, homeGuard.hiddenInCave, "Hidden villager stays in cave while a mob waits near the trading spot");
+    assertEquals(true, homeGuard.panicTimer > 0, "Home-area mob danger refreshes the villager shelter timer");
+    g.mobs = [];
+    homeGuard.panicTimer = 0;
+    g.updateVillagerShelterStates();
+    assertEquals(false, homeGuard.hiddenInCave, "Hidden villager leaves the cave after the home-area danger clears");
     const loopSentry = new NPC({ id: 'loop-lookout', name: 'Loop Lookout', profession: 'Guard', type: 'npc', x: 144, y: 60, color: '#cbd5e1', caveX: 108, caveY: 60 });
     loopSentry.proximity = true;
     g.activeNPC = loopSentry;
@@ -4593,6 +4607,26 @@ function runCombatTests() {
     assertEquals(true, g.hasVillageRescueCredit(1), "Village rescue records world mastery source credit");
     assertEquals(null, g.grantVillageRescueReward(npc, "nearby mob"), "The same villager rescue cannot be farmed twice");
     assertEquals(7, g.researchXP, "Duplicate rescue credit does not add more Research XP");
+
+    const midRetreat = new StarHopperGame();
+    midRetreat.state = 'playing'; midRetreat.currentPlanetIndex = 1; midRetreat.currentPlanet = PLANETS[1];
+    midRetreat.player = new Player(0, 0);
+    midRetreat.researchXP = 0;
+    midRetreat.masteryMeters = {};
+    const midNpc = new NPC({ id: 'mid-release', name: 'Mid Release', profession: 'Miner', type: 'npc', x: 108, y: 60, color: '#cbd5e1', homeX: 150, homeY: 60, caveX: 72, caveY: 60 });
+    midNpc.panicTimer = 90;
+    midNpc.rescuePending = true;
+    midNpc.shelterReason = "nearby mob";
+    midRetreat.interactiveObjects = [midNpc];
+    midRetreat.activeNPC = midNpc;
+    midRetreat.survivalMode = true;
+    midRetreat.mobs = [new Mob(90, 60, 'hog', '#9a6b4f', 1)];
+    midRetreat.toggleSurvival();
+    assertEquals(false, midNpc.hiddenInCave, "Survival-off release also restores villagers that were mid-retreat");
+    assertEquals(150, midNpc.x, "Mid-retreat survival release returns the villager to the village home");
+    assertEquals(null, midNpc.shelterReason, "Mid-retreat survival release clears stale shelter reason");
+    assertEquals(null, midRetreat.activeNPC, "Mid-retreat survival release closes stale trade focus");
+
     const loopRelease = new StarHopperGame();
     loopRelease.state = 'playing'; loopRelease.currentPlanetIndex = 1; loopRelease.currentPlanet = PLANETS[1];
     loopRelease.player = new Player(0, 0);

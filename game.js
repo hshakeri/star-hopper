@@ -4088,16 +4088,29 @@ class StarHopperGame {
     if (!npc || !this.mobs) return null;
     let best = null;
     let bestD = Infinity;
-    const nx = npc.hiddenInCave ? npc.caveX + 16 : npc.x + npc.w / 2;
-    const ny = npc.hiddenInCave ? npc.caveY + 18 : npc.y + npc.h / 2;
+    const anchors = [];
+    const addAnchor = (x, y) => {
+      if (Number.isFinite(x) && Number.isFinite(y)) {
+        anchors.push({ x, y });
+      }
+    };
+    addAnchor(npc.x + npc.w / 2, npc.y + npc.h / 2);
+    if (npc.hiddenInCave || npc.rescuePending || npc.shelterReason) {
+      const homeX = Number.isFinite(npc.homeX) ? npc.homeX : npc.x;
+      const homeY = Number.isFinite(npc.homeY) ? npc.homeY : npc.y;
+      addAnchor(homeX + npc.w / 2, homeY + npc.h / 2);
+    }
+    if (npc.hiddenInCave) addAnchor(npc.caveX + 16, npc.caveY + 18);
     for (const m of this.mobs) {
       if (!m || m.pet) continue;
       const mx = m.x + m.w / 2;
       const my = m.y + m.h / 2;
-      const d = Math.hypot(mx - nx, my - ny);
-      if (d < radius && d < bestD) {
-        best = m;
-        bestD = d;
+      for (const anchor of anchors) {
+        const d = Math.hypot(mx - anchor.x, my - anchor.y);
+        if (d < radius && d < bestD) {
+          best = m;
+          bestD = d;
+        }
       }
     }
     return best;
