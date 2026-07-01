@@ -2971,6 +2971,7 @@ function runEngineTests() {
     assertEquals("EVIDENCE", runCue.label, "In-run evidence ticker should label itself");
     assertEquals(true, /Mass:/.test(runCue.valueLine), "In-run evidence ticker should name the changed science value");
     assertEquals(true, /Less mass/.test(runCue.reasonLine), "In-run evidence ticker should preserve the science cue");
+    assertEquals("F/m=a", runCue.formulaChip, "In-run evidence ticker should name the science relation behind the changed value");
     assertEquals("NEXT Agility 30+ reached", runCue.nextLine, "In-run evidence ticker should show the next experiment title");
     const deltaLabels = [];
     const fakeDeltaCtx = {
@@ -2987,6 +2988,7 @@ function runEngineTests() {
     const drawnDeltaCue = game.drawScienceDeltaRunCue(fakeDeltaCtx);
     assertEquals("EVIDENCE", drawnDeltaCue.label, "Drawing should return the in-run evidence cue");
     assertEquals(true, deltaLabels.includes("EVIDENCE"), "Drawing should write the evidence ticker label");
+    assertEquals(true, deltaLabels.includes("F/m=a"), "Drawing should write the science relation chip");
     assertEquals(true, deltaLabels.some(text => /Mass:/.test(text)), "Drawing should write the changed science value");
     assertEquals(true, deltaLabels.includes("NEXT Agility 30+ reached"), "Drawing should write the next experiment title");
     game.lastScienceDelta.time = Date.now() - 19000;

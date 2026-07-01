@@ -8135,6 +8135,7 @@ class StarHopperGame {
       : (direction === "down" ? "#fca5a5"
         : (direction === "swap" ? "#fbbf24" : "#67e8f9"));
     const next = delta.nextExperiment || null;
+    const formulaChip = this.getScienceDeltaFormulaChip(primary);
     return {
       label: "EVIDENCE",
       title: delta.summary || "What changed",
@@ -8142,10 +8143,25 @@ class StarHopperGame {
       reasonLine: primary.cue || "",
       nextLine: next && next.title ? `NEXT ${next.title}` : "",
       direction,
+      formulaChip,
       color,
       ageMs,
       ttlMs
     };
+  }
+
+  getScienceDeltaFormulaChip(change) {
+    const label = String((change && change.label) || "").toLowerCase();
+    if (/mass/.test(label)) return "F/m=a";
+    if (/engine|jump|rocket/.test(label)) return "F->motion";
+    if (/felt gravity|gravity/.test(label)) return "g->airtime";
+    if (/friction/.test(label)) return "grip->slide";
+    if (/probability/.test(label)) return "p=pass/trials";
+    if (/agility/.test(label)) return "speed+jump";
+    if (/thrust/.test(label)) return "rocket/m";
+    if (/event/.test(label)) return "if->then";
+    if (/spring|block|gem|suit/.test(label)) return "code->world";
+    return "code->evidence";
   }
 
   drawScienceDeltaRunCue(ctx) {
@@ -8183,8 +8199,19 @@ class StarHopperGame {
     ctx.textBaseline = "middle";
     ctx.fillStyle = color;
     ctx.fillText(cue.label, x + 10, y + 10);
-    ctx.textAlign = "right";
-    ctx.fillText(this.fitCardText(ctx, cue.direction.toUpperCase(), 44), x + w - 10, y + 10);
+    const chipW = Math.max(48, Math.min(82, 12 + String(cue.formulaChip || "").length * 5));
+    const chipX = x + w - chipW - 8;
+    ctx.fillStyle = "rgba(15, 23, 42, 0.66)";
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(chipX, y + 4, chipW, 13, 4);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#fef08a";
+    ctx.font = "bold 6.5px 'Share Tech Mono', monospace";
+    ctx.textAlign = "center";
+    ctx.fillText(this.fitCardText(ctx, cue.formulaChip || "evidence", chipW - 8), chipX + chipW / 2, y + 10.5);
 
     ctx.textAlign = "left";
     ctx.fillStyle = "#f8fafc";
