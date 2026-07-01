@@ -3521,6 +3521,54 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: run objective compass mirrors queue", false, err.message);
   }
 
+  // Test 22bc3: science checkpoints can become the active in-world compass target.
+  const oldGetAttemptLogNextQuestion22bc3 = getAttemptLogNextQuestion;
+  const oldGetLabChainTarget22bc3 = getLabChainTarget;
+  const oldBuildNextExperimentCue22bc3 = buildNextExperimentCue;
+  try {
+    getAttemptLogNextQuestion = () => null;
+    getLabChainTarget = () => null;
+    buildNextExperimentCue = () => ({
+      title: "Raise Agility",
+      body: "Tune engine, then compare the target stat.",
+      command: "use_hopper()\nhopper.engine = 6"
+    });
+    const game = new StarHopperGame();
+    game.state = 'playing';
+    game.canvas = { width: 360, height: 220 };
+    game.player = { x: 120, y: 128, w: 24, h: 32 };
+    game.cameraX = 0;
+    game.reducedMotion = true;
+    game.currentPlanet = { name: "Checkpoint Lab", missions: [] };
+    game.currentPlanetIndex = 0;
+    game.completedMissions = new Set();
+    game.discoveryPassCounts = {};
+    game.getMissionStat = () => ({ key: "agility", label: "Agility", value: 12, target: 30 });
+
+    const queue = getRunObjectiveQueue(game);
+    assertEquals("NEXT CHECKPOINT", queue[0] && queue[0].label, "Run queue should promote an unclaimed science checkpoint when no immediate lab item is ahead");
+    assertEquals("science-checkpoint", queue[0] && queue[0].source, "Run queue checkpoint item should preserve source metadata");
+    assertEquals("STAGE CHECKPOINT", queue[0] && queue[0].cta, "Run queue checkpoint item should expose a stage action");
+    assertEquals(true, /Agility 12\/30/.test(queue[0] && queue[0].body), "Run queue checkpoint item should show the live stat");
+
+    const cue = game.getRunObjectiveCompassCue();
+    assertEquals("NEXT CHECKPOINT", cue && cue.label, "Objective compass should show checkpoint label when it is the top queue item");
+    assertEquals("STAGE CHECKPOINT", cue && cue.cta, "Objective compass should show checkpoint action");
+    assertEquals("science-checkpoint", cue && cue.source, "Objective compass should preserve checkpoint source metadata");
+    assertEquals("use_hopper()", cue && cue.commandLine, "Objective compass should show the first runnable checkpoint command");
+    assertEquals(true, /Need \+3\.0 to 50% TARGET/.test(cue && cue.reasonLine), "Objective compass should show the checkpoint gap as the reason line");
+
+    getAttemptLogNextQuestion = oldGetAttemptLogNextQuestion22bc3;
+    getLabChainTarget = oldGetLabChainTarget22bc3;
+    buildNextExperimentCue = oldBuildNextExperimentCue22bc3;
+    renderTestResult("engine-suite", "Curriculum: science checkpoint reaches objective compass", true);
+  } catch (err) {
+    getAttemptLogNextQuestion = oldGetAttemptLogNextQuestion22bc3;
+    getLabChainTarget = oldGetLabChainTarget22bc3;
+    buildNextExperimentCue = oldBuildNextExperimentCue22bc3;
+    renderTestResult("engine-suite", "Curriculum: science checkpoint reaches objective compass", false, err.message);
+  }
+
   // Test 22c: Research rank and discovery deck render a readable learning collection.
   const oldGetElementById22c = document.getElementById;
   const oldWindowGame22c = window.Game;
@@ -5981,6 +6029,9 @@ function runEngineTests() {
     assertEquals(false, !!activeLabQuestionButton.disabled, "Next-test staging should be enabled");
     assertEquals(true, /#1 NEXT TEST/.test(activeRunQueueText), "In-run objective queue should switch from prediction gate to next-test action after predicting");
     assertEquals(true, /STAGE TEST/.test(activeRunQueueText), "In-run objective queue should expose the next-test stage action");
+    assertEquals(true, /NEXT CHECKPOINT/.test(activeRunQueueText), "In-run objective queue should surface the next science checkpoint as a chase target");
+    assertEquals(true, /Agility 12\/30 · Need \+3\.0 to 50% TARGET/.test(activeRunQueueText), "In-run objective queue should show the checkpoint stat gap");
+    assertEquals(true, /STAGE CHECKPOINT/.test(activeRunQueueText), "In-run objective queue should expose the checkpoint stage action");
     assertEquals(true, !!activeCheckpoint, "Mission panel should preview the next science checkpoint");
     assertEquals(true, /NEXT CHECKPOINT/.test(activeCheckpointText), "Science checkpoint card should identify the next target");
     assertEquals(true, /\+3 XP proof/.test(activeCheckpointText), "Science checkpoint card should show the checkpoint reward");
@@ -5998,10 +6049,18 @@ function runEngineTests() {
     document.getElementById = (id) => id === "console-input" ? inputEl22j : (id === "mission-list" ? list : null);
     const queueButtons = collectByClass(activeRunQueue, "run-objective-queue-action-btn");
     assertEquals(true, queueButtons.length >= 2, "In-run objective queue should expose stage buttons for actionable items");
+    const queueCheckpointButton = queueButtons.find(button => button && button.textContent === "STAGE CHECKPOINT");
+    assertEquals(true, !!queueCheckpointButton, "In-run objective queue should expose a dedicated checkpoint stage button");
     queueButtons[0]._events.click();
     assertEquals(true, /use_hopper\(\)/.test(inputEl22j.value), "In-run queue next-test action should stage the focused lab question command");
     assertEquals("mission-lab-question", game.lastStagedExperiment && game.lastStagedExperiment.source, "In-run queue next-test action should preserve lab-question source");
     assertEquals(true, inputEl22j.focused, "In-run queue next-test action should focus the terminal");
+    inputEl22j.value = "";
+    inputEl22j.focused = false;
+    queueCheckpointButton._events.click();
+    assertEquals(true, /use_hopper\(\)/.test(inputEl22j.value), "In-run queue checkpoint action should stage the target experiment");
+    assertEquals(true, inputEl22j.focused, "In-run queue checkpoint action should focus the terminal");
+    assertEquals("science-checkpoint", game.lastStagedExperiment && game.lastStagedExperiment.source, "In-run queue checkpoint action should preserve checkpoint source metadata");
     inputEl22j.value = "";
     inputEl22j.focused = false;
     activeLensButton._events.click();

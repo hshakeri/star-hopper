@@ -607,6 +607,22 @@ function getRunObjectiveQueue(game) {
     });
   }
 
+  const checkpoint = typeof getScienceCheckpointPreview === "function" ? getScienceCheckpointPreview(game) : null;
+  if (checkpoint && checkpoint.command && !checkpoint.claimed) {
+    addRunObjectiveQueueItem(queue, seen, {
+      key: `science-checkpoint:${checkpoint.sourceKey || checkpoint.checkpoint || checkpoint.command}`,
+      label: checkpoint.label || "NEXT CHECKPOINT",
+      title: checkpoint.title || checkpoint.checkpoint || "Science checkpoint",
+      body: `${checkpoint.statLine || "Target progress"} · ${checkpoint.gapLine || "Run one focused test."}`,
+      reward: `${checkpoint.reward || "Science proof"} · ${checkpoint.checkpoint || "checkpoint"}`,
+      cta: "STAGE CHECKPOINT",
+      command: checkpoint.command,
+      kind: "science-checkpoint",
+      source: "science-checkpoint",
+      color: "#bef264"
+    });
+  }
+
   const labChain = typeof getLabChainTarget === "function" ? getLabChainTarget(game) : null;
   if (labChain && labChain.command) {
     addRunObjectiveQueueItem(queue, seen, {
