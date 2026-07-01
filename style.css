@@ -2551,6 +2551,79 @@ body.resizing-panes * {
   font-family: var(--font-mono);
 }
 
+.start-resume-test {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 5px 8px;
+  align-items: center;
+  padding: 6px 7px;
+  border: 1px solid rgba(190, 242, 100, 0.28);
+  border-radius: 6px;
+  background:
+    linear-gradient(90deg, rgba(20, 83, 45, 0.34), rgba(8, 47, 73, 0.24)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.022) 0 1px, transparent 1px 4px);
+  min-width: 0;
+}
+
+.start-resume-test.hidden {
+  display: none;
+}
+
+.start-resume-test span,
+.start-resume-test em {
+  display: block;
+  font-size: 0.56rem;
+  line-height: 1.25;
+}
+
+.start-resume-test span {
+  color: #bef264;
+  font-weight: 900;
+}
+
+.start-resume-test strong {
+  display: block;
+  color: #fef08a;
+  font-size: 0.68rem;
+  line-height: 1.18;
+  margin-top: 2px;
+  min-width: 0;
+}
+
+.start-resume-test em {
+  color: #e0f2fe;
+  font-style: normal;
+  margin-top: 2px;
+}
+
+.start-resume-test code {
+  grid-column: 1 / -1;
+  padding: 3px 5px;
+  border: 1px solid rgba(190, 242, 100, 0.26);
+  border-radius: 5px;
+  background: rgba(2, 6, 23, 0.52);
+  color: #bbf7d0;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.start-resume-test-btn {
+  flex-shrink: 0;
+  min-height: 24px;
+  padding: 3px 8px;
+  background: rgba(190, 242, 100, 0.13);
+  border: 1px solid rgba(190, 242, 100, 0.48);
+  border-radius: 6px;
+  color: #bef264;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 900;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
 .start-mission-radar-btn {
   flex-shrink: 0;
   min-height: 24px;
@@ -6983,6 +7056,12 @@ body.readable-text-mode .start-story-preview span,
 body.readable-text-mode .start-story-preview strong,
 body.readable-text-mode .start-story-preview em,
 body.readable-text-mode .start-story-preview code,
+body.readable-text-mode .start-resume-test,
+body.readable-text-mode .start-resume-test span,
+body.readable-text-mode .start-resume-test strong,
+body.readable-text-mode .start-resume-test em,
+body.readable-text-mode .start-resume-test code,
+body.readable-text-mode .start-resume-test-btn,
 body.readable-text-mode .start-mission-radar-foot,
 body.readable-text-mode .start-mission-radar-btn,
 body.readable-text-mode .daily-signal-label,

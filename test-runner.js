@@ -1972,6 +1972,7 @@ function runEngineTests() {
   // Test 22cc: Research panel always surfaces the next lab quest.
   const oldGetElementById22cc = document.getElementById;
   const oldWindowGame22cc = window.Game;
+  const oldNotebookEntries22cc = (typeof notebookEntries !== 'undefined' && notebookEntries) ? { ...notebookEntries } : null;
   try {
     const earthMission = PLANETS[0].missions.find(mission => mission.id === "earth-gravity-wall");
     const game = new StarHopperGame();
@@ -2002,6 +2003,18 @@ function runEngineTests() {
     assertEquals(true, /Combo Amplifier/.test(quest.reward), "Rank quest should name the next lab perk reward");
 
     const startKicker = { textContent: "" };
+    const resumeCard = {
+      style: {},
+      classList: {
+        hidden: true,
+        toggle(cls, force) {
+          if (cls === "hidden") this.hidden = force === undefined ? !this.hidden : !!force;
+        },
+        contains(cls) {
+          return cls === "hidden" ? !!this.hidden : false;
+        }
+      }
+    };
     const els = {
       "research-rank-card": { innerHTML: "" },
       "discovery-deck": { innerHTML: "" },
@@ -2026,9 +2039,37 @@ function runEngineTests() {
       "start-story-preview-title": { textContent: "" },
       "start-story-preview-body": { textContent: "" },
       "start-story-preview-progress": { textContent: "" },
-      "start-mission-radar-btn": { textContent: "", title: "", dataset: {} }
+      "start-resume-test": resumeCard,
+      "start-resume-test-label": { textContent: "" },
+      "start-resume-test-title": { textContent: "" },
+      "start-resume-test-body": { textContent: "" },
+      "start-resume-test-code": { textContent: "" },
+      "start-resume-test-btn": { textContent: "", title: "", dataset: {} },
+      "start-mission-radar-btn": { textContent: "", title: "", dataset: {} },
+      "console-input": {
+        value: "",
+        focused: false,
+        selection: null,
+        style: {},
+        scrollHeight: 20,
+        focus() { this.focused = true; },
+        setSelectionRange(start, end) { this.selection = [start, end]; }
+      }
     };
     document.getElementById = (id) => els[id] || null;
+    if (oldNotebookEntries22cc) {
+      Object.keys(notebookEntries).forEach(key => delete notebookEntries[key]);
+      notebookEntries["earth-gravity-wall"] = {
+        title: "Gravity Wall",
+        updatedAtMs: 123,
+        nextExperiment: {
+          title: "Raise engine",
+          body: "Raise the engine and compare height.",
+          command: "hopper.engine = 6",
+          kind: "check"
+        }
+      };
+    }
     game.discoveredFormulaKinds = new Set(["antigravity"]);
     game.planetClears = { 0: 1 };
     game.masteryMeters = { 0: { xp: 80, badges: ["scout"], sources: { "lab-star:0": 20 } } };
@@ -2061,9 +2102,26 @@ function runEngineTests() {
     assertEquals(true, /Next: Clear Moon \(Luna Outpost\)/.test(els["start-story-preview-body"].textContent), "Start radar should name the next story action");
     assertEquals(true, /Reward: Moon Loop Echo/.test(els["start-story-preview-body"].textContent), "Start radar should name the next story reward");
     assertEquals("1/10 decoded", els["start-story-preview-progress"].textContent, "Start radar should show decoded story progress");
+    assertEquals(false, resumeCard.classList.contains("hidden"), "Start radar should show a saved next test when notebook proof has one");
+    assertEquals("RESUME LAB CHAIN", els["start-resume-test-label"].textContent, "Resume card should label the saved proof loop");
+    assertEquals("Raise engine", els["start-resume-test-title"].textContent, "Resume card should show the saved next-test title");
+    assertEquals(true, /Gravity Wall/.test(els["start-resume-test-body"].textContent), "Resume card should keep mission context");
+    assertEquals("hopper.engine = 6", els["start-resume-test-code"].textContent, "Resume card should show the saved command");
+    assertEquals("STAGE NEXT TEST", els["start-resume-test-btn"].textContent, "Resume card should expose a stage action");
+    assertEquals("hopper.engine = 6", els["start-resume-test-btn"].dataset.command, "Resume action should retain the command");
     assertEquals("START QUEST", els["start-mission-radar-btn"].textContent, "Formula quests should be directly launchable");
     assertEquals("quest", els["start-mission-radar-btn"].dataset.action, "Formula quest button should use the quest action");
     assertEquals("0", els["start-mission-radar-btn"].dataset.level, "Quest action should target the current planet");
+
+    window.Game = game;
+    assertEquals(true, runStartResumeTestAction(), "Resume radar action should stage the saved next test");
+    assertEquals("hopper.engine = 6", els["console-input"].value, "Resume radar action should write the saved command to the terminal");
+    assertEquals("Raise engine", game.lastStagedExperiment.title, "Resume radar action should preserve the saved next-test title");
+    assertEquals("start-resume-proof", game.lastStagedExperiment.source, "Resume radar action should mark the start-screen source");
+
+    if (oldNotebookEntries22cc) Object.keys(notebookEntries).forEach(key => delete notebookEntries[key]);
+    updateStartMissionRadar(game);
+    assertEquals(true, resumeCard.classList.contains("hidden"), "Start radar should hide the resume card without a saved next test");
 
     game.completedMissions = new Set((game.currentPlanet.missions || []).map(mission => mission.id));
     game.requiredCollectiblesCollected = 2;
@@ -2105,10 +2163,18 @@ function runEngineTests() {
     window.Game = oldWindowGame22cc;
 
     document.getElementById = oldGetElementById22cc;
+    if (oldNotebookEntries22cc) {
+      Object.keys(notebookEntries).forEach(key => delete notebookEntries[key]);
+      Object.assign(notebookEntries, oldNotebookEntries22cc);
+    }
     renderTestResult("engine-suite", "Curriculum: research panel surfaces next lab quest", true);
   } catch (err) {
     document.getElementById = oldGetElementById22cc;
     window.Game = oldWindowGame22cc;
+    if (oldNotebookEntries22cc) {
+      Object.keys(notebookEntries).forEach(key => delete notebookEntries[key]);
+      Object.assign(notebookEntries, oldNotebookEntries22cc);
+    }
     renderTestResult("engine-suite", "Curriculum: research panel surfaces next lab quest", false, err.message);
   }
 

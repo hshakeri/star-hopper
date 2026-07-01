@@ -2071,6 +2071,62 @@ function getActiveLabQuest(game) {
   };
 }
 
+function getStartResumeTestCue() {
+  const entries = (typeof notebookEntries !== 'undefined' && notebookEntries && typeof notebookEntries === 'object')
+    ? notebookEntries
+    : {};
+  let best = null;
+  let order = 0;
+  Object.keys(entries).forEach(key => {
+    order++;
+    const entry = entries[key] || {};
+    const cue = entry.nextExperiment || null;
+    const command = cue && cue.command ? String(cue.command).trim() : "";
+    if (!command) return;
+    const updatedAt = Number(entry.updatedAtMs);
+    const score = Number.isFinite(updatedAt) && updatedAt > 0 ? updatedAt : order;
+    if (best && score < best.score) return;
+    best = {
+      missionId: key,
+      missionTitle: entry.title || "Science Notebook",
+      title: cue.title || "Resume the next test",
+      body: cue.body || "Stage the saved command, run it, and compare the new evidence.",
+      command,
+      kind: cue.kind || "reflection",
+      score
+    };
+  });
+  return best;
+}
+
+function updateStartResumeTestCard(cue = getStartResumeTestCue()) {
+  const card = document.getElementById("start-resume-test");
+  if (!card) return;
+  const visible = !!(cue && cue.command);
+  if (card.classList && typeof card.classList.toggle === "function") {
+    card.classList.toggle("hidden", !visible);
+  } else if (card.style) {
+    card.style.display = visible ? "" : "none";
+  }
+  if (!visible) return;
+  const label = document.getElementById("start-resume-test-label");
+  const title = document.getElementById("start-resume-test-title");
+  const body = document.getElementById("start-resume-test-body");
+  const code = document.getElementById("start-resume-test-code");
+  const button = document.getElementById("start-resume-test-btn");
+  if (label) label.textContent = "RESUME LAB CHAIN";
+  if (title) title.textContent = cue.title;
+  if (body) body.textContent = `${cue.missionTitle}: ${cue.body}`;
+  if (code) code.textContent = cue.command;
+  if (button) {
+    button.textContent = "STAGE NEXT TEST";
+    button.title = "Put this saved next-test command into the terminal.";
+    button.dataset.command = cue.command;
+    button.dataset.title = cue.title;
+    button.dataset.kind = cue.kind || "reflection";
+  }
+}
+
 function updateStartMissionRadar(game = window.Game) {
   const panel = document.getElementById("start-mission-radar");
   if (!panel) return;
@@ -2104,6 +2160,7 @@ function updateStartMissionRadar(game = window.Game) {
   const storyTitle = document.getElementById("start-story-preview-title");
   const storyBody = document.getElementById("start-story-preview-body");
   const storyProgress = document.getElementById("start-story-preview-progress");
+  updateStartResumeTestCard();
 
   if (kicker) kicker.textContent = quest ? quest.kicker.replace(/^NEXT\s+/i, "") : "MISSION RADAR";
   if (progress) progress.textContent = `${collection.unlocked.length}/${collection.cards.length} formulas · ${Math.round(rank.xp)} XP`;
@@ -2139,6 +2196,18 @@ function updateStartMissionRadar(game = window.Game) {
     button.dataset.action = action.action;
     button.dataset.level = String(action.levelIndex);
   }
+}
+
+function runStartResumeTestAction() {
+  const button = document.getElementById("start-resume-test-btn");
+  const command = button && button.dataset ? String(button.dataset.command || "").trim() : "";
+  if (!command || typeof stageScienceDeltaCommand !== 'function') return false;
+  return stageScienceDeltaCommand(command, {
+    title: button.dataset.title || "Resume lab chain",
+    kind: button.dataset.kind || "reflection",
+    source: "start-resume-proof",
+    color: "#bef264"
+  });
 }
 
 function getStartMissionRadarAction(game = window.Game, quest = null) {

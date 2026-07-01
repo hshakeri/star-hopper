@@ -390,7 +390,8 @@ function saveNotebookReflection() {
     prediction: prediction ? prediction.label : "",
     evidence,
     badge: badge ? `${badge.icon} ${badge.label}` : "",
-    timestamp: new Date().toLocaleTimeString()
+    timestamp: new Date().toLocaleTimeString(),
+    updatedAtMs: Date.now()
   };
   const game = (typeof window !== 'undefined' && window.Game) ? window.Game : (typeof Game !== 'undefined' ? Game : null);
   const reward = awardNotebookReflectionReward(game, missionId, missionTitle, alreadyRewarded, mission);
