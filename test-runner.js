@@ -7018,6 +7018,24 @@ function runCombatTests() {
     g.updateVillagerShelterStates();
     assertEquals(false, loopSentry.hiddenInCave, "Game loop brings the villager back out once close mob danger clears");
 
+    const earlyWarning = new NPC({ id: 'early-warning', name: 'Early Warning', profession: 'Guard', type: 'npc', x: 100, y: 60, color: '#cbd5e1', homeX: 100, homeY: 60, caveX: 72, caveY: 60 });
+    const outsideOldRadiusMob = new Mob(260, 60, 'hog', '#9a6b4f', 1);
+    outsideOldRadiusMob.speed = 0;
+    outsideOldRadiusMob.behaviorTimer = 999;
+    g.interactiveObjects = [earlyWarning];
+    g.mobs = [outsideOldRadiusMob];
+    g.survivalMode = true;
+    assertEquals(null, g.findThreateningMobForNPC(earlyWarning, 128), "Survival warning fixture starts outside the old villager danger radius");
+    assertEquals(true, !!g.getVillagerShelterSignal(earlyWarning).threat, "Survival uses the wider shared warning radius before mob contact");
+    const beforeEarlyWarningX = earlyWarning.x;
+    g.updateVillagerShelterStates();
+    assertEquals(true, earlyWarning.x < beforeEarlyWarningX, "Wider Survival warning starts the cave retreat before the mob reaches the villager");
+    for (let i = 0; i < 40 && !earlyWarning.hiddenInCave; i++) g.updateVillagerShelterStates();
+    assertEquals(true, earlyWarning.hiddenInCave, "Wider Survival warning still routes the villager fully into the cave");
+    g.toggleSurvival();
+    assertEquals(false, g.survivalMode, "Turning Survival off clears the wider warning state");
+    assertEquals(false, earlyWarning.hiddenInCave, "Survival-off brings the early-warning villager back out");
+
     const npc = new NPC({ id: 'caver', name: 'Caver', profession: 'Miner', type: 'npc', x: 100, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60 });
     const mob = new Mob(102, 60, 'hog', '#9a6b4f', 1);
     mob.speed = 0; mob.behaviorTimer = 999;

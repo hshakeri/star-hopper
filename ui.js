@@ -1000,7 +1000,7 @@ function getVillageStateCrtPreview(game) {
     if (npc.hiddenInCave) hidden++;
     if (npc.rescuePending) rescueWait++;
     const signal = typeof game.getVillagerShelterSignal === 'function'
-      ? game.getVillagerShelterSignal(npc, { radius: 128 })
+      ? game.getVillagerShelterSignal(npc)
       : null;
     if ((signal && signal.threat) || npc.shelterReason === "nearby mob") danger++;
     else if ((signal && signal.reason === "night") || npc.shelterReason === "night") night++;
@@ -1083,7 +1083,7 @@ function appendVillageStateCrtCard(listContainer, game) {
 function isVillageRequestVisible(game, npc) {
   if (!npc || npc.hiddenInCave || npc.rescuePending || npc.shelterReason) return false;
   const shelter = game && typeof game.getVillagerShelterSignal === 'function'
-    ? game.getVillagerShelterSignal(npc, { radius: 128 })
+    ? game.getVillagerShelterSignal(npc)
     : null;
   return !(shelter && shelter.active);
 }
@@ -2770,7 +2770,7 @@ function getStartVillageStateSignal(game = window.Game) {
   for (const npc of liveVillagers) {
     if (npc.hiddenInCave || npc.shelterReason) hidden++;
     const signal = typeof game.getVillagerShelterSignal === "function"
-      ? game.getVillagerShelterSignal(npc, { radius: 128 })
+      ? game.getVillagerShelterSignal(npc)
       : null;
     if ((signal && signal.threat) || npc.shelterReason === "nearby mob" || npc.shelterReason === "mob attack") danger = true;
     if ((signal && signal.reason === "night") || npc.shelterReason === "night") night = true;
@@ -6681,7 +6681,7 @@ function getVillageTradeRequest(game, npc) {
 function getVillageTradeMarker(game, npc) {
   if (!npc || npc.hiddenInCave || npc.rescuePending || npc.shelterReason) return null;
   const shelter = game && typeof game.getVillagerShelterSignal === 'function'
-    ? game.getVillagerShelterSignal(npc, { radius: 128 })
+    ? game.getVillagerShelterSignal(npc)
     : null;
   if (shelter && shelter.active) return null;
 

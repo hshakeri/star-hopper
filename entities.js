@@ -2500,9 +2500,9 @@ class NPC extends InteractiveObject {
   update(game) {
     if (!game || !game.player) return;
     const shelter = (typeof game.getVillagerShelterSignal === 'function')
-      ? game.getVillagerShelterSignal(this, { radius: 128 })
+      ? game.getVillagerShelterSignal(this)
       : {
-          threat: (typeof game.findThreateningMobForNPC === 'function') ? game.findThreateningMobForNPC(this, 128) : null,
+          threat: (typeof game.findThreateningMobForNPC === 'function') ? game.findThreateningMobForNPC(this) : null,
           reason: (typeof game.shouldVillagersShelterForNight === 'function' && game.shouldVillagersShelterForNight()) ? "night" : null
         };
     const threat = shelter.threat;

@@ -273,8 +273,13 @@ class StarHopperGame {
     return this.currentPlanetIndex === 0 && !this.getEarthDayNightPhase(nowMs).isDay;
   }
 
+  getVillagerThreatRadius(options = {}) {
+    const baseRadius = this.survivalMode ? 192 : 152;
+    return baseRadius + (options && options.waiting ? 32 : 0);
+  }
+
   getVillagerShelterSignal(npc, options = {}) {
-    const radius = Number.isFinite(options.radius) ? options.radius : 128;
+    const radius = Number.isFinite(options.radius) ? options.radius : this.getVillagerThreatRadius(options);
     const threat = this.findThreateningMobForNPC(npc, radius);
     if (threat) return { active: true, reason: "nearby mob", threat };
     if (this.shouldVillagersShelterForNight(options.nowMs)) {
@@ -285,22 +290,22 @@ class StarHopperGame {
 
   shouldNPCWaitInCave(npc, signal = null) {
     if (!npc) return false;
-    const shelter = signal || this.getVillagerShelterSignal(npc, { radius: 128 });
+    const shelter = signal || this.getVillagerShelterSignal(npc);
     if (shelter && shelter.active) return true;
     if (!npc.rescuePending) return false;
-    return !!this.findThreateningMobForNPC(npc, 160);
+    return !!this.findThreateningMobForNPC(npc, this.getVillagerThreatRadius({ waiting: true }));
   }
 
   canNPCTrade(npc, signal = null) {
     if (!npc || npc.collected) return false;
-    const shelter = signal || this.getVillagerShelterSignal(npc, { radius: 128 });
+    const shelter = signal || this.getVillagerShelterSignal(npc);
     if (shelter && shelter.active) return false;
     if (npc.hiddenInCave || npc.rescuePending || npc.shelterReason || (npc.panicTimer || 0) > 0) return false;
     return true;
   }
 
   getVillagerCaveStatus(npc, signal = null) {
-    const shelter = signal || this.getVillagerShelterSignal(npc, { radius: 128 });
+    const shelter = signal || this.getVillagerShelterSignal(npc);
     if (shelter && shelter.threat) {
       return { label: "DANGER", reason: "nearby mob", color: "#facc15", fill: "rgba(250, 204, 21, 0.32)" };
     }
@@ -1026,7 +1031,7 @@ class StarHopperGame {
     let touchNeedsSync = false;
     for (const obj of this.interactiveObjects) {
       if (!(obj instanceof NPC)) continue;
-      const shelter = this.getVillagerShelterSignal(obj, { radius: 128 });
+      const shelter = this.getVillagerShelterSignal(obj);
       const threat = shelter.threat;
       if (threat) {
         if (this.markNPCShelterThreat(obj, "nearby mob", { bubble: true, panicTimer: 150 })) touchNeedsSync = true;
@@ -5492,7 +5497,7 @@ class StarHopperGame {
 
       if (typeof NPC !== 'undefined' && obj instanceof NPC) {
         this.damageNPCFromHazards(obj);
-        const shelterSignal = this.getVillagerShelterSignal(obj, { radius: 128 });
+        const shelterSignal = this.getVillagerShelterSignal(obj);
         if (obj.proximity && this.canNPCTrade(obj, shelterSignal)) this.activeNPC = obj;
         else if (obj.proximity) obj.proximity = false;
       }
@@ -6135,8 +6140,9 @@ class StarHopperGame {
     if (npc.health <= 0) npc.health = npc.maxHealth || 3;
   }
 
-  findThreateningMobForNPC(npc, radius = 128) {
+  findThreateningMobForNPC(npc, radius = null) {
     if (!npc || !this.mobs) return null;
+    const threatRadius = Number.isFinite(radius) ? radius : this.getVillagerThreatRadius();
     let best = null;
     let bestD = Infinity;
     const anchors = [];
@@ -6158,7 +6164,7 @@ class StarHopperGame {
       const my = m.y + m.h / 2;
       for (const anchor of anchors) {
         const d = Math.hypot(mx - anchor.x, my - anchor.y);
-        if (d < radius && d < bestD) {
+        if (d < threatRadius && d < bestD) {
           best = m;
           bestD = d;
         }
