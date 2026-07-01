@@ -4231,6 +4231,137 @@ function awardSignalLabContractProof(game, code, pulse = null) {
   return pulse ? pulse.signalLabProof : null;
 }
 
+function getFailureRepairProofCandidate(game, code) {
+  if (!game) return null;
+  const staged = game.lastStagedExperiment || null;
+  const runCode = String(code || "").trim();
+  const stagedCode = String(staged && staged.command || "").trim();
+  if (!runCode || !stagedCode || runCode !== stagedCode) return null;
+  if (!staged || staged.source !== "failure-lab") return null;
+  const planet = Number.isFinite(game.currentPlanetIndex) ? game.currentPlanetIndex : 0;
+  const title = staged.title || "Crash repair";
+  return {
+    command: runCode,
+    title,
+    prediction: staged.prediction || null,
+    sourceKey: [
+      "failure-repair-proof",
+      planet,
+      normalizeSignalLabProofPart(title),
+      hashSignalLabCommand(runCode)
+    ].join(":"),
+    planet
+  };
+}
+
+function awardFailureRepairProof(game, code, pulse = null) {
+  const proof = getFailureRepairProofCandidate(game, code);
+  if (!proof) return null;
+  game.discoveryPassCounts = game.discoveryPassCounts || {};
+  if (game.discoveryPassCounts[proof.sourceKey]) return null;
+
+  let masterySources = null;
+  if (typeof game.normalizeWorldMasteryMeter === 'function') {
+    const meter = game.normalizeWorldMasteryMeter(game.currentPlanetIndex);
+    masterySources = meter && meter.sources ? meter.sources : null;
+  }
+  if (masterySources && masterySources[proof.sourceKey]) {
+    game.discoveryPassCounts[proof.sourceKey] = 1;
+    return null;
+  }
+
+  const rewardXP = 5;
+  const masteryXP = 7;
+  const label = "REPAIR PROOF";
+  const color = "#facc15";
+  const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(game.researchXP || 0) : null;
+  const existingReward = !!(pulse && ((pulse.rewardXP || 0) > 0 || pulse.cardUnlocked || pulse.hypothesisConfirmed || (pulse.openedGems || 0) > 0));
+  const mastery = typeof game.awardWorldMasteryXP === 'function'
+    ? game.awardWorldMasteryXP(masteryXP, "crash repair proof", { sourceKey: proof.sourceKey, silent: true })
+    : { addedXP: 0, duplicate: false };
+  if (mastery && mastery.duplicate) {
+    game.discoveryPassCounts[proof.sourceKey] = 1;
+    return null;
+  }
+
+  game.discoveryPassCounts[proof.sourceKey] = 1;
+  game.researchXP = Math.max(0, (game.researchXP || 0) + rewardXP);
+  let comboAdvanced = false;
+  if (pulse && !existingReward) {
+    game.discoveryCombo = Math.min(99, (game.discoveryCombo || 0) + 1);
+    pulse.combo = game.discoveryCombo;
+    comboAdvanced = true;
+    if (pulse.combo === 1 && typeof game.spawnDiscoveryComboPrimerEffect === 'function') {
+      pulse.comboPrimer = game.spawnDiscoveryComboPrimerEffect(pulse);
+    } else if (pulse.combo > 1 && typeof game.spawnDiscoveryComboEffect === 'function') {
+      pulse.repairComboEffect = game.spawnDiscoveryComboEffect(pulse);
+    }
+  }
+
+  const afterRank = (typeof getResearchRank === 'function') ? getResearchRank(game.researchXP || 0) : null;
+  const rankUp = !!(beforeRank && afterRank && afterRank.level > beforeRank.level);
+  const proofResult = {
+    label,
+    title: proof.title,
+    source: "Crash Lab",
+    prediction: proof.prediction,
+    rewardXP,
+    worldMasteryAddedXP: mastery && Number.isFinite(mastery.addedXP) ? mastery.addedXP : 0,
+    sourceKey: proof.sourceKey
+  };
+  if (pulse) {
+    pulse.rewardXP = Math.max(0, (pulse.rewardXP || 0) + rewardXP);
+    pulse.repairProof = proofResult;
+    pulse.rankUp = pulse.rankUp || rankUp;
+    pulse.rankTitle = pulse.rankTitle || (afterRank ? afterRank.title : null);
+    pulse.rankPerk = pulse.rankPerk || (rankUp && afterRank ? afterRank.perk : null);
+    game.discoveryPulse = pulse;
+    if (Array.isArray(game.discoveryLog) && game.discoveryLog[0] !== pulse) {
+      game.discoveryLog = [pulse].concat(game.discoveryLog).slice(0, 8);
+    }
+  }
+
+  if (rankUp && afterRank && typeof showBadgeToast === 'function') {
+    showBadgeToast({
+      icon: "FIX",
+      label: `Research Rank: ${afterRank.title}`,
+      description: `Crash repair proof unlocked ${afterRank.perk.label}.`
+    });
+  }
+  if (rankUp && pulse && typeof game.spawnResearchRankEffect === 'function') {
+    pulse.rankEffect = game.spawnResearchRankEffect(pulse);
+  }
+  if (typeof ui_log_output === 'function') {
+    const masteryText = mastery && mastery.addedXP > 0 ? `, +${mastery.addedXP} world mastery XP` : "";
+    const predictionText = proof.prediction ? ` Prediction: ${proof.prediction}.` : "";
+    ui_log_output(`${label}: +${rewardXP} Research XP${masteryText}.${predictionText}`, "success");
+  }
+  if (typeof game.showMissionBalloon === 'function') {
+    game.showMissionBalloon(`${label}: +${rewardXP} Research XP`, {
+      title: "CRASH LAB",
+      color,
+      timer: 250
+    });
+  }
+  if (game.player && typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+    const px = (Number.isFinite(game.player.x) ? game.player.x : 0) + (game.player.w || 24) / 2;
+    const py = Number.isFinite(game.player.y) ? game.player.y : 0;
+    ComicBubbles.pop(px, py - 52, label, color, 1.0);
+    if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+      Particles.spawnBurst(px, py - 10, color, 12, 2.1, 1.9, "glow");
+      Particles.spawnBurst(px, py - 10, "#fef08a", 6, 1.5, 1.4, "glow");
+    }
+  }
+  if (comboAdvanced && typeof game.grantDiscoveryComboMilestone === 'function') {
+    game.grantDiscoveryComboMilestone(pulse);
+  }
+  if (typeof updateDiscoveryPulse === 'function') updateDiscoveryPulse(game);
+  if (typeof updateResearchProgress === 'function') updateResearchProgress(game);
+  if (typeof game.checkLabStarProgress === 'function') game.checkLabStarProgress("science");
+  if (typeof saveLocalProgress === 'function' && typeof window !== 'undefined' && window.Game === game) saveLocalProgress();
+  return pulse ? pulse.repairProof : proofResult;
+}
+
 function getAnomalyTraceProofCandidate(game, code) {
   if (!game) return null;
   const staged = game.lastStagedExperiment || null;
@@ -4653,10 +4784,11 @@ function finishSuccessfulCodeRunDiscovery(game, activeMission, code, resultState
   const pulse = recordDiscoveryPulse(game, activeMission, code, resultState, opened);
   const lessonPhaseAdvance = recordLessonPhaseAdvance(game, activeMission, resultState, pulse);
   const signalLabProof = awardSignalLabContractProof(game, code, pulse);
+  const repairProof = awardFailureRepairProof(game, code, pulse);
   const anomalyTraceProof = awardAnomalyTraceProof(game, code, pulse);
   const quantumBranchProof = awardQuantumBranchProof(game, code, pulse);
   const quantumChanceProof = awardQuantumChanceProof(game, code, pulse);
-  return { opened, pulse, lessonPhaseAdvance, signalLabProof, anomalyTraceProof, quantumBranchProof, quantumChanceProof, lockedAfter };
+  return { opened, pulse, lessonPhaseAdvance, signalLabProof, repairProof, anomalyTraceProof, quantumBranchProof, quantumChanceProof, lockedAfter };
 }
 
 function getDiscoveryChainHint(pulse, game = null) {
@@ -4720,6 +4852,12 @@ function updateDiscoveryPulse(game) {
     : "";
   const signalLabProof = pulse.signalLabProof
     ? `<div class="discovery-hypothesis discovery-signal-lab">${escapeHTML(pulse.signalLabProof.label)} +${escapeHTML(String(pulse.signalLabProof.rewardXP || 0))} XP</div>`
+    : "";
+  const repairPrediction = pulse.repairProof && pulse.repairProof.prediction
+    ? ` · predict ${escapeHTML(pulse.repairProof.prediction)}`
+    : "";
+  const repairProof = pulse.repairProof
+    ? `<div class="discovery-hypothesis discovery-signal-lab">${escapeHTML(pulse.repairProof.label)} +${escapeHTML(String(pulse.repairProof.rewardXP || 0))} XP${repairPrediction}</div>`
     : "";
   const anomalyTraceProof = pulse.anomalyTraceProof
     ? `<div class="discovery-hypothesis discovery-signal-lab">${escapeHTML(pulse.anomalyTraceProof.label)} +${escapeHTML(String(pulse.anomalyTraceProof.rewardXP || 0))} XP</div>`
@@ -4788,6 +4926,7 @@ function updateDiscoveryPulse(game) {
     ${formulaDeckMastery}
     ${aiStateDeckMastery}
     ${signalLabProof}
+    ${repairProof}
     ${anomalyTraceProof}
     ${quantumBranchProof}
     ${quantumChanceProof}

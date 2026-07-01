@@ -2027,6 +2027,76 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: terminal code earns discovery rewards", false, err.message);
   }
 
+  // Test 22b2a: staged Crash Lab repairs pay off as one-time proof rewards.
+  const oldGetElementById22b2a = document.getElementById;
+  const oldBubblePop22b2a = ComicBubbles.pop;
+  const oldParticleBurst22b2a = Particles.spawnBurst;
+  try {
+    const labels = [];
+    let bursts = 0;
+    const panel = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };
+    document.getElementById = (id) => id === "discovery-pulse" ? panel : null;
+    ComicBubbles.pop = (x, y, text) => { labels.push(text); };
+    Particles.spawnBurst = () => { bursts++; };
+
+    const game = new StarHopperGame();
+    game.currentPlanet = PLANETS[0];
+    game.currentPlanetIndex = 0;
+    game.player = { x: 80, y: 100, w: 24, h: 32 };
+    game.masteryMeters = {};
+    game.discoveryPassCounts = {};
+    const activeMission = PLANETS[0].missions.find(mission => mission.id === "earth-gravity-wall");
+    const noProgress = {
+      allPassed: false,
+      items: [
+        { id: "earth-hopper-active", label: "Hopper activated", passed: false, message: "Need Hopper" },
+        { id: "earth-emerald-gates", label: "Agility 30+ reached", passed: false, message: "Still locked" }
+      ]
+    };
+    game.lastStagedExperiment = {
+      title: "Fix the jump arc",
+      source: "failure-lab",
+      kind: "failure-diagnosis",
+      command: "hopper.jump = 18",
+      prediction: "higher",
+      time: Date.now()
+    };
+
+    const outcome = finishSuccessfulCodeRunDiscovery(game, activeMission, "hopper.jump = 18", noProgress, 0, []);
+    assertEquals(true, !!outcome.repairProof, "Exact staged Crash Lab command should award a repair proof");
+    assertEquals("REPAIR PROOF", outcome.repairProof.label, "Crash Lab proof should use the repair label");
+    assertEquals("Crash Lab", outcome.repairProof.source, "Crash Lab proof should name its source");
+    assertEquals("higher", outcome.repairProof.prediction, "Crash Lab proof should keep the staged hypothesis");
+    assertEquals(5, outcome.repairProof.rewardXP, "Crash Lab proof should grant focused Research XP");
+    assertEquals(5, game.researchXP, "Repair proof should pay even when no mission checklist item changed");
+    assertEquals(7, game.getWorldMasteryProgress(0).xp, "Repair proof should feed world mastery");
+    assertEquals(1, game.discoveryPassCounts[outcome.repairProof.sourceKey], "Repair proof should persist its one-time source key");
+    assertEquals(1, game.discoveryCombo, "Standalone repair proof should start the discovery chain");
+    assertEquals(true, /REPAIR PROOF \+5 XP/.test(panel.innerHTML), "Discovery Pulse should render the repair proof chip");
+    assertEquals(true, /predict higher/.test(panel.innerHTML), "Discovery Pulse should render the carried prediction");
+    assertEquals("REPAIR PROOF: +5 Research XP", game.missionBalloon && game.missionBalloon.text, "Mission CRT should announce the repair proof reward");
+    assertEquals(true, labels.includes("REPAIR PROOF"), "Repair proof should pop a visible reward cue");
+    assertEquals(true, bursts > 0, "Repair proof should spawn reward particles");
+
+    const xpAfterFirst = game.researchXP;
+    const masteryAfterFirst = game.getWorldMasteryProgress(0).xp;
+    const repeat = finishSuccessfulCodeRunDiscovery(game, activeMission, "hopper.jump = 18", noProgress, 0, []);
+    assertEquals(null, repeat.repairProof, "Repeating the same Crash Lab proof should not award again");
+    assertEquals(xpAfterFirst, game.researchXP, "Repeated repair proofs should not farm Research XP");
+    assertEquals(masteryAfterFirst, game.getWorldMasteryProgress(0).xp, "Repeated repair proofs should not farm world mastery");
+    assertEquals(1, game.discoveryCombo, "Repeated repair proofs should not extend the chain");
+
+    document.getElementById = oldGetElementById22b2a;
+    ComicBubbles.pop = oldBubblePop22b2a;
+    Particles.spawnBurst = oldParticleBurst22b2a;
+    renderTestResult("engine-suite", "Curriculum: Crash Lab repairs earn proof rewards", true);
+  } catch (err) {
+    document.getElementById = oldGetElementById22b2a;
+    ComicBubbles.pop = oldBubblePop22b2a;
+    Particles.spawnBurst = oldParticleBurst22b2a;
+    renderTestResult("engine-suite", "Curriculum: Crash Lab repairs earn proof rewards", false, err.message);
+  }
+
   // Test 22b3: staged Daily/Frontier Signal Lab contracts pay off as one-time proofs.
   const oldGetElementById22b3 = document.getElementById;
   const oldBubblePop22b3 = ComicBubbles.pop;
