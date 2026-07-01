@@ -942,9 +942,13 @@ class StarHopperGame {
     return pulse;
   }
 
-  releaseVillagersFromCaves() {
-    const keepSheltered = this.shouldVillagersShelterForNight();
+  releaseVillagersFromCaves(options = {}) {
+    const keepSheltered = Object.prototype.hasOwnProperty.call(options, "keepSheltered")
+      ? !!options.keepSheltered
+      : this.shouldVillagersShelterForNight();
     let villagers = 0;
+    let released = 0;
+    let sheltered = 0;
     for (const obj of this.interactiveObjects || []) {
       if (!(typeof NPC !== 'undefined' && obj instanceof NPC)) continue;
       villagers++;
@@ -952,16 +956,23 @@ class StarHopperGame {
       obj.panicTimer = 0;
       obj.caveCooldown = 0;
       if (keepSheltered) {
+        sheltered++;
         if (!obj.rescuePending) obj.shelterReason = "night";
         this.parkNPCInCave(obj, "night");
         continue;
       }
       if (hadShelterState) {
         this.releaseNPCFromCave(obj, { returnHome: true });
+        released++;
       } else {
         obj.hiddenInCave = false;
+        obj.rescuePending = false;
+        obj.shelterReason = null;
         obj.proximity = false;
+        if (Number.isFinite(obj.homeX)) obj.x = obj.homeX;
+        if (Number.isFinite(obj.homeY)) obj.y = obj.homeY;
         if (this.activeNPC === obj) this.activeNPC = null;
+        released++;
       }
     }
     if (this.activeNPC && this.activeNPC.hiddenInCave) this.activeNPC = null;
@@ -976,6 +987,7 @@ class StarHopperGame {
         }
       );
     }
+    return { villagers, released, sheltered, keepSheltered };
   }
 
   syncTradeTouchControls() {
@@ -5734,11 +5746,13 @@ class StarHopperGame {
     this.mobs = []; this.projectiles = [];
     this.survivalScore = 0; this.weaponLevel = 1; this.raveImmuneTimer = 0; this._raveMilestone = 0;
     this.mobSpawnTimer = 50;
+    let shelterSync = null;
     const btn = document.getElementById('survival-btn');
     if (btn) btn.classList.toggle('survival-on', this.survivalMode);
     const touch = document.getElementById('touch-controls');
     if (touch) touch.classList.toggle('survival', this.survivalMode); // reveal the FIRE button
     if (this.survivalMode) {
+      this.lastVillageShelterSync = null;
       if (typeof SFX !== 'undefined' && SFX.startSurvivalBGM) SFX.startSurvivalBGM(this.currentPlanetIndex);
       ui_log_output("👾 MOB SURVIVAL on! Jump on critters or press F to shoot. Score → bigger guns + a rave shield.", "success");
       if (this.player && typeof ComicBubbles !== 'undefined') {
@@ -5746,9 +5760,13 @@ class StarHopperGame {
       }
     } else {
       if (typeof SFX !== 'undefined' && SFX.stopSurvivalBGM) SFX.stopSurvivalBGM(this.currentPlanetIndex);
-      if (typeof this.releaseVillagersFromCaves === 'function') this.releaseVillagersFromCaves();
+      if (typeof this.releaseVillagersFromCaves === 'function') {
+        shelterSync = this.releaseVillagersFromCaves();
+        this.lastVillageShelterSync = shelterSync;
+      }
       ui_log_output("Mob Survival off — back to engineering.", "info");
     }
+    return shelterSync;
   }
 
   // Flip the infinite-tank toggle. When on, update() keeps fuel topped so the cadet can fly

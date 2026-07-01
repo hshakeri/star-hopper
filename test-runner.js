@@ -7437,9 +7437,11 @@ function runCombatTests() {
     g.interactiveObjects = [npc];
     g.survivalMode = true;
     g.mobs = [new Mob(90, 60, 'hog', '#9a6b4f', 1)];
-    g.toggleSurvival();
+    const releaseSummary = g.toggleSurvival();
     assertEquals(false, g.survivalMode, "Survival mode turns off");
     assertEquals(0, g.mobs.length, "Survival mobs are cleared");
+    assertEquals(1, releaseSummary && releaseSummary.released, "Survival-off reports one daylight villager release");
+    assertEquals(0, releaseSummary && releaseSummary.sheltered, "Survival-off daylight release does not keep villagers sheltered");
     assertEquals(false, g.getVillagerShelterSignal(npc).active, "Daylight shelter signal clears after Survival turns off");
     assertEquals(false, npc.hiddenInCave, "Villager reappears after survival danger ends");
     assertEquals(130, npc.x, "Daylight release returns the villager to the village home");
@@ -7493,6 +7495,38 @@ function runCombatTests() {
     assertEquals(150, hiddenNpc.x, "Survival-off restores a hidden villager to the village home");
     hiddenOff.updateVillagerShelterStates();
     assertEquals(false, hiddenNpc.hiddenInCave, "Released hidden villager does not disappear again after danger was cleared");
+
+    const fullFrameRelease = new StarHopperGame();
+    fullFrameRelease.state = 'playing'; fullFrameRelease.currentPlanetIndex = 1; fullFrameRelease.currentPlanet = PLANETS[1];
+    fullFrameRelease.currentVariant = {
+      map: [
+        [0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0],
+        [1,1,1,1,1,1,1,1]
+      ]
+    };
+    fullFrameRelease.canvas = { width: 720, height: 448 };
+    fullFrameRelease.player = new Player(64, 64);
+    fullFrameRelease.enemies = [];
+    fullFrameRelease.projectiles = [];
+    fullFrameRelease.spawnedBoxes = [];
+    fullFrameRelease.spawnedSprings = [];
+    fullFrameRelease.debris = [];
+    fullFrameRelease.meteors = [];
+    fullFrameRelease.researchXP = 0;
+    fullFrameRelease.masteryMeters = {};
+    const frameNpc = new NPC({ id: 'frame-off', name: 'Frame Off', profession: 'Miner', type: 'npc', x: 82, y: 60, color: '#cbd5e1', homeX: 150, homeY: 60, caveX: 72, caveY: 60, hiddenInCave: true });
+    frameNpc.rescuePending = true;
+    frameNpc.shelterReason = "nearby mob";
+    fullFrameRelease.interactiveObjects = [frameNpc];
+    fullFrameRelease.survivalMode = true;
+    fullFrameRelease.mobs = [new Mob(90, 60, 'hog', '#9a6b4f', 1)];
+    fullFrameRelease.toggleSurvival();
+    fullFrameRelease.update();
+    assertEquals(false, frameNpc.hiddenInCave, "Survival-off villager stays visible through the next full game frame");
+    assertEquals(150, frameNpc.x, "Survival-off full-frame update keeps the villager at the village home");
+    assertEquals(true, fullFrameRelease.canNPCTrade(frameNpc), "Survival-off full-frame update restores the villager to a tradeable state");
 
     const loopRelease = new StarHopperGame();
     loopRelease.state = 'playing'; loopRelease.currentPlanetIndex = 1; loopRelease.currentPlanet = PLANETS[1];
@@ -7583,8 +7617,10 @@ function runCombatTests() {
     nightGame.interactiveObjects = [nightNpc];
     nightGame.survivalMode = true;
     nightGame.mobs = [new Mob(90, 60, 'hog', '#9a6b4f', 1)];
-    nightGame.toggleSurvival();
+    const nightSummary = nightGame.toggleSurvival();
     assertEquals(true, nightNpc.hiddenInCave, "Earth night keeps villagers sheltered after survival danger ends");
+    assertEquals(0, nightSummary && nightSummary.released, "Survival-off night release reports no daylight villagers");
+    assertEquals(1, nightSummary && nightSummary.sheltered, "Survival-off night release reports one villager kept in a cave");
     assertEquals(82, nightNpc.x, "Earth night parks the villager at the cave mouth");
     assertEquals("NIGHT", nightGame.getVillagerCaveStatus(nightNpc).label, "Survival-off night cave marker explains the villager did not disappear");
     assertEquals("VILLAGE NIGHT: traders wait in caves", nightGame.missionBalloon && nightGame.missionBalloon.text, "Survival-off night release explains villagers stayed in caves");
