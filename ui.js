@@ -6951,12 +6951,14 @@ function getCoachProofHook(game, activeMission) {
 
   const labChain = typeof getLabChainTarget === "function" ? getLabChainTarget(game) : null;
   if (labChain) {
+    const progress = typeof getLabChainProgressMeta === "function" ? getLabChainProgressMeta(game, labChain) : null;
     return {
       label: labChain.label || "LAB CHAIN",
       title: labChain.title || "Make one fresh change",
       body: labChain.reward || labChain.body || "Fresh progress keeps the experiment chain alive.",
       command: labChain.command || "",
-      kind: labChain.kind || "lab-chain"
+      kind: labChain.kind || "lab-chain",
+      progress
     };
   }
 
@@ -6978,7 +6980,14 @@ function getCoachProofHook(game, activeMission) {
       title: `Collect ${codeConceptTarget.title || "coding idea"}`,
       body: codeConceptTarget.reward || codeConceptTarget.body || "Practice one programming idea and save it to the deck.",
       command: codeConceptTarget.command,
-      kind: codeConceptTarget.concept || "code-concept"
+      kind: codeConceptTarget.concept || "code-concept",
+      progress: {
+        mode: "code-concept",
+        value: codeConceptTarget.count,
+        target: codeConceptTarget.total,
+        total: codeConceptTarget.total,
+        label: `${codeConceptTarget.count}/${codeConceptTarget.total} ideas`
+      }
     };
   }
 
@@ -6993,6 +7002,36 @@ function getCoachProofHook(game, activeMission) {
     command,
     kind: fullMission.id || activeMission.id || "mission-proof"
   };
+}
+
+function appendCoachProofProgress(card, proofHook) {
+  const progress = proofHook && proofHook.progress && typeof proofHook.progress === "object" ? proofHook.progress : null;
+  if (!card || !progress) return;
+  const rawTotal = Math.max(1, Math.floor(Number(progress.total || progress.target) || 1));
+  const total = Math.max(1, Math.min(6, rawTotal));
+  const rawValue = Math.max(0, Math.floor(Number(progress.value) || 0));
+  const value = Math.max(0, Math.min(total, rawTotal > total ? Math.round((rawValue / rawTotal) * total) : rawValue));
+  const mode = String(progress.mode || proofHook.kind || "progress").replace(/[^a-z0-9_-]+/gi, "-").toLowerCase();
+  const labelText = progress.label || `${rawValue}/${rawTotal}`;
+
+  const wrap = document.createElement("div");
+  wrap.className = `coach-proof-progress ${mode}`;
+  wrap.title = labelText;
+  if (typeof wrap.setAttribute === "function") wrap.setAttribute("aria-label", labelText);
+
+  const label = document.createElement("span");
+  label.textContent = labelText;
+  wrap.appendChild(label);
+
+  const pips = document.createElement("div");
+  pips.className = "coach-proof-progress-pips";
+  for (let i = 0; i < total; i++) {
+    const pip = document.createElement("i");
+    pip.className = `coach-proof-progress-pip${i < value ? " filled" : (i === value ? " next" : "")}`;
+    pips.appendChild(pip);
+  }
+  wrap.appendChild(pips);
+  card.appendChild(wrap);
 }
 
 // Direction + live reading for the numeric tuners, so the coach can detect an
@@ -8534,6 +8573,7 @@ function updatePedagogicalGuide(game) {
       <p>${escapeHTML(proofHook.body || "Run the code, compare the result, and save the evidence.")}</p>
       ${command}
     `;
+    appendCoachProofProgress(hook, proofHook);
     if (proofHook.command) {
       const stage = document.createElement("button");
       stage.type = "button";

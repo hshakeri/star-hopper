@@ -7252,6 +7252,10 @@ function runEngineTests() {
     assertEquals(true, /LAB CHAIN x2/.test(proofHook.innerHTML), "Proof hook should show the active reward path");
     assertEquals(true, /Engine Lab/.test(proofHook.innerHTML), "Proof hook should name the next experiment");
     assertEquals(true, /hopper\.engine = 7/.test(proofHook.innerHTML), "Proof hook should show the runnable follow-up command");
+    const proofProgress = proofHook.children.find(child => /^coach-proof-progress/.test(child.className || ""));
+    assertEquals(true, !!proofProgress, "Proof hook should render compact milestone progress");
+    assertEquals("2/3 to TRIPLE TEST", proofProgress.children[0] && proofProgress.children[0].textContent, "Proof hook should name the next combo milestone");
+    assertEquals(3, proofProgress.children[1] && proofProgress.children[1].children.length, "Proof hook should render one pip per combo target");
     const proofStage = proofHook.children.find(child => child.className === "coach-proof-stage-btn");
     assertEquals("STAGE PROOF", proofStage && proofStage.textContent, "Proof hook should expose a stage action");
     proofStage._events.click();
