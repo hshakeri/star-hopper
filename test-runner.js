@@ -2001,6 +2001,39 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: AI State Deck collects village behavior proofs", false, err.message);
   }
 
+  // Test 22a1d: Code Concept Deck makes programming ideas reviewable in the Log.
+  const oldGetElementById22codeDeck = document.getElementById;
+  try {
+    const panel = {
+      innerHTML: "",
+      querySelectorAll() { return []; }
+    };
+    document.getElementById = (id) => id === "code-concept-deck-panel" ? panel : null;
+    const game = new StarHopperGame();
+    game.codeConcepts = new Set(["ASSIGN"]);
+    updateResearchProgress(game);
+    assertEquals(true, /Code Concepts 1\/4/.test(panel.innerHTML), "Code Concept Deck should render partial collection progress");
+    assertEquals(true, /Next: Loop/.test(panel.innerHTML), "Code Concept Deck should name the next programming idea");
+    assertEquals(true, /NEXT CODING IDEA/.test(panel.innerHTML) && /Loop/.test(panel.innerHTML), "Code Concept Deck should render a next-concept contract");
+    assertEquals(true, /repeat 3 \{ spawn_block\(\) \}/.test(panel.innerHTML), "Code Concept Deck should expose a runnable sample for the next idea");
+    assertEquals(true, /Assignment/.test(panel.innerHTML) && /collected/.test(panel.innerHTML), "Code Concept Deck should mark collected ideas");
+    assertEquals(true, /Loop/.test(panel.innerHTML) && /next concept/.test(panel.innerHTML), "Code Concept Deck should mark the next card");
+    assertEquals(true, /STAGE NEXT/.test(panel.innerHTML), "Code Concept Deck should expose a stage action for the next concept");
+    const cadetRecord = getCadetIdentityPreview(game);
+    assertEquals(true, /Code Concepts 1\/4 · next Loop/.test(cadetRecord.body), "Cadet Record should summarize Code Concept Deck progress");
+
+    game.codeConcepts = new Set(["ASSIGN", "LOOP", "IF", "CALL"]);
+    updateCodeConceptDeck(game);
+    assertEquals(true, /Code Concepts 4\/4/.test(panel.innerHTML), "Complete Code Concept Deck should render full progress");
+    assertEquals(true, /CODE DECK COMPLETE/.test(panel.innerHTML), "Complete Code Concept Deck should celebrate completion");
+    assertEquals(false, /STAGE NEXT/.test(panel.innerHTML), "Complete Code Concept Deck should not show a stale next action");
+    document.getElementById = oldGetElementById22codeDeck;
+    renderTestResult("engine-suite", "Curriculum: Code Concept Deck reviews coding ideas", true);
+  } catch (err) {
+    document.getElementById = oldGetElementById22codeDeck;
+    renderTestResult("engine-suite", "Curriculum: Code Concept Deck reviews coding ideas", false, err.message);
+  }
+
   // Test 22a2: Scientist Certificate unlock path is visible before it is earned.
   const oldGetElementById22cert = document.getElementById;
   const oldWindowGame22cert = window.Game;
@@ -4581,6 +4614,7 @@ function runEngineTests() {
     game.requiredCollectiblesTotal = 2;
     game.requiredCollectiblesCollected = 0;
     game.confirmedHypotheses = new Set();
+    game.codeConcepts = new Set(["ASSIGN"]);
     game.discoveryPassCounts = {};
     game.discoveryCombo = 2;
     game.streakCount = 3;
@@ -4600,6 +4634,7 @@ function runEngineTests() {
     assertEquals(true, /Passport 1\/6 stamps · next Moon/.test(els["start-cadet-identity-body"].textContent), "Cadet record should show Science Passport stamp progress");
     assertEquals(true, /Lesson Paths 0\/3 · next Hopper Engineering Shakedown/.test(els["start-cadet-identity-body"].textContent), "Cadet record should show persistent lesson-path progress");
     assertEquals(true, /1\/\d+ formulas/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include formula deck progress");
+    assertEquals(true, /Code Concepts 1\/4 · next Loop/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include Code Concept Deck progress");
     assertEquals(true, /1\/12 transmissions/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include story transmission progress");
     assertEquals(true, /1\/5 AI states/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include AI State Deck progress");
     assertEquals(true, /next Shelter Loop/.test(els["start-cadet-identity-body"].textContent), "Cadet record should name the next AI State Deck card");

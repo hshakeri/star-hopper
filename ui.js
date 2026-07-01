@@ -3239,6 +3239,7 @@ function getCadetIdentityPreview(game = window.Game) {
   const dailyHabit = getCadetDailyHabitPortfolioText(game);
   const passport = getCadetPassportPortfolioText(game);
   const lessonPaths = getCadetLessonPathPortfolioText(game);
+  const codeConcepts = getCadetCodeConceptPortfolioText(game);
   const futureLab = getCadetFutureLabPortfolioText(game);
   const village = game && typeof game.getVillageTrustProgress === "function" ? game.getVillageTrustProgress(game.currentPlanetIndex) : null;
   const trust = village ? `${village.title} · ${village.points} trust` : "Village trust pending";
@@ -3271,7 +3272,7 @@ function getCadetIdentityPreview(game = window.Game) {
   return {
     label: "CADET RECORD",
     title: `${callsign} // ${rank.title}`,
-    body: `${Math.round(rank.xp || 0)} XP · ${dailyHabit} · ${labChain} · ${passport} · ${lessonPaths} · ${formulas} · ${transmissions} · ${futureLab} · ${aiStates} · ${trust}`,
+    body: `${Math.round(rank.xp || 0)} XP · ${dailyHabit} · ${labChain} · ${passport} · ${lessonPaths} · ${formulas} · ${codeConcepts} · ${transmissions} · ${futureLab} · ${aiStates} · ${trust}`,
     progress: Math.max(0, Math.min(1, Number(rank.progress) || 0)),
     aiAction,
     lessonPathAction
@@ -3478,9 +3479,10 @@ function updateSignalStoryPanel(game = window.Game) {
 function updateResearchProgress(game = window.Game) {
   const rankCard = document.getElementById("research-rank-card");
   const deck = document.getElementById("discovery-deck");
+  const codeDeck = document.getElementById("code-concept-deck-panel");
   const storyPanel = document.getElementById("signal-story-panel");
   const startRadar = document.getElementById("start-mission-radar");
-  if (!rankCard && !deck && !storyPanel && !startRadar) return;
+  if (!rankCard && !deck && !codeDeck && !storyPanel && !startRadar) return;
   const xp = game && Number.isFinite(game.researchXP) ? game.researchXP : 0;
   const rank = getResearchRank(xp);
 
@@ -3568,6 +3570,8 @@ function updateResearchProgress(game = window.Game) {
     }
     bindFormulaFocusStage(deck, target);
   }
+
+  if (codeDeck) updateCodeConceptDeck(game);
 
   if (storyPanel) updateSignalStoryPanel(game);
 }
@@ -3785,6 +3789,78 @@ function getCodeConceptProgress(game) {
     next: cards.find(card => !card.unlocked) || null,
     complete: cards.every(card => card.unlocked)
   };
+}
+
+function getCadetCodeConceptPortfolioText(game = window.Game) {
+  const progress = getCodeConceptProgress(game);
+  if (!progress.total) return "Code Concepts pending";
+  if (progress.complete) return `Code Concepts mastered ${progress.count}/${progress.total}`;
+  const nextTitle = progress.next && progress.next.title ? progress.next.title : "next concept";
+  return `Code Concepts ${progress.count}/${progress.total} · next ${nextTitle}`;
+}
+
+function bindCodeConceptDeckStage(panel, game, progress) {
+  if (!panel || typeof panel.querySelectorAll !== "function" || !progress || !progress.next) return;
+  const buttons = panel.querySelectorAll("[data-code-concept-command]");
+  buttons.forEach(button => {
+    if (!button || typeof button.addEventListener !== "function") return;
+    button.addEventListener("click", () => {
+      const command = button.dataset ? String(button.dataset.codeConceptCommand || "").trim() : "";
+      if (!command || typeof stageScienceDeltaCommand !== "function") return false;
+      return stageScienceDeltaCommand(command, {
+        title: progress.next.title || "Code concept",
+        kind: progress.next.concept || "code-concept",
+        source: "code-concept-deck",
+        color: "#93c5fd",
+        game
+      });
+    });
+  });
+}
+
+function updateCodeConceptDeck(game = window.Game) {
+  const panel = document.getElementById("code-concept-deck-panel");
+  if (!panel) return;
+  const progress = getCodeConceptProgress(game);
+  const next = progress.next || null;
+  const deckLabel = progress.complete
+    ? "Deck complete"
+    : (next ? `Next: ${next.title}` : "Next coding idea appears after a science proof");
+  const nextCommand = next && next.sampleCode ? String(next.sampleCode).trim() : "";
+  panel.innerHTML = `
+    <div class="formula-collection-head code-concept-head">
+      <strong>Code Concepts ${progress.count}/${progress.total}</strong>
+      <span>${escapeHTML(deckLabel)}</span>
+    </div>
+    ${next ? `
+    <div class="code-concept-next-card">
+      <span>NEXT CODING IDEA</span>
+      <strong>${escapeHTML(next.title)}</strong>
+      <p>${escapeHTML(next.body)}</p>
+      <code>${escapeHTML(next.sampleCode || "")}</code>
+      ${nextCommand ? `<button type="button" class="code-concept-stage-btn" data-code-concept-command="${escapeHTML(nextCommand)}">STAGE NEXT</button>` : ""}
+    </div>
+    ` : `
+    <div class="code-concept-next-card complete">
+      <span>CODE DECK COMPLETE</span>
+      <strong>Four core coding moves collected</strong>
+      <p>Keep combining variables, loops, conditionals, and calls with science missions.</p>
+    </div>
+    `}
+    <div class="code-concept-grid">
+      ${progress.cards.map(card => `
+      <div class="discovery-card code-concept-card ${card.unlocked ? "unlocked" : "locked"} ${next && next.concept === card.concept ? "next-goal" : ""}">
+        <div class="discovery-card-head">
+          <strong>${escapeHTML(card.title)}</strong>
+          <span>${card.unlocked ? "collected" : (next && next.concept === card.concept ? "next concept" : "locked")}</span>
+        </div>
+        <code>${escapeHTML(card.concept)} · ${escapeHTML(card.sampleCode || "")}</code>
+        <p>${escapeHTML(card.body)}</p>
+      </div>
+      `).join("")}
+    </div>
+  `;
+  bindCodeConceptDeckStage(panel, game, progress);
 }
 
 function getCodeConceptForPulse(game, pulse) {
