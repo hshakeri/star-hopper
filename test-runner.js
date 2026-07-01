@@ -4523,6 +4523,34 @@ function runEngineTests() {
     assertEquals(null, findByClass(list, "ai-state-run-crt-card"), "AI proof card should hide once that proof is logged");
     assertEquals(null, aiRunGame.activeAIStateRun, "Completed active AI proof should clear stale route state");
 
+    aiRunGame.lastAIStateRunProof = {
+      label: "AI PROOF LOGGED",
+      title: "Shelter Loop",
+      state: "patrol -> cave -> trade",
+      concept: "State machine",
+      progress: "2/5",
+      nextTitle: "Pet Pact",
+      nextState: "wild -> scared -> pet",
+      nextActionLabel: "GET LOTION",
+      nextActionBody: "Run Glacies, collect Violet Ice, and trade with Cryo for calming lotion.",
+      levelIndex: 1
+    };
+    list = makeEl();
+    updateMissionList(aiRunGame);
+    const aiLoggedCard = findByClass(list, "ai-state-run-crt-card");
+    const aiLoggedText = flattenText(aiLoggedCard || list);
+    assertEquals(true, !!aiLoggedCard, "Mission panel should show the last completed AI proof route");
+    assertEquals(true, /logged/.test(aiLoggedCard.className), "Completed AI proof card should use the logged CRT state");
+    assertEquals(true, /AI STATE LOGGED/.test(aiLoggedText), "Completed AI proof card should identify itself");
+    assertEquals(true, /Shelter Loop -> Pet Pact/.test(aiLoggedText), "Completed AI proof card should point to the next state card");
+    assertEquals(true, /next state = wild -&gt; scared -&gt; pet/.test(aiLoggedText), "Completed AI proof card should show the next state formula");
+    assertEquals(true, /GET LOTION/.test(aiLoggedText), "Completed AI proof card should show the next deck action");
+    aiRunGame.currentPlanetIndex = 2;
+    list = makeEl();
+    updateMissionList(aiRunGame);
+    assertEquals(null, findByClass(list, "ai-state-run-crt-card"), "Completed AI proof card should not persist onto other worlds");
+    aiRunGame.currentPlanetIndex = 1;
+
     list = makeEl();
     game.mobs = [];
     villageNpc22h.hiddenInCave = true;
@@ -6335,6 +6363,8 @@ function runCombatTests() {
     assertEquals("Shelter Loop", g.discoveryPulse && g.discoveryPulse.aiStateRunProof && g.discoveryPulse.aiStateRunProof.title, "AI proof chip names the completed state card");
     assertEquals("2/5", g.discoveryPulse && g.discoveryPulse.aiStateRunProof && g.discoveryPulse.aiStateRunProof.progress, "AI proof chip shows updated deck progress");
     assertEquals("Pet Pact", g.discoveryPulse && g.discoveryPulse.aiStateRunProof && g.discoveryPulse.aiStateRunProof.nextTitle, "AI proof chip points to the next behavior card");
+    assertEquals("GET LOTION", g.lastAIStateRunProof && g.lastAIStateRunProof.nextActionLabel, "Logged rescue proof remembers the next AI route action");
+    assertEquals("wild -> scared -> pet", g.lastAIStateRunProof && g.lastAIStateRunProof.nextState, "Logged rescue proof remembers the next AI state formula");
     const homeGuard = new NPC({ id: 'home-guard', name: 'Home Guard', profession: 'Guard', type: 'npc', x: 250, y: 60, color: '#cbd5e1', homeX: 250, homeY: 60, caveX: 24, caveY: 60, hiddenInCave: true });
     homeGuard.x = homeGuard.caveX + 10;
     homeGuard.panicTimer = 0;
@@ -6817,6 +6847,8 @@ function runCombatTests() {
     assertEquals("Trade Flow", g.discoveryPulse && g.discoveryPulse.aiStateRunProof && g.discoveryPulse.aiStateRunProof.title, "AI proof chip names the completed trade card");
     assertEquals("1/5", g.discoveryPulse && g.discoveryPulse.aiStateRunProof && g.discoveryPulse.aiStateRunProof.progress, "AI proof chip shows trade deck progress");
     assertEquals("Shelter Loop", g.discoveryPulse && g.discoveryPulse.aiStateRunProof && g.discoveryPulse.aiStateRunProof.nextTitle, "AI proof chip points to the next AI card");
+    assertEquals("RUN RESCUE", g.lastAIStateRunProof && g.lastAIStateRunProof.nextActionLabel, "Logged trade proof remembers the next AI route action");
+    assertEquals("patrol -> cave -> trade", g.lastAIStateRunProof && g.lastAIStateRunProof.nextState, "Logged trade proof remembers the next AI state formula");
     const pulsePanelC24 = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };
     document.getElementById = (id) => id === "discovery-pulse" ? pulsePanelC24 : oldGetElementByIdC24.call(document, id);
     updateDiscoveryPulse(g);

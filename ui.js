@@ -423,6 +423,7 @@ function updateMissionList(game) {
   appendVillageTrustCrtCard(listContainer, game);
   appendVillageQuestChainCrtCard(listContainer, game);
   appendAIStateRunContractCard(listContainer, game);
+  appendAIStateLoggedCard(listContainer, game);
   appendVillageStateCrtCard(listContainer, game);
   appendVillageRequestCrtCard(listContainer, game);
   appendSignalStoryCrtCard(listContainer, game);
@@ -936,6 +937,37 @@ function appendAIStateRunContractCard(listContainer, game) {
       <code>${escapeHTML(`state = ${card.state}`)}</code>
       <p>${escapeHTML(action.body || card.next || "Complete the visible behavior proof, then check the deck.")}</p>
       <em>${escapeHTML(`${card.concept || "State machine"} proof · ${remaining} state${remaining === 1 ? "" : "s"} left`)}</em>
+    </div>
+  `;
+  listContainer.appendChild(cardEl);
+}
+
+function appendAIStateLoggedCard(listContainer, game) {
+  if (!listContainer || !game || !game.lastAIStateRunProof) return;
+  const proof = game.lastAIStateRunProof;
+  const proofLevel = Number(proof.levelIndex);
+  const currentLevel = Number(game.currentPlanetIndex);
+  if (Number.isFinite(proofLevel) && Number.isFinite(currentLevel) && proofLevel !== currentLevel) return;
+  const nextTitle = proof.complete ? "Deck complete" : (proof.nextTitle || "Next state");
+  const nextAction = proof.complete
+    ? "All village behavior cards are logged. Replay them in Daily Signals or mastery runs."
+    : (proof.nextActionBody || "Run the next behavior proof and watch the state change.");
+  const codeLine = proof.complete
+    ? "state deck = complete"
+    : (proof.nextState ? `next state = ${proof.nextState}` : "state + event -> next state");
+
+  const cardEl = document.createElement("div");
+  cardEl.className = "ai-state-run-crt-card logged";
+  cardEl.innerHTML = `
+    <div class="ai-state-run-crt-head">
+      <span>AI STATE LOGGED</span>
+      <strong>${escapeHTML(proof.progress || "0/0 logged")}</strong>
+    </div>
+    <div class="ai-state-run-crt-body">
+      <strong>${escapeHTML(proof.title || "AI state")} -> ${escapeHTML(nextTitle)}</strong>
+      <code>${escapeHTML(codeLine)}</code>
+      <p>${escapeHTML(nextAction)}</p>
+      <em>${escapeHTML(proof.complete ? "Collection payoff complete" : `${proof.nextActionLabel || "RUN STATE"} · ${proof.concept || "State machine"}`)}</em>
     </div>
   `;
   listContainer.appendChild(cardEl);

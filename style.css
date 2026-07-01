@@ -4948,6 +4948,18 @@ html {
   padding: 7px 8px;
 }
 
+.ai-state-run-crt-card.logged {
+  border-color: rgba(125, 211, 252, 0.45);
+  background:
+    linear-gradient(180deg, rgba(12, 74, 110, 0.36), rgba(69, 26, 3, 0.24)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.028) 0 1px, transparent 1px 4px);
+}
+
+.ai-state-run-crt-card.logged .ai-state-run-crt-head span,
+.ai-state-run-crt-card.logged .ai-state-run-crt-body strong {
+  color: #7dd3fc;
+}
+
 .ai-state-run-crt-head {
   display: flex;
   justify-content: space-between;
