@@ -2193,6 +2193,27 @@ function getStartSignalStoryPreview(game = window.Game) {
   };
 }
 
+function getCadetIdentityPreview(game = window.Game) {
+  const callsign = game && typeof game.getCadetCallsign === "function" ? game.getCadetCallsign() : "Cadet";
+  const rank = typeof getResearchRank === "function"
+    ? getResearchRank(game && Number.isFinite(game.researchXP) ? game.researchXP : 0)
+    : { title: "Lab Rookie", progress: 0, xp: 0 };
+  const collection = typeof getFormulaCollection === "function" ? getFormulaCollection(game) : null;
+  const formulas = collection && Array.isArray(collection.cards)
+    ? `${collection.unlocked.length}/${collection.cards.length} formulas`
+    : `${game && game.discoveredFormulaKinds ? game.discoveredFormulaKinds.size : 0} formulas`;
+  const story = typeof getSignalStoryProgress === "function" ? getSignalStoryProgress(game) : null;
+  const transmissions = story ? `${story.unlocked.length}/${story.total} transmissions` : "0 transmissions";
+  const village = game && typeof game.getVillageTrustProgress === "function" ? game.getVillageTrustProgress(game.currentPlanetIndex) : null;
+  const trust = village ? `${village.title} · ${village.points} trust` : "Village trust pending";
+  return {
+    label: "CADET RECORD",
+    title: `${callsign} // ${rank.title}`,
+    body: `${Math.round(rank.xp || 0)} XP · ${formulas} · ${transmissions} · ${trust}`,
+    progress: Math.max(0, Math.min(1, Number(rank.progress) || 0))
+  };
+}
+
 function getStartWorldMasteryPreview(game = window.Game) {
   if (!game || typeof game.getWorldMasteryProgress !== "function") {
     return {
@@ -2919,6 +2940,7 @@ function updateStartMissionRadar(game = window.Game) {
   const collection = getFormulaCollection(game);
   const rank = getResearchRank(game && Number.isFinite(game.researchXP) ? game.researchXP : 0);
   const unlockPreview = getResearchUnlockPreview(rank);
+  const cadetPreview = getCadetIdentityPreview(game);
   const storyPreview = getStartSignalStoryPreview(game);
   const worldPreview = getStartWorldMasteryPreview(game);
   const villagePreview = getStartVillageTrustPreview(game);
@@ -2931,6 +2953,10 @@ function updateStartMissionRadar(game = window.Game) {
   const body = document.getElementById("start-mission-radar-body");
   const reward = document.getElementById("start-mission-radar-reward");
   const button = document.getElementById("start-mission-radar-btn");
+  const cadetLabel = document.getElementById("start-cadet-identity-label");
+  const cadetTitle = document.getElementById("start-cadet-identity-title");
+  const cadetBody = document.getElementById("start-cadet-identity-body");
+  const cadetBar = document.getElementById("start-cadet-identity-bar");
   const unlockLabel = document.getElementById("start-rank-preview-label");
   const unlockTitle = document.getElementById("start-rank-preview-title");
   const unlockBody = document.getElementById("start-rank-preview-body");
@@ -2958,6 +2984,10 @@ function updateStartMissionRadar(game = window.Game) {
   if (title) title.textContent = quest ? quest.title : "Keep experimenting";
   if (body) body.textContent = quest ? quest.body : "Run Mission Coach code, collect formula cards, and improve your lab record.";
   if (reward) reward.textContent = quest ? quest.reward : "Reward: stronger science record";
+  if (cadetLabel) cadetLabel.textContent = cadetPreview.label;
+  if (cadetTitle) cadetTitle.textContent = cadetPreview.title;
+  if (cadetBody) cadetBody.textContent = cadetPreview.body;
+  if (cadetBar && cadetBar.style) cadetBar.style.width = `${Math.round(cadetPreview.progress * 100)}%`;
   if (unlockLabel) unlockLabel.textContent = unlockPreview.label;
   if (unlockTitle) unlockTitle.textContent = unlockPreview.title;
   if (unlockBody) {

@@ -1607,6 +1607,39 @@ body.resizing-panes * {
   margin-bottom: 6px;
 }
 
+.clear-cadet-record {
+  border: 1px solid rgba(129, 140, 248, 0.28);
+  border-radius: 6px;
+  background:
+    linear-gradient(90deg, rgba(49, 46, 129, 0.34), rgba(8, 47, 73, 0.22)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.02) 0 1px, transparent 1px 4px);
+  padding: 6px 7px;
+  margin-bottom: 6px;
+}
+
+.clear-cadet-record-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+  color: #c4b5fd;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-weight: 900;
+}
+
+.clear-cadet-record-head strong {
+  color: #f8fafc;
+  text-align: right;
+}
+
+.clear-cadet-record p {
+  color: #dff6ff;
+  font-size: 0.62rem;
+  line-height: 1.25;
+  margin: 5px 0 0;
+}
+
 .clear-lab-star-icons {
   display: flex;
   gap: 3px;
@@ -2644,6 +2677,62 @@ body.resizing-panes * {
   border-radius: inherit;
   background: linear-gradient(90deg, #22c55e, #facc15);
   box-shadow: 0 0 10px rgba(250, 204, 21, 0.26);
+  transition: width 0.35s ease;
+}
+
+.start-cadet-identity {
+  padding: 6px 7px;
+  border: 1px solid rgba(129, 140, 248, 0.3);
+  border-radius: 6px;
+  background:
+    linear-gradient(90deg, rgba(49, 46, 129, 0.38), rgba(12, 74, 110, 0.24)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.022) 0 1px, transparent 1px 4px);
+}
+
+.start-cadet-identity span,
+.start-cadet-identity em {
+  display: block;
+  font-size: 0.56rem;
+  line-height: 1.25;
+}
+
+.start-cadet-identity span {
+  color: #c4b5fd;
+  font-weight: 900;
+}
+
+.start-cadet-identity strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 0.72rem;
+  line-height: 1.18;
+  margin-top: 2px;
+}
+
+.start-cadet-identity em {
+  color: #dff6ff;
+  font-style: normal;
+  margin-top: 2px;
+}
+
+.start-cadet-identity-meter,
+.clear-cadet-record-bar {
+  height: 8px;
+  margin-top: 5px;
+  border: 1px solid rgba(129, 140, 248, 0.34);
+  border-radius: 999px;
+  background: rgba(2, 6, 23, 0.5);
+  overflow: hidden;
+}
+
+.start-cadet-identity-meter span,
+.clear-cadet-record-bar span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #818cf8, #22d3ee);
+  box-shadow: 0 0 10px rgba(129, 140, 248, 0.28);
   transition: width 0.35s ease;
 }
 

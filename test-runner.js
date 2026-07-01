@@ -2785,8 +2785,10 @@ function runEngineTests() {
   // Test 22cc: Research panel always surfaces the next lab quest.
   const oldGetElementById22cc = document.getElementById;
   const oldWindowGame22cc = window.Game;
+  const oldProfiles22cc = window.StarHopperProfiles;
   const oldNotebookEntries22cc = (typeof notebookEntries !== 'undefined' && notebookEntries) ? { ...notebookEntries } : null;
   try {
+    window.StarHopperProfiles = { getActive: () => ({ name: "Nova", emoji: "🚀" }) };
     const earthMission = PLANETS[0].missions.find(mission => mission.id === "earth-gravity-wall");
     const game = new StarHopperGame();
     game.currentPlanet = PLANETS[0];
@@ -2836,6 +2838,10 @@ function runEngineTests() {
       "start-mission-radar-title": { textContent: "" },
       "start-mission-radar-body": { textContent: "" },
       "start-mission-radar-reward": { textContent: "" },
+      "start-cadet-identity-label": { textContent: "" },
+      "start-cadet-identity-title": { textContent: "" },
+      "start-cadet-identity-body": { textContent: "" },
+      "start-cadet-identity-bar": { style: { width: "" } },
       "start-rank-preview-label": { textContent: "" },
       "start-rank-preview-title": { textContent: "" },
       "start-rank-preview-body": { textContent: "" },
@@ -2903,6 +2909,12 @@ function runEngineTests() {
     assertEquals("Collect Mass Lab", els["start-mission-radar-title"].textContent, "Start radar should show the same next quest");
     assertEquals(`1/${DISCOVERY_RULES.length} formulas · 60 XP`, els["start-mission-radar-progress"].textContent, "Start radar should show formula and XP progress");
     assertEquals(true, /formula card/.test(els["start-mission-radar-reward"].textContent), "Start radar should show the quest reward");
+    assertEquals("CADET RECORD", els["start-cadet-identity-label"].textContent, "Start radar should label the cadet record");
+    assertEquals("🚀 Nova // Physics Tinkerer", els["start-cadet-identity-title"].textContent, "Start radar should name the active cadet and research rank");
+    assertEquals(true, /1\/\d+ formulas/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include formula deck progress");
+    assertEquals(true, /1\/12 transmissions/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include story transmission progress");
+    assertEquals(true, /Trading Friend · 3 trust/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include village trust identity");
+    assertEquals("8%", els["start-cadet-identity-bar"].style.width, "Cadet record should show rank progress");
     assertEquals("NEXT LAB UNLOCK", els["start-rank-preview-label"].textContent, "Start radar should label the next rank unlock");
     assertEquals("Combo Amplifier in 55 XP", els["start-rank-preview-title"].textContent, "Start radar should name the next perk and tuned remaining XP");
     assertEquals(true, /Reach Loop Engineer/.test(els["start-rank-preview-body"].textContent), "Start radar should connect the perk to the next rank");
@@ -3104,6 +3116,7 @@ function runEngineTests() {
     assertEquals(true, runStartMissionRadarAction(), "Quest radar action should execute");
     assertEquals(2, startedLevels[0], "Quest radar action should start the requested planet");
     window.Game = oldWindowGame22cc;
+    window.StarHopperProfiles = oldProfiles22cc;
 
     document.getElementById = oldGetElementById22cc;
     if (oldNotebookEntries22cc) {
@@ -3114,6 +3127,7 @@ function runEngineTests() {
   } catch (err) {
     document.getElementById = oldGetElementById22cc;
     window.Game = oldWindowGame22cc;
+    window.StarHopperProfiles = oldProfiles22cc;
     if (oldNotebookEntries22cc) {
       Object.keys(notebookEntries).forEach(key => delete notebookEntries[key]);
       Object.assign(notebookEntries, oldNotebookEntries22cc);
@@ -3177,8 +3191,10 @@ function runEngineTests() {
 
   // Test 22e: Clear screen lab report summarizes telemetry, formula progress, and next quest.
   const oldGetElementById22e = document.getElementById;
+  const oldProfiles22e = window.StarHopperProfiles;
   const oldAttemptRows22e = (typeof AttemptLog !== 'undefined' && AttemptLog.byPlanet) ? AttemptLog.byPlanet : null;
   try {
+    window.StarHopperProfiles = { getActive: () => ({ name: "Nova", emoji: "🚀" }) };
     if (typeof AttemptLog !== 'undefined') AttemptLog.byPlanet = { 0: [{ maxH: 222, maxV: 6.4, result: "cleared" }] };
     const report = { innerHTML: "" };
     document.getElementById = (id) => id === "clear-lab-report" ? report : null;
@@ -3208,6 +3224,9 @@ function runEngineTests() {
 
     assertEquals(true, /CLEAR LAB REPORT/.test(report.innerHTML), "Clear report should render a heading");
     assertEquals(true, /3\/3 Lab Stars/.test(report.innerHTML), "Clear report should include the mastery star rating");
+    assertEquals(true, /CADET RECORD/.test(report.innerHTML), "Clear report should include the named cadet record");
+    assertEquals(true, /🚀 Nova \/\/ Physics Tinkerer/.test(report.innerHTML), "Clear report should show the cadet and research title");
+    assertEquals(true, /1\/\d+ formulas/.test(report.innerHTML), "Clear report cadet record should show formula progress");
     assertEquals(true, /NEW MASTERY BADGE/.test(report.innerHTML), "Clear report should celebrate a first 3-star mastery");
     assertEquals(true, /\+25 Research XP/.test(report.innerHTML), "Clear report should show the mastery XP reward");
     assertEquals(true, /WORLD MASTERY/.test(report.innerHTML), "Clear report should include per-world mastery progress");
@@ -3247,10 +3266,12 @@ function runEngineTests() {
     assertEquals(true, /Collect Mass Lab/.test(report.innerHTML), "Clear report should include the next lab quest");
 
     if (typeof AttemptLog !== 'undefined') AttemptLog.byPlanet = oldAttemptRows22e || {};
+    window.StarHopperProfiles = oldProfiles22e;
     document.getElementById = oldGetElementById22e;
     renderTestResult("engine-suite", "Curriculum: clear screen renders lab report", true);
   } catch (err) {
     if (typeof AttemptLog !== 'undefined') AttemptLog.byPlanet = oldAttemptRows22e || {};
+    window.StarHopperProfiles = oldProfiles22e;
     document.getElementById = oldGetElementById22e;
     renderTestResult("engine-suite", "Curriculum: clear screen renders lab report", false, err.message);
   }

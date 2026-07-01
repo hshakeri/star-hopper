@@ -6427,6 +6427,18 @@ class StarHopperGame {
         <p>${safe(unlockPreview.body)}</p>
       </div>
     ` : "";
+    const cadetIdentity = typeof getCadetIdentityPreview === 'function' ? getCadetIdentityPreview(this) : null;
+    const cadetIdentityPct = cadetIdentity ? Math.max(0, Math.min(100, Math.round((Number(cadetIdentity.progress) || 0) * 100))) : 0;
+    const cadetIdentityBlock = cadetIdentity ? `
+      <div class="clear-cadet-record">
+        <div class="clear-cadet-record-head">
+          <span>${safe(cadetIdentity.label)}</span>
+          <strong>${safe(cadetIdentity.title)}</strong>
+        </div>
+        <div class="clear-cadet-record-bar" aria-label="${safe(`${cadetIdentityPct}% toward next research rank`)}"><span style="width: ${cadetIdentityPct}%"></span></div>
+        <p>${safe(cadetIdentity.body)}</p>
+      </div>
+    ` : "";
     const starSummary = labStars || this.getClearLabStarSummary({ isDailyRun });
     const timeSummary = clearTime || this.lastClearTimeSummary || null;
     const elapsedText = timeSummary && Number.isFinite(timeSummary.elapsed) ? `${timeSummary.elapsed.toFixed(1)}s` : "--";
@@ -6572,6 +6584,7 @@ class StarHopperGame {
         <div class="clear-lab-star-icons">${starIcons}</div>
         <strong>${safe(`${starSummary.stars}/${starSummary.maxStars} Lab Stars · ${bestText}`)}</strong>
       </div>
+      ${cadetIdentityBlock}
       <div class="clear-lab-star-list">${starChecklist}</div>
       ${masteryRibbon}
       ${worldMasteryBlock}
