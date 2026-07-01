@@ -3350,6 +3350,13 @@ function runEngineTests() {
     };
     updateFutureLabRoadmap(quantumSourceReflected);
     assertEquals(true, /Source key record complete/.test(panel.innerHTML), "Reflected source key should mark the capstone complete");
+    assertEquals(true, /SOURCE KEY COMPLETE/.test(panel.innerHTML), "Reflected source key should render a completion capstone card");
+    assertEquals(true, /hidden force \+ branch \+ chance -&gt; source key/.test(panel.innerHTML), "Capstone should summarize the source-key formula");
+    assertEquals(true, /Dark Matter Echo/.test(panel.innerHTML), "Capstone should keep Dark Matter evidence in the portfolio");
+    assertEquals(true, /Branch Condition/.test(panel.innerHTML), "Capstone should keep branch code in the portfolio");
+    assertEquals(true, /Chance Probability/.test(panel.innerHTML), "Capstone should keep chance trials in the portfolio");
+    assertEquals(true, /Source Key Reflection/.test(panel.innerHTML), "Capstone should name the final notebook proof");
+    assertEquals(true, /Future Lab launch-ready record/.test(panel.innerHTML), "Capstone should name the portfolio reward");
     assertEquals(false, /RUN SOURCE|OPEN LOG/.test(panel.innerHTML), "Complete source key should not keep advertising unfinished actions");
     assertEquals(false, runFutureLabRoadmapAction("future-source-key", quantumSourceReflected), "Complete source key roadmap action should be inert");
 

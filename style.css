@@ -7853,6 +7853,83 @@ body.navigator-active .coach-bubble { display: none !important; }
   margin-top: 5px;
 }
 
+.future-lab-roadmap-capstone {
+  display: grid;
+  gap: 7px;
+  border: 1px solid rgba(250, 204, 21, 0.34);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(8, 47, 73, 0.5), rgba(20, 83, 45, 0.24)),
+    repeating-linear-gradient(0deg, rgba(250, 204, 21, 0.04) 0 1px, transparent 1px 5px),
+    rgba(15, 23, 42, 0.66);
+  box-shadow: inset 0 0 18px rgba(103, 232, 249, 0.08);
+  padding: 10px;
+}
+
+.future-lab-roadmap-capstone-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.future-lab-roadmap-capstone span,
+.future-lab-roadmap-capstone code,
+.future-lab-roadmap-capstone em {
+  font-family: var(--font-mono);
+  letter-spacing: 0;
+}
+
+.future-lab-roadmap-capstone-head span {
+  color: #fef08a;
+  font-size: 0.58rem;
+  font-weight: 900;
+}
+
+.future-lab-roadmap-capstone-head strong {
+  color: #ecfeff;
+  font-size: 0.82rem;
+  line-height: 1.2;
+}
+
+.future-lab-roadmap-capstone code {
+  color: #bfdbfe;
+  font-size: 0.6rem;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.future-lab-roadmap-capstone p {
+  color: #dbeafe;
+  font-size: 0.64rem;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.future-lab-roadmap-capstone-evidence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.future-lab-roadmap-capstone-evidence span {
+  border: 1px solid rgba(103, 232, 249, 0.26);
+  border-radius: 999px;
+  background: rgba(8, 47, 73, 0.58);
+  color: #cffafe;
+  font-size: 0.52rem;
+  font-weight: 900;
+  line-height: 1;
+  padding: 5px 7px;
+}
+
+.future-lab-roadmap-capstone em {
+  color: #bef264;
+  font-size: 0.58rem;
+  font-style: normal;
+  line-height: 1.25;
+}
+
 @media (max-width: 620px) {
   .future-lab-roadmap-head {
     display: grid;
@@ -7865,6 +7942,11 @@ body.navigator-active .coach-bubble { display: none !important; }
 
   .future-lab-roadmap-next em {
     text-align: left;
+  }
+
+  .future-lab-roadmap-capstone-head {
+    display: grid;
+    gap: 3px;
   }
 }
 
@@ -9682,6 +9764,11 @@ body.readable-text-mode .future-lab-roadmap-state,
 body.readable-text-mode .future-lab-roadmap-stage p,
 body.readable-text-mode .future-lab-roadmap-stage code,
 body.readable-text-mode .future-lab-roadmap-stage em,
+body.readable-text-mode .future-lab-roadmap-capstone,
+body.readable-text-mode .future-lab-roadmap-capstone p,
+body.readable-text-mode .future-lab-roadmap-capstone code,
+body.readable-text-mode .future-lab-roadmap-capstone em,
+body.readable-text-mode .future-lab-roadmap-capstone-evidence span,
 body.readable-text-mode .future-lab-roadmap-btn,
 body.readable-text-mode .science-passport-head,
 body.readable-text-mode .science-passport-head em,
@@ -9900,6 +9987,7 @@ body.readable-text-mode :is(
   .badge-shelf-item,
   .science-passport-stamp,
   .future-lab-roadmap-stage,
+  .future-lab-roadmap-capstone,
   .village-almanac-card,
   .ai-state-card,
   .notebook-entry,
@@ -9940,6 +10028,7 @@ body.readable-text-mode :is(
   .discovery-card p,
   .science-passport-stamp p,
   .future-lab-roadmap-stage p,
+  .future-lab-roadmap-capstone p,
   .village-almanac-request p,
   .ai-state-card p,
   .notebook-entry-evidence,
@@ -9969,6 +10058,7 @@ body.readable-text-mode :is(
   .discovery-card code,
   .science-passport-stamp code,
   .future-lab-roadmap-stage code,
+  .future-lab-roadmap-capstone code,
   .village-almanac-card code,
   .ai-state-card code,
   .notebook-entry-next code,

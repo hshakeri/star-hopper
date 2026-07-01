@@ -1025,6 +1025,29 @@ function getFutureLabSourceRoadmapTarget(game = window.Game, allSeedsDone = fals
   };
 }
 
+function getFutureLabRoadmapCapstone(game = window.Game, stages = null, sourceTarget = null) {
+  const stageList = Array.isArray(stages) ? stages : getFutureLabRoadmapStages(game);
+  const done = stageList.filter(stage => stage && stage.status === "done").length;
+  const allSeedsDone = stageList.length > 0 && done >= stageList.length;
+  const source = sourceTarget || getFutureLabSourceRoadmapTarget(game, allSeedsDone);
+  if (!allSeedsDone || !source || source.status !== "done") return null;
+  return {
+    kicker: "SOURCE KEY COMPLETE",
+    title: "Future Lab source key mastered",
+    formula: "hidden force + branch + chance -> source key",
+    body: "Dark Matter evidence, branch code, chance trials, and the notebook explanation now agree.",
+    evidence: [
+      "Dark Matter Echo",
+      "Hidden Force Trace",
+      "Curve Evidence",
+      "Branch Condition",
+      "Chance Probability",
+      "Source Key Reflection"
+    ],
+    reward: "Portfolio: Future Lab launch-ready record"
+  };
+}
+
 function runFutureLabRoadmapAction(stageId = null, game = window.Game) {
   const stages = getFutureLabRoadmapStages(game);
   const allDone = stages.length > 0 && stages.every(stage => stage.status === "done");
@@ -1078,6 +1101,7 @@ function updateFutureLabRoadmap(game = window.Game) {
   const sourceAction = getFutureLabSourceRoadmapTarget(game, complete);
   const next = sourceAction || stages.find(stage => stage.status === "next") || stages[stages.length - 1] || null;
   const action = (sourceAction && sourceAction.cta) ? sourceAction : (next && next.status !== "done" ? next : null);
+  const capstone = getFutureLabRoadmapCapstone(game, stages, sourceAction);
   panel.innerHTML = `
     <div class="future-lab-roadmap-head">
       <div>
@@ -1103,6 +1127,20 @@ function updateFutureLabRoadmap(game = window.Game) {
         </div>
       `).join("")}
     </div>
+    ${capstone ? `
+      <div class="future-lab-roadmap-capstone">
+        <div class="future-lab-roadmap-capstone-head">
+          <span>${escapeHTML(capstone.kicker)}</span>
+          <strong>${escapeHTML(capstone.title)}</strong>
+        </div>
+        <code>${escapeHTML(capstone.formula)}</code>
+        <p>${escapeHTML(capstone.body)}</p>
+        <div class="future-lab-roadmap-capstone-evidence">
+          ${capstone.evidence.map(item => `<span>${escapeHTML(item)}</span>`).join("")}
+        </div>
+        <em>${escapeHTML(capstone.reward)}</em>
+      </div>
+    ` : ""}
   `;
 }
 
