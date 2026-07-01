@@ -1339,8 +1339,11 @@ function getVillageStateCrtPreview(game) {
     const signal = typeof game.getVillagerShelterSignal === 'function'
       ? game.getVillagerShelterSignal(npc)
       : null;
-    if ((signal && signal.threat) || npc.shelterReason === "nearby mob") danger++;
-    else if ((signal && signal.reason === "night") || npc.shelterReason === "night") night++;
+    const liveThreat = !!(signal && signal.threat);
+    const nightShelter = !!((signal && signal.reason === "night") || npc.shelterReason === "night");
+    const staleDanger = (npc.shelterReason === "nearby mob" || npc.shelterReason === "mob attack") && !nightShelter;
+    if (liveThreat || staleDanger) danger++;
+    else if (nightShelter) night++;
   });
 
   const petGuards = Array.isArray(game.mobs)
@@ -3332,8 +3335,11 @@ function getStartVillageStateSignal(game = window.Game) {
     const signal = typeof game.getVillagerShelterSignal === "function"
       ? game.getVillagerShelterSignal(npc)
       : null;
-    if ((signal && signal.threat) || npc.shelterReason === "nearby mob" || npc.shelterReason === "mob attack") danger = true;
-    if ((signal && signal.reason === "night") || npc.shelterReason === "night") night = true;
+    const liveThreat = !!(signal && signal.threat);
+    const nightShelter = !!((signal && signal.reason === "night") || npc.shelterReason === "night");
+    const staleDanger = (npc.shelterReason === "nearby mob" || npc.shelterReason === "mob attack") && !nightShelter;
+    if (liveThreat || staleDanger) danger = true;
+    if (nightShelter) night = true;
   }
 
   if (!liveVillagers.length) {
