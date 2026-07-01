@@ -1628,6 +1628,7 @@ function runEngineTests() {
     assertEquals(true, progress.complete, "AI State Deck should complete after every behavior proof is present");
     const completeCadetRecord = getCadetIdentityPreview(completeGame);
     assertEquals(true, /AI Mastered 5\/5 states/.test(completeCadetRecord.body), "Cadet Record should celebrate completed AI State Deck mastery");
+    assertEquals(null, completeCadetRecord.aiAction, "Completed AI State Deck should not leave a stale Cadet Record route action");
 
     updateAIStateDeck(completeGame);
     assertEquals(true, /5\/5 AI states logged/.test(panel.innerHTML), "Complete AI State Deck should render full progress");
@@ -3337,6 +3338,21 @@ function runEngineTests() {
         }
       }
     };
+    const cadetAIButton = {
+      textContent: "",
+      title: "",
+      dataset: {},
+      style: {},
+      classList: {
+        hidden: true,
+        toggle(cls, force) {
+          if (cls === "hidden") this.hidden = force === undefined ? !this.hidden : !!force;
+        },
+        contains(cls) {
+          return cls === "hidden" ? !!this.hidden : false;
+        }
+      }
+    };
     const startVillagePreviewCard = {
       classList: {
         classes: new Set(),
@@ -3357,6 +3373,7 @@ function runEngineTests() {
       "start-cadet-identity-title": { textContent: "" },
       "start-cadet-identity-body": { textContent: "" },
       "start-cadet-identity-bar": { style: { width: "" } },
+      "start-cadet-ai-btn": cadetAIButton,
       "start-rank-preview-label": { textContent: "" },
       "start-rank-preview-title": { textContent: "" },
       "start-rank-preview-body": { textContent: "" },
@@ -3435,6 +3452,20 @@ function runEngineTests() {
     assertEquals(true, /RUN RESCUE/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include the next AI State Deck action");
     assertEquals(true, /Trading Friend · 3 trust/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include village trust identity");
     assertEquals("8%", els["start-cadet-identity-bar"].style.width, "Cadet record should show rank progress");
+    assertEquals(false, cadetAIButton.classList.contains("hidden"), "Cadet record should show the next AI route button");
+    assertEquals("RUN RESCUE", cadetAIButton.textContent, "Cadet record AI button should use the next route label");
+    assertEquals("shelter-loop", cadetAIButton.dataset.state, "Cadet record AI button should target the next missing state");
+    const cadetAIStarts = [];
+    const cadetAIModes = [];
+    game.startLevel = (level) => { cadetAIStarts.push(level); };
+    game.toggleSurvival = () => { game.survivalMode = true; };
+    switchMainMode = (mode) => { cadetAIModes.push(mode); };
+    window.Game = game;
+    assertEquals(true, runStartCadetAIAction(), "Cadet record AI action should launch the next behavior proof");
+    assertEquals(1, cadetAIStarts[0], "Cadet record AI action should launch the rescue route world");
+    assertEquals("shelter-loop", game.activeAIStateRun && game.activeAIStateRun.cardId, "Cadet record AI action should remember the active proof card");
+    assertEquals(true, game.survivalMode, "Cadet record rescue action should enable Survival");
+    assertEquals("terminal", cadetAIModes[0], "Cadet record AI action should return to the playable terminal");
     assertEquals("NEXT LAB UNLOCK", els["start-rank-preview-label"].textContent, "Start radar should label the next rank unlock");
     assertEquals("Combo Amplifier in 55 XP", els["start-rank-preview-title"].textContent, "Start radar should name the next perk and tuned remaining XP");
     assertEquals(true, /Reach Loop Engineer/.test(els["start-rank-preview-body"].textContent), "Start radar should connect the perk to the next rank");

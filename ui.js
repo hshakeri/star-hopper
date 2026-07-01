@@ -2636,6 +2636,7 @@ function getCadetIdentityPreview(game = window.Game) {
   const trust = village ? `${village.title} · ${village.points} trust` : "Village trust pending";
   const aiDeck = typeof getAIStateDeckProgress === "function" ? getAIStateDeckProgress(game) : null;
   let aiStates = "AI states pending";
+  let aiAction = null;
   if (aiDeck && Number.isFinite(Number(aiDeck.total))) {
     const earned = Math.max(0, Number(aiDeck.earnedCount) || 0);
     const total = Math.max(0, Number(aiDeck.total) || 0);
@@ -2649,13 +2650,21 @@ function getCadetIdentityPreview(game = window.Game) {
       const nextTitle = next && next.title ? next.title : "next state";
       const actionLabel = action && action.label ? ` · ${action.label}` : "";
       aiStates = `${earned}/${total} AI states · next ${nextTitle}${actionLabel}`;
+      if (action && next) {
+        aiAction = {
+          cardId: action.cardId || next.id,
+          label: action.label || "RUN STATE",
+          title: action.title || nextTitle
+        };
+      }
     }
   }
   return {
     label: "CADET RECORD",
     title: `${callsign} // ${rank.title}`,
     body: `${Math.round(rank.xp || 0)} XP · ${formulas} · ${transmissions} · ${aiStates} · ${trust}`,
-    progress: Math.max(0, Math.min(1, Number(rank.progress) || 0))
+    progress: Math.max(0, Math.min(1, Number(rank.progress) || 0)),
+    aiAction
   };
 }
 
@@ -3491,6 +3500,7 @@ function updateStartMissionRadar(game = window.Game) {
   const cadetTitle = document.getElementById("start-cadet-identity-title");
   const cadetBody = document.getElementById("start-cadet-identity-body");
   const cadetBar = document.getElementById("start-cadet-identity-bar");
+  const cadetAIButton = document.getElementById("start-cadet-ai-btn");
   const unlockLabel = document.getElementById("start-rank-preview-label");
   const unlockTitle = document.getElementById("start-rank-preview-title");
   const unlockBody = document.getElementById("start-rank-preview-body");
@@ -3522,6 +3532,21 @@ function updateStartMissionRadar(game = window.Game) {
   if (cadetTitle) cadetTitle.textContent = cadetPreview.title;
   if (cadetBody) cadetBody.textContent = cadetPreview.body;
   if (cadetBar && cadetBar.style) cadetBar.style.width = `${Math.round(cadetPreview.progress * 100)}%`;
+  if (cadetAIButton) {
+    const aiAction = cadetPreview.aiAction;
+    const visible = !!(aiAction && aiAction.cardId);
+    if (cadetAIButton.classList && typeof cadetAIButton.classList.toggle === "function") {
+      cadetAIButton.classList.toggle("hidden", !visible);
+    } else if (cadetAIButton.style) {
+      cadetAIButton.style.display = visible ? "" : "none";
+    }
+    cadetAIButton.textContent = visible ? aiAction.label : "RUN AI STATE";
+    cadetAIButton.title = visible ? aiAction.title : "";
+    if (cadetAIButton.dataset) {
+      cadetAIButton.dataset.state = visible ? aiAction.cardId : "";
+      cadetAIButton.dataset.label = visible ? aiAction.label : "";
+    }
+  }
   if (unlockLabel) unlockLabel.textContent = unlockPreview.label;
   if (unlockTitle) unlockTitle.textContent = unlockPreview.title;
   if (unlockBody) {
@@ -3567,6 +3592,14 @@ function updateStartMissionRadar(game = window.Game) {
     button.dataset.kind = action.kind || "";
     button.dataset.stageTitle = action.stageTitle || "";
   }
+}
+
+function runStartCadetAIAction() {
+  const game = window.Game || (typeof Game !== 'undefined' ? Game : null);
+  const button = document.getElementById("start-cadet-ai-btn");
+  const cardId = button && button.dataset ? String(button.dataset.state || "").trim() : "";
+  if (!cardId || typeof runAIStateDeckAction !== 'function') return false;
+  return runAIStateDeckAction(cardId, game);
 }
 
 function runStartResumeTestAction() {

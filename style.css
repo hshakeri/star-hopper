@@ -2879,6 +2879,10 @@ body.resizing-panes * {
 }
 
 .start-cadet-identity {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 8px;
+  align-items: center;
   padding: 6px 7px;
   border: 1px solid rgba(129, 140, 248, 0.3);
   border-radius: 6px;
@@ -2894,6 +2898,14 @@ body.resizing-panes * {
   line-height: 1.25;
 }
 
+.start-cadet-identity span,
+.start-cadet-identity strong,
+.start-cadet-identity em,
+.start-cadet-identity-meter {
+  grid-column: 1;
+  min-width: 0;
+}
+
 .start-cadet-identity span {
   color: #c4b5fd;
   font-weight: 900;
@@ -2905,6 +2917,32 @@ body.resizing-panes * {
   font-size: 0.72rem;
   line-height: 1.18;
   margin-top: 2px;
+}
+
+.start-cadet-ai-btn {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  align-self: center;
+  min-height: 24px;
+  padding: 3px 8px;
+  border: 1px solid rgba(125, 211, 252, 0.48);
+  border-radius: 6px;
+  background: rgba(34, 211, 238, 0.13);
+  color: #a5f3fc;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-weight: 900;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.12);
+}
+
+.start-cadet-ai-btn.hidden {
+  display: none;
+}
+
+.start-cadet-ai-btn:hover {
+  background: rgba(34, 211, 238, 0.22);
 }
 
 .start-cadet-identity em {
@@ -9531,6 +9569,11 @@ body.readable-text-mode .start-world-preview,
 body.readable-text-mode .start-world-preview span,
 body.readable-text-mode .start-world-preview strong,
 body.readable-text-mode .start-world-preview em,
+body.readable-text-mode .start-cadet-identity,
+body.readable-text-mode .start-cadet-identity span,
+body.readable-text-mode .start-cadet-identity strong,
+body.readable-text-mode .start-cadet-identity em,
+body.readable-text-mode .start-cadet-ai-btn,
 body.readable-text-mode .start-village-preview,
 body.readable-text-mode .start-village-preview span,
 body.readable-text-mode .start-village-preview strong,
