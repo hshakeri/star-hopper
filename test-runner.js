@@ -4207,6 +4207,41 @@ function runEngineTests() {
     assertEquals("frontier", frontierContract.action, "Frontier contract should start the next frontier run");
     assertEquals("NEXT FRONTIER", frontierContract.cta, "Frontier contract should label the frontier action");
 
+    const oldGetElementById22fgReport = document.getElementById;
+    try {
+      const repairReport = { innerHTML: "" };
+      document.getElementById = (id) => id === "clear-lab-report" ? repairReport : null;
+      const repairReportGame = new StarHopperGame();
+      repairReportGame.currentPlanet = PLANETS[0];
+      repairReportGame.currentPlanetIndex = 0;
+      repairReportGame.reflectionContext = {
+        kind: "repair-proof",
+        source: "Crash Lab",
+        title: "Fix the jump arc",
+        command: "hopper.jump = 18",
+        prediction: "higher",
+        proofLabel: "REPAIR PROOF",
+        proofSourceKey: "failure-repair-proof:0:fix-the-jump-arc:abc123"
+      };
+      repairReportGame.renderClearLabReport({
+        labStars: {
+          stars: 2,
+          maxStars: 3,
+          checks: [
+            { id: "missions", label: "Mission tasks", earned: true },
+            { id: "gems", label: "Mission gems", earned: true },
+            { id: "science", label: "Science proof", earned: false }
+          ]
+        }
+      });
+      assertEquals(true, /EXPLAIN REPAIR PROOF/.test(repairReport.innerHTML), "Clear report should label active repair-proof explanations");
+      assertEquals(true, /Reward: Repair Reflection Proof/.test(repairReport.innerHTML), "Clear report should name the repair reflection payoff");
+      assertEquals(true, /WRITE REPAIR PROOF/.test(repairReport.innerHTML), "Clear report should expose a repair-proof notebook action");
+      assertEquals(true, /runClearExplainPrompt\(\{ preserveReflectionContext: true \}\)/.test(repairReport.innerHTML), "Repair clear-report action should preserve proof context");
+    } finally {
+      document.getElementById = oldGetElementById22fgReport;
+    }
+
     const actionGame = new StarHopperGame();
     actionGame.currentPlanetIndex = 2;
     let replayArgs = null;
@@ -4258,6 +4293,27 @@ function runEngineTests() {
       assertEquals("earth-gravity-wall", reflectionMission && reflectionMission.id, "Explain action should use the active platformer mission");
       assertEquals(true, responseEl.focused, "Explain action should focus the reflection textbox");
       assertEquals(null, actionGame.reflectionContext, "Generic clear explanation should clear stale Signal Lab context");
+      const repairContext = {
+        kind: "repair-proof",
+        source: "Crash Lab",
+        title: "Fix the jump arc",
+        command: "hopper.jump = 18",
+        prediction: "higher",
+        proofLabel: "REPAIR PROOF",
+        proofSourceKey: "failure-repair-proof:0:fix-the-jump-arc:abc123"
+      };
+      actionGame.reflectionContext = repairContext;
+      const repairPrompt = actionGame.getClearExplainPrompt();
+      assertEquals("EXPLAIN REPAIR PROOF", repairPrompt.kicker, "Repair proof clear prompt should name the repair explanation");
+      assertEquals("WRITE REPAIR PROOF", repairPrompt.cta, "Repair proof clear prompt should use the repair-proof CTA");
+      assertEquals("Reward: Repair Reflection Proof", repairPrompt.reward, "Repair proof clear prompt should name the reflection reward");
+      assertEquals(true, repairPrompt.preserveReflectionContext, "Repair proof clear prompt should request context preservation");
+      assertEquals(true, /hopper\.jump = 18/.test(repairPrompt.question), "Repair proof question should mention the repair command");
+      assertEquals(true, /Prediction: higher/.test(repairPrompt.question), "Repair proof question should mention the carried hypothesis");
+      responseEl.focused = false;
+      assertEquals(true, actionGame.runClearExplainPrompt({ preserveReflectionContext: repairPrompt.preserveReflectionContext }), "Repair explain action should complete successfully");
+      assertEquals(repairContext, actionGame.reflectionContext, "Repair explain action should preserve the proof context for notebook saving");
+      assertEquals(true, responseEl.focused, "Repair explain action should focus the reflection textbox");
     } finally {
       if (oldSwitchMainMode22fg) switchMainMode = oldSwitchMainMode22fg;
       if (oldUpdateNotebook22fg) updateNotebook = oldUpdateNotebook22fg;

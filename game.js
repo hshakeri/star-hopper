@@ -4310,7 +4310,7 @@ class StarHopperGame {
         label: explainPrompt.kicker || "LAB PROOF",
         title: explainPrompt.title,
         body: explainPrompt.question,
-        reward: "Reward: notebook proof + Research XP",
+        reward: explainPrompt.reward || "Reward: notebook proof + Research XP",
         cta: explainPrompt.cta
       });
     }
@@ -4432,15 +4432,32 @@ class StarHopperGame {
     const lessonPhase = typeof getNotebookLessonPhaseReflection === 'function'
       ? getNotebookLessonPhaseReflection(this, activeMission)
       : null;
+    const context = this.reflectionContext || null;
+    const repairProof = context && context.kind === "repair-proof" && context.proofSourceKey ? context : null;
     const question = (lessonPhase && lessonPhase.question) || reflection[0] || "Explain what changed, what evidence you saw, and why the physics behaved that way.";
     const evidence = typeof buildReflectionEvidenceStarter === 'function'
       ? buildReflectionEvidenceStarter(this, activeMission)
       : "Evidence starter - describe the code you tried, what changed, and why the physics behaved that way.";
+    if (repairProof) {
+      const repairTitle = repairProof.title || "Crash repair proof";
+      const repairCommand = repairProof.command ? ` Code: ${repairProof.command}.` : "";
+      const prediction = repairProof.prediction ? ` Prediction: ${repairProof.prediction}.` : "";
+      return {
+        kicker: "EXPLAIN REPAIR PROOF",
+        title: `Explain ${repairTitle}`,
+        question: `What failed, what did the repair command change, and what evidence showed the next run improved?${repairCommand}${prediction}`,
+        evidence,
+        reward: "Reward: Repair Reflection Proof",
+        cta: "WRITE REPAIR PROOF",
+        preserveReflectionContext: true
+      };
+    }
     return {
       kicker: lessonPhase ? "EXPLAIN THE PHASE" : "EXPLAIN THE EVIDENCE",
       title: lessonPhase ? `Explain ${lessonPhase.title}` : "Finish the lab loop",
       question,
       evidence,
+      reward: "Reward: notebook proof + Research XP",
       cta: "WRITE EXPLANATION"
     };
   }
@@ -6949,13 +6966,17 @@ class StarHopperGame {
       </div>
     ` : "";
     const explainPrompt = this.getClearExplainPrompt();
+    const explainAction = explainPrompt && explainPrompt.preserveReflectionContext
+      ? "if (window.Game) window.Game.runClearExplainPrompt({ preserveReflectionContext: true })"
+      : "if (window.Game) window.Game.runClearExplainPrompt()";
     const explainBlock = explainPrompt ? `
       <div class="clear-explain-card">
         <span>${safe(explainPrompt.kicker)}</span>
         <strong>${safe(explainPrompt.title)}</strong>
         <p>${safe(explainPrompt.question)}</p>
         <em>${safe(explainPrompt.evidence)}</em>
-        <button type="button" class="clear-explain-btn" onclick="if (window.Game) window.Game.runClearExplainPrompt()">${safe(explainPrompt.cta)}</button>
+        ${explainPrompt.reward ? `<em class="clear-explain-reward">${safe(explainPrompt.reward)}</em>` : ""}
+        <button type="button" class="clear-explain-btn" onclick="${explainAction}">${safe(explainPrompt.cta)}</button>
       </div>
     ` : "";
     const storyUnlock = this.getClearSignalStoryUnlock({ labStars: starSummary, isDailyRun, isFrontierRun });
