@@ -5355,10 +5355,16 @@ function runRetryRemixTests() {
   const oldGetElementByIdR12b = document.getElementById;
   const oldSaveLocalProgressR12b = (typeof saveLocalProgress === "function") ? saveLocalProgress : null;
   const oldLogMissionBriefingR12b = (typeof logMissionBriefing === "function") ? logMissionBriefing : null;
+  const oldBubblePopR12b = ComicBubbles.pop;
+  const oldParticleBurstR12b = Particles.spawnBurst;
   try {
     let saveCalls = 0;
+    const streakLabels = [];
+    let streakBursts = 0;
     saveLocalProgress = () => { saveCalls++; };
     logMissionBriefing = () => {};
+    ComicBubbles.pop = (x, y, text) => { streakLabels.push(text); };
+    Particles.spawnBurst = () => { streakBursts++; };
     const panel = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };
     const banner = { style: {} };
     const count = { textContent: "" };
@@ -5372,6 +5378,7 @@ function runRetryRemixTests() {
 
     const g = new StarHopperGame();
     g.researchXP = 10;
+    g.player = { x: 90, y: 110, w: 24, h: 32 };
     g.getTodayDateStr = () => "2026-06-10";
     g.updateReturnStreak();
     assertEquals("2026-06-10", g.lastPlayedDate, "First local day should be recorded");
@@ -5390,6 +5397,11 @@ function runRetryRemixTests() {
     assertEquals(15, g.researchXP, "Day 2 streak should grant +5 Research XP");
     assertEquals(5, g.lastReturnStreakReward.rewardXP, "Reward pulse should expose the XP amount");
     assertEquals("Daily Lab Streak", g.discoveryPulse.title, "Daily streak reward should create a discovery pulse");
+    assertEquals(2, g.discoveryPulse.streakCount, "Daily streak reward should expose the streak count");
+    assertEquals("DAY 2 STREAK!", g.discoveryPulse.streakEffect && g.discoveryPulse.streakEffect.label, "Daily streak reward should pop an in-level streak cue");
+    assertEquals("DAILY STREAK: +5 Research XP", g.missionBalloon && g.missionBalloon.text, "Daily streak reward should write a Daily Lab CRT reward line");
+    assertEquals(true, streakLabels.includes("DAY 2 STREAK!"), "Daily streak reward should call the streak bubble");
+    assertEquals(true, streakBursts > 0, "Daily streak reward should spawn celebration particles");
     assertEquals(1, g.discoveryLog.length, "Daily streak reward enters the discovery log");
     assertEquals(true, /\+5 Research XP/.test(panel.innerHTML), "Discovery pulse should render the streak XP");
     assertEquals(true, /streak day 2/.test(panel.innerHTML), "Discovery pulse should use the custom streak progress label");
@@ -5403,11 +5415,15 @@ function runRetryRemixTests() {
     document.getElementById = oldGetElementByIdR12b;
     if (oldSaveLocalProgressR12b) saveLocalProgress = oldSaveLocalProgressR12b;
     if (oldLogMissionBriefingR12b) logMissionBriefing = oldLogMissionBriefingR12b;
+    ComicBubbles.pop = oldBubblePopR12b;
+    Particles.spawnBurst = oldParticleBurstR12b;
     renderTestResult(SUITE, "Daily Signal/Streak: return streak grants daily Research XP", true);
   } catch (err) {
     document.getElementById = oldGetElementByIdR12b;
     if (oldSaveLocalProgressR12b) saveLocalProgress = oldSaveLocalProgressR12b;
     if (oldLogMissionBriefingR12b) logMissionBriefing = oldLogMissionBriefingR12b;
+    ComicBubbles.pop = oldBubblePopR12b;
+    Particles.spawnBurst = oldParticleBurstR12b;
     renderTestResult(SUITE, "Daily Signal/Streak: return streak grants daily Research XP", false, err.message);
   }
 

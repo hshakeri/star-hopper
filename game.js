@@ -1190,6 +1190,7 @@ class StarHopperGame {
       progressLabel: `streak day ${streak}`,
       openedGems: 0,
       rewardXP: xp,
+      streakCount: streak,
       combo: this.discoveryCombo || 0,
       rankUp,
       rankTitle: afterRank ? afterRank.title : null,
@@ -1198,6 +1199,9 @@ class StarHopperGame {
     this.discoveryPulse = pulse;
     this.discoveryLog = [pulse].concat(Array.isArray(this.discoveryLog) ? this.discoveryLog : []).slice(0, 8);
     this.lastReturnStreakReward = pulse;
+    if (typeof this.spawnReturnStreakEffect === 'function') {
+      pulse.streakEffect = this.spawnReturnStreakEffect(pulse);
+    }
     if (typeof ui_log_output === 'function') {
       ui_log_output(`Daily lab streak: +${xp} Research XP (day ${streak}).`, "success");
     }
@@ -5162,6 +5166,47 @@ class StarHopperGame {
       y: py
     };
     return this.lastNotebookReflectionEffect;
+  }
+
+  spawnReturnStreakEffect(pulse) {
+    if (!this.player || !pulse) return null;
+    const streak = Math.max(1, Math.floor(Number(pulse.streakCount) || 1));
+    const rewardXP = Math.max(0, Math.floor(Number(pulse.rewardXP) || 0));
+    if (rewardXP <= 0) return null;
+    const baseX = Number.isFinite(this.player.x) ? this.player.x : 0;
+    const baseY = Number.isFinite(this.player.y) ? this.player.y : 0;
+    const width = Number.isFinite(this.player.w) ? this.player.w : 24;
+    const height = Number.isFinite(this.player.h) ? this.player.h : 32;
+    const px = baseX + width / 2;
+    const py = baseY + height / 2;
+    const label = `DAY ${Math.min(99, streak)} STREAK!`;
+    const color = "#facc15";
+
+    if (typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+      ComicBubbles.pop(px, baseY - 58, label, color, 1.02);
+      ComicBubbles.pop(px, baseY - 39, `+${rewardXP} RESEARCH`, "#a7f3d0", 0.78);
+    }
+    if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+      Particles.spawnBurst(px, py - 10, color, 12, 2.2, 2.0, "glow");
+      Particles.spawnBurst(px, py - 10, "#67e8f9", 7, 1.6, 1.5, "glow");
+    }
+    if (typeof this.showMissionBalloon === 'function') {
+      this.showMissionBalloon(`DAILY STREAK: +${rewardXP} Research XP`, {
+        title: "DAILY LAB",
+        color,
+        timer: 240
+      });
+    }
+
+    this.lastReturnStreakEffect = {
+      label,
+      color,
+      streak,
+      rewardXP,
+      x: px,
+      y: py
+    };
+    return this.lastReturnStreakEffect;
   }
 
   spawnResearchRankEffect(pulse) {
