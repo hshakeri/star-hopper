@@ -10828,7 +10828,23 @@ function runRetryRemixTests() {
     logMissionBriefing = () => {};
     ComicBubbles.pop = (x, y, text) => { streakLabels.push(text); };
     Particles.spawnBurst = () => { streakBursts++; };
-    const panel = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };
+    let dailyPulseClick = null;
+    const dailyPulseButton = {
+      dataset: { dailySignalNext: "1" },
+      addEventListener(event, handler) {
+        if (event === "click") dailyPulseClick = handler;
+      }
+    };
+    const panel = {
+      classList: { add: () => {}, remove: () => {} },
+      innerHTML: "",
+      querySelectorAll(selector) {
+        if (selector === "[data-daily-signal-next]" && /data-daily-signal-next/.test(this.innerHTML)) {
+          return [dailyPulseButton];
+        }
+        return [];
+      }
+    };
     const banner = { style: {} };
     const count = { textContent: "" };
     const rewardClasses = new Set();
@@ -10920,6 +10936,9 @@ function runRetryRemixTests() {
     assertEquals(5, g.lastReturnStreakReward.rewardXP, "Reward pulse should expose the XP amount");
     assertEquals("Daily Lab Streak", g.discoveryPulse.title, "Daily streak reward should create a discovery pulse");
     assertEquals(2, g.discoveryPulse.streakCount, "Daily streak reward should expose the streak count");
+    assertEquals("TODAY'S SIGNAL", g.discoveryPulse.dailySignalNext && g.discoveryPulse.dailySignalNext.label, "Daily streak pulse should carry today's signal handoff");
+    assertEquals("Mass remix proof", g.discoveryPulse.dailySignalNext && g.discoveryPulse.dailySignalNext.title, "Daily streak pulse should name today's Daily Signal focus");
+    assertEquals("hopper.mass = 1.5", g.discoveryPulse.dailySignalNext && g.discoveryPulse.dailySignalNext.firstCommand, "Daily streak pulse should carry the first Daily Signal command");
     assertEquals("DAY 2 STREAK!", g.discoveryPulse.streakEffect && g.discoveryPulse.streakEffect.label, "Daily streak reward should pop an in-level streak cue");
     assertEquals("LAB RANK UP!", g.discoveryPulse.rankEffect && g.discoveryPulse.rankEffect.label, "Daily streak rank-up should create an in-level lab-rank cue");
     assertEquals("DAILY STREAK: +5 Research XP", g.missionBalloon && g.missionBalloon.text, "Daily streak reward should write a Daily Lab CRT reward line");
@@ -10929,6 +10948,23 @@ function runRetryRemixTests() {
     assertEquals(1, g.discoveryLog.length, "Daily streak reward enters the discovery log");
     assertEquals(true, /Rank Up: Variable Scout/.test(panel.innerHTML), "Discovery pulse should render the streak rank-up");
     assertEquals(true, /streak day 2/.test(panel.innerHTML), "Discovery pulse should use the custom streak progress label");
+    assertEquals(true, /TODAY&#039;S SIGNAL/.test(panel.innerHTML), "Discovery pulse should render the Daily Signal handoff");
+    assertEquals(true, /Mass remix proof/.test(panel.innerHTML), "Discovery pulse Daily Signal handoff should name the focus");
+    assertEquals(true, /discovery-daily-lesson/.test(panel.innerHTML), "Discovery pulse should render Daily Signal lesson chips");
+    assertEquals(true, /LEARN/.test(panel.innerHTML) && /Daily remix/.test(panel.innerHTML), "Daily Signal handoff should teach the daily remix step");
+    assertEquals(true, /CODE/.test(panel.innerHTML) && /hopper\.mass = 1\.5/.test(panel.innerHTML), "Daily Signal handoff should show the first coding move");
+    assertEquals(true, /WIN/.test(panel.innerHTML) && /Proof \+ Lab Stars/.test(panel.innerHTML), "Daily Signal handoff should show the payoff");
+    assertEquals(true, /data-daily-signal-next="1"/.test(panel.innerHTML), "Daily Signal handoff should expose a direct route button");
+    assertEquals(true, typeof dailyPulseClick === "function", "Daily Signal handoff should bind a click handler");
+    let pulseDailyCalls = 0;
+    g.startDailySignal = () => { pulseDailyCalls++; g.dailyInfo = g.getDailySignal(); return true; };
+    window.Game = g;
+    assertEquals(true, dailyPulseClick(), "Daily Signal pulse handoff should launch today's signal");
+    assertEquals(1, pulseDailyCalls, "Daily Signal pulse handoff should call the starter once");
+    assertEquals("hopper.mass = 1.5\nhopper.engine = 6", input.value, "Daily Signal pulse handoff should stage the full contract command");
+    assertEquals("signal-lab-contract", g.lastStagedExperiment && g.lastStagedExperiment.source, "Daily Signal pulse handoff should stage through the Signal Lab proof source");
+    input.value = "";
+    input.focused = false;
     const streakCadetRecord = getCadetIdentityPreview(g);
     assertEquals(true, /Daily Streak d2 · Mass remix proof/.test(streakCadetRecord.body), "Cadet Record should mirror the active daily lab streak and focus");
     assertEquals("+5 Research XP today", reward.textContent, "Start chip should show today's streak reward");

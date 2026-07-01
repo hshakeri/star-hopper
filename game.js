@@ -2765,11 +2765,14 @@ class StarHopperGame {
     this.researchXP = Math.max(0, (this.researchXP || 0) + xp);
     const afterRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
     const rankUp = !!(beforeRank && afterRank && afterRank.level > beforeRank.level);
+    const dailyFocus = typeof this.getReturnStreakDailyFocus === 'function'
+      ? this.getReturnStreakDailyFocus()
+      : null;
     const pulse = {
       kind: "streak",
       title: "Daily Lab Streak",
       formula: "streak = one experiment each day",
-      insight: `Day ${streak} keeps your lab habit warm. Come back, predict one thing, and test it.`,
+      insight: `Day ${streak} keeps your lab habit warm. Use today's signal, predict one thing, and test it.`,
       cue: "Use today's signal or a remix to compare one new result.",
       missionId: `streak-${today || this.getTodayDateStr()}`,
       missionTitle: "Daily Lab",
@@ -2782,7 +2785,20 @@ class StarHopperGame {
       combo: this.discoveryCombo || 0,
       rankUp,
       rankTitle: afterRank ? afterRank.title : null,
-      rankPerk: rankUp && afterRank ? afterRank.perk : null
+      rankPerk: rankUp && afterRank ? afterRank.perk : null,
+      dailySignalNext: dailyFocus
+        ? {
+            label: "TODAY'S SIGNAL",
+            title: dailyFocus.title || "Daily Signal",
+            actionLabel: "RUN DAILY",
+            body: "Launch today's date-seeded remix and turn the streak into a fresh proof.",
+            command: dailyFocus.command || "",
+            firstCommand: dailyFocus.firstCommand || "",
+            learn: "Daily remix",
+            code: dailyFocus.firstCommand || "One fresh test",
+            win: "Proof + Lab Stars"
+          }
+        : null
     };
     this.discoveryPulse = pulse;
     this.discoveryLog = [pulse].concat(Array.isArray(this.discoveryLog) ? this.discoveryLog : []).slice(0, 8);

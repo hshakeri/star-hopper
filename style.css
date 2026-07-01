@@ -5022,6 +5022,82 @@ html {
   background: rgba(94, 234, 212, 0.86);
   color: #042f2e;
 }
+.discovery-daily-next-card {
+  display: grid;
+  gap: 5px;
+  border-color: rgba(56, 189, 248, 0.52);
+  background: rgba(12, 74, 110, 0.36);
+  color: #e0f2fe;
+}
+.discovery-daily-next-card strong {
+  color: #f0f9ff;
+}
+.discovery-daily-next-card span {
+  color: #bae6fd;
+  font-size: 0.54rem;
+}
+.discovery-daily-lesson {
+  display: grid;
+  gap: 3px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.discovery-daily-lesson span {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  border: 1px solid rgba(56, 189, 248, 0.24);
+  border-radius: 3px;
+  background: rgba(2, 6, 23, 0.4);
+  color: #e0f2fe;
+  font-family: var(--font-mono);
+  font-size: 0.48rem;
+  font-weight: 900;
+  line-height: 1.08;
+  padding: 3px 4px;
+  overflow-wrap: anywhere;
+}
+.discovery-daily-lesson b {
+  color: #fef08a;
+  font-size: 0.44rem;
+  letter-spacing: 0;
+}
+.discovery-daily-next-route {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  min-width: 0;
+  color: #f0f9ff;
+  font-family: var(--font-mono);
+  font-size: 0.54rem;
+  font-weight: 900;
+  line-height: 1.15;
+}
+.discovery-daily-next-route code {
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  border-radius: 3px;
+  background: rgba(2, 6, 23, 0.48);
+  color: #bae6fd;
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  padding: 2px 4px;
+}
+.discovery-daily-next-btn {
+  border: 1px solid rgba(125, 211, 252, 0.44);
+  border-radius: 4px;
+  background: rgba(2, 132, 199, 0.76);
+  color: #f0f9ff;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  font-weight: 900;
+  line-height: 1.1;
+  padding: 4px 7px;
+}
+.discovery-daily-next-btn:hover {
+  background: rgba(125, 211, 252, 0.88);
+  color: #082f49;
+}
 .discovery-source-scene {
   border-color: rgba(129, 140, 248, 0.56);
   background: rgba(49, 46, 129, 0.44);
@@ -11724,6 +11800,10 @@ body.readable-text-mode .discovery-hypothesis-lesson span,
 body.readable-text-mode .discovery-hypothesis-next,
 body.readable-text-mode .discovery-hypothesis-next code,
 body.readable-text-mode .discovery-hypothesis-next-btn,
+body.readable-text-mode .discovery-daily-lesson span,
+body.readable-text-mode .discovery-daily-next-route,
+body.readable-text-mode .discovery-daily-next-route code,
+body.readable-text-mode .discovery-daily-next-btn,
 body.readable-text-mode .discovery-formula-stage-btn,
 body.readable-text-mode .discovery-chain-next span,
 body.readable-text-mode .discovery-chain-progress span,

@@ -6975,6 +6975,19 @@ function updateDiscoveryPulse(game) {
   const hypothesisNext = hypothesisNextProof
     ? `<div class="discovery-hypothesis discovery-hypothesis-next-card"><strong>${escapeHTML(hypothesisNextProof.label || "NEXT HYPOTHESIS")} · ${escapeHTML(hypothesisNextProof.title || "Hypothesis proof")}</strong><span>${escapeHTML(hypothesisNextProof.progress || "")} proofs · ${escapeHTML(hypothesisNextProof.body || "Choose, test, compare.")}</span>${hypothesisNextLesson}${hypothesisNextRoute}</div>`
     : "";
+  const dailySignalNext = pulse.dailySignalNext || null;
+  const dailySignalNextCode = dailySignalNext && dailySignalNext.firstCommand
+    ? String(dailySignalNext.firstCommand).trim()
+    : "";
+  const dailySignalLesson = dailySignalNext
+    ? `<div class="discovery-daily-lesson"><span><b>LEARN</b>${escapeHTML(dailySignalNext.learn || "Daily remix")}</span><span><b>CODE</b>${escapeHTML(dailySignalNext.code || dailySignalNextCode || "One fresh test")}</span><span><b>WIN</b>${escapeHTML(dailySignalNext.win || "Proof + Lab Stars")}</span></div>`
+    : "";
+  const dailySignalRoute = dailySignalNext
+    ? `<div class="discovery-daily-next-route">${dailySignalNextCode ? `Try <code>${escapeHTML(dailySignalNextCode)}</code>` : "Start the Daily Signal"}<button type="button" class="discovery-daily-next-btn" data-daily-signal-next="1">${escapeHTML(dailySignalNext.actionLabel || "RUN DAILY")}</button></div>`
+    : "";
+  const dailySignalNextCard = dailySignalNext
+    ? `<div class="discovery-hypothesis discovery-daily-next-card"><strong>${escapeHTML(dailySignalNext.label || "TODAY'S SIGNAL")} · ${escapeHTML(dailySignalNext.title || "Daily Signal")}</strong><span>${escapeHTML(dailySignalNext.body || "Launch today's remix and bank a fresh proof.")}</span>${dailySignalLesson}${dailySignalRoute}</div>`
+    : "";
   const lessonPhaseNextCommand = pulse.lessonPhaseAdvance && pulse.lessonPhaseAdvance.nextCommand
     ? String(pulse.lessonPhaseAdvance.nextCommand).trim()
     : "";
@@ -7125,6 +7138,7 @@ function updateDiscoveryPulse(game) {
     ${comboMilestone}
     ${hypothesis}
     ${hypothesisNext}
+    ${dailySignalNextCard}
     ${hypothesisDeckMastery}
     ${scienceCheckpoint}
     ${scienceProof}
@@ -7282,6 +7296,10 @@ function attachDiscoveryPulseStageButtons(panel, game, pulse) {
       if (!String(missionId || "").trim()) return false;
       return runCadetHypothesisAction(missionId, game);
     });
+  });
+  panel.querySelectorAll("[data-daily-signal-next]").forEach(button => {
+    if (!button || typeof button.addEventListener !== "function" || typeof runDailySignalAction !== "function") return;
+    button.addEventListener("click", () => runDailySignalAction(game));
   });
 }
 
