@@ -1118,11 +1118,13 @@ function runEngineTests() {
     assertEquals("PHASE DONE", outcome.lessonPhaseAdvance && outcome.lessonPhaseAdvance.label, "Forge mass proof should create a phase-complete cue");
     assertEquals("1 Momentum shove", outcome.lessonPhaseAdvance && outcome.lessonPhaseAdvance.title, "Phase cue should name the completed step");
     assertEquals("2 Bounce control", outcome.lessonPhaseAdvance && outcome.lessonPhaseAdvance.nextTitle, "Phase cue should name the next step");
+    assertEquals("elasticity = 1.0", outcome.lessonPhaseAdvance && outcome.lessonPhaseAdvance.nextCommand, "Phase cue should carry the next runnable one-variable command");
     assertEquals("PHASE DONE: 1 Momentum shove -> 2 Bounce control", game.missionBalloon && game.missionBalloon.text, "Mission CRT should announce the phase transition");
     assertEquals(true, labels.includes("PHASE DONE!"), "Phase completion should pop an in-world label");
     assertEquals(true, bursts >= 2, "Phase completion should spawn visual particles");
     assertEquals(true, /PHASE DONE/.test(panel.innerHTML), "Discovery Pulse should render the phase chip");
     assertEquals(true, /Next: 2 Bounce control/.test(panel.innerHTML), "Discovery Pulse phase chip should preview the next phase");
+    assertEquals(true, /Try <code>elasticity = 1\.0<\/code>/.test(panel.innerHTML), "Discovery Pulse phase chip should show the next runnable command");
     const explainPrompt = game.getClearExplainPrompt();
     assertEquals("EXPLAIN THE PHASE", explainPrompt.kicker, "Clear report should switch to phase-specific explanation after a phase proof");
     assertEquals("Explain 1 Momentum shove", explainPrompt.title, "Clear report should name the completed lesson phase");
@@ -1131,6 +1133,7 @@ function runEngineTests() {
     assertEquals(true, /phase code: hopper\.mass = 4\.0/.test(explainPrompt.evidence), "Notebook starter should preserve the one obvious phase tweak");
     assertEquals(true, /phase result: First Forge gem opens/.test(explainPrompt.evidence), "Notebook starter should name the phase payoff");
     assertEquals(true, /next phase: 2 Bounce control/.test(explainPrompt.evidence), "Notebook starter should preview the second variable only after the first proof");
+    assertEquals(true, /next code: elasticity = 1\.0/.test(explainPrompt.evidence), "Notebook starter should carry the next runnable phase command");
 
     const repeat = finishSuccessfulCodeRunDiscovery(game, activeMission, "hopper.mass = 4.0", massState, 0, []);
     assertEquals(null, repeat.lessonPhaseAdvance, "Repeating the same completed phase should not replay the phase cue");

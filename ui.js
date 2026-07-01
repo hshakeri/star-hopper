@@ -617,6 +617,8 @@ function recordLessonPhaseAdvance(game, activeMission, resultState, pulse = null
     phaseId: completed.id || completed.checkId || String(completed.index),
     title: completed.label || "Lesson phase",
     nextTitle: next ? (next.label || "Next phase") : null,
+    nextCommand: next ? (next.command || "") : "",
+    nextFormula: next ? (next.formula || "") : "",
     command: completed.command || "",
     formula: completed.formula || "",
     payoff: completed.payoff || "",
@@ -5080,7 +5082,7 @@ function updateDiscoveryPulse(game) {
     ? `<div class="discovery-hypothesis">HYPOTHESIS CONFIRMED +${escapeHTML(String(pulse.hypothesisBonusXP || 0))} XP</div>`
     : "";
   const lessonPhase = pulse.lessonPhaseAdvance
-    ? `<div class="discovery-hypothesis discovery-phase">${escapeHTML(pulse.lessonPhaseAdvance.label || "PHASE DONE")} · ${escapeHTML(pulse.lessonPhaseAdvance.title || "Lesson phase")}${pulse.lessonPhaseAdvance.nextTitle ? ` · Next: ${escapeHTML(pulse.lessonPhaseAdvance.nextTitle)}` : ""}</div>`
+    ? `<div class="discovery-hypothesis discovery-phase">${escapeHTML(pulse.lessonPhaseAdvance.label || "PHASE DONE")} · ${escapeHTML(pulse.lessonPhaseAdvance.title || "Lesson phase")}${pulse.lessonPhaseAdvance.nextTitle ? ` · Next: ${escapeHTML(pulse.lessonPhaseAdvance.nextTitle)}` : ""}${pulse.lessonPhaseAdvance.nextCommand ? ` · Try <code>${escapeHTML(String(pulse.lessonPhaseAdvance.nextCommand).replace(/\s+/g, " ").trim())}</code>` : ""}</div>`
     : "";
   const formulaDeckMastery = pulse.formulaDeckMastery
     ? `<div class="discovery-hypothesis discovery-perk">${escapeHTML(pulse.formulaDeckMastery.label || "DECK MASTERED")} +${escapeHTML(String(pulse.formulaDeckMastery.rewardXP || 0))} XP · ${escapeHTML(String(pulse.formulaDeckMastery.count || 0))}/${escapeHTML(String(pulse.formulaDeckMastery.total || 0))} cards</div>`

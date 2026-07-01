@@ -270,6 +270,8 @@ function getNotebookLessonPhaseReflection(game, activeMission = null) {
     payoff,
     command: compactNotebookEvidenceValue(phase.command || "", 60),
     nextTitle: compactNotebookEvidenceValue(phase.nextTitle || "", 44),
+    nextCommand: compactNotebookEvidenceValue(phase.nextCommand || "", 60),
+    nextFormula: compactNotebookEvidenceValue(phase.nextFormula || "", 44),
     question
   };
 }
@@ -283,6 +285,8 @@ function getNotebookLessonPhaseEvidence(game, activeMission = null) {
   if (phase.command) out.push(`phase code: ${phase.command}`);
   if (phase.payoff) out.push(`phase result: ${phase.payoff}`);
   if (phase.nextTitle) out.push(`next phase: ${phase.nextTitle}`);
+  if (phase.nextFormula) out.push(`next formula: ${phase.nextFormula}`);
+  if (phase.nextCommand) out.push(`next code: ${phase.nextCommand}`);
   return out;
 }
 

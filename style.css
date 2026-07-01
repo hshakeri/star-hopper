@@ -4048,6 +4048,12 @@ html {
   padding: 2px 5px;
   box-shadow: 0 0 8px rgba(74, 222, 128, 0.12);
 }
+.discovery-hypothesis code {
+  color: #ecfeff;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  font-weight: 900;
+}
 .discovery-perk {
   border-color: rgba(250, 204, 21, 0.46);
   background: rgba(113, 63, 18, 0.36);
