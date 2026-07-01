@@ -3719,6 +3719,123 @@ const DISCOVERY_RULES = [
   }
 ];
 
+const CODE_CONCEPT_CARDS = [
+  {
+    concept: "ASSIGN",
+    title: "Assignment",
+    body: "Store a new value in one game variable.",
+    sampleCode: "hopper.mass = 1.2"
+  },
+  {
+    concept: "LOOP",
+    title: "Loop",
+    body: "Repeat one instruction to build a pattern.",
+    sampleCode: "repeat 3 { spawn_block() }"
+  },
+  {
+    concept: "IF",
+    title: "Conditional",
+    body: "Choose behavior from the current game state.",
+    sampleCode: "if player.touching('ice'): friction = 8"
+  },
+  {
+    concept: "CALL",
+    title: "Function Call",
+    body: "Run a named action or helper.",
+    sampleCode: "use_hopper()"
+  }
+];
+
+function getCodeConceptCard(concept) {
+  const key = String(concept || "").toUpperCase();
+  return CODE_CONCEPT_CARDS.find(card => card.concept === key) || null;
+}
+
+function getCodeConceptSet(game) {
+  const set = new Set();
+  const addConcept = (concept) => {
+    const key = String(concept || "").toUpperCase();
+    if (getCodeConceptCard(key)) set.add(key);
+  };
+  if (game && game.codeConcepts) {
+    const values = game.codeConcepts instanceof Set
+      ? Array.from(game.codeConcepts)
+      : (Array.isArray(game.codeConcepts) ? game.codeConcepts : []);
+    values.forEach(addConcept);
+  }
+  if (game && Array.isArray(game.discoveryLog)) {
+    game.discoveryLog.forEach(pulse => {
+      if (pulse && pulse.codeConceptProof) addConcept(pulse.codeConceptProof.concept);
+    });
+  }
+  return set;
+}
+
+function getCodeConceptProgress(game) {
+  const collected = getCodeConceptSet(game);
+  const cards = CODE_CONCEPT_CARDS.map(card => ({
+    ...card,
+    unlocked: collected.has(card.concept)
+  }));
+  return {
+    cards,
+    collected,
+    count: cards.filter(card => card.unlocked).length,
+    total: cards.length,
+    next: cards.find(card => !card.unlocked) || null,
+    complete: cards.every(card => card.unlocked)
+  };
+}
+
+function getCodeConceptForPulse(game, pulse) {
+  if (!game || !pulse || typeof game.getCommandCodeSkillChip !== "function") return "";
+  const candidates = [];
+  if (pulse.scienceDeltaProof && pulse.scienceDeltaProof.codeLine) {
+    candidates.push(pulse.scienceDeltaProof.codeLine);
+  }
+  const code = String(pulse.code || "").trim();
+  if (code) {
+    candidates.push(code);
+    code.split(/\n/).map(line => line.trim()).filter(Boolean).forEach(line => candidates.push(line));
+  }
+  for (const candidate of candidates) {
+    const concept = game.getCommandCodeSkillChip(candidate);
+    if (getCodeConceptCard(concept)) return concept;
+  }
+  return "";
+}
+
+function grantCodeConceptProgress(game, pulse) {
+  if (!game || !pulse) return null;
+  const concept = getCodeConceptForPulse(game, pulse);
+  const card = getCodeConceptCard(concept);
+  if (!card) return null;
+  const collected = getCodeConceptSet(game);
+  if (collected.has(card.concept)) {
+    game.codeConcepts = collected;
+    return null;
+  }
+  collected.add(card.concept);
+  game.codeConcepts = collected;
+  const progress = getCodeConceptProgress(game);
+  const proof = {
+    label: "CODE CONCEPT",
+    concept: card.concept,
+    title: card.title,
+    body: card.body,
+    progress: `${progress.count}/${progress.total}`,
+    complete: progress.complete,
+    nextTitle: progress.next ? progress.next.title : "Code deck complete"
+  };
+  if (game.player && typeof ComicBubbles !== "undefined" && ComicBubbles.pop) {
+    const baseX = Number.isFinite(game.player.x) ? game.player.x : 0;
+    const baseY = Number.isFinite(game.player.y) ? game.player.y : 0;
+    const width = Number.isFinite(game.player.w) ? game.player.w : 24;
+    ComicBubbles.pop(baseX + width / 2, baseY - 84, `CODE ${card.concept}`, "#93c5fd", 0.82);
+  }
+  return proof;
+}
+
 function getPulseFormulaKind(pulse) {
   if (!pulse) return null;
   if (pulse.formulaCardKind && DISCOVERY_RULES.some(rule => rule.kind === pulse.formulaCardKind)) {
@@ -5055,6 +5172,8 @@ function grantScienceCheckpointProof(game, delta) {
     scienceCheckpointProof: proof
   };
   pulse.scienceDeltaProof = buildDiscoveryScienceDeltaProof(game, pulse);
+  const codeConcept = grantCodeConceptProgress(game, pulse);
+  if (codeConcept) pulse.codeConceptProof = codeConcept;
   game.discoveryPulse = pulse;
   game.discoveryLog = [pulse].concat(Array.isArray(game.discoveryLog) ? game.discoveryLog : []).slice(0, 8);
   updateDiscoveryPulse(game);
@@ -5084,6 +5203,8 @@ function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems
     pulse.scienceDeltaProof = buildDiscoveryScienceDeltaProof(game, pulse);
     const checkpointProof = getMatchingScienceCheckpointProof(game, pulse);
     if (checkpointProof) pulse.scienceCheckpointProof = checkpointProof;
+    const codeConcept = grantCodeConceptProgress(game, pulse);
+    if (codeConcept) pulse.codeConceptProof = codeConcept;
     game.discoveryCombo = Math.min(99, (game.discoveryCombo || 0) + 1);
     pulse.combo = game.discoveryCombo;
     pulse.cardUnlocked = cardUnlocked;
@@ -6009,6 +6130,9 @@ function updateDiscoveryPulse(game) {
   const scienceCheckpoint = pulse.scienceCheckpointProof
     ? `<div class="discovery-hypothesis discovery-science-checkpoint"><strong>${escapeHTML(pulse.scienceCheckpointProof.label || "TARGET CHECKPOINT")} +${escapeHTML(String(pulse.scienceCheckpointProof.rewardXP || 0))} XP</strong><span>${escapeHTML(pulse.scienceCheckpointProof.title || "Target step")} · ${escapeHTML(pulse.scienceCheckpointProof.statLine || "")}</span><em>${escapeHTML(pulse.scienceCheckpointProof.checkpoint || "science checkpoint")}${pulse.scienceCheckpointProof.worldMasteryAddedXP ? ` · +${escapeHTML(String(pulse.scienceCheckpointProof.worldMasteryAddedXP))} world XP` : ""}</em></div>`
     : "";
+  const codeConcept = pulse.codeConceptProof
+    ? `<div class="discovery-hypothesis discovery-code-concept"><strong>${escapeHTML(pulse.codeConceptProof.label || "CODE CONCEPT")} · ${escapeHTML(pulse.codeConceptProof.concept || "")}</strong><span>${escapeHTML(pulse.codeConceptProof.title || "Coding idea")} · ${escapeHTML(pulse.codeConceptProof.progress || "")}${pulse.codeConceptProof.nextTitle ? ` · Next: ${escapeHTML(pulse.codeConceptProof.nextTitle)}` : ""}</span></div>`
+    : "";
   const formulaProgress = pulse.cardUnlocked && pulse.formulaDeckProgress ? pulse.formulaDeckProgress : null;
   const formulaNextCommand = formulaProgress && formulaProgress.nextCommand
     ? String(formulaProgress.nextCommand).trim()
@@ -6099,6 +6223,7 @@ function updateDiscoveryPulse(game) {
     ${hypothesis}
     ${scienceCheckpoint}
     ${scienceProof}
+    ${codeConcept}
     ${lessonPhase}
     ${lessonPathMastery}
     ${formulaDeckMastery}

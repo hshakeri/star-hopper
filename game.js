@@ -208,6 +208,7 @@ class StarHopperGame {
     this.discoveryLog = [];
     this.discoveryPassCounts = {};
     this.discoveredFormulaKinds = new Set();
+    this.codeConcepts = new Set();
     this.formulaCardEffects = [];
     this.scienceBreadcrumbEffects = [];
     this.confirmedHypotheses = new Set();

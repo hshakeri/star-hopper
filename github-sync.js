@@ -241,6 +241,7 @@ function normalizeProgress(progress) {
     discoveryLog: Array.isArray(p.discoveryLog) ? p.discoveryLog.slice(0, 8) : [],
     discoveryPassCounts: plainObject(p.discoveryPassCounts),
     discoveredFormulaKinds: Array.isArray(p.discoveredFormulaKinds) ? p.discoveredFormulaKinds : [],
+    codeConcepts: Array.isArray(p.codeConcepts) ? p.codeConcepts : [],
     confirmedHypotheses: Array.isArray(p.confirmedHypotheses) ? p.confirmedHypotheses : []
   };
 }
@@ -271,6 +272,7 @@ function getActiveProgressSnapshot() {
     discoveryLog: typeof Game !== 'undefined' && Array.isArray(Game.discoveryLog) ? Game.discoveryLog : [],
     discoveryPassCounts: typeof Game !== 'undefined' && Game.discoveryPassCounts ? { ...Game.discoveryPassCounts } : {},
     discoveredFormulaKinds: typeof Game !== 'undefined' && Game.discoveredFormulaKinds ? Array.from(Game.discoveredFormulaKinds) : [],
+    codeConcepts: typeof Game !== 'undefined' && Game.codeConcepts ? Array.from(Game.codeConcepts) : [],
     confirmedHypotheses: typeof Game !== 'undefined' && Game.confirmedHypotheses ? Array.from(Game.confirmedHypotheses) : []
   });
 }
@@ -332,6 +334,7 @@ function mergeProgress(localProgress, incomingProgress) {
     discoveryLog: (incoming.discoveryLog && incoming.discoveryLog.length ? incoming.discoveryLog : local.discoveryLog).slice(0, 8),
     discoveryPassCounts: mergeNumberMax(local.discoveryPassCounts, incoming.discoveryPassCounts),
     discoveredFormulaKinds: arrayUnion(local.discoveredFormulaKinds, incoming.discoveredFormulaKinds),
+    codeConcepts: arrayUnion(local.codeConcepts, incoming.codeConcepts),
     confirmedHypotheses: arrayUnion(local.confirmedHypotheses, incoming.confirmedHypotheses)
   });
 }
@@ -365,6 +368,7 @@ function applyProgressSnapshot(progress) {
     Game.discoveryPulse = Game.discoveryLog[0] || null;
     Game.discoveryPassCounts = { ...normalized.discoveryPassCounts };
     Game.discoveredFormulaKinds = new Set(normalized.discoveredFormulaKinds || []);
+    Game.codeConcepts = new Set(normalized.codeConcepts || []);
     Game.confirmedHypotheses = new Set(normalized.confirmedHypotheses || []);
   }
   if (typeof notebookEntries !== 'undefined') {

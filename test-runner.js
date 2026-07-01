@@ -2201,6 +2201,10 @@ function runEngineTests() {
     assertEquals("F/m=a", firstPulse.scienceDeltaProof && firstPulse.scienceDeltaProof.relation, "Science proof should carry the formula relation");
     assertEquals("-1.3", firstPulse.scienceDeltaProof && firstPulse.scienceDeltaProof.delta, "Science proof should expose the numeric delta");
     assertEquals("hopper.engine = 7", firstPulse.scienceDeltaProof && firstPulse.scienceDeltaProof.nextCommand, "Science proof should expose the next runnable experiment");
+    assertEquals(true, game.codeConcepts.has("ASSIGN"), "Assignment concept should be collected from the first successful tweak");
+    assertEquals("CODE CONCEPT", firstPulse.codeConceptProof && firstPulse.codeConceptProof.label, "Discovery pulse should carry the code concept proof");
+    assertEquals("ASSIGN", firstPulse.codeConceptProof && firstPulse.codeConceptProof.concept, "Code concept proof should identify the assignment");
+    assertEquals("1/4", firstPulse.codeConceptProof && firstPulse.codeConceptProof.progress, "Code concept proof should show deck progress");
     assertEquals(true, game.discoveredFormulaKinds.has("mass"), "Mass formula should be collected");
     assertEquals(1, game.formulaCardEffects.length, "Formula card unlock should spawn an in-world card effect");
     assertEquals("Mass Lab", game.formulaCardEffects[0].title, "Formula card effect should name the collected card");
@@ -2231,6 +2235,7 @@ function runEngineTests() {
     assertEquals(true, /CODE/.test(pulsePanel22b.innerHTML) && /hopper\.mass = 1\.2/.test(pulsePanel22b.innerHTML), "Science proof should show the causal code");
     assertEquals(true, /SCIENCE/.test(pulsePanel22b.innerHTML) && /F\/m=a/.test(pulsePanel22b.innerHTML), "Science proof should show the formula relation");
     assertEquals(true, /WIN/.test(pulsePanel22b.innerHTML) && /(NEXT Agility 30\+ reached|TARGET Agility)/.test(pulsePanel22b.innerHTML), "Science proof should show the next game target");
+    assertEquals(true, /CODE CONCEPT/.test(pulsePanel22b.innerHTML) && /ASSIGN/.test(pulsePanel22b.innerHTML), "Discovery Pulse should show the collected coding concept");
     assertEquals(true, /STAGE NEXT/.test(pulsePanel22b.innerHTML), "Science proof should expose a next-experiment stage action");
     assertEquals(true, typeof scienceProofClick === "function", "Discovery Pulse science proof action should attach a click handler");
     assertEquals(true, /Try <code>hopper\.engine = 7<\/code>/.test(pulsePanel22b.innerHTML), "Discovery Pulse should show the next runnable formula command");
@@ -2253,6 +2258,7 @@ function runEngineTests() {
     assertEquals(firstWorldXP, game.getWorldMasteryProgress(0).xp, "Repeating the same progress should not farm world mastery XP");
     assertEquals(1, game.discoveryCombo, "Repeating without progress should not raise combo");
     assertEquals(1, game.discoveredFormulaKinds.size, "Repeating without progress should not unlock new cards");
+    assertEquals(1, game.codeConcepts.size, "Repeating without progress should not collect another coding concept");
     assertEquals(1, game.formulaCardEffects.length, "Repeating without a new card should not spawn another effect");
     assertEquals(firstBubbleCount, bubbleLabels22b.length, "Repeating without progress should not spawn combo text");
     assertEquals(firstBurstCount, particleBursts22b, "Repeating without progress should not spawn combo particles");
@@ -9802,11 +9808,12 @@ function runRetryRemixTests() {
       frontierBoard: { "FRONTIER-MOON-2222": { dateStr: "2026-06-30", shareCode: "FRONTIER-MOON-2222", tier: 2, stars: 2, bestTime: 42.5, pilot: "Ada" } },
       researchXP: 24, discoveryCombo: 1, discoveryLog: [], discoveryPassCounts: { "science-checkpoint:0:agility:50": 1 },
       discoveredFormulaKinds: new Set(["mass"]),
+      codeConcepts: new Set(["ASSIGN", "IF"]),
       confirmedHypotheses: new Set(["earth-gravity-wall"])
     };
     window.Game = Game;
     const snap = shCaptureProgress();
-    Game.bestClearTimes = {}; Game.bestLabStars = {}; Game.dailySignalClears = 0; Game.frontierRecords = {}; Game.frontierBoard = {}; Game.lastPlayedDate = null; Game.streakCount = 0; Game.masteryCleared = {}; Game.villageTrust = {}; Game.researchXP = 0; Game.discoveryPassCounts = {}; Game.discoveredFormulaKinds = new Set(); Game.confirmedHypotheses = new Set();
+    Game.bestClearTimes = {}; Game.bestLabStars = {}; Game.dailySignalClears = 0; Game.frontierRecords = {}; Game.frontierBoard = {}; Game.lastPlayedDate = null; Game.streakCount = 0; Game.masteryCleared = {}; Game.villageTrust = {}; Game.researchXP = 0; Game.discoveryPassCounts = {}; Game.discoveredFormulaKinds = new Set(); Game.codeConcepts = new Set(); Game.confirmedHypotheses = new Set();
     shApplyProgress(snap);
     assertEquals(12.4, Game.bestClearTimes[0], "best clear time round-trips");
     assertEquals(3, Game.bestLabStars[0], "best lab stars round-trip");
@@ -9821,6 +9828,7 @@ function runRetryRemixTests() {
     assertEquals(24, Game.researchXP, "Research XP round-trips");
     assertEquals(1, Game.discoveryPassCounts["science-checkpoint:0:agility:50"], "Science checkpoint proof source round-trips");
     assertEquals(true, Game.discoveredFormulaKinds.has("mass"), "Formula cards round-trip");
+    assertEquals(true, Game.codeConcepts.has("IF"), "Code concepts round-trip");
     assertEquals(true, Game.confirmedHypotheses.has("earth-gravity-wall"), "Confirmed hypotheses round-trip");
     Game = oldGameR16; window.Game = oldGameR16;
     renderTestResult(SUITE, "Persistence: Phase-2 progression fields survive save/load", true);
@@ -9892,6 +9900,7 @@ function runRetryRemixTests() {
       discoveryLog: [{ title: "Mass Lab", formula: "a = F / m" }],
       discoveryPassCounts: { "earth-gravity-wall": 1 },
       discoveredFormulaKinds: new Set(["mass", "loop"]),
+      codeConcepts: new Set(["ASSIGN", "LOOP"]),
       confirmedHypotheses: new Set(["earth-gravity-wall"])
     };
     window.Game = Game;
@@ -9907,9 +9916,10 @@ function runRetryRemixTests() {
     assertEquals(42, payload.profileProgress.researchXP, "Research XP should export");
     assertEquals(1, payload.profileProgress.discoveryPassCounts["earth-gravity-wall"], "Discovery progress should export");
     assertEquals(true, payload.profileProgress.discoveredFormulaKinds.includes("loop"), "Formula card kinds should export");
+    assertEquals(true, payload.profileProgress.codeConcepts.includes("LOOP"), "Code concept cards should export");
     assertEquals(true, payload.profileProgress.confirmedHypotheses.includes("earth-gravity-wall"), "Confirmed hypotheses should export");
     const merged = mergeProgress(
-      { unlockedUpgrades: ["jump"], upgradeLevels: { engine: 0.25 }, planetClears: { 0: 1 }, bestLabStars: { 0: 1, 1: 2 }, masteryMeters: { 0: { xp: 95, badges: ["engineer"], sources: { stars: 40 } } }, villageTrust: { 0: { points: 3, badges: ["friend"], sources: { "village-trade:0:geary:engine_1": 3 } } }, frontierRecords: { "2026-06-30": { dateStr: "2026-06-30", shareCode: "FRONTIER-EARTH-9999", tier: 2, stars: 2, bestTime: 25.4 } }, frontierBoard: { "FRONTIER-MOON-2222": { dateStr: "2026-06-30", shareCode: "FRONTIER-MOON-2222", tier: 2, stars: 3, bestTime: 49.5, pilot: "Grace" } }, researchXP: 8, discoveryPassCounts: { "earth-gravity-wall": 0 }, discoveredFormulaKinds: ["friction"], confirmedHypotheses: ["moon-canyon-jump"] },
+      { unlockedUpgrades: ["jump"], upgradeLevels: { engine: 0.25 }, planetClears: { 0: 1 }, bestLabStars: { 0: 1, 1: 2 }, masteryMeters: { 0: { xp: 95, badges: ["engineer"], sources: { stars: 40 } } }, villageTrust: { 0: { points: 3, badges: ["friend"], sources: { "village-trade:0:geary:engine_1": 3 } } }, frontierRecords: { "2026-06-30": { dateStr: "2026-06-30", shareCode: "FRONTIER-EARTH-9999", tier: 2, stars: 2, bestTime: 25.4 } }, frontierBoard: { "FRONTIER-MOON-2222": { dateStr: "2026-06-30", shareCode: "FRONTIER-MOON-2222", tier: 2, stars: 3, bestTime: 49.5, pilot: "Grace" } }, researchXP: 8, discoveryPassCounts: { "earth-gravity-wall": 0 }, discoveredFormulaKinds: ["friction"], codeConcepts: ["IF"], confirmedHypotheses: ["moon-canyon-jump"] },
       progressFromSavePayload(payload)
     );
     assertEquals(true, merged.unlockedUpgrades.includes("engine"), "Incoming unlocked upgrade survives merge");
@@ -9932,6 +9942,8 @@ function runRetryRemixTests() {
     assertEquals(1, merged.discoveryPassCounts["earth-gravity-wall"], "Merge keeps discovery pass progress");
     assertEquals(true, merged.discoveredFormulaKinds.includes("mass"), "Incoming formula card survives merge");
     assertEquals(true, merged.discoveredFormulaKinds.includes("friction"), "Local formula card survives merge");
+    assertEquals(true, merged.codeConcepts.includes("LOOP"), "Incoming code concept survives merge");
+    assertEquals(true, merged.codeConcepts.includes("IF"), "Local code concept survives merge");
     assertEquals(true, merged.confirmedHypotheses.includes("earth-gravity-wall"), "Incoming confirmed hypothesis survives merge");
     assertEquals(true, merged.confirmedHypotheses.includes("moon-canyon-jump"), "Local confirmed hypothesis survives merge");
     Game = oldGameR19; window.Game = oldGameR19;

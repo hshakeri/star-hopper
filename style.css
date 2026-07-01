@@ -4208,6 +4208,21 @@ html {
   font-size: 0.56rem;
   font-weight: 900;
 }
+.discovery-code-concept {
+  display: grid;
+  gap: 2px;
+  border-color: rgba(147, 197, 253, 0.5);
+  background: rgba(30, 64, 175, 0.34);
+  color: #dbeafe;
+  box-shadow: 0 0 10px rgba(147, 197, 253, 0.16);
+}
+.discovery-code-concept strong {
+  color: #bfdbfe;
+}
+.discovery-code-concept span {
+  color: #eff6ff;
+  font-size: 0.54rem;
+}
 .discovery-phase-stage-btn {
   border: 1px solid rgba(251, 191, 36, 0.48);
   border-radius: 4px;
