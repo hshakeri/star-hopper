@@ -2607,6 +2607,7 @@ class StarHopperGame {
       if (typeof ComicBubbles !== 'undefined') {
         ComicBubbles.pop(t.c * TILE_SIZE + 16, t.r * TILE_SIZE - 2, `BLOCK +${this.minedBlocks}`, "#cbd5e1", 0.82);
       }
+      this.grantDrillDiscoveryReward('mine', { blocks: this.minedBlocks });
       return true;
     }
     return false;
@@ -2637,7 +2638,114 @@ class StarHopperGame {
     if (typeof SFX !== 'undefined' && SFX.playLanding) SFX.playLanding();
     if (typeof Particles !== 'undefined') Particles.spawnBurst(box.x + box.w / 2, box.y + box.h / 2, '#d97706', 8, 1.8, 2.0);
     if (typeof ComicBubbles !== 'undefined') ComicBubbles.pop(box.x + box.w / 2, box.y - 2, `STACK ${this.minedBlocks}`, "#f59e0b", 0.78);
+    this.grantDrillDiscoveryReward('place', { blocks: this.minedBlocks, placed: box });
     return true;
+  }
+
+  getDrillDiscoverySourceKey(kind, index = this.currentPlanetIndex) {
+    const planetKey = Number.isFinite(index) ? index : 0;
+    return `drill:${kind || 'mine'}:${planetKey}`;
+  }
+
+  grantDrillDiscoveryReward(kind = 'mine', meta = {}) {
+    const action = kind === 'place' ? 'place' : 'mine';
+    const sourceKey = this.getDrillDiscoverySourceKey(action);
+    this.discoveryPassCounts = this.discoveryPassCounts || {};
+    if (this.discoveryPassCounts[sourceKey]) return null;
+
+    const rewardXP = action === 'place' ? 3 : 2;
+    const masteryXP = action === 'place' ? 10 : 6;
+    const label = action === 'place' ? 'BUILD LOOP PROOF' : 'GEOLOGY SAMPLE';
+    const formula = action === 'place' ? 'mined block -> placed support' : 'solid tile -> mined block';
+    const insight = action === 'place'
+      ? 'Stacking a mined block turns stored material back into terrain. The route becomes data you can edit, test, and revise.'
+      : 'Drilling moves material from the map into your block bank. That is conservation: the matter changed state instead of disappearing.';
+    const cue = action === 'place'
+      ? 'Mine with D, place with D in open space, then compare the new path.'
+      : 'Face a tile and press D. Press Down + D to drill underfoot.';
+    const color = action === 'place' ? '#f59e0b' : '#cbd5e1';
+    const mastery = typeof this.awardWorldMasteryXP === 'function'
+      ? this.awardWorldMasteryXP(masteryXP, action === 'place' ? 'drill build proof' : 'drill mining proof', { sourceKey, silent: true })
+      : { addedXP: 0, duplicate: false };
+    if (mastery && mastery.duplicate) {
+      this.discoveryPassCounts[sourceKey] = 1;
+      return null;
+    }
+
+    const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+    this.discoveryPassCounts[sourceKey] = 1;
+    this.researchXP = Math.max(0, (this.researchXP || 0) + rewardXP);
+    const afterRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+    const rankUp = !!(beforeRank && afterRank && afterRank.level > beforeRank.level);
+    const planetName = this.currentPlanet && this.currentPlanet.name ? this.currentPlanet.name : 'World';
+    const blocks = Math.max(0, Math.floor(Number(meta.blocks) || 0));
+    const pulse = {
+      kind: 'drill',
+      title: action === 'place' ? 'Build Loop Proof' : 'Geology Sample',
+      formula,
+      insight,
+      cue,
+      missionId: sourceKey,
+      missionTitle: planetName,
+      passed: 1,
+      total: 1,
+      progressLabel: action === 'place'
+        ? `1 block placed, ${blocks} bank${blocks === 1 ? '' : 's'} left`
+        : `${blocks} block${blocks === 1 ? '' : 's'} mined`,
+      openedGems: 0,
+      rewardXP,
+      combo: this.discoveryCombo || 0,
+      rankUp,
+      rankTitle: afterRank ? afterRank.title : null,
+      rankPerk: rankUp && afterRank ? afterRank.perk : null,
+      worldMasteryAddedXP: mastery && Number.isFinite(mastery.addedXP) ? mastery.addedXP : 0,
+      sourceKey,
+      drillProof: {
+        label,
+        rewardXP,
+        action,
+        sourceKey
+      }
+    };
+    this.discoveryPulse = pulse;
+    this.discoveryLog = [pulse].concat(Array.isArray(this.discoveryLog) ? this.discoveryLog : []).slice(0, 8);
+
+    if (typeof ui_log_output === 'function') {
+      ui_log_output(`${label}: +${rewardXP} Research XP, +${pulse.worldMasteryAddedXP} world mastery XP.`, 'success');
+    }
+    if (typeof logMissionBriefing === 'function') {
+      logMissionBriefing(`${pulse.title}: ${pulse.insight}`);
+    }
+    if (typeof ComicBubbles !== 'undefined' && ComicBubbles.pop && this.player) {
+      const px = this.player.x + this.player.w / 2;
+      ComicBubbles.pop(px, this.player.y - 28, label, color, 0.86);
+      ComicBubbles.pop(px, this.player.y - 10, `+${rewardXP} LAB XP`, '#a7f3d0', 0.72);
+    }
+    if (typeof Particles !== 'undefined' && Particles.spawnBurst && this.player) {
+      Particles.spawnBurst(this.player.x + this.player.w / 2, this.player.y + this.player.h / 2, color, 12, 2.0, 2.1, 'glow');
+      Particles.spawnBurst(this.player.x + this.player.w / 2, this.player.y + this.player.h / 2, '#a7f3d0', 8, 1.6, 1.7, 'glow');
+    }
+    if (rankUp && typeof showBadgeToast === 'function') {
+      showBadgeToast({
+        icon: 'D',
+        label: `Research Rank: ${afterRank.title}`,
+        description: `Drill lab unlocked ${afterRank.perk.label}.`
+      });
+    }
+    if (rankUp && typeof this.spawnResearchRankEffect === 'function') {
+      pulse.rankEffect = this.spawnResearchRankEffect(pulse);
+    }
+    if (typeof this.showMissionBalloon === 'function') {
+      this.showMissionBalloon(`${label}: +${rewardXP} Research XP`, {
+        title: 'DRILL LAB',
+        color,
+        timer: 220
+      });
+    }
+    if (typeof updateDiscoveryPulse === 'function') updateDiscoveryPulse(this);
+    if (typeof updateResearchProgress === 'function') updateResearchProgress(this);
+    if (typeof saveLocalProgress === 'function' && typeof window !== 'undefined' && window.Game === this) saveLocalProgress();
+    return pulse;
   }
 
   checkMissions() {

@@ -3160,6 +3160,9 @@ function updateDiscoveryPulse(game) {
   const anomalyTraceProof = pulse.anomalyTraceProof
     ? `<div class="discovery-hypothesis discovery-signal-lab">${escapeHTML(pulse.anomalyTraceProof.label)} +${escapeHTML(String(pulse.anomalyTraceProof.rewardXP || 0))} XP</div>`
     : "";
+  const drillProof = pulse.drillProof
+    ? `<div class="discovery-hypothesis discovery-signal-lab">${escapeHTML(pulse.drillProof.label)} +${escapeHTML(String(pulse.drillProof.rewardXP || 0))} XP</div>`
+    : "";
   const rankPerk = pulse.rankPerk
     ? `<div class="discovery-hypothesis discovery-perk">LAB PERK UNLOCKED: ${escapeHTML(pulse.rankPerk.label)}</div>`
     : "";
@@ -3185,6 +3188,7 @@ function updateDiscoveryPulse(game) {
     ${hypothesis}
     ${signalLabProof}
     ${anomalyTraceProof}
+    ${drillProof}
     ${rankPerk}
     ${unlockCard}
     <div class="discovery-pulse-body">${escapeHTML(pulse.insight)}</div>

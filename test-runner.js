@@ -4318,6 +4318,55 @@ function runCombatTests() {
     renderTestResult(SUITE, "Drill: mines terrain and places stackable blocks", false, err.message);
   }
 
+  // C2e: drill mining/building creates a one-time discovery reward per world action.
+  try {
+    const g = new StarHopperGame();
+    g.state = 'playing';
+    g.currentPlanetIndex = 0; g.currentPlanet = PLANETS[0];
+    g.currentVariant = {
+      map: [
+        [0,0,0,0,0,0],
+        [0,0,0,0,0,0],
+        [0,0,1,0,0,0],
+        [1,1,1,1,1,1]
+      ]
+    };
+    g.player = new Player(50, 64);
+    g.player.facing = 1;
+    g.spawnedBoxes = [];
+    g.minedBlocks = 0;
+    g.researchXP = 0;
+    g.masteryMeters = {};
+    g.discoveryLog = [];
+    g.discoveryPassCounts = {};
+
+    assertEquals(true, g.tryDrillMine(), "Drill mine action succeeds");
+    assertEquals(2, g.researchXP, "First drill mine awards focused Research XP");
+    assertEquals(6, g.getWorldMasteryProgress(0).xp, "First drill mine adds world mastery XP");
+    assertEquals("Geology Sample", g.discoveryPulse && g.discoveryPulse.title, "Mine reward creates a geology discovery pulse");
+    assertEquals("GEOLOGY SAMPLE", g.discoveryPulse && g.discoveryPulse.drillProof && g.discoveryPulse.drillProof.label, "Mine reward exposes a Discovery Pulse chip");
+    assertEquals("DRILL LAB", g.missionBalloon && g.missionBalloon.title, "Mine reward uses the mission monitor");
+    assertEquals("GEOLOGY SAMPLE: +2 Research XP", g.missionBalloon && g.missionBalloon.text, "Mine reward announces the XP payoff");
+    assertEquals(1, g.discoveryPassCounts[g.getDrillDiscoverySourceKey('mine')], "Mine reward stores its one-time source");
+    const afterMineXP = g.researchXP;
+    assertEquals(null, g.grantDrillDiscoveryReward('mine', { blocks: 2 }), "Repeating the mine reward is blocked");
+    assertEquals(afterMineXP, g.researchXP, "Repeated mine reward does not farm XP");
+
+    assertEquals(true, g.tryPlaceMinedBlock(), "Drill stack action succeeds");
+    assertEquals(5, g.researchXP, "First drill placement awards its own Research XP");
+    assertEquals(16, g.getWorldMasteryProgress(0).xp, "First drill placement adds world mastery XP");
+    assertEquals("Build Loop Proof", g.discoveryPulse && g.discoveryPulse.title, "Placement reward creates a build-loop discovery pulse");
+    assertEquals("BUILD LOOP PROOF", g.discoveryPulse && g.discoveryPulse.drillProof && g.discoveryPulse.drillProof.label, "Placement reward exposes a Discovery Pulse chip");
+    assertEquals("BUILD LOOP PROOF: +3 Research XP", g.missionBalloon && g.missionBalloon.text, "Placement reward announces the XP payoff");
+    assertEquals(1, g.discoveryPassCounts[g.getDrillDiscoverySourceKey('place')], "Placement reward stores its one-time source");
+    const afterPlaceXP = g.researchXP;
+    assertEquals(null, g.grantDrillDiscoveryReward('place', { blocks: 0 }), "Repeating the placement reward is blocked");
+    assertEquals(afterPlaceXP, g.researchXP, "Repeated placement reward does not farm XP");
+    renderTestResult(SUITE, "Drill: mining and stacking create one-time lab rewards", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Drill: mining and stacking create one-time lab rewards", false, err.message);
+  }
+
   // C3: XP accrues to the per-world mastery meter and levels the weapon
   const oldBubblePopC3 = ComicBubbles.pop;
   const oldParticleBurstC3 = Particles.spawnBurst;
