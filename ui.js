@@ -6746,8 +6746,12 @@ function updateDiscoveryPulse(game) {
   const petProof = pulse.petProof
     ? `<div class="discovery-hypothesis discovery-signal-lab">${escapeHTML(pulse.petProof.label)} +${escapeHTML(String(pulse.petProof.rewardXP || 0))} XP</div>`
     : "";
+  const aiStateProof = pulse.aiStateRunProof || null;
+  const aiStateNextLesson = aiStateProof && !aiStateProof.complete && aiStateProof.nextCardId
+    ? `<div class="discovery-ai-state-lesson"><span><b>LEARN</b>${escapeHTML(aiStateProof.nextConcept || "State machine")}</span><span><b>CODE</b>${escapeHTML(aiStateProof.nextState || "state + event -> next state")}</span><span><b>WIN</b>${escapeHTML(aiStateProof.nextActionLabel || "RUN STATE")}</span></div>`
+    : "";
   const aiStateRunProof = pulse.aiStateRunProof
-    ? `<div class="discovery-hypothesis discovery-ai-state">${escapeHTML(pulse.aiStateRunProof.label || "AI PROOF LOGGED")} · ${escapeHTML(pulse.aiStateRunProof.title || "AI state")} · ${escapeHTML(pulse.aiStateRunProof.progress || "")} · Next: ${escapeHTML(pulse.aiStateRunProof.nextTitle || "Deck complete")}</div>`
+    ? `<div class="discovery-hypothesis discovery-ai-state"><strong>${escapeHTML(pulse.aiStateRunProof.label || "AI PROOF LOGGED")} · ${escapeHTML(pulse.aiStateRunProof.title || "AI state")}</strong><span>${escapeHTML(pulse.aiStateRunProof.progress || "")} · Next: ${escapeHTML(pulse.aiStateRunProof.nextTitle || "Deck complete")}</span>${aiStateNextLesson}</div>`
     : "";
   const frontierRivalProof = pulse.frontierRivalProof
     ? `<div class="discovery-hypothesis discovery-signal-lab">${escapeHTML(pulse.frontierRivalProof.label || "RIVAL PROOF")} +${escapeHTML(String(pulse.frontierRivalProof.rewardXP || 0))} XP · T${escapeHTML(String(pulse.frontierRivalProof.tier || 1))} · ${escapeHTML(pulse.frontierRivalProof.pilot || "classmate")}</div>`

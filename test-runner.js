@@ -9619,6 +9619,7 @@ function runCombatTests() {
     assertEquals("1/5", g.discoveryPulse && g.discoveryPulse.aiStateRunProof && g.discoveryPulse.aiStateRunProof.progress, "AI proof chip shows trade deck progress");
     assertEquals("Shelter Loop", g.discoveryPulse && g.discoveryPulse.aiStateRunProof && g.discoveryPulse.aiStateRunProof.nextTitle, "AI proof chip points to the next AI card");
     assertEquals("shelter-loop", g.lastAIStateRunProof && g.lastAIStateRunProof.nextCardId, "Logged trade proof remembers the next AI card id");
+    assertEquals("State machine", g.lastAIStateRunProof && g.lastAIStateRunProof.nextConcept, "Logged trade proof remembers the next AI card concept");
     assertEquals("RUN RESCUE", g.lastAIStateRunProof && g.lastAIStateRunProof.nextActionLabel, "Logged trade proof remembers the next AI route action");
     assertEquals("patrol -> cave -> trade", g.lastAIStateRunProof && g.lastAIStateRunProof.nextState, "Logged trade proof remembers the next AI state formula");
     const pulsePanelC24 = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };
@@ -9626,6 +9627,10 @@ function runCombatTests() {
     updateDiscoveryPulse(g);
     assertEquals(true, /AI PROOF LOGGED/.test(pulsePanelC24.innerHTML), "Discovery Pulse should render the AI proof chip");
     assertEquals(true, /Trade Flow/.test(pulsePanelC24.innerHTML), "Rendered AI proof chip should name the completed card");
+    assertEquals(true, /discovery-ai-state-lesson/.test(pulsePanelC24.innerHTML), "Discovery Pulse should render AI State next-step lesson chips");
+    assertEquals(true, /LEARN/.test(pulsePanelC24.innerHTML) && /State machine/.test(pulsePanelC24.innerHTML), "AI State proof handoff should teach the next behavior concept");
+    assertEquals(true, /CODE/.test(pulsePanelC24.innerHTML) && /patrol -&gt; cave -&gt; trade/.test(pulsePanelC24.innerHTML), "AI State proof handoff should show the next state formula");
+    assertEquals(true, /WIN/.test(pulsePanelC24.innerHTML) && /RUN RESCUE/.test(pulsePanelC24.innerHTML), "AI State proof handoff should name the next route payoff");
     document.getElementById = oldGetElementByIdC24;
     assertEquals(3, g.getVillageTrustProgress(1).points, "First trade should add village trust");
     assertEquals("Trading Friend", g.getVillageTrustProgress(1).title, "First trade should reach the first village trust tier");

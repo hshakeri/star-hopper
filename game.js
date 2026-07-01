@@ -560,6 +560,7 @@ class StarHopperGame {
       progress: `${Math.max(0, Number(progress.earnedCount) || 0)}/${Math.max(0, Number(progress.total) || 0)}`,
       nextCardId: next ? next.id : "",
       nextTitle: next ? next.title : "Deck complete",
+      nextConcept: next ? (next.concept || "State machine") : "",
       nextState: next ? (next.state || "") : "",
       nextActionLabel: nextAction ? (nextAction.label || "RUN STATE") : "",
       nextActionBody: nextAction ? (nextAction.body || next.next || "") : "",
