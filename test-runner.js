@@ -3248,6 +3248,7 @@ function runEngineTests() {
     fullStarMap.startFrontierChallenge = (opts) => { frontierStarts.push(opts || null); return true; };
     assertEquals(true, runFutureLabRoadmapAction("dark-matter-echo", fullStarMap), "Roadmap action should launch the Frontier proof");
     assertEquals(1, frontierStarts.length, "Roadmap action should call startFrontierChallenge once");
+    assertEquals("dark-matter-echo", frontierStarts[0] && frontierStarts[0].source, "Roadmap action should tag the first Future Lab Frontier proof as Dark Matter Echo");
 
     const quantumBranchReady = {
       ...fullStarMap,
@@ -3356,6 +3357,19 @@ function runEngineTests() {
     assertEquals(true, /one variable|Same route/.test(rotatedCue.transmission && rotatedCue.transmission.line), "Rotated Dark Matter line should stay tied to one-variable evidence");
     g.getRunTimeSeconds = StarHopperGame.prototype.getRunTimeSeconds.bind(g);
 
+    g.frontierRecords = {};
+    g.discoveryPassCounts = {};
+    g.dailyInfo = { isFrontier: true, darkMatterEcho: true };
+    cue = g.getFutureLabRunCue();
+    assertEquals("DARK MATTER ECHO", cue.label, "Dark Matter Echo Frontier runs should show the first future-lab cue");
+    assertEquals("curve", cue.mode, "Dark Matter Echo cue should use the curve evidence visualization");
+    assertEquals(true, /repeat evidence/.test(cue.formula), "Dark Matter Echo cue should name repeated evidence as the model");
+    assertEquals(1, cue.progress.done, "Dark Matter Echo cue should show only the star-map seed banked");
+    assertEquals("dark-matter-echo", cue.progress.nextId, "Dark Matter Echo cue should point at the echo seed");
+    assertEquals("Anomaly triangulation", cue.scene && cue.scene.title, "Dark Matter Echo cue should carry a distinct story scene");
+    assertEquals(true, /Frontier evidence/.test(cue.transmission && cue.transmission.line), "Dark Matter Echo transmission should explain why the Frontier run matters");
+
+    g.frontierRecords = { "2026-06-30": { shareCode: "FRONTIER-EARTH-1234", stars: 2 } };
     g.dailyInfo = null;
     g.discoveryPassCounts = {};
     g.lastStagedExperiment = { source: "start-anomaly-trace" };
@@ -4377,12 +4391,14 @@ function runEngineTests() {
     assertEquals(true, replayArgs.preserve, "Replay action should preserve tunings for one-more-test iteration");
     actionGame.runClearReplayContract({ action: "daily" });
     actionGame.runClearReplayContract({ action: "frontier" });
+    actionGame.runClearReplayContract({ action: "dark-matter-echo" });
     actionGame.runClearReplayContract({ action: "dark-matter-prep" });
     actionGame.runClearReplayContract({ action: "launch" });
     assertEquals(1, dailyCalls, "Daily action should accept the daily signal");
-    assertEquals(2, frontierCalls, "Frontier and prep actions should start Frontier challenges");
+    assertEquals(3, frontierCalls, "Frontier, echo, and prep actions should start Frontier challenges");
     assertEquals(null, frontierOptions[0], "Normal Frontier action should not carry prep options");
-    assertEquals("dark-matter-prep", frontierOptions[1] && frontierOptions[1].source, "Prep action should carry the Dark Matter prep source");
+    assertEquals("dark-matter-echo", frontierOptions[1] && frontierOptions[1].source, "Echo action should carry the Dark Matter Echo source");
+    assertEquals("dark-matter-prep", frontierOptions[2] && frontierOptions[2].source, "Prep action should carry the Dark Matter prep source");
     assertEquals(1, launchCalls, "Launch action should open the navigation bridge");
 
     const oldSwitchMainMode22fg = typeof switchMainMode === 'function' ? switchMainMode : null;
@@ -4731,7 +4747,7 @@ function runEngineTests() {
     switchMainMode = (mode) => futureModes22g.push(mode);
     assertEquals(true, game.startFutureWorldTeaser("dark-matter"), "Clicking active Dark Matter teaser should launch the current Future Lab seed");
     assertEquals(1, futureFrontierStarts22g.length, "Dark Matter teaser action should launch one Frontier proof");
-    assertEquals(null, futureFrontierStarts22g[0], "Dark Matter Echo action should use a standard Frontier proof");
+    assertEquals("dark-matter-echo", futureFrontierStarts22g[0] && futureFrontierStarts22g[0].source, "Dark Matter Echo action should carry the echo Frontier tag");
     assertEquals("terminal", futureModes22g[0], "Dark Matter teaser action should return to the playable terminal");
     game.startFrontierChallenge = originalFutureStart22g;
     switchMainMode = oldSwitchMainMode22g;
@@ -7881,6 +7897,36 @@ function runRetryRemixTests() {
     assertEquals(frontier.labContract.title, contract.title, "Frontier clear contract should reuse the replay lab focus");
     assertEquals(true, contract.body.indexOf(frontier.labContract.command.split("\n")[0]) >= 0, "Frontier clear contract should include the sample command");
     assertEquals(true, /world mastery XP/.test(contract.reward), "Frontier reward should name world mastery XP");
+
+    const echoGame = new StarHopperGame();
+    echoGame.getTodayDateStr = () => "2026-06-30";
+    echoGame.planetClears = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 };
+    echoGame.masteryMeters = { ...g.masteryMeters };
+    let echoStartedIndex = null;
+    echoGame.startLevel = (index) => { echoStartedIndex = index; };
+    assertEquals(true, echoGame.startFrontierChallenge({ source: "dark-matter-echo" }), "Dark Matter Echo starts a tagged Frontier run");
+    assertEquals(true, echoGame.dailyInfo.darkMatterEcho, "Echo Frontier run keeps the Dark Matter Echo tag");
+    assertEquals(echoGame.dailyInfo.planetIndex, echoStartedIndex, "Echo Frontier run launches its selected planet");
+    assertEquals("Dark Matter Echo: Frontier evidence + signal clue", echoGame.dailyInfo.labGoal, "Echo Frontier run rewrites the lab goal around signal evidence");
+    assertEquals("Dark Matter Echo: decode anomaly", echoGame.dailyInfo.labContract.title, "Echo Frontier run uses an echo lab contract");
+    assertEquals("Infer hidden forces from Frontier evidence", echoGame.dailyInfo.labContract.concept, "Echo lab contract names the hidden-force concept");
+    assertEquals(true, /stars, time, and motion clues/.test(echoGame.dailyInfo.labContract.body), "Echo lab contract asks for Frontier evidence comparison");
+    const echoContract = echoGame.getClearReplayContract({
+      labStars: { stars: 3, maxStars: 3, checks: [{ id: "missions", earned: true }, { id: "gems", earned: true }, { id: "science", earned: true }] },
+      clearTime: null,
+      isDailyRun: true,
+      isFrontierRun: true,
+      nextIndex: null
+    });
+    assertEquals("DARK MATTER ECHO CONTRACT", echoContract.kicker, "Echo Frontier clear keeps the first future-lab loop");
+    assertEquals("Dark Matter Echo: decode anomaly", echoContract.title, "Echo clear contract keeps the echo lab focus");
+    assertEquals("Reward: Dark Matter Echo + share code", echoContract.reward, "Echo clear contract names the echo reward");
+    assertEquals("dark-matter-echo", echoContract.action, "Echo clear contract restarts another tagged echo run");
+    assertEquals("RUN ECHO", echoContract.cta, "Echo clear contract uses the echo CTA");
+    let echoReplayOptions = null;
+    echoGame.startFrontierChallenge = (options) => { echoReplayOptions = options || null; return true; };
+    assertEquals(true, echoGame.runClearReplayContract(echoContract), "Echo clear contract action should start another echo run");
+    assertEquals("dark-matter-echo", echoReplayOptions && echoReplayOptions.source, "Echo clear action should preserve the Dark Matter Echo tag");
 
     const prepGame = new StarHopperGame();
     prepGame.getTodayDateStr = () => "2026-06-30";

@@ -1465,9 +1465,20 @@ class StarHopperGame {
       }
       return false;
     }
+    const darkMatterEcho = !!(options && (options.source === "dark-matter-echo" || options.darkMatterEcho));
     const darkMatterPrep = !!(options && (options.source === "dark-matter-prep" || options.darkMatterPrep));
     const futureSourcePrep = !!(options && (options.source === "future-source" || options.futureSourcePrep));
-    if (darkMatterPrep) {
+    if (darkMatterEcho) {
+      const base = frontier.labContract || {};
+      frontier.darkMatterEcho = true;
+      frontier.labGoal = "Dark Matter Echo: Frontier evidence + signal clue";
+      frontier.labContract = {
+        title: "Dark Matter Echo: decode anomaly",
+        body: `${base.title ? `${base.title}: ` : ""}Run the Frontier remix, then compare stars, time, and motion clues to decode the hidden-force echo.`,
+        concept: "Infer hidden forces from Frontier evidence",
+        command: base.command || ""
+      };
+    } else if (darkMatterPrep) {
       const base = frontier.labContract || {};
       frontier.darkMatterPrep = true;
       frontier.labGoal = "Dark Matter Prep: curve + speed + force evidence";
@@ -1495,6 +1506,8 @@ class StarHopperGame {
       ui_log_output(
         futureSourcePrep
           ? `◆ Future Source rehearsal accepted — tune the source key with ${frontier.shareCode}`
+          : darkMatterEcho
+          ? `◆ Dark Matter Echo accepted — decode the anomaly with ${frontier.shareCode}`
           : darkMatterPrep
           ? `◆ Dark Matter prep run accepted — bank curve evidence with ${frontier.shareCode}`
           : `◆ Frontier Challenge tier ${frontier.tier} accepted — share code ${frontier.shareCode}`,
@@ -4248,6 +4261,21 @@ class StarHopperGame {
       };
     }
 
+    if (isFrontierRun && this.dailyInfo && this.dailyInfo.isFrontier && this.dailyInfo.darkMatterEcho) {
+      const focus = this.dailyInfo.labContract || null;
+      const command = focus && focus.command ? ` Try: ${String(focus.command).replace(/\s*\n\s*/g, " / ")}` : "";
+      return {
+        kicker: "DARK MATTER ECHO CONTRACT",
+        title: focus ? focus.title : "Decode Dark Matter Echo",
+        body: focus
+          ? `${focus.body}${command}`
+          : "Run another Frontier remix, then compare stars, time, and motion clues to decode the hidden-force echo.",
+        reward: "Reward: Dark Matter Echo + share code",
+        action: "dark-matter-echo",
+        cta: "RUN ECHO"
+      };
+    }
+
     if (isFrontierRun && this.dailyInfo && this.dailyInfo.isFrontier && this.dailyInfo.darkMatterPrep) {
       const focus = this.dailyInfo.labContract || null;
       const command = focus && focus.command ? ` Try: ${String(focus.command).replace(/\s*\n\s*/g, " / ")}` : "";
@@ -4527,6 +4555,9 @@ class StarHopperGame {
     const action = contract && contract.action ? contract.action : "replay";
     if (action === "frontier" && typeof this.startFrontierChallenge === 'function') {
       return this.startFrontierChallenge();
+    }
+    if (action === "dark-matter-echo" && typeof this.startFrontierChallenge === 'function') {
+      return this.startFrontierChallenge({ source: "dark-matter-echo" });
     }
     if (action === "dark-matter-prep" && typeof this.startFrontierChallenge === 'function') {
       return this.startFrontierChallenge({ source: "dark-matter-prep" });
@@ -7863,6 +7894,12 @@ class StarHopperGame {
       }
     }
     const fallback = {
+      "dark-matter-echo": {
+        label: "ECHO BRIEF",
+        speaker: "VECTOR",
+        title: "Anomaly triangulation",
+        lesson: "Science payoff: repeated Frontier evidence can reveal an unseen cause."
+      },
       "dark-matter-evidence": {
         label: "CASE FILE",
         speaker: "VECTOR",
@@ -7893,6 +7930,11 @@ class StarHopperGame {
       : (cue.mode === "chance" ? "HOPPER-ZERO" : "VECTOR");
     const stageKey = cue.progress && cue.progress.nextId ? cue.progress.nextId : label.toLowerCase();
     const variantsByStage = {
+      "dark-matter-echo": [
+        "Frontier evidence is the receiver; stars and time decode the echo.",
+        "Same signal, harder remix: collect proof that the anomaly is real.",
+        "The hidden force starts as a pattern before it becomes a field."
+      ],
       "hidden-force-trace": [
         "Touch the magnet, watch motion bend, then name the unseen field.",
         "The event rule is your detector: contact first, force clue second.",
@@ -7960,6 +8002,18 @@ class StarHopperGame {
         mode: "chance",
         progress: this.getFutureLabRunProgress("future-source-key"),
         scene: this.getFutureLabRunScene("future-source")
+      });
+    }
+    if (this.dailyInfo && this.dailyInfo.isFrontier && this.dailyInfo.darkMatterEcho) {
+      return this.withFutureLabTransmission({
+        label: "DARK MATTER ECHO",
+        title: "Decode anomaly",
+        body: "Use Frontier stars, time, and motion clues to prove the signal changed.",
+        formula: "repeat evidence -> hidden clue",
+        color: "#818cf8",
+        mode: "curve",
+        progress: this.getFutureLabRunProgress("dark-matter-echo"),
+        scene: this.getFutureLabRunScene("dark-matter-echo")
       });
     }
     if (this.dailyInfo && this.dailyInfo.isFrontier && this.dailyInfo.darkMatterPrep) {

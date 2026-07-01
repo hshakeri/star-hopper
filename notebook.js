@@ -1033,7 +1033,10 @@ function runFutureLabRoadmapAction(stageId = null, game = window.Game) {
     return runSciencePassportAction(null, game);
   }
   if ((target.actionType === "frontier" || target.actionType === "dark-matter-prep") && game && typeof game.startFrontierChallenge === 'function') {
-    return game.startFrontierChallenge(target.actionType === "dark-matter-prep" ? { source: "dark-matter-prep" } : undefined) !== false;
+    const options = target.actionType === "dark-matter-prep"
+      ? { source: "dark-matter-prep" }
+      : (target.id === "dark-matter-echo" ? { source: "dark-matter-echo" } : undefined);
+    return game.startFrontierChallenge(options) !== false;
   }
   if (target.actionType === "future-source" && game && typeof game.startFrontierChallenge === 'function') {
     return game.startFrontierChallenge({ source: "future-source" }) !== false;
