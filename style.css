@@ -4788,6 +4788,81 @@ html {
   background: rgba(113, 63, 18, 0.36);
   color: #fef08a;
 }
+.discovery-rank-perk-card {
+  display: grid;
+  gap: 6px;
+  max-width: min(100%, 470px);
+  border-color: rgba(250, 204, 21, 0.56);
+  background:
+    linear-gradient(135deg, rgba(113, 63, 18, 0.5), rgba(8, 47, 73, 0.42)),
+    rgba(15, 23, 42, 0.74);
+  color: #fef9c3;
+}
+.discovery-rank-perk-card strong {
+  color: #fef08a;
+  font-size: 0.62rem;
+}
+.discovery-rank-perk-card > span {
+  color: #e0f2fe;
+  font-size: 0.55rem;
+  line-height: 1.25;
+}
+.discovery-rank-perk-lesson {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.discovery-rank-perk-lesson span {
+  min-width: 0;
+  border: 1px solid rgba(250, 204, 21, 0.26);
+  border-radius: 4px;
+  background: rgba(15, 23, 42, 0.5);
+  color: #fef9c3;
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  line-height: 1.2;
+  padding: 4px;
+  overflow-wrap: anywhere;
+}
+.discovery-rank-perk-lesson b {
+  display: block;
+  color: #67e8f9;
+  font-size: 0.47rem;
+  margin-bottom: 2px;
+}
+.discovery-rank-perk-route {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  color: #fde68a;
+  font-family: var(--font-mono);
+  font-size: 0.54rem;
+}
+.discovery-rank-perk-route code {
+  border: 1px solid rgba(250, 204, 21, 0.3);
+  border-radius: 4px;
+  background: rgba(30, 41, 59, 0.78);
+  color: #fef9c3;
+  padding: 2px 5px;
+}
+.discovery-rank-perk-btn {
+  min-height: 22px;
+  border: 1px solid rgba(250, 204, 21, 0.58);
+  border-radius: 4px;
+  background: rgba(113, 63, 18, 0.58);
+  color: #fefce8;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  font-weight: 900;
+  padding: 3px 7px;
+  text-transform: uppercase;
+}
+.discovery-rank-perk-btn:hover {
+  background: rgba(202, 138, 4, 0.72);
+  box-shadow: 0 0 8px rgba(250, 204, 21, 0.24);
+}
 .discovery-phase {
   border-color: rgba(251, 191, 36, 0.5);
   background: rgba(120, 53, 15, 0.34);
@@ -11935,6 +12010,12 @@ body.readable-text-mode .discovery-science-proof-stage-btn,
 body.readable-text-mode .discovery-science-checkpoint,
 body.readable-text-mode .discovery-science-checkpoint span,
 body.readable-text-mode .discovery-science-checkpoint em,
+body.readable-text-mode .discovery-rank-perk-card,
+body.readable-text-mode .discovery-rank-perk-card > span,
+body.readable-text-mode .discovery-rank-perk-lesson span,
+body.readable-text-mode .discovery-rank-perk-route,
+body.readable-text-mode .discovery-rank-perk-route code,
+body.readable-text-mode .discovery-rank-perk-btn,
 body.readable-text-mode .discovery-passport-stamp,
 body.readable-text-mode .discovery-passport-stamp span,
 body.readable-text-mode .discovery-passport-stamp em,
@@ -12277,6 +12358,7 @@ body.readable-text-mode .lab-quest-card strong,
 body.readable-text-mode .research-perk strong,
 body.readable-text-mode .discovery-card-head strong,
 body.readable-text-mode .discovery-card code,
+body.readable-text-mode .discovery-rank-perk-card strong,
 body.readable-text-mode .discovery-chain-next strong,
 body.readable-text-mode .signal-chapter strong {
   font-size: max(0.9rem, 1em);

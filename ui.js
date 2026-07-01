@@ -2915,6 +2915,31 @@ function getResearchUnlockPreview(rank) {
   };
 }
 
+function getRankPerkUnlockedHandoff(game = window.Game, pulse = null) {
+  if (!pulse || !pulse.rankUp || !pulse.rankPerk) return null;
+  const queue = typeof getStartObjectiveQueue === "function" ? getStartObjectiveQueue(game, {}) : [];
+  const item = Array.isArray(queue)
+    ? (queue.find(entry => entry && entry.action && entry.command) || queue.find(entry => entry && entry.action) || null)
+    : null;
+  const perkLabel = pulse.rankPerk && pulse.rankPerk.label ? pulse.rankPerk.label : "Lab Perk";
+  const rankTitle = pulse.rankTitle || "Research Rank";
+  const lessonSteps = item && item.lessonSteps && typeof item.lessonSteps === "object" ? item.lessonSteps : null;
+  const compactCommand = item && item.command ? compactStartObjectiveCommand(item.command) : "";
+  return {
+    label: "LAB LICENSE",
+    title: `${rankTitle}: ${perkLabel}`,
+    body: `${pulse.rankPerk.description || "A new lab loop is online."}${item && item.title ? ` Use it now through ${item.title}.` : ""}`,
+    learn: (lessonSteps && lessonSteps.learn) || "Rank XP unlocks stronger lab loops",
+    code: (lessonSteps && lessonSteps.code) || compactCommand || (item && item.title) || "Choose the next proof",
+    win: (lessonSteps && lessonSteps.win) || (item && item.reward) || `${perkLabel} online`,
+    routeTitle: item && item.title ? item.title : "Next lab action",
+    routeLabel: item && item.cta ? item.cta : (item ? "RUN PERK" : "OPEN LOG"),
+    command: compactCommand,
+    item,
+    hasAction: !!item
+  };
+}
+
 const SIGNAL_STORY_CHAPTERS = [
   {
     id: "earth-signal",
@@ -5265,7 +5290,7 @@ function runStartCadetAIAction() {
   return runAIStateDeckAction(cardId, game);
 }
 
-function runCadetLessonPathAction(missionId = null, game = window.Game || (typeof Game !== 'undefined' ? Game : null)) {
+function runCadetLessonPathAction(missionId = null, game = window.Game || (typeof Game !== 'undefined' ? Game : null), options = {}) {
   if (!game || typeof game.startLevel !== "function") return false;
   const fallback = typeof getCadetIdentityPreview === "function"
     ? (getCadetIdentityPreview(game).lessonPathAction || null)
@@ -5283,7 +5308,8 @@ function runCadetLessonPathAction(missionId = null, game = window.Game || (typeo
     stageScienceDeltaCommand(command, {
       title: mission.title || "Lesson path",
       kind: "lesson-path",
-      source: "cadet-lesson-path",
+      source: options.source || "cadet-lesson-path",
+      color: options.color,
       game
     });
   }
@@ -5339,10 +5365,7 @@ function runStartResumeTestAction() {
   });
 }
 
-function runStartObjectiveQueueAction(priority = 1) {
-  const game = window.Game || (typeof Game !== 'undefined' ? Game : null);
-  const queue = game && Array.isArray(game.lastStartObjectiveQueue) ? game.lastStartObjectiveQueue : [];
-  const item = queue.find(entry => entry && entry.priority === Number(priority));
+function runObjectiveQueueItemAction(item, game = window.Game || (typeof Game !== 'undefined' ? Game : null), options = {}) {
   if (!item || !item.action) return false;
   if (item.action === "radar") return runStartMissionRadarAction();
   if (item.action === "resume") {
@@ -5350,12 +5373,12 @@ function runStartObjectiveQueueAction(priority = 1) {
     return stageScienceDeltaCommand(item.command, {
       title: item.title || "Resume lab chain",
       kind: item.kind || "reflection",
-      source: "start-objective-queue",
-      color: "#bef264"
+      source: options.source || "start-objective-queue",
+      color: options.color || "#bef264"
     });
   }
   if (item.action === "lesson-path") {
-    return runCadetLessonPathAction(item.missionId || null, game);
+    return runCadetLessonPathAction(item.missionId || null, game, options);
   }
   if (item.action === "ai-state") {
     if (!item.cardId || typeof runAIStateDeckAction !== 'function') return false;
@@ -5377,8 +5400,8 @@ function runStartObjectiveQueueAction(priority = 1) {
     return stageScienceDeltaCommand(command, {
       title: item.stageTitle || item.title || (item.action === "lab-chain" ? "Lab chain" : "Code Concept"),
       kind: item.kind || (item.action === "lab-chain" ? "lab-chain" : "code-concept"),
-      source: item.source || (item.action === "lab-chain" ? "start-lab-chain" : "start-code-concept"),
-      color: item.color || (item.action === "lab-chain" ? "#67e8f9" : "#93c5fd"),
+      source: options.source || item.source || (item.action === "lab-chain" ? "start-lab-chain" : "start-code-concept"),
+      color: options.color || item.color || (item.action === "lab-chain" ? "#67e8f9" : "#93c5fd"),
       game
     });
   }
@@ -5390,6 +5413,26 @@ function runStartObjectiveQueueAction(priority = 1) {
     return true;
   }
   return false;
+}
+
+function runStartObjectiveQueueAction(priority = 1) {
+  const game = window.Game || (typeof Game !== 'undefined' ? Game : null);
+  const queue = game && Array.isArray(game.lastStartObjectiveQueue) ? game.lastStartObjectiveQueue : [];
+  const item = queue.find(entry => entry && entry.priority === Number(priority));
+  return runObjectiveQueueItemAction(item, game);
+}
+
+function runRankPerkHandoffAction(handoff = null, game = window.Game || (typeof Game !== 'undefined' ? Game : null)) {
+  const data = handoff || (game && game.discoveryPulse ? game.discoveryPulse.rankPerkHandoff : null);
+  const item = data && data.item ? data.item : null;
+  if (!item) {
+    if (typeof switchMainMode === 'function') switchMainMode("notebook");
+    return true;
+  }
+  return runObjectiveQueueItemAction(item, game, {
+    source: "rank-perk-unlock",
+    color: "#facc15"
+  });
 }
 
 function getDailySignalActionFocus(game = window.Game || (typeof Game !== 'undefined' ? Game : null)) {
@@ -7145,8 +7188,19 @@ function updateDiscoveryPulse(game) {
   const villageCharterCard = villageCharter
     ? `<div class="discovery-hypothesis discovery-village-charter"><strong>${escapeHTML(villageCharter.label || "VILLAGE CHARTER")} · ${escapeHTML(villageCharter.title || "Village Guardian Pact")}</strong><span>${escapeHTML(villageCharter.story || "The village now has a safe trade, cave, and guard loop.")}</span>${villageCharterLesson}${villageCharterRoute}</div>`
     : "";
+  const rankPerkHandoff = typeof getRankPerkUnlockedHandoff === "function" ? getRankPerkUnlockedHandoff(game, pulse) : null;
+  if (pulse && rankPerkHandoff) pulse.rankPerkHandoff = rankPerkHandoff;
   const rankPerk = pulse.rankPerk
     ? `<div class="discovery-hypothesis discovery-perk">LAB PERK UNLOCKED: ${escapeHTML(pulse.rankPerk.label)}</div>`
+    : "";
+  const rankPerkLesson = rankPerkHandoff
+    ? `<div class="discovery-rank-perk-lesson"><span><b>LEARN</b>${escapeHTML(rankPerkHandoff.learn || "Rank XP unlocks stronger lab loops")}</span><span><b>CODE</b>${escapeHTML(rankPerkHandoff.code || "Choose the next proof")}</span><span><b>WIN</b>${escapeHTML(rankPerkHandoff.win || "Lab perk online")}</span></div>`
+    : "";
+  const rankPerkRoute = rankPerkHandoff
+    ? `<div class="discovery-rank-perk-route">${rankPerkHandoff.command ? `Try <code>${escapeHTML(rankPerkHandoff.command)}</code>` : `Next lab <code>${escapeHTML(rankPerkHandoff.routeTitle || "Lab action")}</code>`}<button type="button" class="discovery-rank-perk-btn" data-rank-perk-handoff="1">${escapeHTML(rankPerkHandoff.routeLabel || "RUN PERK")}</button></div>`
+    : "";
+  const rankPerkCard = rankPerkHandoff
+    ? `<div class="discovery-hypothesis discovery-rank-perk-card"><strong>${escapeHTML(rankPerkHandoff.label || "LAB LICENSE")} · ${escapeHTML(rankPerkHandoff.title || "Lab Perk")}</strong><span>${escapeHTML(rankPerkHandoff.body || "Use this new perk in the next lab run.")}</span>${rankPerkLesson}${rankPerkRoute}</div>`
     : "";
   const unlockCue = pulse.nextLabUnlock || ((pulse.rewardXP || 0) > 0 && typeof getResearchUnlockPreview === 'function' && typeof getResearchRank === 'function'
     ? getResearchUnlockPreview(getResearchRank(game && Number.isFinite(game.researchXP) ? game.researchXP : 0))
@@ -7205,6 +7259,7 @@ function updateDiscoveryPulse(game) {
     ${villagePact}
     ${villageCharterCard}
     ${rankPerk}
+    ${rankPerkCard}
     ${unlockCard}
     <div class="discovery-pulse-body">${escapeHTML(pulse.insight)}</div>
     ${chainHintCard}
@@ -7343,6 +7398,11 @@ function attachDiscoveryPulseStageButtons(panel, game, pulse) {
   panel.querySelectorAll("[data-frontier-rival-next]").forEach(button => {
     if (!button || typeof button.addEventListener !== "function" || typeof runFrontierChallengeAction !== "function") return;
     button.addEventListener("click", () => runFrontierChallengeAction(game));
+  });
+  const rankPerkHandoff = pulse && pulse.rankPerkHandoff ? pulse.rankPerkHandoff : null;
+  panel.querySelectorAll("[data-rank-perk-handoff]").forEach(button => {
+    if (!button || typeof button.addEventListener !== "function" || typeof runRankPerkHandoffAction !== "function") return;
+    button.addEventListener("click", () => runRankPerkHandoffAction(rankPerkHandoff, game));
   });
   const passportNextStamp = pulse && pulse.passportNextStamp ? pulse.passportNextStamp : null;
   panel.querySelectorAll("[data-passport-next-level]").forEach(button => {

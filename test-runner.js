@@ -3975,10 +3975,17 @@ function runEngineTests() {
       ]
     };
     let hypothesisNextClick22bb = null;
+    let rankPerkClick22bb = null;
     const hypothesisNextButton22bb = {
       dataset: { hypothesisNextMission: "moon-canyon-jump" },
       addEventListener(event, handler) {
         if (event === "click") hypothesisNextClick22bb = handler;
+      }
+    };
+    const rankPerkButton22bb = {
+      dataset: { rankPerkHandoff: "1" },
+      addEventListener(event, handler) {
+        if (event === "click") rankPerkClick22bb = handler;
       }
     };
     const panel = {
@@ -3987,6 +3994,9 @@ function runEngineTests() {
       querySelectorAll(selector) {
         if (selector === "[data-hypothesis-next-mission]" && /data-hypothesis-next-mission/.test(this.innerHTML)) {
           return [hypothesisNextButton22bb];
+        }
+        if (selector === "[data-rank-perk-handoff]" && /data-rank-perk-handoff/.test(this.innerHTML)) {
+          return [rankPerkButton22bb];
         }
         return [];
       }
@@ -4016,8 +4026,44 @@ function runEngineTests() {
     assertEquals(true, /data-hypothesis-next-mission="moon-canyon-jump"/.test(panel.innerHTML), "Hypothesis handoff should render a direct next-proof route");
     assertEquals(true, typeof hypothesisNextClick22bb === "function", "Hypothesis pulse route should bind a click handler");
     assertEquals(true, /LAB PERK UNLOCKED: Hypothesis Bonus/.test(panel.innerHTML), "Discovery pulse should render the lab-perk unlock chip");
+    assertEquals(true, !!pulse.rankPerkHandoff, "Rank-up pulse should carry a Lab License handoff");
+    assertEquals(true, /discovery-rank-perk-card/.test(panel.innerHTML), "Discovery pulse should render the Lab License rank-perk card");
+    assertEquals(true, /LAB LICENSE/.test(panel.innerHTML) && /Hypothesis Bonus/.test(panel.innerHTML), "Rank-perk handoff should name the unlocked perk");
+    assertEquals(true, /LEARN/.test(panel.innerHTML) && /CODE/.test(panel.innerHTML) && /WIN/.test(panel.innerHTML), "Rank-perk handoff should render LEARN/CODE/WIN chips");
+    assertEquals(true, /data-rank-perk-handoff="1"/.test(panel.innerHTML), "Rank-perk handoff should render a direct route button");
+    assertEquals(true, typeof rankPerkClick22bb === "function", "Rank-perk pulse route should bind a click handler");
     assertEquals(true, bubbleLabels22bb.some(label => /HYPOTHESIS/.test(label)), "Correct prediction should pop a hypothesis cue in the level");
     assertEquals(true, particleColors22bb.some(color => color === "#a7f3d0"), "Correct prediction should spawn a hypothesis burst");
+    const rankInput22bb = {
+      value: "",
+      focused: false,
+      selection: null,
+      style: {},
+      scrollHeight: 20,
+      focus() { this.focused = true; },
+      setSelectionRange(start, end) { this.selection = [start, end]; }
+    };
+    document.getElementById = (id) => {
+      if (id === "discovery-pulse") return panel;
+      if (id === "console-input") return rankInput22bb;
+      return null;
+    };
+    const rankRouteStarts22bb = [];
+    const rankRouteModes22bb = [];
+    const oldStartLevelRank22bb = game.startLevel;
+    game.startLevel = (level) => {
+      rankRouteStarts22bb.push(level);
+      game.currentPlanetIndex = level;
+    };
+    switchMainMode = (mode) => rankRouteModes22bb.push(mode);
+    assertEquals(true, rankPerkClick22bb(), "Rank-perk pulse route should dispatch the next lab action");
+    assertEquals(true, !!pulse.rankPerkHandoff.command, "Rank-perk handoff should prefer a stageable command");
+    assertEquals(pulse.rankPerkHandoff.item.command.trim(), rankInput22bb.value, "Rank-perk route should stage the full selected command");
+    assertEquals(true, rankInput22bb.focused, "Rank-perk route should focus the terminal input");
+    assertEquals("rank-perk-unlock", game.lastStagedExperiment && game.lastStagedExperiment.source, "Rank-perk route should preserve the rank unlock source");
+    assertEquals("terminal", rankRouteModes22bb[0], "Rank-perk route should return to the terminal");
+    game.startLevel = oldStartLevelRank22bb;
+    switchMainMode = oldSwitchMainMode22bb;
     const hypothesisRouteStarts22bb = [];
     const hypothesisRouteModes22bb = [];
     const oldStartLevel22bb = game.startLevel;
