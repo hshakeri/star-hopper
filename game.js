@@ -5733,6 +5733,24 @@ class StarHopperGame {
         <p>${safe(`${worldMastery.xp} XP${starSummary.worldMasteryAddedXP ? ` · +${starSummary.worldMasteryAddedXP} this run` : ""} · ${worldMasteryNext}`)}</p>
       </div>
     ` : "";
+    const villageTrust = typeof this.getVillageTrustProgress === 'function' ? this.getVillageTrustProgress(this.currentPlanetIndex) : null;
+    const villageTrustPct = villageTrust ? Math.max(0, Math.min(100, Number(villageTrust.pct) || 0)) : 0;
+    const villageTrustNext = villageTrust && villageTrust.nextTier
+      ? `${villageTrust.nextTier.label} at ${villageTrust.nextTier.points} trust`
+      : "Max village trust reached";
+    const villageTrustAction = villageTrust && villageTrust.nextTier
+      ? (villageTrust.points > 0 ? "Next: rescue, trade, or pet guard" : "Next: make a first village trade")
+      : "Village mentor status online";
+    const villageTrustBlock = villageTrust ? `
+      <div class="clear-village-trust">
+        <div class="clear-village-trust-head">
+          <span>VILLAGE TRUST</span>
+          <strong>${safe(villageTrust.title)}</strong>
+        </div>
+        <div class="clear-village-trust-bar" aria-label="${safe(`${villageTrust.points} village trust`)}"><span style="width: ${villageTrustPct}%"></span></div>
+        <p>${safe(`${villageTrust.points} trust · ${villageTrustNext} · ${villageTrustAction}`)}</p>
+      </div>
+    ` : "";
     const nextLabel = isFrontierRun
       ? "Open the log and compare this frontier tier."
       : (isDailyRun
@@ -5752,6 +5770,7 @@ class StarHopperGame {
       <div class="clear-lab-star-list">${starChecklist}</div>
       ${masteryRibbon}
       ${worldMasteryBlock}
+      ${villageTrustBlock}
       ${unlockBlock}
       ${timeBadge}
       ${rivalBlock}

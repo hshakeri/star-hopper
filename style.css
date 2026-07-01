@@ -1743,6 +1743,59 @@ body.resizing-panes * {
   line-height: 1.25;
 }
 
+.clear-village-trust {
+  border: 1px solid rgba(125, 211, 252, 0.32);
+  border-radius: 6px;
+  background:
+    linear-gradient(90deg, rgba(12, 74, 110, 0.22), rgba(6, 78, 59, 0.2)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.022) 0 1px, transparent 1px 4px);
+  padding: 6px 7px;
+  margin: -1px 0 8px;
+}
+
+.clear-village-trust-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+  font-family: var(--font-mono);
+}
+
+.clear-village-trust-head span {
+  color: #7dd3fc;
+  font-size: 0.56rem;
+  font-weight: 800;
+}
+
+.clear-village-trust-head strong {
+  color: #ecfeff;
+  font-size: 0.64rem;
+  text-align: right;
+}
+
+.clear-village-trust-bar {
+  height: 6px;
+  margin: 5px 0 4px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.64);
+  border: 1px solid rgba(125, 211, 252, 0.18);
+  overflow: hidden;
+}
+
+.clear-village-trust-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #38bdf8, #34d399);
+}
+
+.clear-village-trust p {
+  margin: 0;
+  color: #dff6ff;
+  font-size: 0.62rem;
+  line-height: 1.25;
+}
+
 .clear-research-unlock {
   border: 1px solid rgba(190, 242, 100, 0.3);
   border-radius: 6px;
@@ -7403,6 +7456,8 @@ body.readable-text-mode .mission-lab-question-head,
 body.readable-text-mode .mission-lab-question-card p,
 body.readable-text-mode .mission-lab-question-card code,
 body.readable-text-mode .mission-lab-question-stage-btn,
+body.readable-text-mode .clear-village-trust-head,
+body.readable-text-mode .clear-village-trust p,
 body.readable-text-mode .world-mastery-crt-head,
 body.readable-text-mode .world-mastery-crt-body strong,
 body.readable-text-mode .world-mastery-crt-body p,

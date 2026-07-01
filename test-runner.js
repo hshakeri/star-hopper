@@ -2592,6 +2592,7 @@ function runEngineTests() {
     game.discoveredFormulaKinds = new Set(["antigravity"]);
     game.researchXP = 60;
     game.planetClears = { 0: 1 };
+    game.villageTrust = { 0: { points: 7, badges: ["friend", "ally"], sources: { "village-trade:0:geary:engine_1": 3, "village-rescue:0:geary": 4 } } };
     let labStars22e = game.recordClearLabStars({ isDailyRun: false });
     labStars22e = game.grantMasteryClearReward(labStars22e);
     game.renderClearLabReport({
@@ -2609,6 +2610,11 @@ function runEngineTests() {
     assertEquals(true, /\+25 Research XP/.test(report.innerHTML), "Clear report should show the mastery XP reward");
     assertEquals(true, /WORLD MASTERY/.test(report.innerHTML), "Clear report should include per-world mastery progress");
     assertEquals(true, /Signal Scout/.test(report.innerHTML), "Clear report should show newly earned world mastery tier");
+    assertEquals(true, /VILLAGE TRUST/.test(report.innerHTML), "Clear report should include village trust progress");
+    assertEquals(true, /Cave Ally/.test(report.innerHTML), "Clear report should show current village trust tier");
+    assertEquals(true, /7 trust/.test(report.innerHTML), "Clear report should show current village trust points");
+    assertEquals(true, /Village Guardian at 12 trust/.test(report.innerHTML), "Clear report should show the next village trust tier");
+    assertEquals(true, /Next: rescue, trade, or pet guard/.test(report.innerHTML), "Clear report should name the next relationship action");
     assertEquals(true, /NEXT LAB UNLOCK/.test(report.innerHTML), "Clear report should show the next research unlock target");
     assertEquals(true, /Combo Amplifier in 15 XP/.test(report.innerHTML), "Clear report should show the post-run XP gap to the next perk");
     assertEquals(true, /67% toward next lab unlock/.test(report.innerHTML), "Clear report should render research unlock progress");
