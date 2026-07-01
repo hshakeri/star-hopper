@@ -265,6 +265,7 @@ function stageDiagnosisFix(command, prediction = null, label = "Failure lab retr
       title: label || "Failure lab retry",
       kind: "failure-diagnosis",
       source: "failure-lab",
+      prediction: prediction || null,
       color: "#facc15"
     });
   }

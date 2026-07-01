@@ -4875,6 +4875,28 @@ function runEngineTests() {
     activeRestage._events.click();
     assertEquals("hopper.mass = 1.0", inputEl22j.value, "Staged reminder restage should restore the staged command");
     assertEquals(true, inputEl22j.focused, "Staged reminder restage should focus the terminal");
+    game.lastStagedExperiment = {
+      title: "Lower mass repair",
+      kind: "failure-diagnosis",
+      source: "failure-lab",
+      prediction: "higher",
+      command: "hopper.mass = 1.0",
+      time: Date.now()
+    };
+    updateMissionList(game);
+    const repairStaged = findByClass(list, "staged-experiment-card");
+    const repairStagedText = flattenText(repairStaged || list);
+    assertEquals(true, /REPAIR PROOF READY/.test(repairStagedText), "Failure-lab staged repair should identify itself as a proof");
+    assertEquals(true, /Crash Lab/.test(repairStagedText), "Failure-lab staged repair should preserve the crash source");
+    assertEquals(true, /predict: higher/i.test(repairStagedText), "Failure-lab staged repair should show the carried prediction");
+    assertEquals(true, /test this repair/.test(repairStagedText), "Failure-lab staged repair should explain the retry experiment");
+    const repairRestage = findByClass(repairStaged || list, "staged-experiment-stage-btn");
+    inputEl22j.value = "";
+    inputEl22j.focused = false;
+    repairRestage._events.click();
+    assertEquals("hopper.mass = 1.0", inputEl22j.value, "Failure-lab restage should restore the repair command");
+    assertEquals("failure-lab", game.lastStagedExperiment && game.lastStagedExperiment.source, "Failure-lab restage should preserve its source");
+    assertEquals("higher", game.lastStagedExperiment && game.lastStagedExperiment.prediction, "Failure-lab restage should preserve prediction metadata");
 
     const signalFocus = buildReplayLabContract(PLANETS[3], 3, {
       targetOverrides: {},

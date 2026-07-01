@@ -1506,6 +1506,7 @@ function getActiveStagedExperiment(game) {
     title: staged.title || "Experiment staged",
     kind: staged.kind || null,
     source: staged.source || "stage-button",
+    prediction: staged.prediction || null,
     command,
     time: staged.time || 0
   };
@@ -1522,6 +1523,7 @@ function getCompletedStagedExperiment(game) {
     title: staged.title || "Experiment staged",
     kind: staged.kind || null,
     source: staged.source || "stage-button",
+    prediction: staged.prediction || null,
     command,
     time: staged.time || 0
   };
@@ -1536,6 +1538,7 @@ function getStagedExperimentSourceLabel(source) {
     "lab-chain-target": "Lab chain",
     "formula-focus": "Formula Deck",
     "formula-target": "Formula target",
+    "failure-lab": "Crash Lab",
     "signal-lab-contract": "Signal Lab",
     "start-anomaly-trace": "Anomaly Trace",
     "staged-reminder": "Mission CRT"
@@ -1544,6 +1547,10 @@ function getStagedExperimentSourceLabel(source) {
 }
 
 function getStagedExperimentBody(staged) {
+  if (staged && staged.source === "failure-lab") {
+    const prediction = staged.prediction ? ` Prediction: ${staged.prediction}.` : "";
+    return `Press Enter to test this repair, then compare whether the telemetry matches the prediction.${prediction}`;
+  }
   if (staged && staged.source === "signal-lab-contract") {
     return "Press Enter in Mission Coach to test this Signal Lab command, then compare what changed to bank proof.";
   }
@@ -1737,12 +1744,13 @@ function appendStagedExperimentCard(listContainer, game) {
   if (!listContainer || !staged) return;
 
   const card = document.createElement("div");
-  card.className = "staged-experiment-card";
+  const isFailureLab = staged.source === "failure-lab";
+  card.className = `staged-experiment-card${isFailureLab ? " failure-lab" : ""}`;
 
   const head = document.createElement("div");
   head.className = "staged-experiment-head";
   const label = document.createElement("span");
-  label.textContent = "READY TO TEST";
+  label.textContent = isFailureLab ? "REPAIR PROOF READY" : "READY TO TEST";
   const source = document.createElement("strong");
   source.textContent = getStagedExperimentSourceLabel(staged.source);
   head.appendChild(label);
@@ -1758,6 +1766,13 @@ function appendStagedExperimentCard(listContainer, game) {
   body.textContent = getStagedExperimentBody(staged);
   card.appendChild(body);
 
+  if (staged.prediction) {
+    const prediction = document.createElement("em");
+    prediction.className = "staged-experiment-prediction";
+    prediction.textContent = `predict: ${staged.prediction}`;
+    card.appendChild(prediction);
+  }
+
   const code = document.createElement("code");
   code.textContent = staged.command;
   card.appendChild(code);
@@ -1770,8 +1785,9 @@ function appendStagedExperimentCard(listContainer, game) {
     restage.addEventListener("click", () => stageScienceDeltaCommand(staged.command, {
       title: staged.title,
       kind: staged.kind,
-      source: "staged-reminder",
-      color: "#a7f3d0"
+      source: isFailureLab ? "failure-lab" : "staged-reminder",
+      prediction: staged.prediction || null,
+      color: isFailureLab ? "#facc15" : "#a7f3d0"
     }));
   }
   card.appendChild(restage);
@@ -5622,6 +5638,7 @@ function stageScienceDeltaCommand(command, options = {}) {
       title: stagedTitle,
       kind: meta.kind || null,
       source: meta.source || "stage-button",
+      prediction: meta.prediction || null,
       time: Date.now()
     };
   }
