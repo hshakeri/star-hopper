@@ -4833,6 +4833,43 @@ html {
   font-size: 0.44rem;
   letter-spacing: 0;
 }
+.discovery-ai-state-next {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  min-width: 0;
+  color: #fef3c7;
+  font-family: var(--font-mono);
+  font-size: 0.54rem;
+  font-weight: 900;
+  line-height: 1.15;
+}
+.discovery-ai-state-next code {
+  border: 1px solid rgba(251, 191, 36, 0.24);
+  border-radius: 3px;
+  background: rgba(2, 6, 23, 0.48);
+  color: #fef08a;
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  padding: 2px 4px;
+}
+.discovery-ai-state-next-btn {
+  border: 1px solid rgba(250, 204, 21, 0.42);
+  border-radius: 4px;
+  background: rgba(113, 63, 18, 0.72);
+  color: #fffbeb;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  font-weight: 900;
+  line-height: 1.1;
+  padding: 4px 7px;
+}
+.discovery-ai-state-next-btn:hover {
+  background: rgba(250, 204, 21, 0.82);
+  color: #111827;
+}
 .discovery-source-scene {
   border-color: rgba(129, 140, 248, 0.56);
   background: rgba(49, 46, 129, 0.44);
@@ -11407,6 +11444,9 @@ body.readable-text-mode .discovery-phase-stage-btn,
 body.readable-text-mode .discovery-code-concept-stage-btn,
 body.readable-text-mode .discovery-code-concept-lesson span,
 body.readable-text-mode .discovery-ai-state-lesson span,
+body.readable-text-mode .discovery-ai-state-next,
+body.readable-text-mode .discovery-ai-state-next code,
+body.readable-text-mode .discovery-ai-state-next-btn,
 body.readable-text-mode .discovery-formula-stage-btn,
 body.readable-text-mode .discovery-chain-next span,
 body.readable-text-mode .discovery-chain-progress span,

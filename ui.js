@@ -6750,8 +6750,11 @@ function updateDiscoveryPulse(game) {
   const aiStateNextLesson = aiStateProof && !aiStateProof.complete && aiStateProof.nextCardId
     ? `<div class="discovery-ai-state-lesson"><span><b>LEARN</b>${escapeHTML(aiStateProof.nextConcept || "State machine")}</span><span><b>CODE</b>${escapeHTML(aiStateProof.nextState || "state + event -> next state")}</span><span><b>WIN</b>${escapeHTML(aiStateProof.nextActionLabel || "RUN STATE")}</span></div>`
     : "";
+  const aiStateNextRoute = aiStateProof && !aiStateProof.complete && aiStateProof.nextCardId
+    ? `<div class="discovery-ai-state-next">Next state <code>${escapeHTML(aiStateProof.nextTitle || "AI state")}</code><button type="button" class="discovery-ai-state-next-btn" data-ai-state-next-card="${escapeHTML(aiStateProof.nextCardId)}">${escapeHTML(aiStateProof.nextActionLabel || "RUN STATE")}</button></div>`
+    : "";
   const aiStateRunProof = pulse.aiStateRunProof
-    ? `<div class="discovery-hypothesis discovery-ai-state"><strong>${escapeHTML(pulse.aiStateRunProof.label || "AI PROOF LOGGED")} · ${escapeHTML(pulse.aiStateRunProof.title || "AI state")}</strong><span>${escapeHTML(pulse.aiStateRunProof.progress || "")} · Next: ${escapeHTML(pulse.aiStateRunProof.nextTitle || "Deck complete")}</span>${aiStateNextLesson}</div>`
+    ? `<div class="discovery-hypothesis discovery-ai-state"><strong>${escapeHTML(pulse.aiStateRunProof.label || "AI PROOF LOGGED")} · ${escapeHTML(pulse.aiStateRunProof.title || "AI state")}</strong><span>${escapeHTML(pulse.aiStateRunProof.progress || "")} · Next: ${escapeHTML(pulse.aiStateRunProof.nextTitle || "Deck complete")}</span>${aiStateNextLesson}${aiStateNextRoute}</div>`
     : "";
   const frontierRivalProof = pulse.frontierRivalProof
     ? `<div class="discovery-hypothesis discovery-signal-lab">${escapeHTML(pulse.frontierRivalProof.label || "RIVAL PROOF")} +${escapeHTML(String(pulse.frontierRivalProof.rewardXP || 0))} XP · T${escapeHTML(String(pulse.frontierRivalProof.tier || 1))} · ${escapeHTML(pulse.frontierRivalProof.pilot || "classmate")}</div>`
@@ -6929,6 +6932,17 @@ function attachDiscoveryPulseStageButtons(panel, game, pulse) {
         source: "code-concept-reward",
         color: "#93c5fd"
       });
+    });
+  });
+  const aiStateProof = pulse && pulse.aiStateRunProof ? pulse.aiStateRunProof : null;
+  panel.querySelectorAll("[data-ai-state-next-card]").forEach(button => {
+    if (!button || typeof button.addEventListener !== "function" || typeof runAIStateDeckAction !== "function") return;
+    button.addEventListener("click", () => {
+      const cardId = button.dataset && button.dataset.aiStateNextCard
+        ? button.dataset.aiStateNextCard
+        : (aiStateProof && aiStateProof.nextCardId ? aiStateProof.nextCardId : "");
+      if (!String(cardId || "").trim()) return false;
+      return runAIStateDeckAction(cardId, game);
     });
   });
 }

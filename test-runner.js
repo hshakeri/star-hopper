@@ -9573,6 +9573,7 @@ function runCombatTests() {
   // a trade the cadet can't afford.
   const oldGetElementByIdC24 = document.getElementById;
   const oldBubblePopC24 = ComicBubbles.pop;
+  const oldSwitchMainModeC24 = switchMainMode;
   const prevGameC24 = (typeof window !== 'undefined') ? window.Game : undefined;
   try {
     const bubbleLabelsC24 = [];
@@ -9622,7 +9623,19 @@ function runCombatTests() {
     assertEquals("State machine", g.lastAIStateRunProof && g.lastAIStateRunProof.nextConcept, "Logged trade proof remembers the next AI card concept");
     assertEquals("RUN RESCUE", g.lastAIStateRunProof && g.lastAIStateRunProof.nextActionLabel, "Logged trade proof remembers the next AI route action");
     assertEquals("patrol -> cave -> trade", g.lastAIStateRunProof && g.lastAIStateRunProof.nextState, "Logged trade proof remembers the next AI state formula");
-    const pulsePanelC24 = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };
+    let aiStatePulseClick = null;
+    const aiStatePulseButton = {
+      dataset: { aiStateNextCard: "shelter-loop" },
+      addEventListener(event, handler) { if (event === "click") aiStatePulseClick = handler; }
+    };
+    const pulsePanelC24 = {
+      classList: { add: () => {}, remove: () => {} },
+      innerHTML: "",
+      querySelectorAll(selector) {
+        if (selector === "[data-ai-state-next-card]" && /data-ai-state-next-card/.test(this.innerHTML)) return [aiStatePulseButton];
+        return [];
+      }
+    };
     document.getElementById = (id) => id === "discovery-pulse" ? pulsePanelC24 : oldGetElementByIdC24.call(document, id);
     updateDiscoveryPulse(g);
     assertEquals(true, /AI PROOF LOGGED/.test(pulsePanelC24.innerHTML), "Discovery Pulse should render the AI proof chip");
@@ -9631,7 +9644,20 @@ function runCombatTests() {
     assertEquals(true, /LEARN/.test(pulsePanelC24.innerHTML) && /State machine/.test(pulsePanelC24.innerHTML), "AI State proof handoff should teach the next behavior concept");
     assertEquals(true, /CODE/.test(pulsePanelC24.innerHTML) && /patrol -&gt; cave -&gt; trade/.test(pulsePanelC24.innerHTML), "AI State proof handoff should show the next state formula");
     assertEquals(true, /WIN/.test(pulsePanelC24.innerHTML) && /RUN RESCUE/.test(pulsePanelC24.innerHTML), "AI State proof handoff should name the next route payoff");
+    assertEquals(true, /discovery-ai-state-next/.test(pulsePanelC24.innerHTML), "AI State proof handoff should render a direct next-state route");
+    assertEquals(true, /data-ai-state-next-card="shelter-loop"/.test(pulsePanelC24.innerHTML), "AI State pulse route should target the next deck card");
+    assertEquals(true, typeof aiStatePulseClick === "function", "AI State pulse route should bind a click handler");
     document.getElementById = oldGetElementByIdC24;
+    const aiPulseStarts = [];
+    const aiPulseModes = [];
+    g.startLevel = (level) => { aiPulseStarts.push(level); g.currentPlanetIndex = level; };
+    g.toggleSurvival = () => { g.survivalMode = true; };
+    switchMainMode = (mode) => aiPulseModes.push(mode);
+    aiStatePulseClick();
+    assertEquals(1, aiPulseStarts[0], "AI State pulse route should launch the next proof world");
+    assertEquals(true, g.survivalMode, "AI State pulse route should enable Survival for the rescue proof");
+    assertEquals("shelter-loop", g.activeAIStateRun && g.activeAIStateRun.cardId, "AI State pulse route should restore the next active proof");
+    assertEquals("terminal", aiPulseModes[0], "AI State pulse route should return to the playable terminal");
     assertEquals(3, g.getVillageTrustProgress(1).points, "First trade should add village trust");
     assertEquals("Trading Friend", g.getVillageTrustProgress(1).title, "First trade should reach the first village trust tier");
     assertEquals("TRUST UP", g.discoveryPulse && g.discoveryPulse.villageTrust && g.discoveryPulse.villageTrust.label, "Trade pulse should expose the village trust chip");
@@ -9660,11 +9686,13 @@ function runCombatTests() {
     document.getElementById = oldGetElementByIdC24;
     window.Game = prevGameC24;
     ComicBubbles.pop = oldBubblePopC24;
+    switchMainMode = oldSwitchMainModeC24;
     renderTestResult(SUITE, "Trade: deducts gems, applies cap, blocks over-spend", true);
   } catch (err) {
     document.getElementById = oldGetElementByIdC24;
     window.Game = prevGameC24;
     ComicBubbles.pop = oldBubblePopC24;
+    switchMainMode = oldSwitchMainModeC24;
     renderTestResult(SUITE, "Trade: deducts gems, applies cap, blocks over-spend", false, err.message);
   }
 
