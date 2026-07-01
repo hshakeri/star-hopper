@@ -123,11 +123,27 @@ const smoke = `
   var getFutureLabRoadmapStages = global.getFutureLabRoadmapStages;
   gp.dailyInfo = { isFrontier: true, darkMatterPrep: true };
   gp.drawFutureLabRunCue(gp.ctx);
-  global.__futureCueOk = !!(gp.lastFutureLabRunCue &&
+  const darkFutureCueOk = !!(gp.lastFutureLabRunCue &&
     gp.lastFutureLabRunCue.progress &&
     gp.lastFutureLabRunCue.progress.done === 3 &&
     gp.lastFutureLabRunCue.scene &&
     /Hidden-force/.test(gp.lastFutureLabRunCue.scene.title));
+  getFutureLabRoadmapStages = () => [
+    { id:'star-map', status:'done', title:'Restore the star-map', reward:'Reward: Frontier Challenge' },
+    { id:'dark-matter-echo', status:'done', title:'Decode Dark Matter Echo', reward:'Reward: Dark Matter Echo' },
+    { id:'hidden-force-trace', status:'done', title:'Trace hidden force', reward:'Reward: Hidden Force Trace' },
+    { id:'dark-matter-evidence', status:'done', title:'Bank curve evidence', reward:'Reward: hidden-force evidence' },
+    { id:'quantum-branch', status:'done', title:'Seed a branch condition', reward:'Reward: Branch Lab card' },
+    { id:'quantum-chance', status:'done', title:'Seed chance probability', reward:'Reward: Probability Lab card' }
+  ];
+  gp.dailyInfo = { isFrontier: true, futureSourcePrep: true };
+  gp.drawFutureLabRunCue(gp.ctx);
+  const sourceFutureCueOk = !!(gp.lastFutureLabRunCue &&
+    gp.lastFutureLabRunCue.progress &&
+    gp.lastFutureLabRunCue.progress.nextId === 'future-source-key' &&
+    gp.lastFutureLabRunCue.scene &&
+    /source key/i.test(gp.lastFutureLabRunCue.scene.title));
+  global.__futureCueOk = darkFutureCueOk && sourceFutureCueOk;
 
   // Every drawn mob species renders without throwing (incl. blink + hit-flash + squash).
   ['hog', 'snake', 'critter', 'blob', 'bot', 'floater'].forEach((sp, i) => {

@@ -851,13 +851,27 @@ function getFutureLabRoadmapStages(game = window.Game) {
 
 function runFutureLabRoadmapAction(stageId = null, game = window.Game) {
   const stages = getFutureLabRoadmapStages(game);
-  const target = (stageId && stages.find(stage => stage.id === stageId)) || stages.find(stage => stage.status === "next");
+  const allDone = stages.length > 0 && stages.every(stage => stage.status === "done");
+  const sourceTarget = allDone ? {
+    id: "future-source-key",
+    status: "next",
+    actionType: "future-source",
+    title: "Run source rehearsal",
+    cta: "RUN SOURCE"
+  } : null;
+  const target = (stageId && stages.find(stage => stage.id === stageId)) ||
+    (stageId === "future-source-key" ? sourceTarget : null) ||
+    stages.find(stage => stage.status === "next") ||
+    sourceTarget;
   if (!target || target.status === "locked") return false;
   if (target.actionType === "passport" && typeof runSciencePassportAction === 'function') {
     return runSciencePassportAction(null, game);
   }
   if ((target.actionType === "frontier" || target.actionType === "dark-matter-prep") && game && typeof game.startFrontierChallenge === 'function') {
     return game.startFrontierChallenge(target.actionType === "dark-matter-prep" ? { source: "dark-matter-prep" } : undefined) !== false;
+  }
+  if (target.actionType === "future-source" && game && typeof game.startFrontierChallenge === 'function') {
+    return game.startFrontierChallenge({ source: "future-source" }) !== false;
   }
   const stageCommand = String(target.command || "").trim();
   const stageSource = target.actionType === "anomaly"
@@ -883,8 +897,15 @@ function updateFutureLabRoadmap(game = window.Game) {
   if (!panel) return;
   const stages = getFutureLabRoadmapStages(game);
   const done = stages.filter(stage => stage.status === "done").length;
-  const next = stages.find(stage => stage.status === "next") || stages[stages.length - 1] || null;
-  const action = next && next.status !== "done" ? next : null;
+  const complete = stages.length > 0 && done >= stages.length;
+  const sourceAction = complete ? {
+    id: "future-source-key",
+    title: "Run source rehearsal",
+    concept: "Combine hidden-force clues with branch and chance evidence.",
+    cta: "RUN SOURCE"
+  } : null;
+  const next = sourceAction || stages.find(stage => stage.status === "next") || stages[stages.length - 1] || null;
+  const action = sourceAction || (next && next.status !== "done" ? next : null);
   panel.innerHTML = `
     <div class="future-lab-roadmap-head">
       <div>

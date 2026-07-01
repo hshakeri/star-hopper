@@ -1301,6 +1301,7 @@ class StarHopperGame {
       return false;
     }
     const darkMatterPrep = !!(options && (options.source === "dark-matter-prep" || options.darkMatterPrep));
+    const futureSourcePrep = !!(options && (options.source === "future-source" || options.futureSourcePrep));
     if (darkMatterPrep) {
       const base = frontier.labContract || {};
       frontier.darkMatterPrep = true;
@@ -1311,13 +1312,25 @@ class StarHopperGame {
         concept: "Infer hidden forces from motion",
         command: base.command || ""
       };
+    } else if (futureSourcePrep) {
+      const base = frontier.labContract || {};
+      frontier.futureSourcePrep = true;
+      frontier.labGoal = "Future Source Key: hidden force + probability evidence";
+      frontier.labContract = {
+        title: "Future Source Key: source rehearsal",
+        body: `${base.title ? `${base.title}: ` : ""}Run the Frontier remix, then compare hidden-force clues with branch and chance evidence for the source key.`,
+        concept: "Combine hidden-force inference with probability evidence",
+        command: base.command || ""
+      };
     }
     this.dailyInfo = frontier;
     this._pendingAttemptOverride = frontier.attempt; // consumed by loadPlanet
     this.startLevel(frontier.planetIndex);
     if (typeof ui_log_output === 'function') {
       ui_log_output(
-        darkMatterPrep
+        futureSourcePrep
+          ? `◆ Future Source rehearsal accepted — tune the source key with ${frontier.shareCode}`
+          : darkMatterPrep
           ? `◆ Dark Matter prep run accepted — bank curve evidence with ${frontier.shareCode}`
           : `◆ Frontier Challenge tier ${frontier.tier} accepted — share code ${frontier.shareCode}`,
         "success"
@@ -3823,6 +3836,21 @@ class StarHopperGame {
       };
     }
 
+    if (isFrontierRun && this.dailyInfo && this.dailyInfo.isFrontier && this.dailyInfo.futureSourcePrep) {
+      const focus = this.dailyInfo.labContract || null;
+      const command = focus && focus.command ? ` Try: ${String(focus.command).replace(/\s*\n\s*/g, " / ")}` : "";
+      return {
+        kicker: "SOURCE KEY CONTRACT",
+        title: focus ? focus.title : "Run source rehearsal",
+        body: focus
+          ? `${focus.body}${command}`
+          : "Run another Frontier remix, then compare hidden-force clues with branch and chance evidence for the source key.",
+        reward: "Reward: source key record + share code",
+        action: "future-source",
+        cta: "RUN SOURCE"
+      };
+    }
+
     if (isFrontierRun && this.dailyInfo && this.dailyInfo.isFrontier && this.dailyInfo.darkMatterPrep) {
       const focus = this.dailyInfo.labContract || null;
       const command = focus && focus.command ? ` Try: ${String(focus.command).replace(/\s*\n\s*/g, " / ")}` : "";
@@ -3887,15 +3915,16 @@ class StarHopperGame {
       const focus = frontier && frontier.labContract ? frontier.labContract : null;
       const command = focus && focus.command ? ` Try: ${String(focus.command).replace(/\s*\n\s*/g, " / ")}` : "";
       const darkMatterPrep = !!(frontier && frontier.darkMatterPrep);
+      const futureSourcePrep = !!(frontier && frontier.futureSourcePrep);
       return {
-        kicker: darkMatterPrep ? "DARK MATTER PREP CONTRACT" : "NEXT FRONTIER CONTRACT",
+        kicker: futureSourcePrep ? "SOURCE KEY CONTRACT" : (darkMatterPrep ? "DARK MATTER PREP CONTRACT" : "NEXT FRONTIER CONTRACT"),
         title: focus ? focus.title : (frontier ? `Climb Frontier Tier ${frontier.tier}` : "Climb the frontier ladder"),
         body: focus
           ? `${focus.body}${command}`
           : "Use a seeded remix to prove the same science idea still works after the star-map is complete.",
-        reward: darkMatterPrep ? "Reward: hidden-force evidence + share code" : "Reward: world mastery XP + share code",
-        action: darkMatterPrep ? "dark-matter-prep" : "frontier",
-        cta: darkMatterPrep ? "RUN PREP" : "NEXT FRONTIER"
+        reward: futureSourcePrep ? "Reward: source key record + share code" : (darkMatterPrep ? "Reward: hidden-force evidence + share code" : "Reward: world mastery XP + share code"),
+        action: futureSourcePrep ? "future-source" : (darkMatterPrep ? "dark-matter-prep" : "frontier"),
+        cta: futureSourcePrep ? "RUN SOURCE" : (darkMatterPrep ? "RUN PREP" : "NEXT FRONTIER")
       };
     }
 
@@ -7211,16 +7240,17 @@ class StarHopperGame {
     }
     if (!Array.isArray(stages) || !stages.length) return null;
     const done = stages.filter(stage => stage && stage.status === "done").length;
+    const complete = done >= stages.length;
     const preferred = preferredStageId ? stages.find(stage => stage && stage.id === preferredStageId) : null;
-    const next = stages.find(stage => stage && stage.status === "next") || stages.find(stage => stage && stage.status !== "done") || stages[stages.length - 1];
-    const target = preferred && preferred.status === "next" ? preferred : next;
+    const next = complete ? null : (stages.find(stage => stage && stage.status === "next") || stages.find(stage => stage && stage.status !== "done") || stages[stages.length - 1]);
+    const target = !complete && preferred && preferred.status === "next" ? preferred : next;
     return {
       done,
       total: stages.length,
-      nextId: target ? target.id : null,
-      nextTitle: target ? target.title : "Future lab record",
-      nextReward: target ? target.reward : "Reward: source lab ready",
-      progressLine: `${done}/${stages.length} proofs -> ${target ? target.title : "source ready"}`,
+      nextId: target ? target.id : "future-source-key",
+      nextTitle: target ? target.title : "Source key ready",
+      nextReward: target ? target.reward : "Reward: Future Lab source rehearsal",
+      progressLine: `${done}/${stages.length} proofs -> ${target ? target.title : "Source key ready"}`,
       statuses: stages.map(stage => ({
         id: stage.id,
         status: stage.status,
@@ -7237,6 +7267,14 @@ class StarHopperGame {
         speaker: "VECTOR",
         title: "Field prototype",
         lesson: "Coding payoff: one touch event can reveal an invisible force."
+      };
+    }
+    if (key === "future-source") {
+      return {
+        label: "SOURCE SCENE",
+        speaker: "HOPPER-ZERO",
+        title: "The source key hums",
+        lesson: "Science payoff: hidden forces plus probability explain the source signal."
       };
     }
     if (typeof getSignalSourceScene === 'function') {
@@ -7282,6 +7320,18 @@ class StarHopperGame {
     if (this.state !== 'playing') return null;
     const staged = this.lastStagedExperiment || null;
     const source = staged && staged.source ? String(staged.source) : "";
+    if (this.dailyInfo && this.dailyInfo.isFrontier && this.dailyInfo.futureSourcePrep) {
+      return {
+        label: "SOURCE KEY",
+        title: "Source rehearsal",
+        body: "Compare hidden-force clues with branch and chance evidence.",
+        formula: "hidden force + chance -> source key",
+        color: "#facc15",
+        mode: "chance",
+        progress: this.getFutureLabRunProgress("future-source-key"),
+        scene: this.getFutureLabRunScene("future-source")
+      };
+    }
     if (this.dailyInfo && this.dailyInfo.isFrontier && this.dailyInfo.darkMatterPrep) {
       return {
         label: "DARK MATTER PREP",

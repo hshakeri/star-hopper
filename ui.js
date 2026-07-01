@@ -817,13 +817,14 @@ function setSignalLabReflectionContext(game, proofStatus) {
   const contract = proofStatus.contract || {};
   const signal = proofStatus.signal || {};
   const darkMatterPrep = !!signal.darkMatterPrep;
+  const futureSourcePrep = !!signal.futureSourcePrep;
   const context = {
     kind: "signal-lab",
-    source: darkMatterPrep ? "Dark Matter Prep" : (proofStatus.isFrontier ? "Frontier Signal Lab" : "Daily Signal Lab"),
+    source: futureSourcePrep ? "Future Lab Source" : (darkMatterPrep ? "Dark Matter Prep" : (proofStatus.isFrontier ? "Frontier Signal Lab" : "Daily Signal Lab")),
     title: proofStatus.title || contract.title || "Signal Lab proof",
     concept: contract.concept || signal.concept || "Replay physics",
     command: proofStatus.command || contract.command || "",
-    proofLabel: darkMatterPrep ? "DARK MATTER EVIDENCE" : (proofStatus.isFrontier ? "FRONTIER LAB TESTED" : "SIGNAL LAB TESTED"),
+    proofLabel: futureSourcePrep ? "SOURCE KEY TESTED" : (darkMatterPrep ? "DARK MATTER EVIDENCE" : (proofStatus.isFrontier ? "FRONTIER LAB TESTED" : "SIGNAL LAB TESTED")),
     proofSourceKey: proofStatus.sourceKey || ""
   };
   game.reflectionContext = context;
@@ -853,6 +854,8 @@ function appendSignalLabContractCard(listContainer, game) {
   const command = contract.command ? String(contract.command).trim() : "";
   if (!contract.title && !contract.body && !command) return;
   const isFrontier = !!signal.isFrontier;
+  const futureSourcePrep = !!signal.futureSourcePrep;
+  const darkMatterPrep = !!signal.darkMatterPrep;
   const proofStatus = command ? getSignalLabProofStatus(game, command) : null;
   const proofClaimed = !!(proofStatus && proofStatus.claimed);
 
@@ -862,9 +865,11 @@ function appendSignalLabContractCard(listContainer, game) {
   const head = document.createElement("div");
   head.className = "signal-lab-contract-head";
   const label = document.createElement("span");
-  label.textContent = signal.darkMatterPrep ? "DARK MATTER PREP" : (isFrontier ? "FRONTIER LAB" : "DAILY SIGNAL LAB");
+  label.textContent = futureSourcePrep ? "SOURCE KEY" : (darkMatterPrep ? "DARK MATTER PREP" : (isFrontier ? "FRONTIER LAB" : "DAILY SIGNAL LAB"));
   const reward = document.createElement("strong");
-  reward.textContent = signal.darkMatterPrep
+  reward.textContent = futureSourcePrep
+    ? "source rehearsal"
+    : darkMatterPrep
     ? "curve evidence"
     : isFrontier
     ? `T${signal.tier || 1} · ${signal.shareCode || "frontier"}`
@@ -887,7 +892,7 @@ function appendSignalLabContractCard(listContainer, game) {
   if (proofClaimed) {
     const proof = document.createElement("div");
     proof.className = "signal-lab-contract-proof";
-    proof.textContent = `${isFrontier ? "FRONTIER PROOF LOGGED" : "PROOF LOGGED"} - explain the evidence in the Science Notebook.`;
+    proof.textContent = `${futureSourcePrep ? "SOURCE KEY PROOF LOGGED" : (isFrontier ? "FRONTIER PROOF LOGGED" : "PROOF LOGGED")} - explain the evidence in the Science Notebook.`;
     body.appendChild(proof);
   }
   card.appendChild(body);
@@ -920,7 +925,7 @@ function appendSignalLabContractCard(listContainer, game) {
         stage.addEventListener("click", () => stageScienceDeltaCommand(command, {
           title: contract.title || "Signal lab",
           source: "signal-lab-contract",
-          color: isFrontier ? "#c4b5fd" : "#67e8f9"
+          color: futureSourcePrep ? "#facc15" : (isFrontier ? "#c4b5fd" : "#67e8f9")
         }));
       }
       card.appendChild(stage);
@@ -1982,6 +1987,16 @@ function hasQuantumChanceProofCredit(game) {
   return false;
 }
 
+function hasFutureLabSourceReady(game) {
+  return !!(game &&
+    typeof hasClearedFullStarMap === 'function' && hasClearedFullStarMap(game) &&
+    typeof hasFrontierStoryCredit === 'function' && hasFrontierStoryCredit(game) &&
+    hasAnomalyTraceStoryCredit(game) &&
+    hasDarkMatterPrepEvidenceCredit(game) &&
+    hasQuantumBranchProofCredit(game) &&
+    hasQuantumChanceProofCredit(game));
+}
+
 function hasVillageRescueStoryCredit(game) {
   if (!game || !game.masteryMeters) return false;
   return Object.values(game.masteryMeters).some(meter =>
@@ -2023,9 +2038,9 @@ function getSignalStoryContract(game = window.Game, story = null) {
           if (hasQuantumChanceProofCredit(game)) {
             return {
               kicker: "QUANTUM SOURCE",
-              title: "Probability seed logged",
-              body: "Quantum Gate now has a condition proof and a chance proof. Keep banking Daily and Frontier evidence until the source lab opens.",
-              reward: "Reward: stronger source record"
+              title: "Future Source Key ready",
+              body: "Dark Matter evidence and Quantum probability are both logged. Run a Source Rehearsal Frontier remix to keep the source key tuned.",
+              reward: "Reward: Source Key rehearsal"
             };
           }
           return {
@@ -2180,8 +2195,8 @@ function getStartSignalStoryPreview(game = window.Game) {
   if (contract && contract.kicker === "QUANTUM SOURCE") {
     return {
       label: "QUANTUM SOURCE",
-      title: "Probability seed logged",
-      body: appendSourceSceneToStoryBody(contract.body, sourceScene),
+      title: contract.title || "Future Source Key ready",
+      body: appendSourceSceneToStoryBody(`${contract.title}. ${contract.body}`, sourceScene),
       progress: `${story.total}/${story.total} decoded`
     };
   }
@@ -2836,6 +2851,17 @@ function getActiveLabQuest(game) {
     };
   }
 
+  if (typeof hasFutureLabSourceReady === 'function' && hasFutureLabSourceReady(game)) {
+    return {
+      kicker: "FUTURE SOURCE",
+      title: "Run source rehearsal",
+      body: "All Future Lab seeds are banked. Run a Frontier remix as a source-key rehearsal and compare hidden-force evidence with branch and chance patterns.",
+      reward: "Reward: Source Key record + share code",
+      action: "future-source",
+      kind: "future-source"
+    };
+  }
+
   const target = getActiveFormulaTarget(game, mission);
   if (target) {
     return {
@@ -3073,6 +3099,15 @@ function getStartMissionRadarAction(game = window.Game, quest = null) {
       kind: q.kind || "frontier"
     };
   }
+  if (q && q.action === "future-source") {
+    return {
+      action: "frontier",
+      label: "RUN SOURCE",
+      title: "Start a Frontier source-key rehearsal.",
+      levelIndex: currentLevel,
+      kind: q.kind || "future-source"
+    };
+  }
   if (q && q.action === "quantum") {
     return {
       action: "quantum",
@@ -3121,7 +3156,9 @@ function runStartMissionRadarAction() {
   }
   if (action === "frontier" && game && typeof game.startFrontierChallenge === 'function') {
     const kind = button && button.dataset ? String(button.dataset.kind || "") : "";
-    const options = kind === "dark-matter-prep" ? { source: "dark-matter-prep" } : undefined;
+    const options = kind === "dark-matter-prep"
+      ? { source: "dark-matter-prep" }
+      : (kind === "future-source" ? { source: "future-source" } : undefined);
     game.startFrontierChallenge(options);
     return true;
   }
@@ -3472,7 +3509,7 @@ function getSignalLabProofCandidate(game, code) {
 
   const staged = game.lastStagedExperiment || null;
   const stagedMatch = !!(staged && staged.source === "signal-lab-contract" && String(staged.command || "").trim() === runCode);
-  const sourceId = signal.isFrontier ? "frontier" : "daily";
+  const sourceId = signal.futureSourcePrep ? "future-source" : (signal.isFrontier ? "frontier" : "daily");
   const identity = signal.shareCode || signal.dateStr || sourceId;
   const tier = signal.isFrontier ? `t${Math.max(1, Math.floor(Number(signal.tier) || 1))}` : "day";
   const planet = Number.isFinite(game.currentPlanetIndex) ? game.currentPlanetIndex : 0;
@@ -3530,15 +3567,16 @@ function awardSignalLabContractProof(game, code, pulse = null) {
   }
 
   const darkMatterPrep = !!(proof.signal && proof.signal.darkMatterPrep);
-  const rewardXP = darkMatterPrep ? 7 : (proof.isFrontier ? 6 : 4);
-  const masteryXP = darkMatterPrep ? 10 : (proof.isFrontier ? 9 : 6);
-  const label = darkMatterPrep ? "DARK MATTER EVIDENCE" : (proof.isFrontier ? "FRONTIER LAB TESTED" : "SIGNAL LAB TESTED");
-  const proofSource = darkMatterPrep ? "Dark Matter Prep" : (proof.isFrontier ? "Frontier Challenge" : "Daily Signal");
-  const color = darkMatterPrep ? "#818cf8" : (proof.isFrontier ? "#c4b5fd" : "#67e8f9");
+  const futureSourcePrep = !!(proof.signal && proof.signal.futureSourcePrep);
+  const rewardXP = futureSourcePrep ? 8 : (darkMatterPrep ? 7 : (proof.isFrontier ? 6 : 4));
+  const masteryXP = futureSourcePrep ? 12 : (darkMatterPrep ? 10 : (proof.isFrontier ? 9 : 6));
+  const label = futureSourcePrep ? "SOURCE KEY TESTED" : (darkMatterPrep ? "DARK MATTER EVIDENCE" : (proof.isFrontier ? "FRONTIER LAB TESTED" : "SIGNAL LAB TESTED"));
+  const proofSource = futureSourcePrep ? "Future Lab Source" : (darkMatterPrep ? "Dark Matter Prep" : (proof.isFrontier ? "Frontier Challenge" : "Daily Signal"));
+  const color = futureSourcePrep ? "#facc15" : (darkMatterPrep ? "#818cf8" : (proof.isFrontier ? "#c4b5fd" : "#67e8f9"));
   const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(game.researchXP || 0) : null;
   const existingReward = !!(pulse && ((pulse.rewardXP || 0) > 0 || pulse.cardUnlocked || pulse.hypothesisConfirmed || (pulse.openedGems || 0) > 0));
   const mastery = typeof game.awardWorldMasteryXP === 'function'
-    ? game.awardWorldMasteryXP(masteryXP, darkMatterPrep ? "dark matter prep proof" : "signal lab proof", { sourceKey, silent: true })
+    ? game.awardWorldMasteryXP(masteryXP, futureSourcePrep ? "future source proof" : (darkMatterPrep ? "dark matter prep proof" : "signal lab proof"), { sourceKey, silent: true })
     : { addedXP: 0, duplicate: false };
   if (mastery && mastery.duplicate) {
     game.discoveryPassCounts[sourceKey] = 1;
@@ -3572,7 +3610,7 @@ function awardSignalLabContractProof(game, code, pulse = null) {
       sourceKey,
       stagedMatch: proof.stagedMatch
     };
-    if (darkMatterPrep) attachFutureLabProofScene(game, pulse, pulse.signalLabProof);
+    if (darkMatterPrep || futureSourcePrep) attachFutureLabProofScene(game, pulse, pulse.signalLabProof);
     pulse.rankUp = pulse.rankUp || rankUp;
     pulse.rankTitle = pulse.rankTitle || (afterRank ? afterRank.title : null);
     pulse.rankPerk = pulse.rankPerk || (rankUp && afterRank ? afterRank.perk : null);
@@ -3586,7 +3624,7 @@ function awardSignalLabContractProof(game, code, pulse = null) {
     showBadgeToast({
       icon: "SL",
       label: `Research Rank: ${afterRank.title}`,
-      description: `${darkMatterPrep ? "Dark Matter prep" : "Signal proof"} unlocked ${afterRank.perk.label}.`
+      description: `${futureSourcePrep ? "Future source" : (darkMatterPrep ? "Dark Matter prep" : "Signal proof")} unlocked ${afterRank.perk.label}.`
     });
   }
   if (rankUp && pulse && typeof game.spawnResearchRankEffect === 'function') {
@@ -3598,7 +3636,7 @@ function awardSignalLabContractProof(game, code, pulse = null) {
   }
   if (typeof game.showMissionBalloon === 'function') {
     game.showMissionBalloon(`${label}: +${rewardXP} Research XP`, {
-      title: darkMatterPrep ? "DARK MATTER PREP" : "SIGNAL LAB",
+      title: futureSourcePrep ? "SOURCE KEY" : (darkMatterPrep ? "DARK MATTER PREP" : "SIGNAL LAB"),
       color,
       timer: 240
     });

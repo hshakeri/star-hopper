@@ -2036,6 +2036,49 @@ function runEngineTests() {
     assertEquals(prepXPAfterFirst, prep.researchXP, "Repeated prep proofs should not farm Research XP");
     assertEquals(prepMasteryAfterFirst, prep.getWorldMasteryProgress(0).xp, "Repeated prep proofs should not farm world mastery");
 
+    const source = new StarHopperGame();
+    source.currentPlanet = PLANETS[0];
+    source.currentPlanetIndex = 0;
+    source.player = { x: 80, y: 100, w: 24, h: 32 };
+    source.masteryMeters = {};
+    source.researchXP = 0;
+    source.remixContext = 'daily';
+    source.discoveryPassCounts = {
+      "anomaly-trace-proof:4:trace-hidden-force:test": 1,
+      "signal-lab-proof:frontier:frontier-earth-1234:t1:0:dark-matter-prep-curve-evidence:test": 1,
+      "quantum-branch-proof:0:test-a-branch-condition:test": 1,
+      "quantum-chance-proof:0:test-chance-branch:test": 1
+    };
+    source.dailyInfo = {
+      isFrontier: true,
+      futureSourcePrep: true,
+      tier: 5,
+      shareCode: "FRONTIER-EARTH-5050",
+      concept: "Combine hidden-force inference with probability evidence",
+      labContract: {
+        title: "Future Source Key: source rehearsal",
+        body: "Compare hidden-force clues with branch and chance evidence.",
+        concept: "Combine hidden-force inference with probability evidence",
+        command: "hopper.mass = 1.2"
+      }
+    };
+    source.lastStagedExperiment = {
+      title: "Future Source Key: source rehearsal",
+      source: "signal-lab-contract",
+      command: "hopper.mass = 1.2",
+      time: Date.now()
+    };
+    const sourceOutcome = finishSuccessfulCodeRunDiscovery(source, activeMission, "hopper.mass = 1.2", noProgress, 0, []);
+    assertEquals("SOURCE KEY TESTED", sourceOutcome.signalLabProof && sourceOutcome.signalLabProof.label, "Future Source proof should get its own source-key label");
+    assertEquals("Future Lab Source", sourceOutcome.signalLabProof && sourceOutcome.signalLabProof.source, "Future Source proof should name the capstone source");
+    assertEquals(8, source.researchXP, "Future Source proof should grant the strongest focused Research XP bonus");
+    assertEquals(12, source.getWorldMasteryProgress(0).xp, "Future Source proof should feed extra world mastery");
+    assertEquals("SOURCE KEY", source.missionBalloon && source.missionBalloon.title, "Mission CRT should label source-key evidence distinctly");
+    assertEquals("SOURCE KEY TESTED: +8 Research XP", source.missionBalloon && source.missionBalloon.text, "Mission CRT should announce the source-key reward");
+    assertEquals(true, /SOURCE KEY TESTED \+8 XP/.test(panel.innerHTML), "Discovery pulse should render the Source Key proof chip");
+    assertEquals("The waiting probe answers", sourceOutcome.signalLabProof && sourceOutcome.signalLabProof.futureLabScene && sourceOutcome.signalLabProof.futureLabScene.title, "Source proof should attach the source payoff scene");
+    assertEquals(true, labels.includes("SOURCE KEY TESTED"), "Source proof should pop a visible evidence cue");
+
     document.getElementById = oldGetElementById22b3;
     ComicBubbles.pop = oldBubblePop22b3;
     Particles.spawnBurst = oldParticleBurst22b3;
@@ -2828,11 +2871,13 @@ function runEngineTests() {
     };
     storyContract = getSignalStoryContract(quantumChanceComplete);
     assertEquals("QUANTUM SOURCE", storyContract.kicker, "Quantum chance proof should mark the future source seed as logged");
-    assertEquals("Probability seed logged", storyContract.title, "Chance proof should show the probability seed payoff");
+    assertEquals("Future Source Key ready", storyContract.title, "Chance proof should show the source-key payoff");
     sourceScene = getSignalSourceScene(quantumChanceComplete, storyContract);
     assertEquals("The waiting probe answers", sourceScene && sourceScene.title, "Quantum source scene should answer the teaser");
     updateSignalStoryPanel(quantumChanceComplete);
     assertEquals(true, /QUANTUM SOURCE/.test(els["signal-story-panel"].innerHTML), "Story panel should show the logged Quantum source");
+    assertEquals(true, /Future Source Key ready/.test(els["signal-story-panel"].innerHTML), "Story panel should name the source-key rehearsal");
+    assertEquals(true, /Source Rehearsal Frontier remix/.test(els["signal-story-panel"].innerHTML), "Story panel should point to the source rehearsal loop");
     assertEquals(true, /The waiting probe answers/.test(els["signal-story-panel"].innerHTML), "Quantum source scene should render the payoff title");
     assertEquals(true, /probability is a pattern measured over many trials/.test(els["signal-story-panel"].innerHTML), "Quantum source scene should render the science takeaway");
 
@@ -2902,7 +2947,12 @@ function runEngineTests() {
     assertEquals(6, stages.filter(stage => stage.status === "done").length, "Roadmap should mark all future proof seeds as banked");
     updateFutureLabRoadmap(quantumSourceReady);
     assertEquals(true, /6\/6 proofs banked/.test(panel.innerHTML), "Roadmap should render complete future-lab progress");
-    assertEquals(false, /future-lab-roadmap-btn/.test(panel.innerHTML), "Complete roadmap should not show a redundant action button");
+    assertEquals(true, /Run source rehearsal/.test(panel.innerHTML), "Complete roadmap should surface the source-key capstone");
+    assertEquals(true, /RUN SOURCE/.test(panel.innerHTML), "Complete roadmap should expose the source rehearsal action");
+    const sourceStarts = [];
+    quantumSourceReady.startFrontierChallenge = (opts) => { sourceStarts.push(opts || null); return true; };
+    assertEquals(true, runFutureLabRoadmapAction("future-source-key", quantumSourceReady), "Complete roadmap action should launch the source rehearsal");
+    assertEquals("future-source", sourceStarts[0] && sourceStarts[0].source, "Complete roadmap source action should tag the Frontier launch");
 
     document.getElementById = oldGetElementById22cbr;
     renderTestResult("engine-suite", "Curriculum: future lab roadmap tracks prep proofs", true);
@@ -2973,6 +3023,23 @@ function runEngineTests() {
     assertEquals("quantum-chance", cue.progress.nextId, "Quantum chance cue should point at the probability seed");
     assertEquals("HOPPER-ZERO", cue.scene && cue.scene.speaker, "Quantum chance cue should carry the Hopper-Zero scene");
     assertEquals(true, /probability|chance/.test(cue.scene.lesson), "Quantum chance cue should include the probability takeaway");
+
+    g.discoveryPassCounts = {
+      ...g.discoveryPassCounts,
+      "quantum-chance-proof:0:test-chance-branch:test": 1
+    };
+    g.lastStagedExperiment = null;
+    g.dailyInfo = { isFrontier: true, futureSourcePrep: true };
+    cue = g.getFutureLabRunCue();
+    assertEquals("SOURCE KEY", cue.label, "Source rehearsal runs should show the source-key cue");
+    assertEquals("chance", cue.mode, "Source rehearsal cue should reuse the probability visualization");
+    assertEquals(true, /source key/.test(cue.formula), "Source rehearsal cue should name the source-key model");
+    assertEquals(6, cue.progress.done, "Source rehearsal cue should show every Future Lab seed banked");
+    assertEquals("future-source-key", cue.progress.nextId, "Complete Future Lab progress should point at the source key");
+    assertEquals(true, /Source key ready/.test(cue.progress.progressLine), "Complete Future Lab progress should label the ready source key");
+    assertEquals("HOPPER-ZERO", cue.scene && cue.scene.speaker, "Source rehearsal cue should carry the Hopper-Zero source scene");
+    assertEquals("The source key hums", cue.scene && cue.scene.title, "Source rehearsal cue should name the source-key payoff");
+    assertEquals(true, /hidden forces plus probability/.test(cue.scene.lesson), "Source rehearsal cue should combine hidden-force and probability ideas");
 
     g.state = 'start';
     assertEquals(null, g.getFutureLabRunCue(), "Future-lab cue should stay out of the start screen");
@@ -3313,9 +3380,21 @@ function runEngineTests() {
     };
     updateStartMissionRadar(game);
     assertEquals("QUANTUM SOURCE", els["start-story-preview-label"].textContent, "Chance proof should mark the Quantum source as logged");
-    assertEquals("Probability seed logged", els["start-story-preview-title"].textContent, "Chance proof should show the probability seed payoff");
+    assertEquals("Future Source Key ready", els["start-story-preview-title"].textContent, "Chance proof should show the source-key payoff");
     assertEquals(true, /The waiting probe answers/.test(els["start-story-preview-body"].textContent), "Quantum source preview should answer the future-world teaser");
-    assertEquals("Clear today's signal", els["start-mission-radar-title"].textContent, "After the Quantum source seed, complete progress should return to daily practice");
+    assertEquals("Run source rehearsal", els["start-mission-radar-title"].textContent, "After all Future Lab seeds, the radar should surface the source rehearsal");
+    assertEquals(true, /source-key rehearsal/.test(els["start-mission-radar-body"].textContent), "Source rehearsal quest should explain the capstone loop");
+    assertEquals(true, /Source Key record/.test(els["start-mission-radar-reward"].textContent), "Source rehearsal quest should name the source-key payoff");
+    assertEquals("RUN SOURCE", els["start-mission-radar-btn"].textContent, "Source rehearsal should expose a direct source action");
+    assertEquals("frontier", els["start-mission-radar-btn"].dataset.action, "Source rehearsal should start a Frontier run");
+    assertEquals("future-source", els["start-mission-radar-btn"].dataset.kind, "Source rehearsal should tag the Frontier launch");
+    let sourceCalls = 0;
+    let sourceOptions = null;
+    game.startFrontierChallenge = (options) => { sourceCalls++; sourceOptions = options || null; return true; };
+    window.Game = game;
+    assertEquals(true, runStartMissionRadarAction(), "Source radar action should execute");
+    assertEquals(1, sourceCalls, "Source radar action should start one Frontier challenge");
+    assertEquals("future-source", sourceOptions && sourceOptions.source, "Source radar action should pass the Future Source tag");
 
     game.frontierRecords = {};
     game.discoveryPassCounts = {};
@@ -6733,6 +6812,34 @@ function runRetryRemixTests() {
     assertEquals("Reward: hidden-force evidence + share code", prepContract.reward, "Prep clear contract names the hidden-force reward");
     assertEquals("dark-matter-prep", prepContract.action, "Prep clear contract restarts another tagged prep run");
     assertEquals("RUN PREP", prepContract.cta, "Prep clear contract uses the prep CTA");
+
+    const sourceGame = new StarHopperGame();
+    sourceGame.getTodayDateStr = () => "2026-06-30";
+    sourceGame.planetClears = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 };
+    sourceGame.masteryMeters = { ...g.masteryMeters };
+    let sourceStartedIndex = null;
+    sourceGame.startLevel = (index) => { sourceStartedIndex = index; };
+    assertEquals(true, sourceGame.startFrontierChallenge({ source: "future-source" }), "Future Source starts a tagged Frontier run");
+    assertEquals(true, sourceGame.dailyInfo.futureSourcePrep, "Source Frontier run keeps the Future Source tag");
+    assertEquals(sourceGame.dailyInfo.planetIndex, sourceStartedIndex, "Source Frontier run launches its selected planet");
+    assertEquals("Future Source Key: hidden force + probability evidence", sourceGame.dailyInfo.labGoal, "Source Frontier run rewrites the lab goal around source evidence");
+    assertEquals("Future Source Key: source rehearsal", sourceGame.dailyInfo.labContract.title, "Source Frontier run uses a source-key lab contract");
+    assertEquals("Combine hidden-force inference with probability evidence", sourceGame.dailyInfo.labContract.concept, "Source lab contract names the combined concept");
+    assertEquals(true, /hidden-force clues with branch and chance evidence/.test(sourceGame.dailyInfo.labContract.body), "Source lab contract asks for source-key comparison");
+    assertEquals(true, !!sourceGame.dailyInfo.labContract.command, "Source lab contract keeps the runnable replay command");
+    const sourceContract = sourceGame.getClearReplayContract({
+      labStars: { stars: 3, maxStars: 3, checks: [{ id: "missions", earned: true }, { id: "gems", earned: true }, { id: "science", earned: true }] },
+      clearTime: null,
+      isDailyRun: true,
+      isFrontierRun: true,
+      nextIndex: null
+    });
+    assertEquals("SOURCE KEY CONTRACT", sourceContract.kicker, "Source Frontier clear keeps the source-key loop");
+    assertEquals("Future Source Key: source rehearsal", sourceContract.title, "Source clear contract keeps the source-key lab focus");
+    assertEquals(true, /source key/.test(sourceContract.body), "Source clear contract preserves the capstone framing");
+    assertEquals("Reward: source key record + share code", sourceContract.reward, "Source clear contract names the source-key reward");
+    assertEquals("future-source", sourceContract.action, "Source clear contract restarts another tagged source run");
+    assertEquals("RUN SOURCE", sourceContract.cta, "Source clear contract uses the source CTA");
     renderTestResult(SUITE, "Frontier Challenge: unlocks after star-map completion", true);
   } catch (err) {
     renderTestResult(SUITE, "Frontier Challenge: unlocks after star-map completion", false, err.message);
