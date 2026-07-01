@@ -3368,6 +3368,7 @@ function runEngineTests() {
     assertEquals("🚀 Nova // Physics Tinkerer", els["start-cadet-identity-title"].textContent, "Start radar should name the active cadet and research rank");
     assertEquals(true, /1\/\d+ formulas/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include formula deck progress");
     assertEquals(true, /1\/12 transmissions/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include story transmission progress");
+    assertEquals(true, /1\/5 AI states/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include AI State Deck progress");
     assertEquals(true, /Trading Friend · 3 trust/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include village trust identity");
     assertEquals("8%", els["start-cadet-identity-bar"].style.width, "Cadet record should show rank progress");
     assertEquals("NEXT LAB UNLOCK", els["start-rank-preview-label"].textContent, "Start radar should label the next rank unlock");
@@ -3747,6 +3748,7 @@ function runEngineTests() {
     assertEquals(true, /CADET RECORD/.test(report.innerHTML), "Clear report should include the named cadet record");
     assertEquals(true, /🚀 Nova \/\/ Physics Tinkerer/.test(report.innerHTML), "Clear report should show the cadet and research title");
     assertEquals(true, /1\/\d+ formulas/.test(report.innerHTML), "Clear report cadet record should show formula progress");
+    assertEquals(true, /2\/5 AI states/.test(report.innerHTML), "Clear report cadet record should show AI State Deck progress");
     assertEquals(true, /NEW MASTERY BADGE/.test(report.innerHTML), "Clear report should celebrate a first 3-star mastery");
     assertEquals(true, /\+25 Research XP/.test(report.innerHTML), "Clear report should show the mastery XP reward");
     assertEquals(true, /WORLD MASTERY/.test(report.innerHTML), "Clear report should include per-world mastery progress");
@@ -3791,9 +3793,13 @@ function runEngineTests() {
     assertEquals(true, /#1 NEXT RUN CONTRACT/.test(report.innerHTML), "Objective queue should put the replay contract first");
     assertEquals(true, /#2 EXPLAIN THE EVIDENCE/.test(report.innerHTML), "Objective queue should make proof writing the second lab step");
     assertEquals(true, /#3 SIGNAL DECODED/.test(report.innerHTML), "Objective queue should keep story momentum visible");
+    assertEquals(true, /#4 AI STATE DECK/.test(report.innerHTML), "Objective queue should include the next AI-state collection target");
+    assertEquals(true, /Pet Pact/.test(report.innerHTML), "Objective queue should name the next missing AI-state card");
+    assertEquals(true, /GET LOTION/.test(report.innerHTML), "Objective queue should expose the AI-state deck action label");
     assertEquals("Collect Mass Lab", game.lastClearObjectiveQueue[0].title, "Objective queue data should preserve the top replay target");
     assertEquals("WRITE EXPLANATION", game.lastClearObjectiveQueue[1].cta, "Objective queue data should preserve the explanation action");
     assertEquals("Emerald Wall Signal", game.lastClearObjectiveQueue[2].title, "Objective queue data should preserve the decoded story target");
+    assertEquals("Pet Pact", game.lastClearObjectiveQueue[3].title, "Objective queue data should preserve the AI-state card target");
     assertEquals(true, new RegExp(`1\\/${DISCOVERY_RULES.length}`).test(report.innerHTML), "Clear report should include formula deck progress");
     assertEquals(true, /\+2 emerald/.test(report.innerHTML), "Clear report should include newly banked gems");
     assertEquals(true, /Collect Mass Lab/.test(report.innerHTML), "Clear report should include the next lab quest");

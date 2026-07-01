@@ -4066,6 +4066,20 @@ class StarHopperGame {
       });
     }
 
+    const aiDeck = typeof getAIStateDeckProgress === 'function' ? getAIStateDeckProgress(this) : null;
+    const aiAction = typeof getAIStateDeckAction === 'function' && aiDeck && aiDeck.nextCard
+      ? getAIStateDeckAction(this, aiDeck.nextCard.id)
+      : null;
+    if (aiDeck && aiDeck.nextCard && aiAction) {
+      add({
+        label: "AI STATE DECK",
+        title: aiDeck.nextCard.title,
+        body: aiAction.body || aiDeck.nextCard.next || "Run the next behavior proof and watch the state change.",
+        reward: `${aiDeck.earnedCount}/${aiDeck.total} AI states logged · ${aiDeck.nextCard.concept || "state machine"}`,
+        cta: aiAction.label || "RUN STATE"
+      });
+    }
+
     const pact = villageTrust && villageTrust.nextPact ? villageTrust.nextPact : null;
     if (pact) {
       const nextTier = villageTrust.nextTier
@@ -4080,7 +4094,7 @@ class StarHopperGame {
       });
     }
 
-    return queue.slice(0, 3).map((item, index) => ({
+    return queue.slice(0, 4).map((item, index) => ({
       ...item,
       priority: index + 1
     }));
@@ -6689,7 +6703,7 @@ class StarHopperGame {
             <span>#${item.priority} ${safe(item.label)}</span>
             <strong>${safe(item.title)}</strong>
             <p>${safe(item.body)}</p>
-            ${item.reward ? `<em>${safe(item.reward)}</em>` : ""}
+            ${(item.reward || item.cta) ? `<em>${safe(`${item.reward || "Reward ready"}${item.cta ? ` · ${item.cta}` : ""}`)}</em>` : ""}
           </div>
         `).join("")}
       </div>

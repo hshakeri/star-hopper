@@ -2539,10 +2539,14 @@ function getCadetIdentityPreview(game = window.Game) {
   const transmissions = story ? `${story.unlocked.length}/${story.total} transmissions` : "0 transmissions";
   const village = game && typeof game.getVillageTrustProgress === "function" ? game.getVillageTrustProgress(game.currentPlanetIndex) : null;
   const trust = village ? `${village.title} · ${village.points} trust` : "Village trust pending";
+  const aiDeck = typeof getAIStateDeckProgress === "function" ? getAIStateDeckProgress(game) : null;
+  const aiStates = aiDeck && Number.isFinite(Number(aiDeck.total))
+    ? `${aiDeck.earnedCount}/${aiDeck.total} AI states`
+    : "AI states pending";
   return {
     label: "CADET RECORD",
     title: `${callsign} // ${rank.title}`,
-    body: `${Math.round(rank.xp || 0)} XP · ${formulas} · ${transmissions} · ${trust}`,
+    body: `${Math.round(rank.xp || 0)} XP · ${formulas} · ${transmissions} · ${aiStates} · ${trust}`,
     progress: Math.max(0, Math.min(1, Number(rank.progress) || 0))
   };
 }
