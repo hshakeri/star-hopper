@@ -984,6 +984,20 @@ const runtimeContext = {
     "player.touching": (game, type) => {
       return game.player.isTouching(type, game);
     },
+    chance: (game, percent = 50) => {
+      const n = Number(percent);
+      const p = Math.max(0, Math.min(100, Number.isFinite(n) ? n : 50));
+      const roll = Math.random() * 100;
+      const passed = roll < p;
+      if (game) {
+        game.lastChanceResult = {
+          percent: p,
+          roll: Math.round(roll * 100) / 100,
+          passed
+        };
+      }
+      return passed;
+    },
     play_music: (game, name) => {
       let id = 0;
       if (typeof name === 'number') {
@@ -1048,7 +1062,7 @@ class AutocompleteEngine {
       "star.mass",
       "hopper.engine", "hopper.jump_power", "hopper.mass", "hopper.rocket_power", "hopper.spikes", "hopper.pole",
       "spawn()", "spawn_gem()", "spawn_box()", "spawn_spring()",
-      "invert_gravity()", "rave_mode()", "survival_mode()", "meteor_shower()", "equip_blaster()", "shrink_enemies()", "bounce_up()", "reset()",
+      "invert_gravity()", "rave_mode()", "survival_mode()", "meteor_shower()", "equip_blaster()", "shrink_enemies()", "bounce_up()", "chance(50)", "reset()",
       "use_hopper()", "use_rover()",
       "play_music()", "music",
       "elasticity", "asteroid.mass", "enemy.speed", "enemy.friendly"

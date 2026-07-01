@@ -1814,6 +1814,17 @@ function hasQuantumBranchProofCredit(game) {
   return false;
 }
 
+function hasQuantumChanceProofCredit(game) {
+  if (!game) return false;
+  const hasChanceSource = (sources) => !!(sources && typeof sources === 'object' && Object.keys(sources)
+    .some(source => String(source).indexOf("quantum-chance-proof:") === 0 && Number(sources[source]) > 0));
+  if (hasChanceSource(game.discoveryPassCounts)) return true;
+  if (game.masteryMeters && typeof game.masteryMeters === 'object') {
+    return Object.values(game.masteryMeters).some(meter => hasChanceSource(meter && meter.sources));
+  }
+  return false;
+}
+
 function hasVillageRescueStoryCredit(game) {
   if (!game || !game.masteryMeters) return false;
   return Object.values(game.masteryMeters).some(meter =>
@@ -1852,11 +1863,19 @@ function getSignalStoryContract(game = window.Game, story = null) {
     if (hasAnomalyTraceStoryCredit(game)) {
       if (hasDarkMatterPrepEvidenceCredit(game)) {
         if (hasQuantumBranchProofCredit(game)) {
+          if (hasQuantumChanceProofCredit(game)) {
+            return {
+              kicker: "QUANTUM SOURCE",
+              title: "Probability seed logged",
+              body: "Quantum Gate now has a condition proof and a chance proof. Keep banking Daily and Frontier evidence until the source lab opens.",
+              reward: "Reward: stronger source record"
+            };
+          }
           return {
-            kicker: "QUANTUM SEED",
-            title: "Branch seed logged",
-            body: "The Quantum Gate source has one working condition proof. Keep banking Daily and Frontier evidence until the source lab opens.",
-            reward: "Reward: stronger source record"
+            kicker: "QUANTUM CHANCE",
+            title: "Test chance branch",
+            body: "Run a chance rule so the same code can choose different branches. Probability turns branching into a pattern over many trials.",
+            reward: "Reward: Quantum Probability Seed"
           };
         }
         return {
@@ -1927,6 +1946,22 @@ function getStartSignalStoryPreview(game = window.Game) {
     return {
       label: "QUANTUM SEED",
       title: "Branch seed logged",
+      body: contract.body,
+      progress: `${story.total}/${story.total} decoded`
+    };
+  }
+  if (contract && contract.kicker === "QUANTUM CHANCE") {
+    return {
+      label: "QUANTUM CHANCE",
+      title: "Probability path warming",
+      body: `${contract.title}. ${contract.body}`,
+      progress: `${story.total}/${story.total} decoded`
+    };
+  }
+  if (contract && contract.kicker === "QUANTUM SOURCE") {
+    return {
+      label: "QUANTUM SOURCE",
+      title: "Probability seed logged",
       body: contract.body,
       progress: `${story.total}/${story.total} decoded`
     };
@@ -2237,6 +2272,18 @@ const DISCOVERY_RULES = [
     sampleCode: "if player.fuel < 50: player.say('branch A')"
   },
   {
+    kind: "probability",
+    pattern: /\bchance\s*\(/i,
+    title: "Probability Lab",
+    formula: "chance p -> random branch",
+    insight: "Probability code makes a branch that does not always pick the same path. More trials reveal the pattern.",
+    cue: "Run a chance rule more than once and compare which path appears.",
+    axis: "Probability controls outcomes",
+    move: "Call chance(percent)",
+    payoff: "Seed Quantum paths",
+    sampleCode: "if chance(50): player.say('path A')"
+  },
+  {
     kind: "friction",
     pattern: /\bfriction\s*=/i,
     title: "Friction Lab",
@@ -2427,6 +2474,7 @@ function getActiveLabQuest(game) {
   const anomalyAlreadyTraced = typeof hasAnomalyTraceStoryCredit === 'function' && hasAnomalyTraceStoryCredit(game);
   const darkMatterEvidenceReady = typeof hasDarkMatterPrepEvidenceCredit === 'function' && hasDarkMatterPrepEvidenceCredit(game);
   const quantumBranchSeeded = typeof hasQuantumBranchProofCredit === 'function' && hasQuantumBranchProofCredit(game);
+  const quantumChanceSeeded = typeof hasQuantumChanceProofCredit === 'function' && hasQuantumChanceProofCredit(game);
   if (typeof hasClearedFullStarMap === 'function' && typeof hasFrontierStoryCredit === 'function' &&
       hasClearedFullStarMap(game) && hasFrontierStoryCredit(game) && !anomalyAlreadyTraced) {
     return {
@@ -2465,6 +2513,21 @@ function getActiveLabQuest(game) {
       levelIndex: 0,
       kind: "quantum-branch",
       command: "player.fuel = 40\nif player.fuel < 50: player.say('branch A')"
+    };
+  }
+
+  if (anomalyAlreadyTraced && darkMatterEvidenceReady && quantumBranchSeeded && !quantumChanceSeeded &&
+      typeof hasClearedFullStarMap === 'function' && typeof hasFrontierStoryCredit === 'function' &&
+      hasClearedFullStarMap(game) && hasFrontierStoryCredit(game)) {
+    return {
+      kicker: "QUANTUM CHANCE",
+      title: "Test chance branch",
+      body: "Quantum Gate needs one probability proof. Run chance(50) so the same rule can pick different paths across trials.",
+      reward: "Reward: Quantum Probability Seed + Probability Lab card",
+      action: "quantum-chance",
+      levelIndex: 0,
+      kind: "quantum-chance",
+      command: "if chance(50): player.say('path A')"
     };
   }
 
@@ -2702,6 +2765,17 @@ function getStartMissionRadarAction(game = window.Game, quest = null) {
       stageTitle: q.title || "Test a branch condition"
     };
   }
+  if (q && q.action === "quantum-chance") {
+    return {
+      action: "quantum-chance",
+      label: "TEST CHANCE",
+      title: "Stage the probability branch prototype and launch Earth.",
+      levelIndex: Number.isFinite(Number(q.levelIndex)) ? Number(q.levelIndex) : 0,
+      command: q.command || "",
+      kind: q.kind || "quantum-chance",
+      stageTitle: q.title || "Test chance branch"
+    };
+  }
   if (q && /^Reach\s+/i.test(q.title)) {
     return {
       action: "log",
@@ -2761,6 +2835,23 @@ function runStartMissionRadarAction() {
         kind: button.dataset.kind || "quantum-branch",
         source: "start-quantum-branch",
         color: "#22d3ee"
+      })
+      : false;
+    const level = button && button.dataset ? Number(button.dataset.level) : 0;
+    if (game && typeof game.startLevel === 'function') {
+      game.startLevel(Number.isFinite(level) ? level : 0);
+      return true;
+    }
+    return !!staged;
+  }
+  if (action === "quantum-chance") {
+    const command = button && button.dataset ? String(button.dataset.command || "").trim() : "";
+    const staged = command && typeof stageScienceDeltaCommand === 'function'
+      ? stageScienceDeltaCommand(command, {
+        title: button.dataset.stageTitle || "Test chance branch",
+        kind: button.dataset.kind || "quantum-chance",
+        source: "start-quantum-chance",
+        color: "#38bdf8"
       })
       : false;
     const level = button && button.dataset ? Number(button.dataset.level) : 0;
@@ -3441,6 +3532,134 @@ function awardQuantumBranchProof(game, code, pulse = null) {
   return pulse ? pulse.quantumBranchProof : proofResult;
 }
 
+function getQuantumChanceProofCandidate(game, code) {
+  if (!game) return null;
+  const staged = game.lastStagedExperiment || null;
+  const runCode = String(code || "").trim();
+  const stagedCode = String(staged && staged.command || "").trim();
+  if (!runCode || !stagedCode || runCode !== stagedCode) return null;
+  if (!staged || staged.source !== "start-quantum-chance") return null;
+  const planet = Number.isFinite(game.currentPlanetIndex) ? game.currentPlanetIndex : 0;
+  return {
+    command: runCode,
+    title: staged.title || "Test chance branch",
+    sourceKey: [
+      "quantum-chance-proof",
+      planet,
+      normalizeSignalLabProofPart(staged.title || "chance-branch"),
+      hashSignalLabCommand(runCode)
+    ].join(":"),
+    planet
+  };
+}
+
+function awardQuantumChanceProof(game, code, pulse = null) {
+  const proof = getQuantumChanceProofCandidate(game, code);
+  if (!proof) return null;
+  game.discoveryPassCounts = game.discoveryPassCounts || {};
+  if (game.discoveryPassCounts[proof.sourceKey]) return null;
+
+  let masterySources = null;
+  if (typeof game.normalizeWorldMasteryMeter === 'function') {
+    const meter = game.normalizeWorldMasteryMeter(game.currentPlanetIndex);
+    masterySources = meter && meter.sources ? meter.sources : null;
+  }
+  if (masterySources && masterySources[proof.sourceKey]) {
+    game.discoveryPassCounts[proof.sourceKey] = 1;
+    return null;
+  }
+
+  const rewardXP = 5;
+  const masteryXP = 8;
+  const label = "QUANTUM CHANCE";
+  const color = "#38bdf8";
+  const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(game.researchXP || 0) : null;
+  const existingReward = !!(pulse && ((pulse.rewardXP || 0) > 0 || pulse.cardUnlocked || pulse.hypothesisConfirmed || (pulse.openedGems || 0) > 0));
+  const mastery = typeof game.awardWorldMasteryXP === 'function'
+    ? game.awardWorldMasteryXP(masteryXP, "quantum chance proof", { sourceKey: proof.sourceKey, silent: true })
+    : { addedXP: 0, duplicate: false };
+  if (mastery && mastery.duplicate) {
+    game.discoveryPassCounts[proof.sourceKey] = 1;
+    return null;
+  }
+
+  game.discoveryPassCounts[proof.sourceKey] = 1;
+  game.researchXP = Math.max(0, (game.researchXP || 0) + rewardXP);
+  if (pulse && !existingReward) {
+    game.discoveryCombo = Math.min(99, (game.discoveryCombo || 0) + 1);
+    pulse.combo = game.discoveryCombo;
+    if (pulse.combo === 1 && typeof game.spawnDiscoveryComboPrimerEffect === 'function') {
+      pulse.comboPrimer = game.spawnDiscoveryComboPrimerEffect(pulse);
+    } else if (pulse.combo > 1 && typeof game.spawnDiscoveryComboEffect === 'function') {
+      pulse.quantumChanceComboEffect = game.spawnDiscoveryComboEffect(pulse);
+    }
+  }
+
+  const afterRank = (typeof getResearchRank === 'function') ? getResearchRank(game.researchXP || 0) : null;
+  const rankUp = !!(beforeRank && afterRank && afterRank.level > beforeRank.level);
+  const proofResult = {
+    label,
+    title: proof.title,
+    source: "Quantum Gate",
+    rewardXP,
+    worldMasteryAddedXP: mastery && Number.isFinite(mastery.addedXP) ? mastery.addedXP : 0,
+    sourceKey: proof.sourceKey
+  };
+  if (pulse) {
+    pulse.rewardXP = Math.max(0, (pulse.rewardXP || 0) + rewardXP);
+    pulse.quantumChanceProof = proofResult;
+    pulse.rankUp = pulse.rankUp || rankUp;
+    pulse.rankTitle = pulse.rankTitle || (afterRank ? afterRank.title : null);
+    pulse.rankPerk = pulse.rankPerk || (rankUp && afterRank ? afterRank.perk : null);
+    if (typeof game.attachFormulaCardUnlock === 'function') {
+      game.attachFormulaCardUnlock(pulse, "probability");
+    } else if (typeof unlockFormulaKind === 'function') {
+      pulse.cardUnlocked = !!unlockFormulaKind(game, "probability");
+      pulse.formulaCardKind = "probability";
+    }
+    game.discoveryPulse = pulse;
+    if (Array.isArray(game.discoveryLog) && game.discoveryLog[0] !== pulse) {
+      game.discoveryLog = [pulse].concat(game.discoveryLog).slice(0, 8);
+    }
+  }
+
+  if (rankUp && afterRank && typeof showBadgeToast === 'function') {
+    showBadgeToast({
+      icon: "Q%",
+      label: `Research Rank: ${afterRank.title}`,
+      description: `Quantum chance proof unlocked ${afterRank.perk.label}.`
+    });
+  }
+  if (rankUp && pulse && typeof game.spawnResearchRankEffect === 'function') {
+    pulse.rankEffect = game.spawnResearchRankEffect(pulse);
+  }
+  if (typeof ui_log_output === 'function') {
+    const masteryText = mastery && mastery.addedXP > 0 ? `, +${mastery.addedXP} world mastery XP` : "";
+    ui_log_output(`${label}: +${rewardXP} Research XP${masteryText}.`, "success");
+  }
+  if (typeof game.showMissionBalloon === 'function') {
+    game.showMissionBalloon(`${label}: +${rewardXP} Research XP`, {
+      title: "QUANTUM CHANCE",
+      color,
+      timer: 250
+    });
+  }
+  if (game.player && typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+    const px = (Number.isFinite(game.player.x) ? game.player.x : 0) + (game.player.w || 24) / 2;
+    const py = Number.isFinite(game.player.y) ? game.player.y : 0;
+    ComicBubbles.pop(px, py - 52, label, color, 1.0);
+    if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+      Particles.spawnBurst(px, py - 10, color, 12, 2.2, 2.0, "glow");
+      Particles.spawnBurst(px, py - 10, "#fef08a", 6, 1.6, 1.5, "glow");
+    }
+  }
+  if (typeof updateDiscoveryPulse === 'function') updateDiscoveryPulse(game);
+  if (typeof updateResearchProgress === 'function') updateResearchProgress(game);
+  if (typeof game.checkLabStarProgress === 'function') game.checkLabStarProgress("science");
+  if (typeof saveLocalProgress === 'function' && typeof window !== 'undefined' && window.Game === game) saveLocalProgress();
+  return pulse ? pulse.quantumChanceProof : proofResult;
+}
+
 function finishSuccessfulCodeRunDiscovery(game, activeMission, code, resultState, lockedBefore = 0, lockedBeforeList = []) {
   if (!game || !activeMission || !activeMission.fullMission || !resultState) return { opened: 0, pulse: null };
   const lockedAfter = typeof game.getLockedRequiredCollectibleCount === 'function' ? game.getLockedRequiredCollectibleCount() : lockedBefore;
@@ -3457,7 +3676,8 @@ function finishSuccessfulCodeRunDiscovery(game, activeMission, code, resultState
   const signalLabProof = awardSignalLabContractProof(game, code, pulse);
   const anomalyTraceProof = awardAnomalyTraceProof(game, code, pulse);
   const quantumBranchProof = awardQuantumBranchProof(game, code, pulse);
-  return { opened, pulse, signalLabProof, anomalyTraceProof, quantumBranchProof, lockedAfter };
+  const quantumChanceProof = awardQuantumChanceProof(game, code, pulse);
+  return { opened, pulse, signalLabProof, anomalyTraceProof, quantumBranchProof, quantumChanceProof, lockedAfter };
 }
 
 function getDiscoveryChainHint(pulse) {
@@ -3515,6 +3735,9 @@ function updateDiscoveryPulse(game) {
   const quantumBranchProof = pulse.quantumBranchProof
     ? `<div class="discovery-hypothesis discovery-signal-lab">${escapeHTML(pulse.quantumBranchProof.label)} +${escapeHTML(String(pulse.quantumBranchProof.rewardXP || 0))} XP</div>`
     : "";
+  const quantumChanceProof = pulse.quantumChanceProof
+    ? `<div class="discovery-hypothesis discovery-signal-lab">${escapeHTML(pulse.quantumChanceProof.label)} +${escapeHTML(String(pulse.quantumChanceProof.rewardXP || 0))} XP</div>`
+    : "";
   const drillProof = pulse.drillProof
     ? `<div class="discovery-hypothesis discovery-signal-lab">${escapeHTML(pulse.drillProof.label)} +${escapeHTML(String(pulse.drillProof.rewardXP || 0))} XP</div>`
     : "";
@@ -3553,6 +3776,7 @@ function updateDiscoveryPulse(game) {
     ${signalLabProof}
     ${anomalyTraceProof}
     ${quantumBranchProof}
+    ${quantumChanceProof}
     ${drillProof}
     ${villageTradeProof}
     ${petProof}

@@ -165,6 +165,33 @@ function runCompilerTests() {
   } catch (err) {
     renderTestResult("compiler-suite", "KidCode: player.tank is readable/writable + autocompletes", false, err.message);
   }
+
+  // Test 6b: chance(percent) gives KidCode a bounded probability branch.
+  try {
+    Compiler.reset();
+    let sayMsg = "";
+    const mockGame = {
+      player: {
+        say: (msg) => { sayMsg = msg; }
+      }
+    };
+    let res = Compiler.runCommand("if chance(100): player.say('certain')", mockGame);
+    assertEquals(true, res.success, "chance(100) branch should run");
+    assertEquals("certain", sayMsg, "chance(100) should always pass and run the branch");
+    assertEquals(100, mockGame.lastChanceResult && mockGame.lastChanceResult.percent, "Chance percent is clamped and recorded");
+    assertEquals(true, mockGame.lastChanceResult && mockGame.lastChanceResult.passed, "chance(100) records a passed roll");
+
+    sayMsg = "";
+    res = Compiler.runCommand("if chance(0): player.say('never')", mockGame);
+    assertEquals(true, res.success, "chance(0) branch should parse and run safely");
+    assertEquals("", sayMsg, "chance(0) should never execute the branch");
+    assertEquals(0, mockGame.lastChanceResult && mockGame.lastChanceResult.percent, "chance(0) records the lower bound");
+    assertEquals(false, mockGame.lastChanceResult && mockGame.lastChanceResult.passed, "chance(0) records a failed roll");
+    assertEquals(true, Compiler.autocomplete.choices.includes("chance(50)"), "chance helper should be offered in autocomplete");
+    renderTestResult("compiler-suite", "KidCode: chance(percent) branches and autocompletes", true);
+  } catch (err) {
+    renderTestResult("compiler-suite", "KidCode: chance(percent) branches and autocompletes", false, err.message);
+  }
 }
 
 // Suite 2: Infinite Loop & Crash Safety Limits
@@ -1868,6 +1895,92 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: Quantum Branch rewards completed proofs", false, err.message);
   }
 
+  // Test 22b6: the staged Quantum chance branch seeds the probability lesson.
+  const oldGetElementById22b6 = document.getElementById;
+  const oldBubblePop22b6 = ComicBubbles.pop;
+  const oldParticleBurst22b6 = Particles.spawnBurst;
+  try {
+    const labels = [];
+    let bursts = 0;
+    const panel = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };
+    document.getElementById = (id) => id === "discovery-pulse" ? panel : null;
+    ComicBubbles.pop = (x, y, text) => { labels.push(text); };
+    Particles.spawnBurst = () => { bursts++; };
+
+    const activeMission = PLANETS[0].missions.find(mission => mission.id === "earth-gravity-wall");
+    const noProgress = {
+      allPassed: false,
+      items: [
+        { id: "earth-hopper-active", label: "Hopper activated", passed: false, message: "Need Hopper" },
+        { id: "earth-emerald-gates", label: "Agility 30+ reached", passed: false, message: "Need more agility" }
+      ]
+    };
+    const command = "if chance(50): player.say('path A')";
+
+    const quantum = new StarHopperGame();
+    quantum.currentPlanet = PLANETS[0];
+    quantum.currentPlanetIndex = 0;
+    quantum.player = { x: 80, y: 100, w: 24, h: 32 };
+    quantum.masteryMeters = {};
+    quantum.researchXP = 0;
+    quantum.planetClears = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 };
+    quantum.frontierRecords = {
+      "2026-06-30": {
+        dateStr: "2026-06-30",
+        shareCode: "FRONTIER-EARTH-1234",
+        tier: 1,
+        planetIndex: 0,
+        stars: 2,
+        bestTime: 42.2
+      }
+    };
+    quantum.discoveryPassCounts = {
+      "anomaly-trace-proof:4:trace-hidden-force:test": 1,
+      "signal-lab-proof:frontier:frontier-earth-1234:t1:0:dark-matter-prep-curve-evidence:test": 1,
+      "quantum-branch-proof:0:test-a-branch-condition:test": 1
+    };
+    quantum.lastStagedExperiment = {
+      title: "Test chance branch",
+      source: "start-quantum-chance",
+      command,
+      time: Date.now()
+    };
+
+    const outcome = finishSuccessfulCodeRunDiscovery(quantum, activeMission, command, noProgress, 0, []);
+    assertEquals("QUANTUM CHANCE", outcome.quantumChanceProof && outcome.quantumChanceProof.label, "Exact staged Quantum Chance command should award proof");
+    assertEquals(5, quantum.researchXP, "Quantum Chance proof grants focused Research XP");
+    assertEquals(8, quantum.getWorldMasteryProgress(0).xp, "Quantum Chance proof feeds world mastery");
+    assertEquals(1, quantum.discoveryPassCounts[outcome.quantumChanceProof.sourceKey], "Quantum Chance proof stores a one-time source key");
+    assertEquals(1, quantum.discoveryCombo, "A standalone Quantum Chance proof starts the lab chain");
+    assertEquals("QUANTUM CHANCE", quantum.missionBalloon && quantum.missionBalloon.title, "Mission CRT labels the Quantum Chance reward");
+    assertEquals("QUANTUM CHANCE: +5 Research XP", quantum.missionBalloon && quantum.missionBalloon.text, "Mission CRT announces the Quantum Chance reward");
+    assertEquals(true, labels.includes("QUANTUM CHANCE"), "Quantum Chance proof pops a visible reward cue");
+    assertEquals(true, bursts > 0, "Quantum Chance proof spawns celebratory particles");
+    assertEquals(true, /QUANTUM CHANCE \+5 XP/.test(panel.innerHTML), "Discovery pulse renders the Quantum Chance proof chip");
+    assertEquals(true, quantum.discoveredFormulaKinds.has("probability"), "Quantum Chance proof collects the Probability Lab formula card");
+    assertEquals(1, quantum.formulaCardEffects.length, "Quantum Chance proof spawns one Probability Lab formula card effect");
+    assertEquals("Probability Lab", quantum.formulaCardEffects[0].title, "Quantum Chance card effect names the probability concept");
+    assertEquals("chance p -> random branch", quantum.formulaCardEffects[0].formula, "Quantum Chance card effect shows the probability formula");
+
+    const xpAfterFirst = quantum.researchXP;
+    const masteryAfterFirst = quantum.getWorldMasteryProgress(0).xp;
+    const repeat = finishSuccessfulCodeRunDiscovery(quantum, activeMission, command, noProgress, 0, []);
+    assertEquals(null, repeat.quantumChanceProof, "Repeating the same Quantum Chance proof should not award again");
+    assertEquals(xpAfterFirst, quantum.researchXP, "Repeated Quantum Chance proofs should not farm Research XP");
+    assertEquals(masteryAfterFirst, quantum.getWorldMasteryProgress(0).xp, "Repeated Quantum Chance proofs should not farm world mastery");
+    assertEquals(1, quantum.discoveryCombo, "Repeated Quantum Chance proofs should not extend the chain");
+
+    document.getElementById = oldGetElementById22b6;
+    ComicBubbles.pop = oldBubblePop22b6;
+    Particles.spawnBurst = oldParticleBurst22b6;
+    renderTestResult("engine-suite", "Curriculum: Quantum Chance rewards completed proofs", true);
+  } catch (err) {
+    document.getElementById = oldGetElementById22b6;
+    ComicBubbles.pop = oldBubblePop22b6;
+    Particles.spawnBurst = oldParticleBurst22b6;
+    renderTestResult("engine-suite", "Curriculum: Quantum Chance rewards completed proofs", false, err.message);
+  }
+
   // Test 22ba: successful KidCode runs summarize the live science delta.
   const oldGetElementById22ba = document.getElementById;
   const oldBubblePop22ba = ComicBubbles.pop;
@@ -2327,9 +2440,24 @@ function runEngineTests() {
       }
     };
     storyContract = getSignalStoryContract(quantumSeededComplete);
-    assertEquals("QUANTUM SEED", storyContract.kicker, "Quantum branch proof should mark the future source seed as logged");
+    assertEquals("QUANTUM CHANCE", storyContract.kicker, "Quantum branch proof should ask for one probability branch");
+    assertEquals("Test chance branch", storyContract.title, "Branch proof should introduce the chance variable");
     updateSignalStoryPanel(quantumSeededComplete);
-    assertEquals(true, /QUANTUM SEED/.test(els["signal-story-panel"].innerHTML), "Story panel should show the logged Quantum seed");
+    assertEquals(true, /QUANTUM CHANCE/.test(els["signal-story-panel"].innerHTML), "Story panel should show the Quantum chance loop");
+    assertEquals(true, /Probability turns branching/.test(els["signal-story-panel"].innerHTML), "Quantum chance loop should connect branch code to probability");
+
+    const quantumChanceComplete = {
+      ...quantumSeededComplete,
+      discoveryPassCounts: {
+        ...quantumSeededComplete.discoveryPassCounts,
+        "quantum-chance-proof:0:test-chance-branch:test": 1
+      }
+    };
+    storyContract = getSignalStoryContract(quantumChanceComplete);
+    assertEquals("QUANTUM SOURCE", storyContract.kicker, "Quantum chance proof should mark the future source seed as logged");
+    assertEquals("Probability seed logged", storyContract.title, "Chance proof should show the probability seed payoff");
+    updateSignalStoryPanel(quantumChanceComplete);
+    assertEquals(true, /QUANTUM SOURCE/.test(els["signal-story-panel"].innerHTML), "Story panel should show the logged Quantum source");
 
     document.getElementById = oldGetElementById22cb;
     ComicBubbles.pop = oldBubblePop22cb;
@@ -2633,9 +2761,31 @@ function runEngineTests() {
       "quantum-branch-proof:0:test-a-branch-condition:test": 1
     };
     updateStartMissionRadar(game);
-    assertEquals("QUANTUM SEED", els["start-story-preview-label"].textContent, "Branch proof should mark the Quantum seed as logged");
-    assertEquals("Branch seed logged", els["start-story-preview-title"].textContent, "Branch proof should show the seed payoff on the story preview");
-    assertEquals("Clear today's signal", els["start-mission-radar-title"].textContent, "After the Quantum seed, complete progress should return to daily practice");
+    assertEquals("QUANTUM CHANCE", els["start-story-preview-label"].textContent, "Branch proof should turn the story preview toward probability");
+    assertEquals("Probability path warming", els["start-story-preview-title"].textContent, "Branch proof should show the chance payoff on the story preview");
+    assertEquals(true, /Test chance branch/.test(els["start-story-preview-body"].textContent), "Chance story preview should name the next prototype");
+    assertEquals("Test chance branch", els["start-mission-radar-title"].textContent, "After the branch proof, the radar should surface Quantum Chance prep");
+    assertEquals(true, /chance\(50\)/.test(els["start-mission-radar-body"].textContent), "Quantum chance prep should frame the next code action as probability");
+    assertEquals(true, /Probability Lab card/.test(els["start-mission-radar-reward"].textContent), "Quantum chance prep should name the Probability Lab payoff");
+    assertEquals("TEST CHANCE", els["start-mission-radar-btn"].textContent, "Quantum chance prep should expose a direct chance action");
+    assertEquals("quantum-chance", els["start-mission-radar-btn"].dataset.action, "Quantum chance button should use the chance action");
+    assertEquals("0", els["start-mission-radar-btn"].dataset.level, "Quantum chance prep should launch the Earth prototype lab");
+    assertEquals(true, /chance\(50\)/.test(els["start-mission-radar-btn"].dataset.command), "Quantum chance prep should stage a chance command");
+    assertEquals(true, runStartMissionRadarAction(), "Quantum chance radar action should execute");
+    assertEquals(0, quantumStarted[1], "Quantum chance radar action should launch Earth");
+    assertEquals(els["start-mission-radar-btn"].dataset.command, els["console-input"].value, "Quantum chance radar action should stage the chance command");
+    assertEquals("start-quantum-chance", game.lastStagedExperiment && game.lastStagedExperiment.source, "Quantum chance staging should remember the start-radar source");
+
+    game.discoveryPassCounts = {
+      "anomaly-trace-proof:4:trace-hidden-force:test": 1,
+      "signal-lab-proof:frontier:frontier-earth-1234:t1:0:dark-matter-prep-curve-evidence:test": 1,
+      "quantum-branch-proof:0:test-a-branch-condition:test": 1,
+      "quantum-chance-proof:0:test-chance-branch:test": 1
+    };
+    updateStartMissionRadar(game);
+    assertEquals("QUANTUM SOURCE", els["start-story-preview-label"].textContent, "Chance proof should mark the Quantum source as logged");
+    assertEquals("Probability seed logged", els["start-story-preview-title"].textContent, "Chance proof should show the probability seed payoff");
+    assertEquals("Clear today's signal", els["start-mission-radar-title"].textContent, "After the Quantum source seed, complete progress should return to daily practice");
 
     game.frontierRecords = {};
     game.discoveryPassCounts = {};
@@ -3257,9 +3407,19 @@ function runEngineTests() {
       "quantum-branch-proof:0:test-a-branch-condition:test": 1
     };
     game.refreshGalaxyMapProgress();
-    assertEquals(true, teasers[1].classList.contains("anomaly-decoded"), "Quantum proof should switch Quantum Gate to a logged seed state");
-    assertEquals(true, /BRANCH SEED/.test(teasers[1]._meta.innerHTML), "Quantum Gate should label the logged branch seed");
-    assertEquals(true, /probability paths/.test(teasers[1]._meta.innerHTML), "Quantum Gate seed should preview probability paths");
+    assertEquals(true, teasers[1].classList.contains("anomaly-next"), "Quantum branch proof should make Quantum Gate ask for the chance prep");
+    assertEquals(true, /CHANCE PREP/.test(teasers[1]._meta.innerHTML), "Quantum Gate should label the chance prep state");
+    assertEquals(true, /Test chance\(50\)/.test(teasers[1]._meta.innerHTML), "Quantum Gate chance prep should name the probability action");
+    game.discoveryPassCounts = {
+      "anomaly-trace-proof:4:trace-hidden-force:test": 1,
+      "signal-lab-proof:frontier:frontier-earth-1234:t1:0:dark-matter-prep-curve-evidence:test": 1,
+      "quantum-branch-proof:0:test-a-branch-condition:test": 1,
+      "quantum-chance-proof:0:test-chance-branch:test": 1
+    };
+    game.refreshGalaxyMapProgress();
+    assertEquals(true, teasers[1].classList.contains("anomaly-decoded"), "Quantum chance proof should switch Quantum Gate to a logged seed state");
+    assertEquals(true, /PROBABILITY SEED/.test(teasers[1]._meta.innerHTML), "Quantum Gate should label the logged probability seed");
+    assertEquals(true, /chance paths/.test(teasers[1]._meta.innerHTML), "Quantum Gate seed should preview chance paths");
     document.querySelectorAll = oldQuerySelectorAll22g;
     renderTestResult("engine-suite", "Curriculum: galaxy map surfaces lab-star mastery", true);
   } catch (err) {

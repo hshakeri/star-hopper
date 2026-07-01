@@ -1675,17 +1675,27 @@ class StarHopperGame {
     const quantumSeeded = typeof hasQuantumBranchProofCredit === 'function'
       ? hasQuantumBranchProofCredit(this)
       : false;
+    const quantumChanceSeeded = typeof hasQuantumChanceProofCredit === 'function'
+      ? hasQuantumChanceProofCredit(this)
+      : false;
     const concept = id === "quantum-gate"
       ? "Branching & probability"
       : "Infer hidden forces";
     const chip = `<span class="map-concept-chip">${safe(concept)}</span>`;
 
     if (id === "quantum-gate") {
-      if (quantumSeeded) {
+      if (quantumChanceSeeded) {
         return {
           className: "anomaly-decoded",
-          metaHTML: `BRANCH SEED · ${chip}<span class="map-lock-hint">Future lab: probability paths</span>`,
-          title: "Quantum Gate: branch proof logged. The source lab has a conditional seed for probability paths."
+          metaHTML: `PROBABILITY SEED · ${chip}<span class="map-lock-hint">Future lab: chance paths</span>`,
+          title: "Quantum Gate: probability proof logged. The source lab has a chance seed for branching paths."
+        };
+      }
+      if (quantumSeeded) {
+        return {
+          className: "anomaly-next",
+          metaHTML: `CHANCE PREP · ${chip}<span class="map-lock-hint">Test chance(50)</span>`,
+          title: "Quantum Gate: branch proof logged. Test a chance branch to seed probability paths."
         };
       }
       if (darkMatterEvidence) {
