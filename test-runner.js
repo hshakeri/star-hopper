@@ -3934,7 +3934,19 @@ function runEngineTests() {
     game.planetClears = { 0: 1 };
     game.villageTrust = { 0: { points: 7, badges: ["friend", "ally"], sources: { "village-trade:0:geary:engine_1": 3, "village-rescue:0:geary": 4 } } };
     game.discoveryCombo = 2;
-    game.discoveryPulse = { code: "hopper.mass = 1.0", combo: 2, rewardXP: 8 };
+    game.discoveryPulse = {
+      code: "hopper.mass = 1.0",
+      combo: 2,
+      rewardXP: 8,
+      futureLabScene: {
+        label: "CASE FILE",
+        speaker: "VECTOR",
+        title: "Hidden-force case file",
+        body: "The Mag-Net trace proved an invisible field can be tested before Dark Matter Lab opens.",
+        lesson: "Science payoff: infer an unseen force from visible motion.",
+        proofLabel: "ANOMALY TRACED"
+      }
+    };
     game.lastScienceDelta = {
       code: "hopper.mass = 1.0",
       nextExperiment: {
@@ -3994,6 +4006,10 @@ function runEngineTests() {
     assertEquals(true, /SIGNAL DECODED/.test(report.innerHTML), "Clear report should celebrate the chapter decoded by this clear");
     assertEquals(true, /Emerald Wall Signal/.test(report.innerHTML), "Clear report should name the decoded Signal Story chapter");
     assertEquals(true, /Variables change motion/.test(report.innerHTML), "Decoded story card should show the science concept");
+    assertEquals(true, /CASE FILE/.test(report.innerHTML), "Clear report should preserve the future-lab case-file scene from the run");
+    assertEquals(true, /VECTOR \/\/ Hidden-force case file/.test(report.innerHTML), "Clear report should name the future-lab scene speaker and title");
+    assertEquals(true, /infer an unseen force from visible motion/.test(report.innerHTML), "Clear report should show the future-lab science payoff");
+    assertEquals(true, /ANOMALY TRACED/.test(report.innerHTML), "Clear report should connect the scene to the proof label");
     assertEquals(true, /NEXT SIGNAL CHAPTER/.test(report.innerHTML), "Clear report should preview the next story chapter");
     assertEquals(true, /Moon Loop Echo/.test(report.innerHTML), "Clear report should name the next Signal Story chapter");
     assertEquals(true, /Loops build repeatable patterns/.test(report.innerHTML), "Clear report should show the next chapter concept");

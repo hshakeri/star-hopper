@@ -4692,6 +4692,9 @@ class StarHopperGame {
 
   grantMasteryClearReward(labStars) {
     if (!labStars || !labStars.isNewMastery) return labStars;
+    const futureLabScene = this.discoveryPulse && this.discoveryPulse.futureLabScene
+      ? this.discoveryPulse.futureLabScene
+      : null;
     const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
     const xp = MASTERY_CLEAR_RESEARCH_XP;
     this.researchXP = Math.max(0, (this.researchXP || 0) + xp);
@@ -4712,7 +4715,8 @@ class StarHopperGame {
       combo: this.discoveryCombo || 0,
       rankUp,
       rankTitle: afterRank ? afterRank.title : null,
-      rankPerk: rankUp && afterRank ? afterRank.perk : null
+      rankPerk: rankUp && afterRank ? afterRank.perk : null,
+      futureLabScene
     };
     this.discoveryPulse = pulse;
     this.discoveryLog = [pulse].concat(Array.isArray(this.discoveryLog) ? this.discoveryLog : []).slice(0, 8);
@@ -7041,6 +7045,18 @@ class StarHopperGame {
         <p>${safe(storyPreview.body)}</p>
       </div>
     ` : "";
+    const futureLabScene = this.discoveryPulse && this.discoveryPulse.futureLabScene ? this.discoveryPulse.futureLabScene : null;
+    const futureLabSceneBlock = futureLabScene ? `
+      <div class="clear-story-preview clear-future-lab-scene">
+        <div class="clear-story-preview-head">
+          <span>${safe(futureLabScene.label || "SOURCE SCENE")}</span>
+          <em>${safe(futureLabScene.proofLabel || "future lab proof")}</em>
+        </div>
+        <strong>${safe(`${futureLabScene.speaker || "VECTOR"} // ${futureLabScene.title || "Source scene"}`)}</strong>
+        <code>${safe(futureLabScene.lesson || "Science payoff logged")}</code>
+        <p>${safe(futureLabScene.body || "The next lab seed is now connected to the story.")}</p>
+      </div>
+    ` : "";
     const villageTrust = typeof this.getVillageTrustProgress === 'function' ? this.getVillageTrustProgress(this.currentPlanetIndex) : null;
     const labChainTarget = typeof getLabChainTarget === 'function' ? getLabChainTarget(this) : null;
     this.lastClearLabChainTarget = labChainTarget;
@@ -7165,6 +7181,7 @@ class StarHopperGame {
       ${timeBadge}
       ${rivalBlock}
       ${objectiveQueueBlock}
+      ${futureLabSceneBlock}
       ${storyUnlockBlock}
       ${storyPreviewBlock}
       ${explainBlock}
