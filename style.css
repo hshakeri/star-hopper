@@ -1808,6 +1808,25 @@ body.resizing-panes * {
   font-weight: 800;
 }
 
+.clear-frontier-copy-btn {
+  border: 1px solid rgba(250, 204, 21, 0.46);
+  border-radius: 4px;
+  background: rgba(250, 204, 21, 0.14);
+  color: #fde68a;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  font-weight: 900;
+  line-height: 1;
+  margin-top: 6px;
+  padding: 6px 8px;
+}
+
+.clear-frontier-copy-btn:hover {
+  background: rgba(250, 204, 21, 0.78);
+  color: #1f1300;
+}
+
 .clear-story-preview {
   border: 1px solid rgba(34, 211, 238, 0.3);
   border-radius: 6px;
@@ -7286,6 +7305,7 @@ body.readable-text-mode .certificate-progress-list span,
 body.readable-text-mode .clear-frontier-rival-head,
 body.readable-text-mode .clear-frontier-rival p,
 body.readable-text-mode .clear-frontier-rival em,
+body.readable-text-mode .clear-frontier-copy-btn,
 body.readable-text-mode .clear-story-preview p,
 body.readable-text-mode .clear-research-unlock-head,
 body.readable-text-mode .clear-research-unlock p,

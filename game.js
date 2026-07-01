@@ -5028,6 +5028,7 @@ class StarHopperGame {
         </div>
         <p>${safe(rivalResult.body)}</p>
         <em>${safe(rivalResult.shareCode || "Frontier share code ready")}</em>
+        <button type="button" class="clear-frontier-copy-btn" onclick="if (window.Game) window.Game.copyFrontierShareCode()">${safe(rivalResult.state === "beaten" ? "COPY WIN LINE" : "COPY MATCH LINE")}</button>
       </div>
     ` : "";
     const replayContract = this.getClearReplayContract({ labStars: starSummary, clearTime: timeSummary, isDailyRun, isFrontierRun, nextIndex });

@@ -5393,6 +5393,7 @@ function runRetryRemixTests() {
     assertEquals(true, /FRONTIER RIVAL/.test(els["clear-lab-report"].innerHTML), "Clear report should add a Frontier rival card");
     assertEquals(true, /RIVAL BEATEN: Grace/.test(els["clear-lab-report"].innerHTML), "Clear report should celebrate the beaten classmate");
     assertEquals(true, /Share your updated Frontier line/.test(els["clear-lab-report"].innerHTML), "Clear report should turn the win into a share loop");
+    assertEquals(true, /COPY WIN LINE/.test(els["clear-lab-report"].innerHTML), "Clear report should expose a direct copy action for the updated Frontier line");
     g.recordFrontierClear({
       frontierInfo: frontier,
       labStars: { stars: 3 },
