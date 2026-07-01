@@ -3799,6 +3799,25 @@ class StarHopperGame {
       };
     }
 
+    if (isFrontierRun) {
+      const ladder = typeof this.getFrontierRivalLadderProgress === 'function'
+        ? this.getFrontierRivalLadderProgress()
+        : null;
+      if (ladder && !ladder.complete && ladder.proofCount > 0 && ladder.remaining > 0) {
+        const frontier = (this.dailyInfo && this.dailyInfo.isFrontier) ? this.dailyInfo : this.getFrontierChallenge();
+        const focus = frontier && frontier.labContract ? frontier.labContract : null;
+        const command = focus && focus.command ? ` Try: ${String(focus.command).replace(/\s*\n\s*/g, " / ")}` : "";
+        return {
+          kicker: "FRONTIER LADDER CONTRACT",
+          title: `Chase ${ladder.label}`,
+          body: `Log ${ladder.remaining} more unique rival proof${ladder.remaining === 1 ? "" : "s"} on same-seed Frontier runs. ${focus ? `${focus.body}${command}` : "Change one variable, compare stars/time, and share the updated line."}`,
+          reward: `Reward: ${ladder.label} +${ladder.rewardXP} Research XP`,
+          action: "frontier",
+          cta: "CHASE LADDER"
+        };
+      }
+    }
+
     const formulaTarget = (typeof getActiveFormulaTarget === 'function') ? getActiveFormulaTarget(this) : null;
     if (formulaTarget) {
       return {
