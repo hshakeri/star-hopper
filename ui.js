@@ -652,6 +652,7 @@ function getRunObjectiveQueue(game) {
 
   const labChain = typeof getLabChainTarget === "function" ? getLabChainTarget(game) : null;
   if (labChain && labChain.command) {
+    const progress = typeof getLabChainProgressMeta === "function" ? getLabChainProgressMeta(game, labChain) : null;
     addRunObjectiveQueueItem(queue, seen, {
       key: `lab-chain:${labChain.command}`,
       label: labChain.label || "LAB CHAIN",
@@ -662,7 +663,8 @@ function getRunObjectiveQueue(game) {
       command: labChain.command,
       kind: labChain.kind || "lab-chain",
       source: "lab-chain-target",
-      color: labChain.state === "paused" ? "#cbd5e1" : "#67e8f9"
+      color: labChain.state === "paused" ? "#cbd5e1" : "#67e8f9",
+      progress
     });
   }
 
@@ -705,6 +707,38 @@ function appendCodeConceptQueueCartridge(row, item) {
   row.appendChild(cartridge);
 }
 
+function appendRunObjectiveProgress(row, item) {
+  if (!row || !item || item.source === "code-concept-target") return;
+  const progress = item.progress && typeof item.progress === "object" ? item.progress : null;
+  if (!progress) return;
+
+  const rawTotal = Math.max(1, Math.floor(Number(progress.total || progress.target) || 1));
+  const total = Math.max(1, Math.min(6, rawTotal));
+  const rawValue = Math.max(0, Math.floor(Number(progress.value) || 0));
+  const value = Math.max(0, Math.min(total, rawTotal > total ? Math.round((rawValue / rawTotal) * total) : rawValue));
+  const mode = String(progress.mode || item.source || item.kind || "progress").replace(/[^a-z0-9_-]+/gi, "-").toLowerCase();
+  const labelText = progress.label || `${rawValue}/${rawTotal}`;
+
+  const wrap = document.createElement("div");
+  wrap.className = `run-objective-progress ${mode}`;
+  wrap.title = labelText;
+  if (typeof wrap.setAttribute === "function") wrap.setAttribute("aria-label", labelText);
+
+  const label = document.createElement("span");
+  label.textContent = labelText;
+  wrap.appendChild(label);
+
+  const pips = document.createElement("div");
+  pips.className = "run-objective-progress-pips";
+  for (let i = 0; i < total; i++) {
+    const pip = document.createElement("i");
+    pip.className = `run-objective-progress-pip${i < value ? " filled" : (i === value ? " next" : "")}`;
+    pips.appendChild(pip);
+  }
+  wrap.appendChild(pips);
+  row.appendChild(wrap);
+}
+
 function appendRunObjectiveQueueCard(listContainer, game) {
   if (!listContainer || !game) return;
   const queue = getRunObjectiveQueue(game);
@@ -726,7 +760,7 @@ function appendRunObjectiveQueueCard(listContainer, game) {
   list.className = "run-objective-queue-list";
   queue.forEach(item => {
     const row = document.createElement("div");
-    row.className = `run-objective-queue-item${item.disabled ? " disabled" : ""}${item.source === "code-concept-target" ? " code-concept-queue-item" : ""}`;
+    row.className = `run-objective-queue-item${item.disabled ? " disabled" : ""}${item.source === "code-concept-target" ? " code-concept-queue-item" : ""}${item.source === "lab-chain-target" ? " lab-chain-queue-item" : ""}`;
 
     const itemLabel = document.createElement("span");
     itemLabel.textContent = `#${item.priority} ${item.label}`;
@@ -745,6 +779,7 @@ function appendRunObjectiveQueueCard(listContainer, game) {
     }
 
     appendCodeConceptQueueCartridge(row, item);
+    appendRunObjectiveProgress(row, item);
 
     if (item.command && !item.disabled) {
       const code = document.createElement("code");
@@ -2058,6 +2093,23 @@ function getActiveLabChainMilestone(game) {
 function getDiscoveryComboMilestonePreview(game, combo) {
   const status = getDiscoveryComboMilestoneStatus(game, combo);
   return status ? status.preview : "";
+}
+
+function getLabChainProgressMeta(game, labChain = null) {
+  const pulseCombo = game && game.discoveryPulse ? Number(game.discoveryPulse.combo) : 0;
+  const combo = Math.max(1, Math.floor(Number(game && game.discoveryCombo) || pulseCombo || Number(labChain && labChain.combo) || 1));
+  const milestone = typeof getDiscoveryComboMilestoneStatus === "function"
+    ? getDiscoveryComboMilestoneStatus(game, combo)
+    : (typeof getActiveLabChainMilestone === "function" ? getActiveLabChainMilestone(game) : null);
+  const targetCombo = Math.max(combo, Math.floor(Number(milestone && milestone.target) || combo + 1));
+  const label = milestone && milestone.label ? `${combo}/${targetCombo} to ${milestone.label}` : `chain x${combo}`;
+  return {
+    mode: "lab-chain",
+    value: combo,
+    target: targetCombo,
+    total: targetCombo,
+    label
+  };
 }
 
 function getLabChainTarget(game) {
@@ -4539,12 +4591,7 @@ function getStartObjectiveQueue(game = window.Game, context = {}) {
   const labChain = typeof getLabChainTarget === "function" ? getLabChainTarget(game) : null;
   const labChainCommand = labChain && labChain.command ? String(labChain.command).trim() : "";
   if (labChain && labChainCommand && labChainCommand !== codeConceptCommand) {
-    const pulseCombo = game && game.discoveryPulse ? Number(game.discoveryPulse.combo) : 0;
-    const combo = Math.max(1, Math.floor(Number(game && game.discoveryCombo) || pulseCombo || Number(labChain.combo) || 1));
-    const milestone = typeof getDiscoveryComboMilestoneStatus === "function"
-      ? getDiscoveryComboMilestoneStatus(game, combo)
-      : (typeof getActiveLabChainMilestone === "function" ? getActiveLabChainMilestone(game) : null);
-    const targetCombo = Math.max(combo, Math.floor(Number(milestone && milestone.target) || combo + 1));
+    const progress = typeof getLabChainProgressMeta === "function" ? getLabChainProgressMeta(game, labChain) : null;
     add({
       key: `lab-chain:${labChainCommand}`,
       label: labChain.label || "LAB CHAIN",
@@ -4559,12 +4606,7 @@ function getStartObjectiveQueue(game = window.Game, context = {}) {
       color: labChain.state === "paused" ? "#cbd5e1" : "#67e8f9",
       levelIndex: Number.isFinite(Number(game && game.currentPlanetIndex)) ? Number(game.currentPlanetIndex) : 0,
       stageTitle: labChain.title || "Lab chain",
-      progress: {
-        mode: "lab-chain",
-        value: combo,
-        total: targetCombo,
-        label: milestone && milestone.label ? `${combo}/${targetCombo} to ${milestone.label}` : `chain x${combo}`
-      }
+      progress
     });
   }
 

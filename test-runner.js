@@ -2146,6 +2146,12 @@ function runEngineTests() {
     assertEquals(true, /hopper\.engine = 7/.test(startQueuePanel22codeDeck.innerHTML), "Start lab-chain command chip should show the next chain command");
     assertEquals(true, /start-objective-progress lab-chain/.test(startQueuePanel22codeDeck.innerHTML), "Start lab-chain queue should render chain progress pips");
     assertEquals(true, /2\/3 to TRIPLE TEST/.test(startQueuePanel22codeDeck.innerHTML), "Start lab-chain progress should show the next milestone");
+    const chainRunQueue = getRunObjectiveQueue(chainQueueGame);
+    assertEquals("LAB CHAIN x2", chainRunQueue[0] && chainRunQueue[0].label, "Run objective queue should surface active lab-chain targets");
+    assertEquals("lab-chain-target", chainRunQueue[0] && chainRunQueue[0].source, "Run lab-chain queue should preserve source metadata");
+    assertEquals("lab-chain", chainRunQueue[0] && chainRunQueue[0].progress && chainRunQueue[0].progress.mode, "Run lab-chain queue should carry progress metadata");
+    assertEquals(2, chainRunQueue[0] && chainRunQueue[0].progress && chainRunQueue[0].progress.value, "Run lab-chain progress should show the current combo");
+    assertEquals(3, chainRunQueue[0] && chainRunQueue[0].progress && chainRunQueue[0].progress.target, "Run lab-chain progress should show the next milestone target");
     chainQueueGame.lastStartObjectiveQueue = chainStartQueue;
     const chainStarts = [];
     const chainModes = [];
@@ -2209,6 +2215,24 @@ function runEngineTests() {
     assertEquals("repeat 3 { spawn_block() }", inputEl.value, "Code Concept cartridge action should stage the sample command");
     assertEquals(true, inputEl.focused, "Code Concept cartridge action should focus the terminal");
     assertEquals("code-concept-target", queueGame.lastStagedExperiment && queueGame.lastStagedExperiment.source, "Code Concept cartridge action should preserve the source metadata");
+
+    const chainQueuePanel = makeQueueEl();
+    chainQueueGame.lastStagedExperiment = null;
+    appendRunObjectiveQueueCard(chainQueuePanel, chainQueueGame);
+    const chainRunProgress = findQueueByClass(chainQueuePanel, "run-objective-progress");
+    const chainRunProgressText = flattenQueueText(chainRunProgress || chainQueuePanel);
+    assertEquals(true, !!chainRunProgress, "Run lab-chain queue should render milestone progress pips");
+    assertEquals(true, /2\/3 to TRIPLE TEST/.test(chainRunProgressText), "Run lab-chain progress should name the next combo milestone");
+    assertEquals(3, collectQueueByClass(chainRunProgress, "run-objective-progress-pip").length, "Run lab-chain progress should render one pip per milestone step");
+    assertEquals(2, collectQueueByClass(chainRunProgress, "filled").length, "Run lab-chain progress should fill current combo pips");
+    assertEquals(1, collectQueueByClass(chainRunProgress, "next").length, "Run lab-chain progress should mark the next combo pip");
+    const chainStageButton = findQueueByClass(chainQueuePanel, "run-objective-queue-action-btn");
+    window.Game = chainQueueGame;
+    inputEl.value = "";
+    inputEl.focused = false;
+    chainStageButton._events.click();
+    assertEquals("hopper.engine = 7", inputEl.value, "Run lab-chain action should stage the next chain command");
+    assertEquals("lab-chain-target", chainQueueGame.lastStagedExperiment && chainQueueGame.lastStagedExperiment.source, "Run lab-chain action should preserve the source metadata");
     document.createElement = oldCreateElement22codeDeck;
 
     const clearQueueGame = new StarHopperGame();
