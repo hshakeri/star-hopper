@@ -6536,6 +6536,7 @@ function runRetryRemixTests() {
     const count = { textContent: "" };
     const reward = { textContent: "" };
     const focus = { textContent: "" };
+    const code = { textContent: "", title: "", style: {} };
     const action = { textContent: "", title: "", dataset: {}, style: {} };
     document.getElementById = (id) => ({
       "discovery-pulse": panel,
@@ -6543,6 +6544,7 @@ function runRetryRemixTests() {
       "return-streak-count": count,
       "return-streak-reward": reward,
       "return-streak-focus": focus,
+      "return-streak-code": code,
       "return-streak-action": action
     }[id] || null);
 
@@ -6565,6 +6567,9 @@ function runRetryRemixTests() {
     assertEquals(null, g.lastReturnStreakReward, "No reward pulse is created on the first-ever day");
     assertEquals("Next daily experiment: +5 Research XP", reward.textContent, "Start chip should preview the next daily lab reward");
     assertEquals("Focus: Mass remix proof", focus.textContent, "Start chip should name today's Daily Signal learning focus");
+    assertEquals("hopper.mass = 1.5", code.textContent, "Start chip should show the first Daily Signal sample command");
+    assertEquals("inline-block", code.style.display, "Sample command should be visible when today's signal has code");
+    assertEquals(true, /Starter command: hopper\.mass = 1\.5/.test(code.title), "Sample command title should preserve the visible command");
     assertEquals("DAILY", action.textContent, "Start chip should expose a direct Daily Signal action");
     assertEquals("daily", action.dataset.action, "Streak action should tag the Daily Signal route");
     assertEquals("Mass remix proof", action.dataset.focus, "Streak action should carry the Daily Signal focus");
@@ -6603,6 +6608,8 @@ function runRetryRemixTests() {
     g.streakCount = 0;
     g.refreshStreakBanner();
     assertEquals("", focus.textContent, "Streak focus should clear when the streak chip is hidden");
+    assertEquals("", code.textContent, "Streak sample command should clear when the streak chip is hidden");
+    assertEquals("none", code.style.display, "Streak sample command should hide when the streak chip is hidden");
     assertEquals("none", action.style.display, "Streak action should hide when the streak chip is hidden");
     assertEquals(10, g.getReturnStreakRewardXP(99), "Daily streak XP should stay capped");
     const afterRewardXP = g.researchXP;

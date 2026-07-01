@@ -1838,6 +1838,7 @@ class StarHopperGame {
     const countEl = document.getElementById('return-streak-count');
     const rewardEl = document.getElementById('return-streak-reward');
     const focusEl = document.getElementById('return-streak-focus');
+    const codeEl = document.getElementById('return-streak-code');
     const actionEl = document.getElementById('return-streak-action');
     if (this.streakCount > 0) {
       const focus = this.getReturnStreakDailyFocus();
@@ -1849,6 +1850,11 @@ class StarHopperGame {
           : next.label;
       }
       if (focusEl) focusEl.textContent = focus.label;
+      if (codeEl) {
+        codeEl.textContent = focus.firstCommand;
+        codeEl.title = focus.firstCommand ? `Starter command: ${focus.firstCommand}` : "";
+        if (codeEl.style) codeEl.style.display = focus.firstCommand ? "inline-block" : "none";
+      }
       if (actionEl) {
         actionEl.textContent = "DAILY";
         actionEl.title = focus.firstCommand
@@ -1865,6 +1871,11 @@ class StarHopperGame {
     } else {
       if (rewardEl) rewardEl.textContent = "";
       if (focusEl) focusEl.textContent = "";
+      if (codeEl) {
+        codeEl.textContent = "";
+        codeEl.title = "";
+        if (codeEl.style) codeEl.style.display = "none";
+      }
       if (actionEl) {
         if (actionEl.dataset) {
           actionEl.dataset.focus = "";

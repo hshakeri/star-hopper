@@ -3133,6 +3133,19 @@ body.resizing-panes * {
   line-height: 1.25;
   max-width: 100%;
 }
+.return-streak-banner .streak-code {
+  border: 1px solid rgba(125, 211, 252, 0.36);
+  border-radius: 6px;
+  background: rgba(8, 47, 73, 0.48);
+  color: #e0f2fe;
+  display: none;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  line-height: 1.2;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: 3px 6px;
+}
 .return-streak-banner .streak-action {
   border: 1px solid rgba(253, 224, 71, 0.45);
   border-radius: 999px;
