@@ -23,6 +23,26 @@ const VILLAGE_TRUST_TIERS = [
   { id: "ally", points: 7, label: "Cave Ally" },
   { id: "guardian", points: 12, label: "Village Guardian" }
 ];
+const VILLAGE_TRUST_PACTS = {
+  friend: {
+    title: "First Trade Pact",
+    action: "make one fair sample trade",
+    concept: "Resource flow: samples -> tool",
+    body: "Spend a local gemstone with a villager, then test how the traded tool changes the run."
+  },
+  ally: {
+    title: "Cave Rescue Pact",
+    action: "rescue a villager or make another useful trade",
+    concept: "State machine: danger -> cave -> safe",
+    body: "When mobs approach, villagers hide in caves; clearing the danger proves the state changed."
+  },
+  guardian: {
+    title: "Guardian Pact",
+    action: "train a pet guard or protect the village",
+    concept: "AI state: scared -> pet -> guard",
+    body: "Use calming lotion, pets, or rescue play to turn wild mob states into village protection."
+  }
+};
 const DISCOVERY_COMBO_MILESTONES = [
   {
     combo: 3,
@@ -319,8 +339,21 @@ class StarHopperGame {
       earnedTiers,
       currentTier,
       nextTier,
+      currentPact: currentTier ? this.getVillageTrustPactForTier(currentTier) : null,
+      nextPact: nextTier ? this.getVillageTrustPactForTier(nextTier) : null,
       title: currentTier ? currentTier.label : "New Arrival",
       pct: finalTier ? Math.max(0, Math.min(100, Math.round((meter.points / finalTier.points) * 100))) : 0
+    };
+  }
+
+  getVillageTrustPactForTier(tier) {
+    const id = typeof tier === "string" ? tier : (tier && tier.id ? tier.id : "");
+    const pact = VILLAGE_TRUST_PACTS[id];
+    if (!pact) return null;
+    return {
+      ...pact,
+      tierId: id,
+      tierLabel: tier && tier.label ? tier.label : ""
     };
   }
 
@@ -358,7 +391,9 @@ class StarHopperGame {
       action,
       sourceKey: source,
       tierUp: tierAwards.length > 0,
-      nextTier: progress.nextTier ? progress.nextTier.label : null
+      nextTier: progress.nextTier ? progress.nextTier.label : null,
+      nextPact: progress.nextPact ? progress.nextPact.title : null,
+      nextPactConcept: progress.nextPact ? progress.nextPact.concept : null
     };
     this.lastVillageTrustEffect = result;
 
@@ -2293,7 +2328,7 @@ class StarHopperGame {
   renderMapVillageTrustMeter(index) {
     if (typeof this.getVillageTrustProgress !== 'function') return "";
     const progress = this.getVillageTrustProgress(index);
-    const next = progress.nextTier ? `Next ${progress.nextTier.label}` : "Max trust";
+    const next = progress.nextPact ? `Next ${progress.nextPact.title}` : "Max trust";
     return `<span class="map-trust-meter" aria-label="${progress.points} village trust"><span style="width: ${progress.pct}%"></span></span><span class="map-trust-label">${progress.title} · ${progress.points} trust · ${next}</span>`;
   }
 
@@ -6507,8 +6542,9 @@ class StarHopperGame {
     const villageTrustNext = villageTrust && villageTrust.nextTier
       ? `${villageTrust.nextTier.label} at ${villageTrust.nextTier.points} trust`
       : "Max village trust reached";
-    const villageTrustAction = villageTrust && villageTrust.nextTier
-      ? (villageTrust.points > 0 ? "Next: rescue, trade, or pet guard" : "Next: make a first village trade")
+    const villageTrustPact = villageTrust && villageTrust.nextPact ? villageTrust.nextPact : null;
+    const villageTrustAction = villageTrust && villageTrust.nextTier && villageTrustPact
+      ? `Next pact: ${villageTrustPact.title} - ${villageTrustPact.action} (${villageTrustPact.concept})`
       : "Village mentor status online";
     const villageTrustBlock = villageTrust ? `
       <div class="clear-village-trust">

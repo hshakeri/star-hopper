@@ -744,14 +744,12 @@ function getVillageTrustCrtPreview(game) {
   const nextText = progress.nextTier
     ? `${Math.max(0, nextTierPoints - currentPoints)} trust to ${progress.nextTier.label}`
     : "Max village trust reached";
-  const gem = typeof game.getGemConfig === "function" ? game.getGemConfig(game.currentPlanetIndex) : null;
-  const sampleName = gem && gem.shortName ? gem.shortName : "planet sample";
-  let action = "Trade a local sample";
-  let body = `Bank ${sampleName} gems, make a fair village trade, then test how the new tool changes the run.`;
-  if (currentPoints > 0 && progress.nextTier) {
-    action = "Protect or trade again";
-    body = "Rescue villagers from mobs or let a trained pet guard the cadet. That turns AI states into relationship progress.";
-  } else if (!progress.nextTier) {
+  const pact = progress.nextPact || null;
+  let action = pact ? pact.title : "Mentor status online";
+  let body = pact
+    ? `${nextText}. ${pact.title}: ${pact.action}. ${pact.concept}.`
+    : "The village trusts this cadet. Keep using trades, pets, and rescues as evidence for how game systems remember helpful choices.";
+  if (!progress.nextTier) {
     action = "Mentor status online";
     body = "The village trusts this cadet. Keep using trades, pets, and rescues as evidence for how game systems remember helpful choices.";
   }
@@ -2223,10 +2221,9 @@ function getStartVillageTrustPreview(game = window.Game) {
   const title = progress && progress.title ? progress.title : "New Arrival";
   const planet = game.currentPlanet && game.currentPlanet.name ? game.currentPlanet.name : "this world";
   const next = progress && progress.nextTier ? progress.nextTier : null;
-  let action = "make a first village trade";
-  if (points > 0 && next) action = "trade, rescue, or let a pet guard";
+  const pact = progress && progress.nextPact ? progress.nextPact : null;
   const body = next
-    ? `${Math.max(0, Math.floor(Number(next.points) || 0) - points)} trust to ${next.label} on ${planet}. Next: ${action}.`
+    ? `${Math.max(0, Math.floor(Number(next.points) || 0) - points)} trust to ${next.label} on ${planet}. ${pact ? `${pact.title}: ${pact.action}. ${pact.concept}.` : "Next: build village trust."}`
     : `${planet} trusts this cadet. Keep trades, rescues, and pet guards alive as relationship evidence.`;
   return {
     label: "VILLAGE TRUST",
@@ -4089,8 +4086,11 @@ function updateDiscoveryPulse(game) {
   const frontierRivalMilestone = pulse.frontierRivalMilestone
     ? `<div class="discovery-hypothesis discovery-combo-boost">${escapeHTML(pulse.frontierRivalMilestone.label || "RIVAL LADDER")} +${escapeHTML(String(pulse.frontierRivalMilestone.rewardXP || 0))} XP · ${escapeHTML(String(pulse.frontierRivalMilestone.proofCount || 0))} proofs</div>`
     : "";
+  const villageTrustNext = pulse.villageTrust && pulse.villageTrust.nextPact
+    ? ` · Next: ${escapeHTML(pulse.villageTrust.nextPact)}`
+    : "";
   const villageTrust = pulse.villageTrust
-    ? `<div class="discovery-hypothesis discovery-village-trust">${escapeHTML(pulse.villageTrust.label || "TRUST")} +${escapeHTML(String(pulse.villageTrust.added || 0))} · ${escapeHTML(pulse.villageTrust.title || "Village Trust")} (${escapeHTML(String(pulse.villageTrust.points || 0))})</div>`
+    ? `<div class="discovery-hypothesis discovery-village-trust">${escapeHTML(pulse.villageTrust.label || "TRUST")} +${escapeHTML(String(pulse.villageTrust.added || 0))} · ${escapeHTML(pulse.villageTrust.title || "Village Trust")} (${escapeHTML(String(pulse.villageTrust.points || 0))})${villageTrustNext}</div>`
     : "";
   const villagePact = pulse.villagePactProof
     ? `<div class="discovery-hypothesis discovery-village-trust">${escapeHTML(pulse.villagePactProof.label || "VILLAGE PACT")} +${escapeHTML(String(pulse.villagePactProof.rewardXP || 0))} XP · ${escapeHTML(pulse.villagePactProof.tier || "Village Guardian")}</div>`

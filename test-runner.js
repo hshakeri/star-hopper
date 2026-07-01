@@ -2907,7 +2907,8 @@ function runEngineTests() {
     assertEquals("VILLAGE TRUST", els["start-village-preview-label"].textContent, "Start radar should label village trust preview");
     assertEquals("Trading Friend · 3 trust", els["start-village-preview-title"].textContent, "Start radar should show village trust tier and points");
     assertEquals(true, /4 trust to Cave Ally/.test(els["start-village-preview-body"].textContent), "Start radar should show the next village trust gap");
-    assertEquals(true, /trade, rescue, or let a pet guard/.test(els["start-village-preview-body"].textContent), "Start radar should name relationship actions");
+    assertEquals(true, /Cave Rescue Pact/.test(els["start-village-preview-body"].textContent), "Start radar should name the next village pact");
+    assertEquals(true, /State machine: danger -> cave -> safe/.test(els["start-village-preview-body"].textContent), "Start radar should connect village progress to the coding concept");
     assertEquals("25%", els["start-village-preview-bar"].style.width, "Start radar should show village trust progress");
     assertEquals("3-STAR PROOF", els["start-proof-preview-label"].textContent, "Start radar should label the lab-star proof preview");
     assertEquals("0/3 Lab Stars ready", els["start-proof-preview-title"].textContent, "Start radar should show current lab-star readiness");
@@ -3207,7 +3208,8 @@ function runEngineTests() {
     assertEquals(true, /Cave Ally/.test(report.innerHTML), "Clear report should show current village trust tier");
     assertEquals(true, /7 trust/.test(report.innerHTML), "Clear report should show current village trust points");
     assertEquals(true, /Village Guardian at 12 trust/.test(report.innerHTML), "Clear report should show the next village trust tier");
-    assertEquals(true, /Next: rescue, trade, or pet guard/.test(report.innerHTML), "Clear report should name the next relationship action");
+    assertEquals(true, /Guardian Pact/.test(report.innerHTML), "Clear report should name the next village pact");
+    assertEquals(true, /AI state: scared -&gt; pet -&gt; guard/.test(report.innerHTML), "Clear report should connect village trust to the AI-state concept");
     assertEquals(true, /NEXT LAB UNLOCK/.test(report.innerHTML), "Clear report should show the next research unlock target");
     assertEquals(true, /Combo Amplifier in 30 XP/.test(report.innerHTML), "Clear report should show the post-run tuned XP gap to the next perk");
     assertEquals(true, /50% toward next lab unlock/.test(report.innerHTML), "Clear report should render tuned research unlock progress");
@@ -3827,8 +3829,8 @@ function runEngineTests() {
     assertEquals(true, /VILLAGE TRUST/.test(villageTrustText), "Village trust card should identify itself");
     assertEquals(true, /Trading Friend · 3/.test(villageTrustText), "Village trust card should show current tier and points");
     assertEquals(true, /4 trust to Cave Ally/.test(villageTrustText), "Village trust card should show the next relationship tier gap");
-    assertEquals(true, /Protect or trade again/.test(villageTrustText), "Village trust card should name the next relationship action");
-    assertEquals(true, /AI states/.test(villageTrustText), "Village trust card should frame helpful play as a game-AI lesson");
+    assertEquals(true, /Cave Rescue Pact/.test(villageTrustText), "Village trust card should name the next relationship pact");
+    assertEquals(true, /State machine: danger -&gt; cave -&gt; safe/.test(villageTrustText), "Village trust card should frame helpful play as a game-AI lesson");
     assertEquals(true, !!signalStory, "Mission panel should show the active Signal Story contract");
     assertEquals(true, /STAR-MAP SIGNAL/.test(signalStoryText), "Signal Story card should identify itself");
     assertEquals(true, /2\/12 decoded/.test(signalStoryText), "Signal Story card should show decoded progress");
