@@ -767,6 +767,9 @@ class StarHopperGame {
     const variant = buildPlanetVariant(planet, planetIndex, attempt);
     const codeName = (planet.name || "WORLD").split(" ")[0].toUpperCase().replace(/[^A-Z]/g, "");
     const concept = planet.tagline || "Physics remix";
+    const labContract = (typeof buildReplayLabContract === 'function')
+      ? buildReplayLabContract(planet, planetIndex, variant)
+      : null;
     return {
       dateStr: today,
       seed,
@@ -778,6 +781,7 @@ class StarHopperGame {
       planetName: planet.name || "World",
       concept,
       labGoal: "3 Lab Stars: tasks + samples + proof",
+      labContract,
       shareCode: `FRONTIER-${codeName}-${String(seed % 10000).padStart(4, '0')}`,
       label: `Tier ${tier} ${planet.name}: ${variant.variantLabel}`
     };
@@ -1123,12 +1127,14 @@ class StarHopperGame {
     const dailyPlanet = daily.planetName || (typeof PLANETS !== 'undefined' && PLANETS[daily.planetIndex] ? PLANETS[daily.planetIndex].name : "World");
     const dailyConcept = daily.concept || (typeof PLANETS !== 'undefined' && PLANETS[daily.planetIndex] ? PLANETS[daily.planetIndex].tagline : "Physics remix");
     const dailyVariant = daily.variant && daily.variant.variantLabel ? daily.variant.variantLabel : daily.label;
-    label.textContent = `📡 Daily Signal ${daily.dateStr} — ${dailyPlanet}: ${dailyConcept} · ${dailyVariant}`;
+    const dailyFocus = daily.labContract && daily.labContract.title ? ` · Focus: ${daily.labContract.title}` : "";
+    label.textContent = `📡 Daily Signal ${daily.dateStr} — ${dailyPlanet}: ${dailyConcept} · ${dailyVariant}${dailyFocus}`;
     const frontier = this.getFrontierChallenge();
     if (frontierBtn) {
       frontierBtn.style.display = frontier ? 'inline-flex' : 'none';
       frontierBtn.textContent = frontier ? `◆ FRONTIER T${frontier.tier}` : '◆ FRONTIER';
-      frontierBtn.title = frontier ? `${frontier.concept || "Physics remix"} · ${frontier.labGoal || "3 Lab Stars"} · ${frontier.label} · ${frontier.shareCode}` : 'Complete the star-map to unlock Frontier Challenge';
+      const frontierFocus = frontier && frontier.labContract ? ` · Focus: ${frontier.labContract.title} · Try: ${frontier.labContract.command}` : "";
+      frontierBtn.title = frontier ? `${frontier.concept || "Physics remix"} · ${frontier.labGoal || "3 Lab Stars"} · ${frontier.label}${frontierFocus} · ${frontier.shareCode}` : 'Complete the star-map to unlock Frontier Challenge';
     }
     this.refreshFrontierRecordBanner(frontier);
     if (typeof updateStartMissionRadar === 'function') updateStartMissionRadar(this);
@@ -2612,11 +2618,15 @@ class StarHopperGame {
     }
 
     if (isFrontierRun) {
-      const frontier = this.getFrontierChallenge();
+      const frontier = (this.dailyInfo && this.dailyInfo.isFrontier) ? this.dailyInfo : this.getFrontierChallenge();
+      const focus = frontier && frontier.labContract ? frontier.labContract : null;
+      const command = focus && focus.command ? ` Try: ${String(focus.command).replace(/\s*\n\s*/g, " / ")}` : "";
       return {
         kicker: "NEXT FRONTIER CONTRACT",
-        title: frontier ? `Climb Frontier Tier ${frontier.tier}` : "Climb the frontier ladder",
-        body: "Use a seeded remix to prove the same science idea still works after the star-map is complete.",
+        title: focus ? focus.title : (frontier ? `Climb Frontier Tier ${frontier.tier}` : "Climb the frontier ladder"),
+        body: focus
+          ? `${focus.body}${command}`
+          : "Use a seeded remix to prove the same science idea still works after the star-map is complete.",
         reward: "Reward: world mastery XP + share code",
         action: "frontier",
         cta: "NEXT FRONTIER"
@@ -2638,10 +2648,14 @@ class StarHopperGame {
     }
 
     if (isDailyRun) {
+      const focus = this.dailyInfo && this.dailyInfo.labContract ? this.dailyInfo.labContract : null;
+      const command = focus && focus.command ? ` Try: ${String(focus.command).replace(/\s*\n\s*/g, " / ")}` : "";
       return {
         kicker: "NEXT RUN CONTRACT",
-        title: "Compare today's remix",
-        body: "Open the log, compare the remix with the original world, and write one observation.",
+        title: focus ? focus.title : "Compare today's remix",
+        body: focus
+          ? `${focus.body}${command}`
+          : "Open the log, compare the remix with the original world, and write one observation.",
         reward: "Reward: stronger lab record",
         action: "log",
         cta: "OPEN LOG"

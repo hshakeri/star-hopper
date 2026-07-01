@@ -420,6 +420,130 @@ function buildPlanetVariant(planet, planetIndex, attemptNumber) {
   };
 }
 
+function buildReplayLabContract(planet, planetIndex, variant = {}) {
+  const c = variant && variant.constraint ? variant.constraint : {};
+  const target = variant && variant.targetOverrides ? variant.targetOverrides : {};
+  const concept = planet && planet.tagline ? planet.tagline : "Physics remix";
+  const agility = Number.isFinite(target.agility) ? target.agility : 30;
+  const thrust = Number.isFinite(target.thrust) ? target.thrust : 46;
+  const springCount = Number.isFinite(c.springCount) ? c.springCount : 3;
+  const minFriction = Number.isFinite(c.minFriction) ? c.minFriction : 8;
+  const engineMin = Number.isFinite(c.engineMin) ? c.engineMin : 8;
+
+  const contract = (title, body, command) => ({
+    title,
+    body,
+    command,
+    concept,
+    labGoal: "3 Lab Stars: tasks + samples + proof"
+  });
+
+  if (c.id === "earth-no-antigravity") {
+    return contract(
+      "Agility without antigravity",
+      `Reach Agility ${agility}+ using force and mass levers only; compare why antigravity was not needed.`,
+      "use_hopper()\nhopper.mass = 1.2\nhopper.engine = 7\nhopper.jump_power = 18"
+    );
+  }
+  if (c.id === "earth-no-jump-power") {
+    return contract(
+      "Stock-jump agility",
+      `Keep jump power stock, then use antigravity, mass, and engine to reach Agility ${agility}+.`,
+      "use_hopper()\nantigravity = 4.9\nhopper.mass = 1.2\nhopper.engine = 7"
+    );
+  }
+  if (c.id === "earth-no-mass-cut") {
+    return contract(
+      "Force instead of lighter mass",
+      "Keep Hopper heavy and test whether stronger engine, jump force, and antigravity can replace a mass cut.",
+      "use_hopper()\nantigravity = 4.9\nhopper.mass = 2.5\nhopper.engine = 9\nhopper.jump_power = 22"
+    );
+  }
+  if (c.id === "earth-engine-only") {
+    return contract(
+      "Engine-only force lab",
+      `Change only hopper.engine to ${engineMin}+ and prove more force can raise speed without changing mass or jump.`,
+      `use_hopper()\nhopper.engine = ${engineMin}`
+    );
+  }
+  if (c.id === "moon-spring-budget" || c.id === "moon-strict-spring") {
+    return contract(
+      "Repeat-loop spring budget",
+      `Use one repeat loop to place ${springCount} springs, then compare the bounce chain with the old canyon route.`,
+      `player.jump_power = gravity * 10\nrepeat ${springCount}: spawn_spring()`
+    );
+  }
+  if (c.id === "jupiter-rocket-rule") {
+    return contract(
+      "Rocket event timing",
+      `Reach Thrust ${thrust}+ and add a when hopper.rocket_on rule so timed code changes the jump window.`,
+      "use_hopper()\nhopper.rocket_power = 75\nhopper.mass = 1.2\nwhen hopper.rocket_on: antigravity = 2"
+    );
+  }
+  if (c.id === "glacies-event-only") {
+    return contract(
+      "Ice contact event",
+      "Add an event rule that reacts when the rover touches ice, then compare grip before and after contact.",
+      "friction = 8\nwhen player.touching('ice'): player.say('grip check')"
+    );
+  }
+  if (c.id === "glacies-friction-target") {
+    return contract(
+      "Numeric friction target",
+      `Set friction = ${minFriction}+ and prove the slope changes because grip increased, not because spikes carried the run.`,
+      `friction = ${minFriction}`
+    );
+  }
+  if (c.id === "magnet-polarity-event") {
+    return contract(
+      "Magnet-touch polarity",
+      "Use one rocket event and one magnet-touch event so Hopper changes field behavior at the right moment.",
+      "use_hopper()\nwhen hopper.rocket_on: antigravity = 0.8\nwhen player.touching('magnet'): hopper.pole = 'south'"
+    );
+  }
+
+  if (planetIndex === 1) {
+    return contract(
+      "Loop-spring remix",
+      "Reuse a repeat loop in a changed canyon layout and compare how the same spring rule solves a new route.",
+      "player.jump_power = gravity * 10\nrepeat 3: spawn_spring()"
+    );
+  }
+  if (planetIndex === 2) {
+    return contract(
+      "Thrust remix",
+      `Tune rocket power, engine, and mass until Thrust reaches ${thrust}+ in the changed gravity route.`,
+      "use_hopper()\nhopper.rocket_power = 75\nhopper.mass = 1.2\nhopper.engine = 6"
+    );
+  }
+  if (planetIndex === 3) {
+    return contract(
+      "Friction remix",
+      "Raise grip, test the slope, then explain how friction changes sliding distance.",
+      "friction = 8"
+    );
+  }
+  if (planetIndex === 4) {
+    return contract(
+      "Event-field remix",
+      "Rebuild the rocket and magnet events, then compare how timing changes the field crossing.",
+      "use_hopper()\nwhen hopper.rocket_on: antigravity = 0.8\nwhen player.touching('magnet'): hopper.pole = 'south'"
+    );
+  }
+  if (planetIndex === 5) {
+    return contract(
+      "Momentum-then-bounce remix",
+      "First test mass for the shove, then add elasticity and compare how bouncy the later collisions feel.",
+      "use_hopper()\nhopper.mass = 4.0\nelasticity = 1.0"
+    );
+  }
+  return contract(
+    "Agility remix",
+    `Reach Agility ${agility}+ in a changed layout and explain which lever moved the result most.`,
+    "use_hopper()\nantigravity = 4.9\nhopper.mass = 1.2\nhopper.engine = 6\nhopper.jump_power = 18"
+  );
+}
+
 // ---- Daily Signal: one seeded remix per real-world day, same for everyone. ----
 // No servers needed: the date hashes to a seed, the seed picks a playable world and
 // an attempt number, and buildPlanetVariant does the rest. Deterministic, shareable.
@@ -455,6 +579,7 @@ function getDailySignal(planets, dateStr, maxPlanetIndex) {
     planetName: planet.name || "World",
     concept,
     labGoal: "3 Lab Stars: tasks + samples + proof",
+    labContract: buildReplayLabContract(planet, planetIndex, variant),
     shareCode: `${codeName}-${seed % 10000}`,
     label: `${planet.name} remix #${seed % 10000}: ${variant.variantLabel}`
   };
@@ -465,9 +590,10 @@ if (typeof window !== "undefined") {
   window.mulberry32 = mulberry32;
   window.cloneMap = cloneMap;
   window.buildPlanetVariant = buildPlanetVariant;
+  window.buildReplayLabContract = buildReplayLabContract;
   window.dateSeed = dateSeed;
   window.getDailySignal = getDailySignal;
 }
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { mulberry32, cloneMap, buildPlanetVariant, dateSeed, getDailySignal };
+  module.exports = { mulberry32, cloneMap, buildPlanetVariant, buildReplayLabContract, dateSeed, getDailySignal };
 }

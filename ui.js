@@ -2055,10 +2055,13 @@ function getActiveLabQuest(game) {
 
   const daily = game && typeof game.getDailySignal === 'function' ? game.getDailySignal() : null;
   if (daily) {
+    const focus = daily.labContract && daily.labContract.title
+      ? ` Focus: ${daily.labContract.title}.`
+      : "";
     return {
       kicker: "NEXT LAB QUEST",
       title: "Clear today's signal",
-      body: `${daily.concept || "A fresh science remix"} on ${daily.planetName || "today's world"} is ready for another experiment run.`,
+      body: `${daily.concept || "A fresh science remix"} on ${daily.planetName || "today's world"} is ready for another experiment run.${focus}`,
       reward: "Reward: daily clear + share code"
     };
   }

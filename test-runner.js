@@ -2419,6 +2419,27 @@ function runEngineTests() {
     assertEquals("Target: 9.2s", contract.reward, "Timing contract should set a reachable target");
     assertEquals("CHASE TIME", contract.cta, "Timing contract should invite a speed chase");
 
+    const replayFocus = buildReplayLabContract(PLANETS[3], 3, {
+      targetOverrides: {},
+      constraint: { id: "glacies-friction-target", minFriction: 8 }
+    });
+    game.dailyInfo = { labContract: replayFocus };
+    const dailyContract = game.getClearReplayContract({
+      labStars: {
+        stars: 3,
+        maxStars: 3,
+        checks: [
+          { id: "missions", label: "Mission tasks", earned: true },
+          { id: "gems", label: "Mission gems", earned: true },
+          { id: "science", label: "Science proof", earned: true }
+        ]
+      },
+      isDailyRun: true
+    });
+    assertEquals(replayFocus.title, dailyContract.title, "Daily clear contract should reuse the replay lab focus");
+    assertEquals(true, dailyContract.body.indexOf("friction = 8") >= 0, "Daily clear contract should include the focused command");
+
+    game.dailyInfo = { isFrontier: true, labContract: replayFocus };
     const frontierContract = game.getClearReplayContract({
       labStars: {
         stars: 3,
@@ -2431,6 +2452,8 @@ function runEngineTests() {
       },
       isFrontierRun: true
     });
+    assertEquals(replayFocus.title, frontierContract.title, "Frontier clear contract should reuse the replay lab focus when present");
+    assertEquals(true, frontierContract.body.indexOf("friction = 8") >= 0, "Frontier clear contract should include the focused command");
     assertEquals("frontier", frontierContract.action, "Frontier contract should start the next frontier run");
     assertEquals("NEXT FRONTIER", frontierContract.cta, "Frontier contract should label the frontier action");
 
@@ -4928,6 +4951,9 @@ function runRetryRemixTests() {
     assertEquals(true, a.variant.isRemix, "The daily is always a remix (attempt >= 1)");
     assertEquals(PLANETS[a.planetIndex].tagline, a.concept, "Daily Signal should carry the planet science concept");
     assertEquals("3 Lab Stars: tasks + samples + proof", a.labGoal, "Daily Signal should name the mastery goal");
+    assertEquals(true, !!a.labContract, "Daily Signal should carry a replay lab contract");
+    assertEquals(a.concept, a.labContract.concept, "Daily lab contract should preserve the science concept");
+    assertEquals(true, !!a.labContract.command, "Daily lab contract should include a stageable sample command");
     assertEquals(true, /^[A-Z]+-\d+$/.test(a.shareCode), "Share code format WORLD-NNNN: " + a.shareCode);
     assertEquals(true, dateSeed("2026-06-11") !== dateSeed("2026-06-12"), "Different dates should hash differently");
     renderTestResult(SUITE, "Daily Signal: deterministic per date, always a remix", true);
@@ -4963,6 +4989,9 @@ function runRetryRemixTests() {
     assertEquals(3, frontier.tier, "Average world mastery should set the frontier tier");
     assertEquals(PLANETS[frontier.planetIndex].tagline, frontier.concept, "Frontier challenge should carry the planet science concept");
     assertEquals("3 Lab Stars: tasks + samples + proof", frontier.labGoal, "Frontier challenge should name the mastery goal");
+    assertEquals(true, !!frontier.labContract, "Frontier challenge should carry a replay lab contract");
+    assertEquals(frontier.concept, frontier.labContract.concept, "Frontier lab contract should preserve the selected science concept");
+    assertEquals(true, !!frontier.labContract.command, "Frontier lab contract should include a sample experiment command");
     assertEquals(true, /^FRONTIER-[A-Z]+-\d{4}$/.test(frontier.shareCode), "Frontier share code should be explicit and padded");
     assertEquals(true, frontier.attempt >= 98, "Frontier should use attempts beyond the normal daily range");
     let startedIndex = null;
@@ -4981,6 +5010,8 @@ function runRetryRemixTests() {
       nextIndex: null
     });
     assertEquals("NEXT FRONTIER CONTRACT", contract.kicker, "Frontier clear should suggest another frontier climb");
+    assertEquals(frontier.labContract.title, contract.title, "Frontier clear contract should reuse the replay lab focus");
+    assertEquals(true, contract.body.indexOf(frontier.labContract.command.split("\n")[0]) >= 0, "Frontier clear contract should include the sample command");
     assertEquals(true, /world mastery XP/.test(contract.reward), "Frontier reward should name world mastery XP");
     renderTestResult(SUITE, "Frontier Challenge: unlocks after star-map completion", true);
   } catch (err) {
@@ -5058,11 +5089,14 @@ function runRetryRemixTests() {
     g.refreshDailySignalBanner();
     assertEquals(true, /Daily Signal/.test(els["daily-signal-label"].textContent), "Daily strip should render the daily challenge");
     assertEquals(true, els["daily-signal-label"].textContent.indexOf(bannerDaily.concept) >= 0, "Daily strip should name the science concept");
+    assertEquals(true, els["daily-signal-label"].textContent.indexOf(bannerDaily.labContract.title) >= 0, "Daily strip should name the replay lab focus");
     assertEquals("flex", els["frontier-record-banner"].style.display, "Frontier record banner should appear after star-map completion");
     assertEquals(true, /Today's frontier cleared/.test(els["frontier-record-label"].textContent), "Banner should show today's local clear");
     assertEquals(true, /Best T/.test(els["frontier-record-detail"].textContent), "Banner should show the local best tier");
     assertEquals(true, els["frontier-share-btn"].title.indexOf("FRONTIER-") >= 0, "Copy button should carry the share code");
     assertEquals(true, /3 Lab Stars/.test(els["frontier-signal-btn"].title), "Frontier button should name the lab-star goal");
+    assertEquals(true, els["frontier-signal-btn"].title.indexOf(frontier.labContract.title) >= 0, "Frontier button should name the replay lab focus");
+    assertEquals(true, els["frontier-signal-btn"].title.indexOf(frontier.labContract.command.split("\n")[0]) >= 0, "Frontier button should expose the sample command");
     assertEquals("grid", els["frontier-board"].style.display, "Frontier board should appear after star-map completion");
     assertEquals(true, /Grace/.test(els["frontier-board-list"].innerHTML), "Frontier board should render the leading imported pilot");
     assertEquals(true, /Beat Grace/.test(els["frontier-rival-copy"].textContent), "Frontier board should render a specific rival target");
