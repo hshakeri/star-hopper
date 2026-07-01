@@ -4435,6 +4435,8 @@ function captureScienceDeltaSnapshot(game) {
   if (!game) return null;
   const player = game.player || {};
   const stat = typeof game.getMissionStat === 'function' ? game.getMissionStat() : null;
+  const chanceStats = game.chanceTrialStats && typeof game.chanceTrialStats === 'object' ? game.chanceTrialStats : {};
+  const lastChance = game.lastChanceResult && typeof game.lastChanceResult === 'object' ? game.lastChanceResult : null;
   return {
     suit: player.charType || null,
     mass: typeof game.getActiveMass === 'function' ? game.getActiveMass() : (Number.isFinite(player.mass) ? player.mass : null),
@@ -4447,7 +4449,15 @@ function captureScienceDeltaSnapshot(game) {
     springs: scienceDeltaCount(game, 'spring') + scienceDeltaCount(game, 'trampoline'),
     boxes: game && Array.isArray(game.spawnedBoxes) ? game.spawnedBoxes.length : scienceDeltaCount(game, 'box'),
     gems: scienceDeltaCount(game, 'coin'),
-    rules: (typeof Compiler !== 'undefined' && Array.isArray(Compiler.activeRules)) ? Compiler.activeRules.length : 0
+    rules: (typeof Compiler !== 'undefined' && Array.isArray(Compiler.activeRules)) ? Compiler.activeRules.length : 0,
+    chanceTrials: Math.max(0, Math.floor(Number(chanceStats.trials) || 0)),
+    chancePasses: Math.max(0, Math.floor(Number(chanceStats.passes) || 0)),
+    chanceFails: Math.max(0, Math.floor(Number(chanceStats.fails) || 0)),
+    lastChance: lastChance ? {
+      percent: Number.isFinite(Number(lastChance.percent)) ? Number(lastChance.percent) : null,
+      roll: Number.isFinite(Number(lastChance.roll)) ? Number(lastChance.roll) : null,
+      passed: !!lastChance.passed
+    } : null
   };
 }
 
@@ -4515,6 +4525,23 @@ function buildScienceDelta(game, before, after, code) {
       });
     }
   });
+
+  const beforeChanceTrials = Math.max(0, Math.floor(Number(before.chanceTrials) || 0));
+  const afterChanceTrials = Math.max(0, Math.floor(Number(after.chanceTrials) || 0));
+  if (afterChanceTrials > beforeChanceTrials) {
+    const trials = afterChanceTrials - beforeChanceTrials;
+    const passes = Math.max(0, Math.floor(Number(after.chancePasses) || 0) - Math.floor(Number(before.chancePasses) || 0));
+    const observedRate = trials > 0 ? Math.round((passes / trials) * 100) : 0;
+    const targetPercent = after.lastChance && Number.isFinite(after.lastChance.percent)
+      ? formatScienceDeltaValue(after.lastChance.percent)
+      : "?";
+    changes.push({
+      label: "Probability",
+      value: `${passes}/${trials} passed (${observedRate}%)`,
+      direction: passes > 0 ? "up" : "same",
+      cue: `Target chance ${targetPercent}%. More trials reveal the pattern.`
+    });
+  }
 
   if (!changes.length) return null;
   const strongest = changes.find(change => /Agility|Thrust/.test(change.label)) || changes[0];

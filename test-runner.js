@@ -180,6 +180,8 @@ function runCompilerTests() {
     assertEquals("certain", sayMsg, "chance(100) should always pass and run the branch");
     assertEquals(100, mockGame.lastChanceResult && mockGame.lastChanceResult.percent, "Chance percent is clamped and recorded");
     assertEquals(true, mockGame.lastChanceResult && mockGame.lastChanceResult.passed, "chance(100) records a passed roll");
+    assertEquals(1, mockGame.chanceTrialStats && mockGame.chanceTrialStats.trials, "chance(100) records one trial");
+    assertEquals(1, mockGame.chanceTrialStats && mockGame.chanceTrialStats.passes, "chance(100) records one pass");
 
     sayMsg = "";
     res = Compiler.runCommand("if chance(0): player.say('never')", mockGame);
@@ -187,6 +189,9 @@ function runCompilerTests() {
     assertEquals("", sayMsg, "chance(0) should never execute the branch");
     assertEquals(0, mockGame.lastChanceResult && mockGame.lastChanceResult.percent, "chance(0) records the lower bound");
     assertEquals(false, mockGame.lastChanceResult && mockGame.lastChanceResult.passed, "chance(0) records a failed roll");
+    assertEquals(2, mockGame.chanceTrialStats && mockGame.chanceTrialStats.trials, "chance stats accumulate across runs");
+    assertEquals(1, mockGame.chanceTrialStats && mockGame.chanceTrialStats.fails, "chance(0) records one fail");
+    assertEquals(50, mockGame.lastChanceResult && mockGame.lastChanceResult.observedRate, "Observed rate summarizes all chance trials");
     assertEquals(true, Compiler.autocomplete.choices.includes("chance(50)"), "chance helper should be offered in autocomplete");
     renderTestResult("compiler-suite", "KidCode: chance(percent) branches and autocompletes", true);
   } catch (err) {
@@ -1996,7 +2001,7 @@ function runEngineTests() {
     const game = new StarHopperGame();
     game.currentPlanet = PLANETS[0];
     game.currentPlanetIndex = 0;
-    game.player = { charType: 'hopper', x: 64, y: 96, jumpPower: 10, rocketPower: 40, mass: 2.5, fuel: 100, w: 24, h: 32 };
+    game.player = { charType: 'hopper', x: 64, y: 96, jumpPower: 10, rocketPower: 40, mass: 2.5, fuel: 100, w: 24, h: 32, say: () => {} };
     game.hopper = game.player;
     game.hopperMass = 2.5;
     game.spawnedBoxes = [];
@@ -2031,6 +2036,20 @@ function runEngineTests() {
     assertEquals(true, /use_hopper\(\)/.test(nextCue.command), "Next experiment cue should include runnable scaffold code");
     assertEquals(true, /hopper\.engine = 6/.test(nextCue.command), "Next experiment cue should keep the mission's target syntax");
     assertEquals(nextCue, game.lastScienceDelta.nextExperiment, "Next experiment cue should be pinned to the latest delta");
+
+    const chanceBefore = captureScienceDeltaSnapshot(game);
+    const chanceRes = Compiler.runCommand("if chance(100): player.say('path A')", game);
+    const chanceDelta = recordScienceDelta(game, chanceBefore, captureScienceDeltaSnapshot(game), "if chance(100): player.say('path A')");
+    const chanceText = chanceDelta && chanceDelta.changes ? chanceDelta.changes.map(change => `${change.label} ${change.value} ${change.cue || ""}`).join(" ") : "";
+    assertEquals(true, chanceRes.success, chanceRes.msg);
+    assertEquals(true, !!chanceDelta, "Chance code should produce a probability science delta");
+    assertEquals("Probability changed", chanceDelta.summary, "Chance-only code should summarize the probability row");
+    assertEquals(1, game.chanceTrialStats && game.chanceTrialStats.trials, "Chance code stores one trial on the game");
+    assertEquals(1, game.chanceTrialStats && game.chanceTrialStats.passes, "chance(100) stores one pass on the game");
+    assertEquals(true, /Probability/.test(chanceText), "Chance delta should name probability as the changed evidence");
+    assertEquals(true, /1\/1 passed \(100%\)/.test(chanceText), "Chance delta should show observed pass rate");
+    assertEquals(true, /Target chance 100/.test(chanceText), "Chance delta should show the target probability");
+    assertEquals(true, /More trials reveal the pattern/.test(chanceText), "Chance delta should nudge repeated trials");
 
     const inputEl = {
       value: "",
@@ -3485,7 +3504,8 @@ function runEngineTests() {
     game.lastScienceDelta = {
       summary: "Agility changed",
       changes: [
-        { label: "Mass", value: "2.5 -> 1.2 (-1.3)", direction: "down", cue: "Less mass makes the same force accelerate more." }
+        { label: "Mass", value: "2.5 -> 1.2 (-1.3)", direction: "down", cue: "Less mass makes the same force accelerate more." },
+        { label: "Probability", value: "1/1 passed (100%)", direction: "up", cue: "Target chance 100%. More trials reveal the pattern." }
       ],
       nextExperiment: {
         title: "Agility 30+ reached",
@@ -3734,6 +3754,8 @@ function runEngineTests() {
     assertEquals(true, /WHAT CHANGED/.test(scienceDeltaText), "Science delta card should identify itself");
     assertEquals(true, /Mass/.test(scienceDeltaText), "Science delta should list changed values");
     assertEquals(true, /Less mass/.test(scienceDeltaText), "Science delta should include the science cue");
+    assertEquals(true, /Probability/.test(scienceDeltaText), "Science delta should render probability evidence");
+    assertEquals(true, /More trials reveal the pattern/.test(scienceDeltaText), "Science delta should explain repeated chance trials");
     assertEquals(true, /NEXT EXPERIMENT/.test(scienceDeltaText), "Science delta should show the next experiment cue");
     assertEquals(true, /Lower mass or raise engine/.test(scienceDeltaText), "Science delta should render the cue body");
     assertEquals(true, /hopper\.engine = 6/.test(scienceDeltaText), "Science delta should render the runnable next command");

@@ -990,10 +990,24 @@ const runtimeContext = {
       const roll = Math.random() * 100;
       const passed = roll < p;
       if (game) {
+        const stats = game.chanceTrialStats && typeof game.chanceTrialStats === 'object'
+          ? game.chanceTrialStats
+          : { trials: 0, passes: 0, fails: 0 };
+        stats.trials = Math.max(0, Math.floor(Number(stats.trials) || 0)) + 1;
+        stats.passes = Math.max(0, Math.floor(Number(stats.passes) || 0)) + (passed ? 1 : 0);
+        stats.fails = Math.max(0, Math.floor(Number(stats.fails) || 0)) + (passed ? 0 : 1);
+        stats.lastPercent = p;
+        stats.lastRoll = Math.round(roll * 100) / 100;
+        stats.lastPassed = passed;
+        game.chanceTrialStats = stats;
         game.lastChanceResult = {
           percent: p,
           roll: Math.round(roll * 100) / 100,
-          passed
+          passed,
+          trial: stats.trials,
+          passes: stats.passes,
+          fails: stats.fails,
+          observedRate: stats.trials > 0 ? Math.round((stats.passes / stats.trials) * 100) : 0
         };
       }
       return passed;
