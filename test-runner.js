@@ -6467,6 +6467,36 @@ function runRetryRemixTests() {
     assertEquals(null, g.grantFrontierRivalProof(beatenResult), "Repeating the same rival proof should not farm XP");
     assertEquals(10, g.researchXP, "Repeated rival proof should not add Research XP");
     assertEquals(null, g.grantFrontierRivalProof(matchedResult), "A lower matched proof should not pay after the same rival was beaten");
+
+    const ladderPanel = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };
+    document.getElementById = (id) => id === "discovery-pulse" ? ladderPanel : null;
+    const ladderGame = new StarHopperGame();
+    ladderGame.currentPlanet = PLANETS[0];
+    ladderGame.currentPlanetIndex = 0;
+    ladderGame.masteryMeters = {};
+    ladderGame.player = { x: 90, y: 90, w: 24, h: 32 };
+    ladderGame.discoveryPassCounts = {
+      "frontier-rival:beaten:first:ada:t1:s3:time420": 1,
+      "frontier-rival:matched:second:ben:t2:s3:time390": 1
+    };
+    const ladderResult = {
+      state: "beaten",
+      label: "RIVAL BEATEN: Grace",
+      body: "Your 3/3 Lab Stars reached the class target from Grace. Share your updated Frontier line.",
+      monitorText: "RIVAL BEATEN: Grace · 3/3 · 34.0s",
+      local: { ...beatenResult.local },
+      entry: { ...beatenResult.entry, shareCode: "FRONTIER-EARTH-3333", tier: frontier.tier, pilot: "Grace" },
+      shareCode: "FRONTIER-EARTH-3333"
+    };
+    const ladderProof = ladderGame.grantFrontierRivalProof(ladderResult);
+    assertEquals("RIVAL LADDER", ladderProof && ladderProof.frontierRivalMilestone && ladderProof.frontierRivalMilestone.label, "Third unique rival proof should unlock the Rival Ladder milestone");
+    assertEquals(17, ladderGame.researchXP, "Rival Ladder should add milestone XP on top of the scaled rival proof");
+    assertEquals(26, ladderGame.getWorldMasteryProgress(0).xp, "Rival Ladder should add milestone world mastery on top of the proof");
+    assertEquals(1, ladderGame.discoveryPassCounts[ladderGame.getFrontierRivalMilestoneSourceKey(3)], "Rival Ladder milestone should store a one-time source");
+    assertEquals(true, /RIVAL LADDER \+7 XP/.test(ladderPanel.innerHTML), "Discovery pulse should render the Rival Ladder chip");
+    assertEquals(true, shareLabels.includes("RIVAL LADDER!"), "Rival Ladder should create an in-world milestone pop");
+    assertEquals(null, ladderGame.grantFrontierRivalMilestone(ladderGame.discoveryPulse, ladderProof), "Rival Ladder milestone should not repeat");
+
     const rivalEffect = g.spawnFrontierRivalClearEffect(beatenResult);
     assertEquals("RIVAL BEATEN!", rivalEffect.label, "Beating a rival should create an in-level payoff cue");
     assertEquals("FRONTIER CRT", g.missionBalloon && g.missionBalloon.title, "Rival payoff should write to the mission CRT");

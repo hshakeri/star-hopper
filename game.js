@@ -45,6 +45,28 @@ const DISCOVERY_COMBO_MILESTONES = [
     body: "Five fresh experiments shows a real lab habit: change one thing, measure, then improve."
   }
 ];
+const FRONTIER_RIVAL_MILESTONES = [
+  {
+    proofs: 3,
+    label: "RIVAL LADDER",
+    pop: "RIVAL LADDER!",
+    title: "Frontier Rival Ladder",
+    rewardXP: 7,
+    masteryXP: 10,
+    color: "#facc15",
+    body: "Three unique class targets prove the cadet can compare fair evidence across same-seed Frontier runs."
+  },
+  {
+    proofs: 6,
+    label: "CLASS LEADER",
+    pop: "CLASS LEADER!",
+    title: "Class Frontier Leader",
+    rewardXP: 12,
+    masteryXP: 16,
+    color: "#67e8f9",
+    body: "Six rival proofs show a repeatable lab habit: same rules, better data, clearer explanation."
+  }
+];
 
 function dateSeedFallback(value) {
   const s = String(value || "");
@@ -1530,6 +1552,97 @@ class StarHopperGame {
     };
   }
 
+  getFrontierRivalMilestoneSourceKey(proofCount) {
+    const count = Math.max(1, Math.floor(Number(proofCount) || 1));
+    return `frontier-rival-ladder:${count}`;
+  }
+
+  getFrontierRivalProofCount() {
+    const counts = this.discoveryPassCounts && typeof this.discoveryPassCounts === 'object'
+      ? this.discoveryPassCounts
+      : {};
+    return Object.keys(counts).filter(key => /^frontier-rival:(beaten|matched):/.test(key) && counts[key]).length;
+  }
+
+  getNextFrontierRivalMilestone(proofCount = this.getFrontierRivalProofCount()) {
+    const count = Math.max(0, Math.floor(Number(proofCount) || 0));
+    this.discoveryPassCounts = this.discoveryPassCounts || {};
+    return FRONTIER_RIVAL_MILESTONES.find(milestone =>
+      milestone && count >= milestone.proofs && !this.discoveryPassCounts[this.getFrontierRivalMilestoneSourceKey(milestone.proofs)]
+    ) || null;
+  }
+
+  grantFrontierRivalMilestone(pulse = null, proof = null) {
+    this.discoveryPassCounts = this.discoveryPassCounts || {};
+    const proofCount = this.getFrontierRivalProofCount();
+    const milestone = this.getNextFrontierRivalMilestone(proofCount);
+    if (!milestone) return null;
+
+    const sourceKey = this.getFrontierRivalMilestoneSourceKey(milestone.proofs);
+    const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+    const mastery = typeof this.awardWorldMasteryXP === 'function'
+      ? this.awardWorldMasteryXP(milestone.masteryXP, "frontier rival ladder", { sourceKey, silent: true })
+      : { addedXP: 0, duplicate: false };
+    if (mastery && mastery.duplicate) {
+      this.discoveryPassCounts[sourceKey] = 1;
+      return null;
+    }
+
+    this.discoveryPassCounts[sourceKey] = 1;
+    this.researchXP = Math.max(0, (this.researchXP || 0) + milestone.rewardXP);
+    const afterRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+    const rankUp = !!(beforeRank && afterRank && afterRank.level > beforeRank.level);
+    const result = {
+      label: milestone.label,
+      title: milestone.title,
+      rewardXP: milestone.rewardXP,
+      worldMasteryAddedXP: mastery && Number.isFinite(mastery.addedXP) ? mastery.addedXP : 0,
+      sourceKey,
+      proofCount,
+      milestoneProofs: milestone.proofs,
+      body: milestone.body
+    };
+
+    if (pulse) {
+      pulse.frontierRivalMilestone = result;
+      pulse.rewardXP = Math.max(0, (pulse.rewardXP || 0) + milestone.rewardXP);
+      pulse.worldMasteryAddedXP = Math.max(0, (pulse.worldMasteryAddedXP || 0) + result.worldMasteryAddedXP);
+      pulse.insight = `${pulse.insight} ${milestone.body}`;
+      if (rankUp) {
+        pulse.rankUp = true;
+        pulse.rankTitle = afterRank ? afterRank.title : null;
+        pulse.rankPerk = afterRank ? afterRank.perk : null;
+      }
+    }
+    if (proof) proof.frontierRivalMilestone = result;
+
+    if (typeof ui_log_output === 'function') {
+      const masteryText = result.worldMasteryAddedXP > 0 ? `, +${result.worldMasteryAddedXP} world mastery XP` : "";
+      ui_log_output(`${milestone.title}: +${milestone.rewardXP} Research XP${masteryText}.`, "success");
+    }
+    if (this.player && typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+      const px = (Number.isFinite(this.player.x) ? this.player.x : 0) + (this.player.w || 24) / 2;
+      const py = Number.isFinite(this.player.y) ? this.player.y : 0;
+      ComicBubbles.pop(px, py - 74, milestone.pop, milestone.color, 1.0);
+      ComicBubbles.pop(px, py - 55, `${proofCount} RIVAL PROOFS`, "#a7f3d0", 0.72);
+      if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+        Particles.spawnBurst(px, py - 8, milestone.color, 16, 2.4, 2.2, "glow");
+        Particles.spawnBurst(px, py - 8, "#a7f3d0", 10, 1.8, 1.7, "glow");
+      }
+    }
+    if (rankUp && typeof showBadgeToast === 'function' && afterRank) {
+      showBadgeToast({
+        icon: "FR",
+        label: `Research Rank: ${afterRank.title}`,
+        description: `${milestone.title} unlocked ${afterRank.perk.label}.`
+      });
+    }
+    if (rankUp && pulse && typeof this.spawnResearchRankEffect === 'function') {
+      pulse.rankEffect = this.spawnResearchRankEffect(pulse);
+    }
+    return result;
+  }
+
   grantFrontierRivalProof(result) {
     if (!result || (result.state !== "beaten" && result.state !== "matched")) return null;
     this.discoveryPassCounts = this.discoveryPassCounts || {};
@@ -1600,8 +1713,15 @@ class StarHopperGame {
       rankPerk: rankUp && afterRank ? afterRank.perk : null,
       frontierRivalProof: proof
     };
-    if (afterRank && typeof getResearchUnlockPreview === 'function') {
-      pulse.nextLabUnlock = getResearchUnlockPreview(afterRank);
+    const rivalMilestone = this.grantFrontierRivalMilestone(pulse, proof);
+    if (rivalMilestone) {
+      result.rivalMilestone = rivalMilestone;
+      result.monitorText = `${result.monitorText} · ${rivalMilestone.label} +${rivalMilestone.rewardXP} XP`;
+      result.body = `${result.body} ${rivalMilestone.title}: ${rivalMilestone.body}`;
+    }
+    const previewRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : afterRank;
+    if (previewRank && typeof getResearchUnlockPreview === 'function') {
+      pulse.nextLabUnlock = getResearchUnlockPreview(previewRank);
     }
     this.discoveryPulse = pulse;
     this.discoveryLog = [pulse].concat(Array.isArray(this.discoveryLog) ? this.discoveryLog : []).slice(0, 8);

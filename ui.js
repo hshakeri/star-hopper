@@ -3910,6 +3910,9 @@ function updateDiscoveryPulse(game) {
   const frontierRivalProof = pulse.frontierRivalProof
     ? `<div class="discovery-hypothesis discovery-signal-lab">${escapeHTML(pulse.frontierRivalProof.label || "RIVAL PROOF")} +${escapeHTML(String(pulse.frontierRivalProof.rewardXP || 0))} XP · T${escapeHTML(String(pulse.frontierRivalProof.tier || 1))} · ${escapeHTML(pulse.frontierRivalProof.pilot || "classmate")}</div>`
     : "";
+  const frontierRivalMilestone = pulse.frontierRivalMilestone
+    ? `<div class="discovery-hypothesis discovery-combo-boost">${escapeHTML(pulse.frontierRivalMilestone.label || "RIVAL LADDER")} +${escapeHTML(String(pulse.frontierRivalMilestone.rewardXP || 0))} XP · ${escapeHTML(String(pulse.frontierRivalMilestone.proofCount || 0))} proofs</div>`
+    : "";
   const villageTrust = pulse.villageTrust
     ? `<div class="discovery-hypothesis discovery-village-trust">${escapeHTML(pulse.villageTrust.label || "TRUST")} +${escapeHTML(String(pulse.villageTrust.added || 0))} · ${escapeHTML(pulse.villageTrust.title || "Village Trust")} (${escapeHTML(String(pulse.villageTrust.points || 0))})</div>`
     : "";
@@ -3949,6 +3952,7 @@ function updateDiscoveryPulse(game) {
     ${villageTradeProof}
     ${petProof}
     ${frontierRivalProof}
+    ${frontierRivalMilestone}
     ${villageTrust}
     ${villagePact}
     ${rankPerk}
