@@ -78,6 +78,7 @@ function updateNotebook(game) {
     researchEl.textContent = `${Math.round(game.researchXP || 0)} XP`;
   }
   updateResearchProgress(game);
+  updateSciencePassport(game);
 
   // Render Mini Energy Bars
   const maxKE = 100;
@@ -690,6 +691,99 @@ function updateLearningConceptProgress(game = window.Game) {
   });
 }
 
+function getPassportWorlds() {
+  if (typeof PLANETS === 'undefined' || !Array.isArray(PLANETS)) return [];
+  return PLANETS
+    .map((planet, index) => ({ planet, index }))
+    .filter(({ planet }) => planet && Array.isArray(planet.missions) && planet.missions.length > 0);
+}
+
+function isPassportWorldStamped(game, index) {
+  if (!game) return false;
+  if (typeof isWorldCleared === 'function' && isWorldCleared(game, index)) return true;
+  const clears = game.planetClears || {};
+  return Number(clears[index] || clears[String(index)] || 0) > 0;
+}
+
+function getPassportMission(planet) {
+  if (!planet || !Array.isArray(planet.missions) || !planet.missions.length) return null;
+  const mission = planet.missions[0];
+  return mission.fullMission || mission;
+}
+
+function getPassportConcept(mission, planet) {
+  if (!mission && !planet) return "Future science lesson";
+  return (mission && (mission.concept || mission.beginnerConcept || mission.codingConcept))
+    || (planet && planet.tagline)
+    || "Science and coding";
+}
+
+function getPassportCodeCue(mission) {
+  if (!mission) return "Run one focused experiment";
+  if (mission.scaffold && mission.scaffold.codeIdea) return mission.scaffold.codeIdea;
+  if (mission.starterCode) return mission.starterCode.split("\n")[0];
+  return "Run one focused experiment";
+}
+
+function updateSciencePassport(game = window.Game) {
+  const panel = document.getElementById("science-passport-panel");
+  if (!panel) return;
+  const worlds = getPassportWorlds();
+  if (!worlds.length) {
+    panel.innerHTML = `<div class="science-passport-empty">Passport stamps load after the mission map is ready.</div>`;
+    return;
+  }
+
+  const stamped = worlds.filter(({ index }) => isPassportWorldStamped(game, index));
+  const nextWorld = worlds.find(({ index }) => !isPassportWorldStamped(game, index));
+  const currentIndex = game && Number.isFinite(Number(game.currentPlanetIndex)) ? Number(game.currentPlanetIndex) : 0;
+  const nextMission = nextWorld ? getPassportMission(nextWorld.planet) : null;
+  const nextConcept = nextWorld ? getPassportConcept(nextMission, nextWorld.planet) : "Mastery remixes";
+  const summary = nextWorld
+    ? `Next stamp: ${nextWorld.planet.name} - ${nextConcept}`
+    : "Passport complete - chase mastery remixes, Daily Signals, and Frontier records.";
+
+  panel.innerHTML = `
+    <div class="science-passport-head">
+      <div>
+        <span>CADET SCIENCE PASSPORT</span>
+        <strong>${stamped.length}/${worlds.length} planet stamps</strong>
+      </div>
+      <em>${escapeHTML(summary)}</em>
+    </div>
+    <div class="science-passport-grid">
+      ${worlds.map(({ planet, index }) => {
+        const mission = getPassportMission(planet);
+        const stampedWorld = isPassportWorldStamped(game, index);
+        const priorStamped = index === 0 || isPassportWorldStamped(game, index - 1);
+        const active = !stampedWorld && index === currentIndex;
+        const locked = !stampedWorld && !active && !priorStamped;
+        const bestStars = game && game.bestLabStars ? Number(game.bestLabStars[index] || game.bestLabStars[String(index)] || 0) : 0;
+        const mastery = game && typeof game.getWorldMasteryProgress === 'function'
+          ? game.getWorldMasteryProgress(index)
+          : null;
+        const state = stampedWorld ? "STAMPED" : (active ? "NOW" : (locked ? "LOCKED" : "NEXT"));
+        const concept = getPassportConcept(mission, planet);
+        const codeCue = getPassportCodeCue(mission);
+        const icon = mission && mission.badge && mission.badge.icon ? mission.badge.icon : String(index + 1).padStart(2, "0");
+        const masteryText = mastery ? `${mastery.title} · ${mastery.xp} XP` : "World mastery pending";
+        const starsText = stampedWorld ? `${Math.max(1, bestStars)}/3 Lab Stars` : "Clear for stamp";
+        return `
+        <div class="science-passport-stamp ${stampedWorld ? "stamped" : ""} ${active ? "active" : ""} ${locked ? "locked" : ""}">
+          <span class="science-passport-icon">${escapeHTML(icon)}</span>
+          <div>
+            <span class="science-passport-state">${escapeHTML(state)}</span>
+            <strong>${escapeHTML(planet.name)}</strong>
+            <p>${escapeHTML(concept)}</p>
+            <code>${escapeHTML(codeCue)}</code>
+            <em>${escapeHTML(`${starsText} · ${masteryText}`)}</em>
+          </div>
+        </div>`;
+      }).join("")}
+    </div>
+  `;
+}
+
 function updateBadgeShelf(game = window.Game) {
   const list = document.getElementById("badge-shelf-list");
   if (!list || typeof PlatformerMissions === 'undefined') return;
@@ -829,6 +923,9 @@ function switchMainMode(mode) {
   }
   if (typeof updateLearningConceptProgress === 'function' && window.Game) {
     updateLearningConceptProgress(window.Game);
+  }
+  if (typeof updateSciencePassport === 'function' && window.Game) {
+    updateSciencePassport(window.Game);
   }
   if (typeof updateBadgeShelf === 'function' && window.Game) {
     updateBadgeShelf(window.Game);

@@ -1456,6 +1456,41 @@ function runEngineTests() {
     renderTestResult("engine-suite", "Curriculum: badge shelf previews locked goals", false, err.message);
   }
 
+  // Test 22a1: Science Passport turns cleared worlds into lesson stamps with the next concept visible.
+  const oldGetElementById22passport = document.getElementById;
+  try {
+    const panel = { innerHTML: "" };
+    document.getElementById = (id) => id === "science-passport-panel" ? panel : null;
+    const game = new StarHopperGame();
+    game.currentPlanetIndex = 2;
+    game.currentPlanet = PLANETS[2];
+    game.planetClears = { 0: 1, 1: 1 };
+    game.bestLabStars = { 0: 3, 1: 2 };
+    game.masteryMeters = {
+      0: { xp: 80, badges: ["scout"], sources: { stars: 30 } },
+      1: { xp: 20, badges: [], sources: { clear: 20 } }
+    };
+
+    updateSciencePassport(game);
+    const totalPassportWorlds = getPassportWorlds().length;
+    assertEquals(true, new RegExp(`2\\/${totalPassportWorlds} planet stamps`).test(panel.innerHTML), "Passport should summarize earned planet stamps");
+    assertEquals(true, /Next stamp: Jupiter/.test(panel.innerHTML), "Passport should name the next uncleared world");
+    assertEquals(true, /CADET SCIENCE PASSPORT/.test(panel.innerHTML), "Passport should render a cadet passport header");
+    assertEquals(true, /Earth \(Base Camp\)/.test(panel.innerHTML), "Passport should include the first stamped planet");
+    assertEquals(true, /STAMPED/.test(panel.innerHTML), "Cleared worlds should become stamped entries");
+    assertEquals(true, /3\/3 Lab Stars/.test(panel.innerHTML), "Stamped worlds should show best lab-star quality");
+    assertEquals(true, /Signal Scout · 80 XP/.test(panel.innerHTML), "Stamped worlds should show world mastery depth");
+    assertEquals(true, /Jupiter \(Gas Giant Core\)/.test(panel.innerHTML), "Passport should include the active next planet");
+    assertEquals(true, /NOW/.test(panel.innerHTML), "Current uncleared world should be marked as the active passport target");
+    assertEquals(true, /Mass resists acceleration/.test(panel.innerHTML), "Passport should show the next science concept");
+    assertEquals(true, /Activate and tune Hopper/.test(panel.innerHTML), "Passport should show a concrete code cue for the next stamp");
+    document.getElementById = oldGetElementById22passport;
+    renderTestResult("engine-suite", "Curriculum: Science Passport shows planet lesson stamps", true);
+  } catch (err) {
+    document.getElementById = oldGetElementById22passport;
+    renderTestResult("engine-suite", "Curriculum: Science Passport shows planet lesson stamps", false, err.message);
+  }
+
   // Test 22a2: Scientist Certificate unlock path is visible before it is earned.
   const oldGetElementById22cert = document.getElementById;
   const oldWindowGame22cert = window.Game;
