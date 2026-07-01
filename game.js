@@ -4797,6 +4797,117 @@ class StarHopperGame {
     return this.lastTradeRewardEffect;
   }
 
+  getVillageTradeProofSourceKey(npc, trade, index = this.currentPlanetIndex) {
+    const planetKey = Number.isFinite(index) ? index : 0;
+    const npcKey = npc && npc.id ? String(npc.id).replace(/[^a-z0-9_-]/gi, "-").toLowerCase() : "villager";
+    const tradeKey = trade && trade.id ? String(trade.id).replace(/[^a-z0-9_-]/gi, "-").toLowerCase() : "trade";
+    return `village-trade:${planetKey}:${npcKey}:${tradeKey}`;
+  }
+
+  grantVillageTradeProof(npc, trade) {
+    if (!npc || !trade) return null;
+    const sourceKey = this.getVillageTradeProofSourceKey(npc, trade);
+    this.discoveryPassCounts = this.discoveryPassCounts || {};
+    if (this.discoveryPassCounts[sourceKey]) return null;
+
+    const reward = trade.reward || {};
+    const rewardType = reward.type || "upgrade";
+    const rewardXP = rewardType === "planet" ? 5 : 4;
+    const masteryXP = rewardType === "planet" ? 12 : 8;
+    const cost = trade.cost || {};
+    const costAmount = Math.max(0, Math.floor(Number(cost.amount) || 0));
+    const costType = String(cost.type || "gem").replace(/_/g, " ");
+    const rewardLabel = rewardType === "cap"
+      ? `${String(reward.key || "stat").replace(/_/g, " ")} upgrade`
+      : (reward.label || reward.key || (rewardType === "planet" ? "map route" : "tool"));
+    const label = rewardType === "planet" ? "MAP PACT" : (rewardType === "tool" ? "TOOL PACT" : "TRADE PACT");
+    const mastery = typeof this.awardWorldMasteryXP === 'function'
+      ? this.awardWorldMasteryXP(masteryXP, "village trade proof", { sourceKey, silent: true })
+      : { addedXP: 0, duplicate: false };
+    if (mastery && mastery.duplicate) {
+      this.discoveryPassCounts[sourceKey] = 1;
+      return null;
+    }
+
+    const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+    this.discoveryPassCounts[sourceKey] = 1;
+    this.researchXP = Math.max(0, (this.researchXP || 0) + rewardXP);
+    const afterRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+    const rankUp = !!(beforeRank && afterRank && afterRank.level > beforeRank.level);
+    const villagerName = npc.name || "A villager";
+    const planetName = this.currentPlanet && this.currentPlanet.name ? this.currentPlanet.name : "Village";
+    const pulse = {
+      kind: "village-trade",
+      title: "Village Trade Proof",
+      formula: "samples -> trade -> tool",
+      insight: `${villagerName} turned ${costAmount} ${costType} sample${costAmount === 1 ? "" : "s"} into ${rewardLabel}. That is resource flow: collect evidence, spend it, unlock a new engineering option.`,
+      cue: "Use the new upgrade in a replay, Daily Signal, or survival rescue.",
+      missionId: sourceKey,
+      missionTitle: planetName,
+      passed: 1,
+      total: 1,
+      progressLabel: trade.desc || rewardLabel,
+      openedGems: 0,
+      rewardXP,
+      combo: this.discoveryCombo || 0,
+      rankUp,
+      rankTitle: afterRank ? afterRank.title : null,
+      rankPerk: rankUp && afterRank ? afterRank.perk : null,
+      worldMasteryAddedXP: mastery && Number.isFinite(mastery.addedXP) ? mastery.addedXP : 0,
+      sourceKey,
+      villageTradeProof: {
+        label,
+        rewardXP,
+        sourceKey,
+        tradeId: trade.id || "",
+        npcId: npc.id || "",
+        rewardType
+      }
+    };
+    this.discoveryPulse = pulse;
+    this.discoveryLog = [pulse].concat(Array.isArray(this.discoveryLog) ? this.discoveryLog : []).slice(0, 8);
+
+    if (typeof ui_log_output === 'function') {
+      ui_log_output(`${label}: +${rewardXP} Research XP, +${pulse.worldMasteryAddedXP} world mastery XP.`, "success");
+    }
+    if (typeof logMissionBriefing === 'function') {
+      logMissionBriefing(`${pulse.title}: ${pulse.insight}`);
+    }
+    if (this.player && typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+      const px = this.player.x + this.player.w / 2;
+      const py = this.player.y;
+      ComicBubbles.pop(px, py - 44, label, npc.color || "#4ade80", 0.9);
+      ComicBubbles.pop(px, py - 25, `+${rewardXP} LAB XP`, "#a7f3d0", 0.72);
+    }
+    if (this.player && typeof Particles !== 'undefined' && Particles.spawnBurst) {
+      const px = this.player.x + this.player.w / 2;
+      const py = this.player.y + this.player.h / 2;
+      Particles.spawnBurst(px, py, npc.color || "#4ade80", 12, 2.1, 2.1, "glow");
+      Particles.spawnBurst(px, py, "#a7f3d0", 8, 1.6, 1.7, "glow");
+    }
+    if (rankUp && typeof showBadgeToast === 'function') {
+      showBadgeToast({
+        icon: "V",
+        label: `Research Rank: ${afterRank.title}`,
+        description: `Village trade unlocked ${afterRank.perk.label}.`
+      });
+    }
+    if (rankUp && typeof this.spawnResearchRankEffect === 'function') {
+      pulse.rankEffect = this.spawnResearchRankEffect(pulse);
+    }
+    if (typeof this.showMissionBalloon === 'function') {
+      this.showMissionBalloon(`${label}: +${rewardXP} Research XP`, {
+        title: "VILLAGE LAB",
+        color: npc.color || "#4ade80",
+        timer: 230
+      });
+    }
+    if (typeof updateDiscoveryPulse === 'function') updateDiscoveryPulse(this);
+    if (typeof updateResearchProgress === 'function') updateResearchProgress(this);
+    if (typeof saveLocalProgress === 'function' && typeof window !== 'undefined' && window.Game === this) saveLocalProgress();
+    return pulse;
+  }
+
   // Grant experience: fills the per-world mastery meter (persisted) and levels the blaster
   // at thresholds, so fighting woken mobs makes your gun stronger.
   addXP(n) {

@@ -5262,6 +5262,9 @@ function runCombatTests() {
     g.gemsWallet = { emerald: 5, quartz: 0, amber: 0, ice: 0, flux: 0 };
     g.purchasedTrades = new Set();
     g.upgradeCapBonuses = { engine: 0, jump: 0, rocket: 0, mass: 0, antigravity: 0 };
+    g.researchXP = 0;
+    g.masteryMeters = {};
+    g.discoveryPassCounts = {};
     const npc = { id: 'geary', name: 'Geary', profession: 'Machinist', color: '#fff', dialogue: ['hi'],
       trades: [
         { id: 'engine_1', cost: { type: 'emerald', amount: 1 }, desc: 'Reinforce Engine', reward: { type: 'cap', key: 'engine', amount: 3 } },
@@ -5280,6 +5283,16 @@ function runCombatTests() {
     assertEquals("CAP UP!", g.lastTradeRewardEffect.label, "Cap trade should create an in-level reward cue");
     assertEquals("ENGINE +3", g.lastTradeRewardEffect.detail, "Cap trade cue should name the upgraded stat");
     assertEquals(true, bubbleLabelsC24.some(label => /CAP UP!/.test(label)), "Cap trade should pop a named reward cue");
+    assertEquals(4, g.researchXP, "First village trade should award Research XP");
+    assertEquals(8, g.getWorldMasteryProgress(0).xp, "First village trade should add world mastery XP");
+    assertEquals("Village Trade Proof", g.discoveryPulse && g.discoveryPulse.title, "Village trade should create a discovery pulse");
+    assertEquals("TRADE PACT", g.discoveryPulse && g.discoveryPulse.villageTradeProof && g.discoveryPulse.villageTradeProof.label, "Cap trade should expose a trade proof chip");
+    assertEquals("VILLAGE LAB", g.missionBalloon && g.missionBalloon.title, "Trade proof should use the mission monitor");
+    assertEquals("TRADE PACT: +4 Research XP", g.missionBalloon && g.missionBalloon.text, "Trade proof should announce the XP payoff");
+    const tradeProofKey = g.getVillageTradeProofSourceKey(npc, npc.trades[0]);
+    assertEquals(1, g.discoveryPassCounts[tradeProofKey], "Trade proof stores its one-time source key");
+    assertEquals(null, g.grantVillageTradeProof(npc, npc.trades[0]), "Repeating the same trade proof is blocked");
+    assertEquals(4, g.researchXP, "Repeated trade proof does not farm Research XP");
     request = getVillageTradeRequest(g, npc);
     assertEquals("VILLAGE REQUEST", request.kicker, "After a purchase, request should move to the next unpurchased offer");
     assertEquals(95, request.missing, "Trade request should state the remaining gem gap");

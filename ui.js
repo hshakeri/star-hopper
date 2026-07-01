@@ -3163,6 +3163,9 @@ function updateDiscoveryPulse(game) {
   const drillProof = pulse.drillProof
     ? `<div class="discovery-hypothesis discovery-signal-lab">${escapeHTML(pulse.drillProof.label)} +${escapeHTML(String(pulse.drillProof.rewardXP || 0))} XP</div>`
     : "";
+  const villageTradeProof = pulse.villageTradeProof
+    ? `<div class="discovery-hypothesis discovery-signal-lab">${escapeHTML(pulse.villageTradeProof.label)} +${escapeHTML(String(pulse.villageTradeProof.rewardXP || 0))} XP</div>`
+    : "";
   const rankPerk = pulse.rankPerk
     ? `<div class="discovery-hypothesis discovery-perk">LAB PERK UNLOCKED: ${escapeHTML(pulse.rankPerk.label)}</div>`
     : "";
@@ -3189,6 +3192,7 @@ function updateDiscoveryPulse(game) {
     ${signalLabProof}
     ${anomalyTraceProof}
     ${drillProof}
+    ${villageTradeProof}
     ${rankPerk}
     ${unlockCard}
     <div class="discovery-pulse-body">${escapeHTML(pulse.insight)}</div>
@@ -5033,6 +5037,9 @@ function executeNPCTrade(npcId, tradeId) {
   const rewardEffect = typeof window.Game.spawnTradeRewardEffect === 'function'
     ? window.Game.spawnTradeRewardEffect(npc, trade)
     : null;
+  if (typeof window.Game.grantVillageTradeProof === 'function') {
+    window.Game.grantVillageTradeProof(npc, trade);
+  }
 
   // Older game objects fall back to the generic starburst above the player.
   if (!rewardEffect && window.Game.player && typeof Particles !== 'undefined') {
