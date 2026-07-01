@@ -8388,7 +8388,20 @@ function runRetryRemixTests() {
     const panel = { classList: { add: () => {}, remove: () => {} }, innerHTML: "" };
     const banner = { style: {} };
     const count = { textContent: "" };
-    const reward = { textContent: "" };
+    const rewardClasses = new Set();
+    const reward = {
+      textContent: "",
+      title: "",
+      classList: {
+        toggle(cls, active) {
+          if (active) rewardClasses.add(cls);
+          else rewardClasses.delete(cls);
+        },
+        remove(...classes) {
+          classes.forEach(cls => rewardClasses.delete(cls));
+        }
+      }
+    };
     const focus = { textContent: "" };
     const code = { textContent: "", title: "", style: {} };
     const action = { textContent: "", title: "", dataset: {}, style: {} };
@@ -8423,13 +8436,24 @@ function runRetryRemixTests() {
         command: "hopper.mass = 1.5\nhopper.engine = 6"
       }
     });
+    g.getDailySignalForDate = (dateStr) => ({
+      concept: "Tomorrow's physics remix",
+      planetName: "Moon",
+      labContract: {
+        title: dateStr === "2026-06-12" ? "Elasticity follow-up" : "Spring chain proof",
+        command: dateStr === "2026-06-12" ? "hopper.elasticity = 1.2" : "repeat 3: spawn_spring()"
+      }
+    });
     g.getTodayDateStr = () => "2026-06-10";
     g.updateReturnStreak();
     assertEquals("2026-06-10", g.lastPlayedDate, "First local day should be recorded");
     assertEquals(1, g.streakCount, "First local day starts the streak");
     assertEquals(16, g.researchXP, "First-ever play should not grant free Research XP");
     assertEquals(null, g.lastReturnStreakReward, "No reward pulse is created on the first-ever day");
-    assertEquals("Next daily experiment: +5 Research XP", reward.textContent, "Start chip should preview the next daily lab reward");
+    assertEquals("Tomorrow's lab: +5 Research XP · Spring chain proof", reward.textContent, "Start chip should preview tomorrow's daily lab reward and focus");
+    assertEquals(true, /2026-06-11/.test(reward.title), "Tomorrow forecast should name the next local date");
+    assertEquals(true, /streak day 2/.test(reward.title), "Tomorrow forecast should name the next streak step");
+    assertEquals(true, rewardClasses.has("up-next"), "Tomorrow forecast should get the up-next visual state");
     assertEquals("Focus: Mass remix proof", focus.textContent, "Start chip should name today's Daily Signal learning focus");
     assertEquals("hopper.mass = 1.5", code.textContent, "Start chip should show the first Daily Signal sample command");
     assertEquals("inline-block", code.style.display, "Sample command should be visible when today's signal has code");
@@ -8465,9 +8489,12 @@ function runRetryRemixTests() {
     const streakCadetRecord = getCadetIdentityPreview(g);
     assertEquals(true, /Daily Streak d2 · Mass remix proof/.test(streakCadetRecord.body), "Cadet Record should mirror the active daily lab streak and focus");
     assertEquals("+5 Research XP today", reward.textContent, "Start chip should show today's streak reward");
+    assertEquals(true, rewardClasses.has("earned"), "Today's reward should get the earned visual state");
     g.lastReturnStreakReward = null;
     g.refreshStreakBanner();
-    assertEquals("Next daily experiment: +6 Research XP", reward.textContent, "Start chip should show the next consecutive reward after today's pulse is gone");
+    assertEquals("Tomorrow's lab: +6 Research XP · Elasticity follow-up", reward.textContent, "Start chip should show tomorrow's focus after today's pulse is gone");
+    assertEquals(true, /2026-06-12/.test(reward.title), "Next forecast should advance to the next local date");
+    assertEquals(true, rewardClasses.has("up-next"), "Next forecast should return to the up-next visual state");
     let dailyCalls = 0;
     g.startDailySignal = () => { dailyCalls++; g.dailyInfo = g.getDailySignal(); return true; };
     window.Game = g;
@@ -8479,6 +8506,8 @@ function runRetryRemixTests() {
     assertEquals("Mass remix proof", g.lastStagedExperiment && g.lastStagedExperiment.title, "Streak action should preserve the Daily Signal focus title");
     g.streakCount = 0;
     g.refreshStreakBanner();
+    assertEquals("", reward.title, "Streak reward title should clear when the chip is hidden");
+    assertEquals(false, rewardClasses.has("earned") || rewardClasses.has("up-next"), "Streak reward visual states should clear when hidden");
     assertEquals("", focus.textContent, "Streak focus should clear when the streak chip is hidden");
     assertEquals("", code.textContent, "Streak sample command should clear when the streak chip is hidden");
     assertEquals("none", code.style.display, "Streak sample command should hide when the streak chip is hidden");

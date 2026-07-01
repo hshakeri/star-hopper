@@ -3649,6 +3649,14 @@ body.resizing-panes * {
   font-size: 0.64rem;
   line-height: 1.25;
 }
+.return-streak-banner .streak-reward.earned {
+  color: #fde68a;
+  text-shadow: 0 0 8px rgba(253, 224, 71, 0.28);
+}
+.return-streak-banner .streak-reward.up-next {
+  color: #a7f3d0;
+  text-shadow: 0 0 8px rgba(45, 212, 191, 0.22);
+}
 .return-streak-banner .streak-focus {
   color: #bae6fd;
   font-family: var(--font-mono);

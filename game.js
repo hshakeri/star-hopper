@@ -1394,9 +1394,13 @@ class StarHopperGame {
   }
 
   getDailySignal() {
+    return this.getDailySignalForDate(this.getTodayDateStr());
+  }
+
+  getDailySignalForDate(dateStr = this.getTodayDateStr()) {
     if (typeof getDailySignal !== 'function' || typeof PLANETS === 'undefined') return null;
-    const dateStr = this.getTodayDateStr();
-    return getDailySignal(PLANETS, dateStr, this.getDailySignalPool());
+    const dateKey = String(dateStr || this.getTodayDateStr());
+    return getDailySignal(PLANETS, dateKey, this.getDailySignalPool());
   }
 
   startDailySignal() {
@@ -2256,6 +2260,17 @@ class StarHopperGame {
     return `${y}-${m}-${d}`;
   }
 
+  getTomorrowDateStr(dateStr = this.getTodayDateStr()) {
+    const match = String(dateStr || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const base = match
+      ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]) + 1)
+      : new Date(Date.now() + 86400000);
+    const y = base.getFullYear();
+    const m = String(base.getMonth() + 1).padStart(2, '0');
+    const d = String(base.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
   // Gentle return-streak: +1 on a new consecutive calendar day, hold on the same day, and
   // SILENTLY reset to 1 after a gap (never shame a kid for taking a break).
   computeStreakIncrement() {
@@ -2277,10 +2292,19 @@ class StarHopperGame {
     const current = Math.max(0, Math.floor(Number(this.streakCount) || 0));
     const nextStreak = Math.max(2, current + 1);
     const rewardXP = this.getReturnStreakRewardXP(nextStreak);
+    const dateStr = this.getTomorrowDateStr();
+    const daily = typeof this.getDailySignalForDate === 'function'
+      ? this.getDailySignalForDate(dateStr)
+      : null;
+    const contract = daily && daily.labContract ? daily.labContract : null;
+    const focusTitle = (contract && contract.title) || (daily && daily.concept) || (daily && daily.planetName) || "";
+    const focusSuffix = focusTitle ? ` · ${focusTitle}` : "";
     return {
       streak: nextStreak,
       rewardXP,
-      label: `Next daily experiment: +${rewardXP} Research XP`
+      dateStr,
+      focusTitle,
+      label: `Tomorrow's lab: +${rewardXP} Research XP${focusSuffix}`
     };
   }
 
@@ -2384,6 +2408,13 @@ class StarHopperGame {
         rewardEl.textContent = this.lastReturnStreakReward
           ? `+${this.lastReturnStreakReward.rewardXP} Research XP today`
           : next.label;
+        rewardEl.title = this.lastReturnStreakReward
+          ? "Today already counted. Launch the Daily Signal to bank a proof."
+          : `Come back on ${next.dateStr} for streak day ${next.streak}${next.focusTitle ? `: ${next.focusTitle}` : ""}.`;
+        if (rewardEl.classList && typeof rewardEl.classList.toggle === 'function') {
+          rewardEl.classList.toggle("earned", !!this.lastReturnStreakReward);
+          rewardEl.classList.toggle("up-next", !this.lastReturnStreakReward);
+        }
       }
       if (focusEl) focusEl.textContent = focus.label;
       if (codeEl) {
@@ -2405,7 +2436,13 @@ class StarHopperGame {
       }
       banner.style.display = 'flex';
     } else {
-      if (rewardEl) rewardEl.textContent = "";
+      if (rewardEl) {
+        rewardEl.textContent = "";
+        rewardEl.title = "";
+        if (rewardEl.classList && typeof rewardEl.classList.remove === 'function') {
+          rewardEl.classList.remove("earned", "up-next");
+        }
+      }
       if (focusEl) focusEl.textContent = "";
       if (codeEl) {
         codeEl.textContent = "";
