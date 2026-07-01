@@ -1572,6 +1572,35 @@ class StarHopperGame {
     ) || null;
   }
 
+  getFrontierRivalLadderProgress(proofCount = this.getFrontierRivalProofCount()) {
+    const count = Math.max(0, Math.floor(Number(proofCount) || 0));
+    this.discoveryPassCounts = this.discoveryPassCounts || {};
+    const next = FRONTIER_RIVAL_MILESTONES.find(milestone =>
+      milestone && !this.discoveryPassCounts[this.getFrontierRivalMilestoneSourceKey(milestone.proofs)]
+    ) || null;
+    if (!next) {
+      const finalMilestone = FRONTIER_RIVAL_MILESTONES[FRONTIER_RIVAL_MILESTONES.length - 1] || null;
+      return {
+        complete: true,
+        proofCount: count,
+        label: "RIVAL LADDER COMPLETE",
+        title: finalMilestone ? finalMilestone.title : "Frontier Rival Ladder",
+        remaining: 0,
+        rewardXP: 0,
+        milestoneProofs: finalMilestone ? finalMilestone.proofs : count
+      };
+    }
+    return {
+      complete: false,
+      proofCount: count,
+      label: next.label,
+      title: next.title,
+      remaining: Math.max(0, next.proofs - count),
+      rewardXP: next.rewardXP,
+      milestoneProofs: next.proofs
+    };
+  }
+
   grantFrontierRivalMilestone(pulse = null, proof = null) {
     this.discoveryPassCounts = this.discoveryPassCounts || {};
     const proofCount = this.getFrontierRivalProofCount();
@@ -1824,7 +1853,15 @@ class StarHopperGame {
       rivalBox.classList.toggle('is-leading', !!rival && rival.state === 'leading');
     }
     if (rivalCopy) {
-      rivalCopy.textContent = rival ? rival.label : "Paste today's Frontier line to create a rival target.";
+      const ladder = typeof this.getFrontierRivalLadderProgress === 'function'
+        ? this.getFrontierRivalLadderProgress()
+        : null;
+      const ladderText = ladder
+        ? (ladder.complete
+          ? ` · Ladder complete: ${ladder.proofCount} rival proofs`
+          : ` · Ladder: ${ladder.remaining} proof${ladder.remaining === 1 ? "" : "s"} to ${ladder.label} (+${ladder.rewardXP} XP)`)
+        : "";
+      rivalCopy.textContent = `${rival ? rival.label : "Paste today's Frontier line to create a rival target."}${ladderText}`;
     }
     if (rivalBtn) {
       rivalBtn.style.display = rival && rival.state === 'chase' ? 'inline-flex' : 'none';

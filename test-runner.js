@@ -3890,6 +3890,7 @@ function runEngineTests() {
     assertEquals(true, /Beat Grace/.test(frontierRivalText), "Frontier rival card should show the chase target");
     assertEquals(true, /3\/3 Lab Stars/.test(frontierRivalText), "Frontier rival card should show target lab stars");
     assertEquals(true, /35\.5s/.test(frontierRivalText), "Frontier rival card should show target time");
+    assertEquals(true, /Next ladder: 3 proofs to RIVAL LADDER/.test(frontierRivalText), "Frontier rival card should preview the next ladder milestone");
 
     list = makeEl();
     game.dailyInfo = {
@@ -6534,6 +6535,7 @@ function runRetryRemixTests() {
     assertEquals("grid", els["frontier-board"].style.display, "Frontier board should appear after star-map completion");
     assertEquals(true, /Grace/.test(els["frontier-board-list"].innerHTML), "Frontier board should render the leading imported pilot");
     assertEquals(true, /Beat Grace/.test(els["frontier-rival-copy"].textContent), "Frontier board should render a specific rival target");
+    assertEquals(true, /Ladder: 2 proofs to RIVAL LADDER/.test(els["frontier-rival-copy"].textContent), "Frontier board should preview the next rival ladder milestone");
     assertEquals("inline-flex", els["frontier-rival-btn"].style.display, "Rival chase target should expose a direct start button");
     g.renderClearLabReport({
       isDailyRun: true,

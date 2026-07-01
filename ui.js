@@ -852,6 +852,16 @@ function appendFrontierRivalCrtCard(listContainer, game) {
   best.textContent = `Target: ${entry.stars || 0}/3 Lab Stars${timeText} · ${entry.shareCode || frontier.shareCode || "Frontier"}`;
   body.appendChild(copy);
   body.appendChild(best);
+  if (typeof game.getFrontierRivalLadderProgress === 'function') {
+    const ladder = game.getFrontierRivalLadderProgress();
+    if (ladder) {
+      const ladderLine = document.createElement("em");
+      ladderLine.textContent = ladder.complete
+        ? `Ladder complete: ${ladder.proofCount} rival proofs logged`
+        : `Next ladder: ${ladder.remaining} proof${ladder.remaining === 1 ? "" : "s"} to ${ladder.label} (+${ladder.rewardXP} XP)`;
+      body.appendChild(ladderLine);
+    }
+  }
   card.appendChild(body);
 
   listContainer.appendChild(card);
