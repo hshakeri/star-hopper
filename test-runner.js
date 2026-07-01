@@ -2235,8 +2235,14 @@ function runEngineTests() {
     assertEquals(3, pulse.combo, "New progress extends the existing combo");
     assertEquals(3, pulse.comboBonusXP, "Base combo bonus still tracks the chain length");
     assertEquals(4, pulse.comboAmplifierBonusXP, "Loop Engineer adds the amplifier bonus");
+    assertEquals("TRIPLE TEST", pulse.comboMilestone && pulse.comboMilestone.label, "A three-discovery chain should unlock the combo milestone");
+    assertEquals(6, pulse.comboMilestone && pulse.comboMilestone.rewardXP, "Combo milestone should add a visible Research XP bonus");
+    assertEquals(1, game.discoveryPassCounts[game.getDiscoveryComboMilestoneSourceKey(3)], "Combo milestone should store a one-time source");
+    assertEquals(17, game.getWorldMasteryProgress(0).xp, "Combo milestone and science proof should both feed world mastery");
+    assertEquals("TRIPLE TEST: +6 Research XP", game.missionBalloon && game.missionBalloon.text, "Combo milestone should write to the Mission CRT");
     assertEquals(true, game.researchXP > beforeXP, "Amplified combo still awards Research XP");
     assertEquals(true, /COMBO AMPLIFIER \+4 XP/.test(panel.innerHTML), "Discovery pulse renders the amplifier chip");
+    assertEquals(true, /TRIPLE TEST \+6 XP/.test(panel.innerHTML), "Discovery pulse renders the combo milestone chip");
     assertEquals(true, /CHAIN NEXT x4/.test(panel.innerHTML), "Discovery pulse should show the next combo target");
     assertEquals(true, /New progress can add combo XP \+ amplifier XP/.test(panel.innerHTML), "Chain target should explain the amplified reward");
     assertEquals(true, /Unlock a new sample gate, formula card, or mission check/.test(panel.innerHTML), "Chain target should name valid new progress");
@@ -2248,6 +2254,7 @@ function runEngineTests() {
     const afterXP = game.researchXP;
     recordDiscoveryPulse(game, activeMission, "hopper.engine = 6", complete, 0);
     assertEquals(afterXP, game.researchXP, "Repeating completed progress does not farm amplifier XP");
+    assertEquals(1, game.discoveryPassCounts[game.getDiscoveryComboMilestoneSourceKey(3)], "Repeating completed progress does not reissue the combo milestone");
     assertEquals(3, game.discoveryCombo, "Repeating completed progress does not extend the combo");
     assertEquals(true, /CHAIN PAUSED/.test(panel.innerHTML), "Repeating completed progress should pause the chain hint");
     assertEquals(true, /Repeat commands do not count/.test(panel.innerHTML), "Paused chain should explain why no reward was added");

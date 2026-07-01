@@ -3097,6 +3097,9 @@ function recordDiscoveryPulse(game, activeMission, code, resultState, openedGems
     } else if (pulse.combo > 1 && typeof game.spawnDiscoveryComboEffect === 'function') {
       game.spawnDiscoveryComboEffect(pulse);
     }
+    if (typeof game.grantDiscoveryComboMilestone === 'function') {
+      game.grantDiscoveryComboMilestone(pulse, { deferResearchXP: true });
+    }
     if (cardUnlocked && typeof game.spawnFormulaCardEffect === 'function') {
       game.spawnFormulaCardEffect(pulse);
     }
@@ -3784,6 +3787,9 @@ function updateDiscoveryPulse(game) {
   const comboAmplifier = pulse.comboAmplifierBonusXP > 0
     ? `<div class="discovery-hypothesis discovery-combo-boost">COMBO AMPLIFIER +${escapeHTML(String(pulse.comboAmplifierBonusXP))} XP</div>`
     : "";
+  const comboMilestone = pulse.comboMilestone
+    ? `<div class="discovery-hypothesis discovery-combo-boost">${escapeHTML(pulse.comboMilestone.label || "LAB CHAIN")} +${escapeHTML(String(pulse.comboMilestone.rewardXP || 0))} XP · chain x${escapeHTML(String(pulse.comboMilestone.combo || pulse.combo || 0))}</div>`
+    : "";
   const hypothesis = pulse.hypothesisConfirmed
     ? `<div class="discovery-hypothesis">HYPOTHESIS CONFIRMED +${escapeHTML(String(pulse.hypothesisBonusXP || 0))} XP</div>`
     : "";
@@ -3839,6 +3845,7 @@ function updateDiscoveryPulse(game) {
     <div class="discovery-pulse-formula">${escapeHTML(pulse.formula)}</div>
     ${comboChip}
     ${comboAmplifier}
+    ${comboMilestone}
     ${hypothesis}
     ${formulaDeckMastery}
     ${signalLabProof}

@@ -23,6 +23,28 @@ const VILLAGE_TRUST_TIERS = [
   { id: "ally", points: 7, label: "Cave Ally" },
   { id: "guardian", points: 12, label: "Village Guardian" }
 ];
+const DISCOVERY_COMBO_MILESTONES = [
+  {
+    combo: 3,
+    label: "TRIPLE TEST",
+    pop: "TRIPLE TEST!",
+    title: "Triple-Test Chain",
+    rewardXP: 6,
+    masteryXP: 8,
+    color: "#facc15",
+    body: "Three fresh experiments in one chain proves the cadet is testing variables, not guessing."
+  },
+  {
+    combo: 5,
+    label: "FIVE TEST STREAK",
+    pop: "FIVE TESTS!",
+    title: "Five-Test Streak",
+    rewardXP: 10,
+    masteryXP: 12,
+    color: "#67e8f9",
+    body: "Five fresh experiments shows a real lab habit: change one thing, measure, then improve."
+  }
+];
 
 function dateSeedFallback(value) {
   const s = String(value || "");
@@ -529,6 +551,94 @@ class StarHopperGame {
       if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
         Particles.spawnBurst(px, py - 10, color, 18, 2.4, 2.2, "glow");
         Particles.spawnBurst(px, py - 10, "#67e8f9", 12, 1.8, 1.8, "glow");
+      }
+    }
+    return result;
+  }
+
+  getDiscoveryComboMilestoneSourceKey(combo) {
+    const count = Math.max(1, Math.floor(Number(combo) || 1));
+    return `lab-chain:${count}`;
+  }
+
+  grantDiscoveryComboMilestone(pulse = null, options = {}) {
+    const combo = Math.max(0, Math.floor(Number((pulse && pulse.combo) || this.discoveryCombo) || 0));
+    if (combo <= 0 || !Array.isArray(DISCOVERY_COMBO_MILESTONES)) return null;
+    this.discoveryPassCounts = this.discoveryPassCounts || {};
+    const milestone = DISCOVERY_COMBO_MILESTONES.find(item =>
+      item && combo >= item.combo && !this.discoveryPassCounts[this.getDiscoveryComboMilestoneSourceKey(item.combo)]
+    );
+    if (!milestone) return null;
+
+    const sourceKey = this.getDiscoveryComboMilestoneSourceKey(milestone.combo);
+    const beforeRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+    const mastery = typeof this.awardWorldMasteryXP === 'function'
+      ? this.awardWorldMasteryXP(milestone.masteryXP, "lab chain milestone", { sourceKey, silent: true })
+      : { addedXP: 0, duplicate: false };
+    if (mastery && mastery.duplicate) {
+      this.discoveryPassCounts[sourceKey] = 1;
+      return null;
+    }
+    this.discoveryPassCounts[sourceKey] = 1;
+    const result = {
+      label: milestone.label,
+      title: milestone.title,
+      combo: milestone.combo,
+      rewardXP: milestone.rewardXP,
+      worldMasteryAddedXP: mastery && Number.isFinite(mastery.addedXP) ? mastery.addedXP : 0,
+      sourceKey,
+      body: milestone.body
+    };
+
+    if (pulse) {
+      pulse.comboMilestone = result;
+      pulse.rewardXP = Math.max(0, (pulse.rewardXP || 0) + milestone.rewardXP);
+      pulse.worldMasteryAddedXP = Math.max(0, (pulse.worldMasteryAddedXP || 0) + result.worldMasteryAddedXP);
+    }
+
+    if (!options || !options.deferResearchXP) {
+      this.researchXP = Math.max(0, (this.researchXP || 0) + milestone.rewardXP);
+      const afterRank = (typeof getResearchRank === 'function') ? getResearchRank(this.researchXP || 0) : null;
+      if (beforeRank && afterRank && afterRank.level > beforeRank.level && pulse) {
+        pulse.rankUp = true;
+        pulse.rankTitle = afterRank.title;
+        pulse.rankPerk = afterRank.perk;
+        if (typeof showBadgeToast === 'function') {
+          showBadgeToast({
+            icon: "x3",
+            label: `Research Rank: ${afterRank.title}`,
+            description: `${milestone.title} unlocked ${afterRank.perk.label}.`
+          });
+        }
+        if (typeof this.spawnResearchRankEffect === 'function') {
+          pulse.rankEffect = this.spawnResearchRankEffect(pulse);
+        }
+      }
+    }
+
+    if (typeof ui_log_output === 'function') {
+      const masteryText = result.worldMasteryAddedXP > 0 ? `, +${result.worldMasteryAddedXP} world mastery XP` : "";
+      ui_log_output(`${milestone.title}: +${milestone.rewardXP} Research XP${masteryText}.`, "success");
+    }
+    if (typeof this.showMissionBalloon === 'function') {
+      this.showMissionBalloon(`${milestone.label}: +${milestone.rewardXP} Research XP`, {
+        title: "LAB CHAIN",
+        color: milestone.color,
+        timer: 240
+      });
+    }
+    if (this.player && typeof ComicBubbles !== 'undefined' && ComicBubbles.pop) {
+      const baseX = Number.isFinite(this.player.x) ? this.player.x : 0;
+      const baseY = Number.isFinite(this.player.y) ? this.player.y : 0;
+      const width = Number.isFinite(this.player.w) ? this.player.w : 24;
+      const height = Number.isFinite(this.player.h) ? this.player.h : 32;
+      const px = baseX + width / 2;
+      const py = baseY + height / 2;
+      ComicBubbles.pop(px, baseY - 66, milestone.pop, milestone.color, 1.02);
+      ComicBubbles.pop(px, baseY - 47, `CHAIN x${milestone.combo}`, "#a7f3d0", 0.7);
+      if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
+        Particles.spawnBurst(px, py - 8, milestone.color, 14, 2.3, 2.1, "glow");
+        Particles.spawnBurst(px, py - 8, "#a7f3d0", 8, 1.7, 1.6, "glow");
       }
     }
     return result;
