@@ -7630,10 +7630,17 @@ function runEngineTests() {
     const testedNextButton = findByClass(testedDelta || list, "science-delta-tested-stage-btn");
     const chainTarget = findByClass(list, "lab-chain-target-card");
     const chainTargetText = flattenText(chainTarget || list);
+    const chainMeter = findByClass(chainTarget || list, "lab-chain-milestone-meter");
+    const chainMeterText = flattenText(chainMeter || chainTarget || list);
     assertEquals(true, !!chainTarget, "Mission panel should keep the lab-chain target visible");
     assertEquals(true, /LAB CHAIN x2/.test(chainTargetText), "Lab-chain target should show the active combo");
     assertEquals(true, /Next new progress can reach x3/.test(chainTargetText), "Lab-chain target should name the next combo step");
     assertEquals(true, /TRIPLE TEST at x3 \(\+6 XP\)/.test(chainTargetText), "Lab-chain target should preview the next named milestone");
+    assertEquals(true, !!chainMeter, "Lab-chain target should render a visible milestone meter");
+    assertEquals(true, /2\/3 to TRIPLE TEST/.test(chainMeterText), "Lab-chain meter should show progress toward the named milestone");
+    assertEquals(true, /\+6 XP milestone/.test(chainMeterText), "Lab-chain meter should show the milestone payoff");
+    assertEquals(2, collectByClass(chainMeter, "earned").length, "Lab-chain meter should fill banked proof pips");
+    assertEquals(1, collectByClass(chainMeter, "next").length, "Lab-chain meter should mark the next proof pip");
     assertEquals(true, /Engine Lab/.test(chainTargetText), "Lab-chain target should use the next experiment title");
     assertEquals(true, /hopper\.engine = 7/.test(chainTargetText), "Lab-chain target should render the next command");
     const chainStageButton = findByClass(chainTarget || list, "lab-chain-target-stage-btn");

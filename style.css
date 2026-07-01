@@ -8030,6 +8030,60 @@ html {
   text-align: right;
 }
 
+.lab-chain-milestone-meter {
+  border: 1px solid rgba(103, 232, 249, 0.16);
+  border-radius: 5px;
+  background: rgba(2, 6, 23, 0.24);
+  display: grid;
+  gap: 4px;
+  padding: 5px 6px;
+}
+
+.lab-chain-milestone-meta {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 0.52rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+
+.lab-chain-milestone-meta span {
+  color: #a5f3fc;
+}
+
+.lab-chain-milestone-meta strong {
+  color: #fef08a;
+  text-align: right;
+}
+
+.lab-chain-milestone-track {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18px, 1fr));
+  gap: 4px;
+  min-height: 6px;
+}
+
+.lab-chain-milestone-track span {
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  min-height: 6px;
+}
+
+.lab-chain-milestone-track span.earned {
+  background: linear-gradient(90deg, #22d3ee, #bef264);
+  box-shadow: 0 0 8px rgba(103, 232, 249, 0.35);
+}
+
+.lab-chain-milestone-track span.next {
+  background: rgba(250, 204, 21, 0.42);
+  box-shadow: 0 0 9px rgba(250, 204, 21, 0.28);
+}
+
 .lab-chain-target-body strong {
   display: block;
   color: #ecfeff;
@@ -12244,6 +12298,7 @@ body.readable-text-mode .clear-passport-stamp-head,
 body.readable-text-mode .clear-passport-stamp p,
 body.readable-text-mode .clear-passport-stamp em,
 body.readable-text-mode .lab-chain-target-head,
+body.readable-text-mode .lab-chain-milestone-meta,
 body.readable-text-mode .lab-chain-target-body p,
 body.readable-text-mode .lab-chain-target-card code,
 body.readable-text-mode .lab-chain-target-stage-btn,

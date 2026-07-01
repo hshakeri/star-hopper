@@ -2402,6 +2402,48 @@ function getLabChainTarget(game) {
   };
 }
 
+function appendLabChainMilestoneMeter(card, game) {
+  const pulseCombo = game && game.discoveryPulse ? Number(game.discoveryPulse.combo) : 0;
+  const combo = Math.max(0, Math.floor(Number(pulseCombo || (game && game.discoveryCombo)) || 0));
+  const status = typeof getDiscoveryComboMilestoneStatus === "function"
+    ? getDiscoveryComboMilestoneStatus(game, combo)
+    : null;
+  if (!card || !status || combo <= 0) return;
+
+  const target = Math.max(combo, Math.floor(Number(status.target) || combo + 1));
+  const reward = Math.max(0, Math.floor(Number(status.reward) || 0));
+  const label = status.label || "LAB CHAIN";
+  const remaining = Math.max(0, target - combo);
+
+  const meter = document.createElement("div");
+  meter.className = "lab-chain-milestone-meter";
+
+  const meta = document.createElement("div");
+  meta.className = "lab-chain-milestone-meta";
+  const progress = document.createElement("span");
+  progress.textContent = `${combo}/${target} to ${label}`;
+  const payoff = document.createElement("strong");
+  payoff.textContent = reward > 0 ? `+${reward} XP milestone` : `x${target} milestone`;
+  meta.appendChild(progress);
+  meta.appendChild(payoff);
+
+  const track = document.createElement("div");
+  track.className = "lab-chain-milestone-track";
+  const pipCount = Math.max(2, Math.min(6, target));
+  const filled = Math.max(0, Math.min(pipCount, combo));
+  for (let i = 0; i < pipCount; i++) {
+    const pip = document.createElement("span");
+    const step = i + 1;
+    pip.className = step <= filled ? "earned" : (step === filled + 1 && remaining > 0 ? "next" : "");
+    pip.title = step <= filled ? "Fresh proof banked" : (step === filled + 1 ? "Next fresh proof" : "Upcoming proof");
+    track.appendChild(pip);
+  }
+
+  meter.appendChild(meta);
+  meter.appendChild(track);
+  card.appendChild(meter);
+}
+
 function appendLabChainTargetCard(listContainer, game) {
   const target = getLabChainTarget(game);
   if (!listContainer || !target) return;
@@ -2418,6 +2460,7 @@ function appendLabChainTargetCard(listContainer, game) {
   head.appendChild(label);
   head.appendChild(reward);
   card.appendChild(head);
+  appendLabChainMilestoneMeter(card, game);
 
   const body = document.createElement("div");
   body.className = "lab-chain-target-body";
