@@ -739,6 +739,32 @@ function appendRunObjectiveProgress(row, item) {
   row.appendChild(wrap);
 }
 
+function getObjectiveLearningContract(item) {
+  if (!item) return "";
+  const raw = `${item.source || ""} ${item.action || ""} ${item.kind || ""} ${item.label || ""}`.toLowerCase();
+  if (/code-concept/.test(raw)) return "Code idea -> concept card";
+  if (/lab-chain/.test(raw)) return "Fresh test -> combo";
+  if (/science-checkpoint/.test(raw)) return "Measure -> checkpoint";
+  if (/lesson-path/.test(raw)) return "Observe -> Code -> Test";
+  if (/ai-state/.test(raw) || /ai state/.test(raw)) return "state + event -> next state";
+  if (/resume/.test(raw)) return "Hypothesis -> compare";
+  if (/daily/.test(raw)) return "Fresh remix -> share code";
+  if (/frontier/.test(raw)) return "Remix proof -> share code";
+  if (/radar|lab quest|formula/.test(raw)) return "Science proof -> formula card";
+  if (/log|explain|story/.test(raw)) return "Evidence -> explanation";
+  return "";
+}
+
+function appendRunObjectiveContract(row, item) {
+  if (!row || !item) return;
+  const contract = getObjectiveLearningContract(item);
+  if (!contract) return;
+  const line = document.createElement("div");
+  line.className = "run-objective-contract";
+  line.textContent = contract;
+  row.appendChild(line);
+}
+
 function appendRunObjectiveQueueCard(listContainer, game) {
   if (!listContainer || !game) return;
   const queue = getRunObjectiveQueue(game);
@@ -771,6 +797,7 @@ function appendRunObjectiveQueueCard(listContainer, game) {
     row.appendChild(itemLabel);
     row.appendChild(title);
     row.appendChild(body);
+    appendRunObjectiveContract(row, item);
 
     if (item.reward || item.cta) {
       const reward = document.createElement("em");
@@ -4661,6 +4688,7 @@ function updateStartObjectiveQueue(game, queue) {
           <span>#${item.priority} ${escapeHTML(item.label)}</span>
           <strong>${escapeHTML(item.title)}</strong>
           <p>${escapeHTML(item.body)}</p>
+          ${renderObjectiveLearningContract(item)}
           ${item.command ? `<code class="start-objective-code">${escapeHTML(compactStartObjectiveCommand(item.command))}</code>` : ""}
           ${renderStartObjectiveProgress(item)}
           ${(item.reward || item.cta) ? `<em>${escapeHTML(`${item.reward || "Reward ready"}${item.cta ? ` · ${item.cta}` : ""}`)}</em>` : ""}
@@ -4669,6 +4697,11 @@ function updateStartObjectiveQueue(game, queue) {
       `).join("")}
     </div>
   `;
+}
+
+function renderObjectiveLearningContract(item, className = "start-objective-contract") {
+  const contract = getObjectiveLearningContract(item);
+  return contract ? `<div class="${escapeHTML(className)}">${escapeHTML(contract)}</div>` : "";
 }
 
 function renderStartObjectiveProgress(item) {

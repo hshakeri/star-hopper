@@ -3629,6 +3629,22 @@ body.resizing-panes * {
   font-style: normal;
 }
 
+.start-objective-contract {
+  grid-column: 1;
+  width: fit-content;
+  max-width: 100%;
+  padding: 2px 5px;
+  border: 1px solid rgba(250, 204, 21, 0.24);
+  border-radius: 4px;
+  background: rgba(69, 26, 3, 0.34);
+  color: #fde68a;
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  font-weight: 900;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
 .start-objective-code,
 .start-objective-progress {
   grid-column: 1;
@@ -5085,6 +5101,22 @@ html {
 .run-objective-queue-item em {
   color: #fef08a;
   font-style: normal;
+}
+
+.run-objective-contract {
+  grid-column: 1;
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid rgba(250, 204, 21, 0.22);
+  border-radius: 4px;
+  background: rgba(69, 26, 3, 0.32);
+  color: #fde68a;
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  font-weight: 900;
+  line-height: 1.05;
+  padding: 2px 5px;
+  overflow-wrap: anywhere;
 }
 
 .run-objective-queue-item code {

@@ -2096,6 +2096,7 @@ function runEngineTests() {
     assertEquals("code-concept-target", queue[0] && queue[0].source, "Run objective queue should preserve Code Concept source metadata");
     assertEquals(1, queue[0] && queue[0].progress && queue[0].progress.value, "Run objective queue should carry Code Concept pip progress");
     assertEquals(4, queue[0] && queue[0].progress && queue[0].progress.target, "Run objective queue should carry Code Concept pip total");
+    assertEquals("Code idea -> concept card", getObjectiveLearningContract(queue[0]), "Run objective queue should name the learning contract behind a Code Concept");
 
     const startQueue = getStartObjectiveQueue(queueGame, { quest: {}, resumeCue: null, cadetPreview: {} });
     assertEquals("CODE CONCEPT", startQueue[0] && startQueue[0].label, "Start objective queue should surface the next Code Concept when higher-priority routes are absent");
@@ -2105,6 +2106,8 @@ function runEngineTests() {
     assertEquals("code-concept", startQueue[0] && startQueue[0].progress && startQueue[0].progress.mode, "Start objective Code Concept should carry progress metadata");
     updateStartObjectiveQueue(queueGame, startQueue);
     assertEquals(true, /start-objective-code/.test(startQueuePanel22codeDeck.innerHTML), "Start objective queue should render a command chip");
+    assertEquals(true, /start-objective-contract/.test(startQueuePanel22codeDeck.innerHTML), "Start objective queue should render the learning contract strip");
+    assertEquals(true, /Code idea -&gt; concept card/.test(startQueuePanel22codeDeck.innerHTML), "Start objective learning contract should explain the Code Concept payoff");
     assertEquals(true, /repeat 3 \{ spawn_block\(\) \}/.test(startQueuePanel22codeDeck.innerHTML), "Start objective command chip should show the Code Concept sample");
     assertEquals(true, /start-objective-progress code-concept/.test(startQueuePanel22codeDeck.innerHTML), "Start objective queue should render Code Concept progress pips");
     assertEquals(true, /1\/4 ideas/.test(startQueuePanel22codeDeck.innerHTML), "Start objective Code Concept progress should show idea count");
@@ -5134,6 +5137,10 @@ function runEngineTests() {
     assertEquals(true, /Hopper Engineering Shakedown/.test(startObjectiveQueue.innerHTML), "Start objective queue should name the next lesson path");
     assertEquals(true, /#4 AI STATE/.test(startObjectiveQueue.innerHTML), "Start objective queue should include the next AI-state proof");
     assertEquals(true, /Shelter Loop/.test(startObjectiveQueue.innerHTML), "Start objective queue should name the next AI-state card");
+    assertEquals(true, /Science proof -&gt; formula card/.test(startObjectiveQueue.innerHTML), "Start objective queue should explain the lab quest payoff loop");
+    assertEquals(true, /Hypothesis -&gt; compare/.test(startObjectiveQueue.innerHTML), "Start objective queue should explain the saved experiment loop");
+    assertEquals(true, /Observe -&gt; Code -&gt; Test/.test(startObjectiveQueue.innerHTML), "Start objective queue should explain the lesson-path loop");
+    assertEquals(true, /state \+ event -&gt; next state/.test(startObjectiveQueue.innerHTML), "Start objective queue should explain the AI-state loop");
     assertEquals(4, game.lastStartObjectiveQueue && game.lastStartObjectiveQueue.length, "Start objective queue should keep a compact four-item stack");
     assertEquals("radar", game.lastStartObjectiveQueue[0].action, "Start objective queue first item should dispatch through Mission Radar");
     assertEquals("resume", game.lastStartObjectiveQueue[1].action, "Start objective queue second item should stage the saved test");
