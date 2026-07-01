@@ -6560,6 +6560,7 @@ function runRetryRemixTests() {
     assertEquals(true, /RIVAL BEATEN: Grace/.test(els["clear-lab-report"].innerHTML), "Clear report should celebrate the beaten classmate");
     assertEquals(true, /Share your updated Frontier line/.test(els["clear-lab-report"].innerHTML), "Clear report should turn the win into a share loop");
     assertEquals(true, /RIVAL PROOF \+10 XP/.test(els["clear-lab-report"].innerHTML), "Clear report should show the scaled rival proof reward");
+    assertEquals(true, /Next ladder: 2 proofs to RIVAL LADDER/.test(els["clear-lab-report"].innerHTML), "Clear report should show the next Rival Ladder target");
     assertEquals(true, /COPY WIN LINE/.test(els["clear-lab-report"].innerHTML), "Clear report should expose a direct copy action for the updated Frontier line");
     g.recordFrontierClear({
       frontierInfo: frontier,

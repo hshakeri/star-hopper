@@ -6378,6 +6378,14 @@ class StarHopperGame {
       ? `<div class="clear-lab-time new"><span>NEW LAB TIME</span><strong>${safe(elapsedText)} personal best</strong></div>`
       : (timeSummary ? `<div class="clear-lab-time"><span>LAB TIME</span><strong>${safe(elapsedText)} · best ${safe(bestTimeText)}</strong></div>` : "");
     const rivalResult = frontierRivalResult || (isFrontierRun ? this.lastFrontierRivalResult : null);
+    const rivalLadder = isFrontierRun && typeof this.getFrontierRivalLadderProgress === 'function'
+      ? this.getFrontierRivalLadderProgress()
+      : null;
+    const rivalLadderText = rivalLadder
+      ? (rivalLadder.complete
+        ? `Rival Ladder complete: ${rivalLadder.proofCount} proofs logged`
+        : `Next ladder: ${rivalLadder.remaining} proof${rivalLadder.remaining === 1 ? "" : "s"} to ${rivalLadder.label} (+${rivalLadder.rewardXP} XP)`)
+      : "";
     const rivalBlock = rivalResult && (rivalResult.state === "beaten" || rivalResult.state === "matched") ? `
       <div class="clear-frontier-rival ${rivalResult.state === "beaten" ? "beaten" : "matched"}">
         <div class="clear-frontier-rival-head">
@@ -6386,6 +6394,7 @@ class StarHopperGame {
         </div>
         <p>${safe(rivalResult.body)}</p>
         <em>${safe(`${rivalResult.shareCode || "Frontier share code ready"}${rivalResult.rivalProof ? ` · ${rivalResult.rivalProof.label} +${rivalResult.rivalProof.rewardXP} XP` : ""}`)}</em>
+        ${rivalLadderText ? `<em class="clear-frontier-ladder">${safe(rivalLadderText)}</em>` : ""}
         <button type="button" class="clear-frontier-copy-btn" onclick="if (window.Game) window.Game.copyFrontierShareCode()">${safe(rivalResult.state === "beaten" ? "COPY WIN LINE" : "COPY MATCH LINE")}</button>
       </div>
     ` : "";
