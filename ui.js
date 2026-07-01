@@ -6414,6 +6414,7 @@ function getDiscoveryChainHint(pulse, game = null) {
   const milestonePreview = getDiscoveryComboMilestonePreview(game, combo);
   const earned = (pulse.rewardXP || 0) > 0 || !!pulse.cardUnlocked || !!pulse.hypothesisConfirmed || (pulse.openedGems || 0) > 0;
   const target = game && typeof getLabChainTarget === "function" ? getLabChainTarget(game) : null;
+  const progress = game && typeof getLabChainProgressMeta === "function" ? getLabChainProgressMeta(game, target) : null;
   const rawCommand = target && target.command ? String(target.command).trim() : "";
   const pulseCode = pulse && pulse.code ? String(pulse.code).trim() : "";
   const command = rawCommand && rawCommand !== pulseCode ? rawCommand : "";
@@ -6432,6 +6433,7 @@ function getDiscoveryChainHint(pulse, game = null) {
       label: "CHAIN PAUSED",
       title: "Repeat commands do not count",
       body: `Make one new checklist item, sample gate, or formula card change to restart the lab chain.${milestonePreview ? ` ${milestonePreview}` : ""}`,
+      progress,
       contract
     };
   }
@@ -6444,8 +6446,28 @@ function getDiscoveryChainHint(pulse, game = null) {
     label: `CHAIN NEXT x${nextCombo}`,
     title: `New progress can add combo XP${amplifier}`,
     body: milestonePreview ? `${nextTarget}. ${milestonePreview}` : nextTarget,
+    progress,
     contract
   };
+}
+
+function renderDiscoveryChainProgress(progress) {
+  if (!progress || typeof progress !== "object") return "";
+  const rawTotal = Math.max(1, Math.floor(Number(progress.total || progress.target) || 1));
+  const total = Math.max(1, Math.min(6, rawTotal));
+  const rawValue = Math.max(0, Math.floor(Number(progress.value) || 0));
+  const value = Math.max(0, Math.min(total, rawTotal > total ? Math.round((rawValue / rawTotal) * total) : rawValue));
+  const mode = String(progress.mode || "lab-chain").replace(/[^a-z0-9_-]+/gi, "-").toLowerCase();
+  const label = progress.label || `${rawValue}/${rawTotal}`;
+  const pips = Array.from({ length: total }, (_, index) =>
+    `<i class="discovery-chain-progress-pip${index < value ? " filled" : (index === value ? " next" : "")}" aria-hidden="true"></i>`
+  ).join("");
+  return `
+    <div class="discovery-chain-progress ${escapeHTML(mode)}" aria-label="${escapeHTML(label)}">
+      <span>${escapeHTML(label)}</span>
+      <div>${pips}</div>
+    </div>
+  `;
 }
 
 function updateDiscoveryPulse(game) {
@@ -6596,8 +6618,9 @@ function updateDiscoveryPulse(game) {
   const chainContract = chainHint && chainHint.contract ? chainHint.contract : null;
   const chainCommand = chainContract && chainContract.command ? String(chainContract.command).trim() : "";
   const chainCommandLabel = chainCommand.replace(/\s+/g, " ");
+  const chainProgress = chainHint ? renderDiscoveryChainProgress(chainHint.progress) : "";
   const chainHintCard = chainHint
-    ? `<div class="discovery-chain-next"><span>${escapeHTML(chainHint.label)}</span><strong>${escapeHTML(chainHint.title)}</strong><p>${escapeHTML(chainHint.body)}</p>${chainContract ? `<div class="discovery-chain-contract"><span><b>NEXT</b>${escapeHTML(chainContract.title || "Make one fresh change")}</span><span><b>WHY</b>${escapeHTML(chainContract.body || "Compare one changed result.")}</span></div>` : ""}${chainCommand ? `<div class="discovery-chain-code">Try <code>${escapeHTML(chainCommandLabel)}</code><button type="button" class="discovery-chain-stage-btn" data-chain-next-command="${escapeHTML(chainCommand)}" data-chain-next-title="${escapeHTML(chainContract.title || "Lab chain")}">${escapeHTML(chainContract.cta || "STAGE CHAIN")}</button></div>` : ""}</div>`
+    ? `<div class="discovery-chain-next"><span>${escapeHTML(chainHint.label)}</span><strong>${escapeHTML(chainHint.title)}</strong><p>${escapeHTML(chainHint.body)}</p>${chainProgress}${chainContract ? `<div class="discovery-chain-contract"><span><b>NEXT</b>${escapeHTML(chainContract.title || "Make one fresh change")}</span><span><b>WHY</b>${escapeHTML(chainContract.body || "Compare one changed result.")}</span></div>` : ""}${chainCommand ? `<div class="discovery-chain-code">Try <code>${escapeHTML(chainCommandLabel)}</code><button type="button" class="discovery-chain-stage-btn" data-chain-next-command="${escapeHTML(chainCommand)}" data-chain-next-title="${escapeHTML(chainContract.title || "Lab chain")}">${escapeHTML(chainContract.cta || "STAGE CHAIN")}</button></div>` : ""}</div>`
     : "";
   panel.innerHTML = `
     <div class="discovery-pulse-head">

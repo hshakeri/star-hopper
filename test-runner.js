@@ -3993,6 +3993,10 @@ function runEngineTests() {
     assertEquals(true, /CHAIN NEXT x4/.test(panel.innerHTML), "Discovery pulse should show the next combo target");
     assertEquals(true, /New progress can add combo XP \+ amplifier XP/.test(panel.innerHTML), "Chain target should explain the amplified reward");
     assertEquals(true, /Unlock a new sample gate, formula card, or mission check/.test(panel.innerHTML), "Chain target should name valid new progress");
+    assertEquals(true, /discovery-chain-progress lab-chain/.test(panel.innerHTML), "Discovery pulse should render lab-chain milestone pips");
+    assertEquals(true, /3\/5 to FIVE TEST STREAK/.test(panel.innerHTML), "Discovery pulse should show progress toward the next named chain milestone");
+    assertEquals(3, (panel.innerHTML.match(/discovery-chain-progress-pip filled/g) || []).length, "Discovery pulse should fill pips for the current combo count");
+    assertEquals(1, (panel.innerHTML.match(/discovery-chain-progress-pip next/g) || []).length, "Discovery pulse should mark the next combo pip");
     assertEquals(true, /<b>NEXT<\/b>Raise jump power/.test(panel.innerHTML), "Chain target should turn the next experiment cue into a contract");
     assertEquals(true, /data-chain-next-command=\"hopper\.jump_power = 18\"/.test(panel.innerHTML), "Chain contract should expose a stageable next command");
     assertEquals("function", typeof chainStageClick, "Chain contract should wire a stage button");
