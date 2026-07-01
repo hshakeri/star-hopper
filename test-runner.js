@@ -3671,6 +3671,7 @@ function runEngineTests() {
     assertEquals(true, /formula card/.test(els["start-mission-radar-reward"].textContent), "Start radar should show the quest reward");
     assertEquals("CADET RECORD", els["start-cadet-identity-label"].textContent, "Start radar should label the cadet record");
     assertEquals("🚀 Nova // Physics Tinkerer", els["start-cadet-identity-title"].textContent, "Start radar should name the active cadet and research rank");
+    assertEquals(true, /Lab Chain x2 -> TRIPLE TEST x3/.test(els["start-cadet-identity-body"].textContent), "Cadet record should show the active lab-chain milestone");
     assertEquals(true, /1\/\d+ formulas/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include formula deck progress");
     assertEquals(true, /1\/12 transmissions/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include story transmission progress");
     assertEquals(true, /1\/5 AI states/.test(els["start-cadet-identity-body"].textContent), "Cadet record should include AI State Deck progress");
@@ -4109,6 +4110,7 @@ function runEngineTests() {
     assertEquals(true, /3\/3 Lab Stars/.test(report.innerHTML), "Clear report should include the mastery star rating");
     assertEquals(true, /CADET RECORD/.test(report.innerHTML), "Clear report should include the named cadet record");
     assertEquals(true, /🚀 Nova \/\/ Physics Tinkerer/.test(report.innerHTML), "Clear report should show the cadet and research title");
+    assertEquals(true, /Lab Chain x2 -&gt; TRIPLE TEST x3/.test(report.innerHTML), "Clear report cadet record should show the active lab-chain milestone");
     assertEquals(true, /1\/\d+ formulas/.test(report.innerHTML), "Clear report cadet record should show formula progress");
     assertEquals(true, /Future Lab: Source Key complete/.test(report.innerHTML), "Clear report cadet record should show the completed Future Lab source-key portfolio state");
     assertEquals(true, /2\/5 AI states/.test(report.innerHTML), "Clear report cadet record should show AI State Deck progress");

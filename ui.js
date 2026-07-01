@@ -2673,6 +2673,22 @@ function getCadetFutureLabPortfolioText(game = window.Game) {
   return "Future Lab: seeds pending";
 }
 
+function getCadetLabChainPortfolioText(game = window.Game) {
+  const combo = Math.max(0, Math.floor(Number(game && game.discoveryCombo) || 0));
+  if (combo > 0) {
+    const milestone = typeof getActiveLabChainMilestone === "function" ? getActiveLabChainMilestone(game) : null;
+    if (milestone && milestone.label && Number.isFinite(Number(milestone.target))) {
+      return `Lab Chain x${combo} -> ${milestone.label} x${Math.floor(Number(milestone.target))}`;
+    }
+    return `Lab Chain x${combo}`;
+  }
+  const nextExperiment = game && game.lastScienceDelta && game.lastScienceDelta.nextExperiment;
+  if (nextExperiment && nextExperiment.title) {
+    return `Lab Chain: next ${nextExperiment.title}`;
+  }
+  return "Lab Chain: start one fresh test";
+}
+
 function getCadetIdentityPreview(game = window.Game) {
   const callsign = game && typeof game.getCadetCallsign === "function" ? game.getCadetCallsign() : "Cadet";
   const rank = typeof getResearchRank === "function"
@@ -2684,6 +2700,7 @@ function getCadetIdentityPreview(game = window.Game) {
     : `${game && game.discoveredFormulaKinds ? game.discoveredFormulaKinds.size : 0} formulas`;
   const story = typeof getSignalStoryProgress === "function" ? getSignalStoryProgress(game) : null;
   const transmissions = story ? `${story.unlocked.length}/${story.total} transmissions` : "0 transmissions";
+  const labChain = getCadetLabChainPortfolioText(game);
   const futureLab = getCadetFutureLabPortfolioText(game);
   const village = game && typeof game.getVillageTrustProgress === "function" ? game.getVillageTrustProgress(game.currentPlanetIndex) : null;
   const trust = village ? `${village.title} · ${village.points} trust` : "Village trust pending";
@@ -2715,7 +2732,7 @@ function getCadetIdentityPreview(game = window.Game) {
   return {
     label: "CADET RECORD",
     title: `${callsign} // ${rank.title}`,
-    body: `${Math.round(rank.xp || 0)} XP · ${formulas} · ${transmissions} · ${futureLab} · ${aiStates} · ${trust}`,
+    body: `${Math.round(rank.xp || 0)} XP · ${labChain} · ${formulas} · ${transmissions} · ${futureLab} · ${aiStates} · ${trust}`,
     progress: Math.max(0, Math.min(1, Number(rank.progress) || 0)),
     aiAction
   };
