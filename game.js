@@ -2362,6 +2362,30 @@ class StarHopperGame {
     return `<span class="map-trust-meter" aria-label="${progress.points} village trust"><span style="width: ${progress.pct}%"></span></span><span class="map-trust-label">${progress.title} · ${progress.points} trust · ${next}</span>`;
   }
 
+  getMapAIStateTarget(index) {
+    if (typeof getAIStateDeckProgress !== 'function' || typeof getAIStateDeckAction !== 'function') return null;
+    const targetIndex = Number(index);
+    if (!Number.isFinite(targetIndex)) return null;
+    const progress = getAIStateDeckProgress(this);
+    const card = progress && progress.nextCard ? progress.nextCard : null;
+    const action = card ? getAIStateDeckAction(this, card.id) : null;
+    const levelIndex = action ? Number(action.levelIndex) : NaN;
+    if (!card || !action || !Number.isFinite(levelIndex) || levelIndex !== targetIndex) return null;
+    return { progress, card, action };
+  }
+
+  renderMapAIStateChip(index, target = null) {
+    const stateTarget = target || this.getMapAIStateTarget(index);
+    if (!stateTarget) return "";
+    const safe = (typeof escapeHTML === 'function')
+      ? escapeHTML
+      : (value) => String(value || "").replace(/[&<>"']/g, ch => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[ch]));
+    const label = stateTarget.action.label || "RUN STATE";
+    return `<span class="map-ai-state-chip" aria-label="${safe(`AI State Deck next: ${stateTarget.card.title} - ${label}`)}"><strong>AI NEXT</strong><em>${safe(stateTarget.card.title)} · ${safe(label)}</em></span>`;
+  }
+
   getPlanetMapConcept(index) {
     const planets = (typeof PLANETS !== 'undefined' && Array.isArray(PLANETS)) ? PLANETS : [];
     const planet = planets[index] || null;
@@ -2516,22 +2540,26 @@ class StarHopperGame {
       node.classList.toggle('active-hover', available);
       node.classList.toggle('mastered', mastered);
       node.disabled = !available;
+      const aiTarget = this.getMapAIStateTarget(index);
+      const aiChip = this.renderMapAIStateChip(index, aiTarget);
+      node.classList.toggle('ai-state-next', !!aiTarget);
       if (meta) {
         const conceptChip = this.renderMapConceptChip(index);
         if (!available) {
-          meta.innerHTML = `Locked · ${conceptChip}<span class="map-lock-hint">Recover previous shard</span>`;
+          meta.innerHTML = `Locked · ${conceptChip}${aiChip}<span class="map-lock-hint">Recover previous shard</span>`;
         } else {
           const label = mastered ? "Mastered" : (clears > 0 ? `Clear ${clears}` : (index === 0 ? "Start" : "Unlocked"));
-          meta.innerHTML = `${label} · ${conceptChip}${this.renderMapStarMeter(index)}${this.renderMapMasteryMeter(index)}${this.renderMapVillageTrustMeter(index)}`;
+          meta.innerHTML = `${label} · ${conceptChip}${this.renderMapStarMeter(index)}${this.renderMapMasteryMeter(index)}${this.renderMapVillageTrustMeter(index)}${aiChip}`;
         }
       }
       const stars = this.getPlanetLabStarCount(index);
       const worldMastery = this.getWorldMasteryProgress(index);
       const villageTrust = this.getVillageTrustProgress(index);
       const concept = this.getPlanetMapConcept(index);
+      const aiTitle = aiTarget ? ` · AI State: ${aiTarget.card.title} (${aiTarget.action.label || "RUN STATE"})` : "";
       node.title = available
-        ? `${planets[index].name}: ${concept} · ${stars}/3 Lab Stars · ${worldMastery.title} (${worldMastery.xp} XP) · ${villageTrust.title} (${villageTrust.points} trust)${mastered ? " · Mastered" : (clears > 0 ? " · Mastery Remix ready" : "")}`
-        : `${planets[index].name}: locked. Next concept: ${concept}. Recover the previous signal shard.`;
+        ? `${planets[index].name}: ${concept} · ${stars}/3 Lab Stars · ${worldMastery.title} (${worldMastery.xp} XP) · ${villageTrust.title} (${villageTrust.points} trust)${aiTitle}${mastered ? " · Mastered" : (clears > 0 ? " · Mastery Remix ready" : "")}`
+        : `${planets[index].name}: locked. Next concept: ${concept}.${aiTitle} Recover the previous signal shard.`;
     });
     this.refreshFutureWorldTeasers();
   }

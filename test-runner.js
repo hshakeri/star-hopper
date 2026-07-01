@@ -4216,6 +4216,15 @@ function runEngineTests() {
     assertEquals(true, /Transmission incoming/.test(teasers[0]._meta.innerHTML), "Future Dark Matter node should start as an incoming transmission");
     assertEquals(false, teasers[0].classList.contains("anomaly-next"), "Future Dark Matter node should not pulse as the next anomaly before the star-map is restored");
 
+    game.villageTrust = { 0: { points: 3, badges: ["friend"], sources: { "village-trade:0:geary:engine_1": 3 } } };
+    game.discoveryPassCounts = {};
+    game.refreshGalaxyMapProgress();
+    assertEquals(true, nodes[1].classList.contains("ai-state-next"), "Map should mark the world that advances the next AI State Deck proof");
+    assertEquals(true, /AI NEXT/.test(nodes[1]._meta.innerHTML), "Next AI state target should render a compact map badge");
+    assertEquals(true, /Shelter Loop/.test(nodes[1]._meta.innerHTML), "AI state badge should name the missing behavior card");
+    assertEquals(true, /RUN RESCUE/.test(nodes[1]._meta.innerHTML), "AI state badge should mirror the Log action label");
+    assertEquals(true, /AI State: Shelter Loop \(RUN RESCUE\)/.test(nodes[1].title), "Next AI state target should be available in the map tooltip");
+
     game.planetClears = { 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 };
     game.frontierRecords = {};
     game.refreshGalaxyMapProgress();
