@@ -2594,14 +2594,72 @@ function getStartVillageTrustPreview(game = window.Game) {
   const chainLead = chain
     ? `Village Quest ${chain.doneCount}/${chain.total}: ${chain.title} (${chain.formula}). `
     : "";
+  const stateSignal = getStartVillageStateSignal(game);
+  const stateLine = stateSignal ? ` Village State: ${stateSignal.body}` : "";
   const body = next
     ? `${Math.max(0, Math.floor(Number(next.points) || 0) - points)} trust to ${next.label} on ${planet}. ${pact ? `${pact.title}: ${pact.action}. ${pact.concept}.` : "Next: build village trust."}`
     : `${planet} trusts this cadet. Keep trades, rescues, and pet guards alive as relationship evidence.`;
   return {
     label: "VILLAGE TRUST",
     title: `${title} · ${points} trust${chainTitle}`,
-    body: `${chainLead}${body}`,
+    body: `${chainLead}${body}${stateLine}`,
+    stateClass: stateSignal ? stateSignal.stateClass : "safe",
     progress: Math.max(0, Math.min(1, ((progress && Number(progress.pct)) || 0) / 100))
+  };
+}
+
+function getStartVillageStateSignal(game = window.Game) {
+  if (!game) return null;
+  const index = Number.isFinite(Number(game.currentPlanetIndex)) ? Number(game.currentPlanetIndex) : 0;
+  const planet = game.currentPlanet || (typeof PLANETS !== "undefined" ? PLANETS[index] : null);
+  const hasPlanetVillage = !!(planet && Array.isArray(planet.npcs) && planet.npcs.length);
+  const liveVillagers = Array.isArray(game.interactiveObjects) && typeof NPC !== "undefined"
+    ? game.interactiveObjects.filter(obj => obj instanceof NPC)
+    : [];
+  if (!hasPlanetVillage && liveVillagers.length === 0) return null;
+
+  let danger = false;
+  let night = false;
+  let hidden = 0;
+  for (const npc of liveVillagers) {
+    if (npc.hiddenInCave || npc.shelterReason) hidden++;
+    const signal = typeof game.getVillagerShelterSignal === "function"
+      ? game.getVillagerShelterSignal(npc, { radius: 128 })
+      : null;
+    if ((signal && signal.threat) || npc.shelterReason === "nearby mob" || npc.shelterReason === "mob attack") danger = true;
+    if ((signal && signal.reason === "night") || npc.shelterReason === "night") night = true;
+  }
+
+  if (!liveVillagers.length) {
+    night = typeof game.shouldVillagersShelterForNight === "function" && game.shouldVillagersShelterForNight();
+    danger = Array.isArray(game.mobs) && game.mobs.some(mob => mob && !mob.pet);
+  }
+
+  if (danger) {
+    return {
+      stateClass: "danger",
+      label: "DANGER",
+      body: "DANGER -> cave; clear mobs -> trade. AI state machines keep villagers safe."
+    };
+  }
+  if (night) {
+    return {
+      stateClass: "night",
+      label: "NIGHT",
+      body: "NIGHT -> cave; daylight -> trade. Earth time changes village behavior."
+    };
+  }
+  if (hidden > 0) {
+    return {
+      stateClass: "wait",
+      label: "WAIT",
+      body: "WAIT -> safety check; clear cave + village -> trade."
+    };
+  }
+  return {
+    stateClass: "safe",
+    label: "SAFE",
+    body: "SAFE -> trade; event + state -> next behavior."
   };
 }
 
@@ -3368,6 +3426,11 @@ function updateStartMissionRadar(game = window.Game) {
   if (villageTitle) villageTitle.textContent = villagePreview.title;
   if (villageBody) villageBody.textContent = villagePreview.body;
   if (villageBar && villageBar.style) villageBar.style.width = `${Math.round(villagePreview.progress * 100)}%`;
+  const villagePanel = document.getElementById("start-village-preview");
+  if (villagePanel && villagePanel.classList) {
+    ["safe", "wait", "night", "danger"].forEach(state => villagePanel.classList.remove(`village-signal-${state}`));
+    villagePanel.classList.add(`village-signal-${villagePreview.stateClass || "safe"}`);
+  }
   if (proofLabel) proofLabel.textContent = proofPreview.label;
   if (proofTitle) proofTitle.textContent = proofPreview.title;
   if (proofBody) proofBody.textContent = proofPreview.body;

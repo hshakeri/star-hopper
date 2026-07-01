@@ -2896,6 +2896,43 @@ body.resizing-panes * {
   min-width: 0;
 }
 
+.start-village-preview.village-signal-safe {
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
+.start-village-preview.village-signal-wait {
+  border-color: rgba(250, 204, 21, 0.32);
+  background:
+    linear-gradient(90deg, rgba(113, 63, 18, 0.28), rgba(12, 74, 110, 0.22)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.022) 0 1px, transparent 1px 4px);
+}
+
+.start-village-preview.village-signal-night {
+  border-color: rgba(147, 197, 253, 0.34);
+  background:
+    linear-gradient(90deg, rgba(30, 41, 59, 0.42), rgba(30, 64, 175, 0.2)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.022) 0 1px, transparent 1px 4px);
+}
+
+.start-village-preview.village-signal-danger {
+  border-color: rgba(248, 113, 113, 0.42);
+  background:
+    linear-gradient(90deg, rgba(127, 29, 29, 0.38), rgba(113, 63, 18, 0.24)),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.022) 0 1px, transparent 1px 4px);
+}
+
+.start-village-preview.village-signal-night span {
+  color: #bfdbfe;
+}
+
+.start-village-preview.village-signal-danger span {
+  color: #fecaca;
+}
+
+.start-village-preview.village-signal-wait span {
+  color: #fde68a;
+}
+
 .start-village-preview span,
 .start-village-preview em {
   display: block;

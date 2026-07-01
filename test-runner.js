@@ -3186,6 +3186,14 @@ function runEngineTests() {
         }
       }
     };
+    const startVillagePreviewCard = {
+      classList: {
+        classes: new Set(),
+        add(cls) { this.classes.add(cls); },
+        remove(cls) { this.classes.delete(cls); },
+        contains(cls) { return this.classes.has(cls); }
+      }
+    };
     const els = {
       "research-rank-card": { innerHTML: "" },
       "discovery-deck": { innerHTML: "" },
@@ -3206,6 +3214,7 @@ function runEngineTests() {
       "start-world-preview-title": { textContent: "" },
       "start-world-preview-body": { textContent: "" },
       "start-world-preview-bar": { style: { width: "" } },
+      "start-village-preview": startVillagePreviewCard,
       "start-village-preview-label": { textContent: "" },
       "start-village-preview-title": { textContent: "" },
       "start-village-preview-body": { textContent: "" },
@@ -3288,6 +3297,20 @@ function runEngineTests() {
     assertEquals(true, /Cave Rescue Pact/.test(els["start-village-preview-body"].textContent), "Start radar should name the next village pact");
     assertEquals(true, /State machine: danger -> cave -> safe/.test(els["start-village-preview-body"].textContent), "Start radar should connect village progress to the coding concept");
     assertEquals("25%", els["start-village-preview-bar"].style.width, "Start radar should show village trust progress");
+    assertEquals(true, /Village State: SAFE -> trade/.test(els["start-village-preview-body"].textContent), "Start radar should preview the current village state-machine status");
+    assertEquals(true, startVillagePreviewCard.classList.contains("village-signal-safe"), "Start radar should color the village preview as safe by default");
+    game.getEarthDayNightPhase = () => ({ t: 0, daylight: 0.1, isDay: false, sunX: 0.1, sunY: 0.2 });
+    updateStartMissionRadar(game);
+    assertEquals(true, /Village State: NIGHT -> cave; daylight -> trade/.test(els["start-village-preview-body"].textContent), "Start radar should explain night cave shelter before play starts");
+    assertEquals(true, startVillagePreviewCard.classList.contains("village-signal-night"), "Start radar should color the village preview for night shelter");
+    game.getEarthDayNightPhase = () => ({ t: 0.5, daylight: 1, isDay: true, sunX: 0.5, sunY: 0.34 });
+    game.interactiveObjects = [new NPC({ id: "radar-guard", name: "Radar Guard", profession: "Guard", type: "npc", x: 120, y: 60, color: "#a7f3d0", caveX: 72, caveY: 60 })];
+    game.mobs = [new Mob(126, 60, "hog", "#9a6b4f", 1)];
+    updateStartMissionRadar(game);
+    assertEquals(true, /Village State: DANGER -> cave; clear mobs -> trade/.test(els["start-village-preview-body"].textContent), "Start radar should preview mob danger as a village state transition");
+    assertEquals(true, startVillagePreviewCard.classList.contains("village-signal-danger"), "Start radar should color the village preview for mob danger");
+    game.interactiveObjects = [];
+    game.mobs = [];
     assertEquals("3-STAR PROOF", els["start-proof-preview-label"].textContent, "Start radar should label the lab-star proof preview");
     assertEquals("0/3 Lab Stars ready", els["start-proof-preview-title"].textContent, "Start radar should show current lab-star readiness");
     assertEquals(true, /finish mission tasks/.test(els["start-proof-preview-body"].textContent), "Start radar should name the first missing lab-star goal");
