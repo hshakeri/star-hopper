@@ -8031,6 +8031,20 @@ class StarHopperGame {
     return "";
   }
 
+  getObjectiveRewardChip(reward = "") {
+    const raw = String(reward || "").replace(/^Reward:\s*/i, "").replace(/\s+/g, " ").trim();
+    if (!raw) return "";
+    if (/^Target:/i.test(raw)) return raw.replace(/^Target:\s*/i, "TARGET ");
+    if (/^Decode:/i.test(raw)) return raw.replace(/^Decode:\s*/i, "DECODE ");
+    if (/^(Lesson Lens|Lesson phase|Phase reward|Cadet lesson|Objective queue|Village mentor|What Changed|Tested result|Science proof|Science checkpoint|Lab chain|Formula Deck|Formula reward|Formula target|Crash Lab|Signal Lab|Anomaly Trace|Mission CRT)$/i.test(raw)) {
+      return `FROM ${raw}`;
+    }
+    if (/\b(XP|proof|card|share code|trust|states?|phases?|stars?|record|chapter|daily clear|lab)\b/i.test(raw) || /^\+\d+/.test(raw)) {
+      return `WIN ${raw}`;
+    }
+    return raw;
+  }
+
   syncScienceBreadcrumbNextExperiment(delta, nextExperiment = null) {
     if (!delta || !this.scienceBreadcrumbEffects || !this.scienceBreadcrumbEffects.length) return 0;
     const nextCue = this.getScienceBreadcrumbNextData(nextExperiment || delta.nextExperiment);
@@ -8375,6 +8389,7 @@ class StarHopperGame {
     const commandContext = `${item.title || ""} ${itemBody} ${item.reward || ""}`;
     const commandLine = this.getSalientCommandLine(item.command || "", commandContext);
     const formulaChip = this.getCommandFormulaChip(commandLine, commandContext);
+    const rewardChip = this.getObjectiveRewardChip(item.reward || "");
     const reasonLine = commandLine && itemBody && itemBody !== commandLine ? itemBody : "";
     const progressInfo = item.progress && typeof item.progress === "object" ? item.progress : null;
     const progressValue = progressInfo && Number.isFinite(Number(progressInfo.value))
@@ -8392,6 +8407,7 @@ class StarHopperGame {
       body: commandLine || itemBody || item.reward || "Run the next focused experiment.",
       reasonLine,
       reward: item.reward || "",
+      rewardChip,
       commandLine,
       formulaChip,
       kind: item.kind || "objective",
@@ -8424,9 +8440,10 @@ class StarHopperGame {
     const py = Number.isFinite(p.y) ? p.y : H / 2;
     const w = Math.max(124, Math.min(176, W - 24));
     const hasReason = !!cue.reasonLine;
+    const hasReward = !!cue.rewardChip;
     const hasTrail = !!(cue.trail && cue.trail.length);
     const hasProgress = !!(cue.progress && Number.isFinite(Number(cue.progress.value)));
-    const h = 48 + (hasReason ? 12 : 0) + (hasProgress ? 12 : 0) + (hasTrail ? 12 : 0);
+    const h = 48 + (hasReason ? 12 : 0) + (hasReward ? 12 : 0) + (hasProgress ? 12 : 0) + (hasTrail ? 12 : 0);
     const x = Math.max(12, Math.min(W - w - 12, px - w / 2));
     const y = Math.max(64, Math.min(H - h - 16, py - 62));
     const color = cue.color || "#67e8f9";
@@ -8507,8 +8524,24 @@ class StarHopperGame {
       ctx.fillText(this.fitCardText(ctx, cue.reasonLine, w - 18), x + 9, y + 50);
     }
 
+    if (hasReward) {
+      const rewardY = y + 50 + (hasReason ? 12 : 0);
+      ctx.globalAlpha = cue.disabled ? 0.5 : 0.78;
+      ctx.fillStyle = "rgba(15, 23, 42, 0.74)";
+      ctx.strokeStyle = cue.disabled ? "rgba(203, 213, 225, 0.34)" : "#86efac";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(x + 9, rewardY - 5, w - 18, 9, 4);
+      ctx.fill();
+      ctx.stroke();
+      ctx.globalAlpha = cue.disabled ? 0.7 : 0.94;
+      ctx.fillStyle = cue.disabled ? "#cbd5e1" : "#bbf7d0";
+      ctx.font = "bold 6.3px 'Share Tech Mono', monospace";
+      ctx.fillText(this.fitCardText(ctx, cue.rewardChip, w - 26), x + 14, rewardY);
+    }
+
     if (hasProgress) {
-      const railY = y + 50 + (hasReason ? 12 : 0);
+      const railY = y + 50 + (hasReason ? 12 : 0) + (hasReward ? 12 : 0);
       const railX = x + 9;
       const railW = w - 18;
       const railH = 5;
