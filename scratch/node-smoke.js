@@ -123,7 +123,11 @@ const smoke = `
   var getFutureLabRoadmapStages = global.getFutureLabRoadmapStages;
   gp.dailyInfo = { isFrontier: true, darkMatterPrep: true };
   gp.drawFutureLabRunCue(gp.ctx);
-  global.__futureCueOk = !!(gp.lastFutureLabRunCue && gp.lastFutureLabRunCue.progress && gp.lastFutureLabRunCue.progress.done === 3);
+  global.__futureCueOk = !!(gp.lastFutureLabRunCue &&
+    gp.lastFutureLabRunCue.progress &&
+    gp.lastFutureLabRunCue.progress.done === 3 &&
+    gp.lastFutureLabRunCue.scene &&
+    /Hidden-force/.test(gp.lastFutureLabRunCue.scene.title));
 
   // Every drawn mob species renders without throwing (incl. blink + hit-flash + squash).
   ['hog', 'snake', 'critter', 'blob', 'bot', 'floater'].forEach((sp, i) => {

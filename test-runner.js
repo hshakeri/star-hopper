@@ -2930,6 +2930,9 @@ function runEngineTests() {
     assertEquals(6, cue.progress.total, "Future lab cue should use the six-step roadmap");
     assertEquals("dark-matter-evidence", cue.progress.nextId, "Dark Matter prep cue should point at curve evidence as the active proof");
     assertEquals(true, /Bank curve evidence/.test(cue.progress.progressLine), "Future lab cue should name the next proof target");
+    assertEquals("VECTOR", cue.scene && cue.scene.speaker, "Dark Matter prep cue should carry the Vector source scene");
+    assertEquals("Hidden-force case file", cue.scene && cue.scene.title, "Dark Matter prep cue should name the hidden-force story payoff");
+    assertEquals(true, /unseen force/.test(cue.scene.lesson), "Dark Matter prep cue should include the science takeaway");
 
     g.dailyInfo = null;
     g.discoveryPassCounts = {};
@@ -2939,6 +2942,8 @@ function runEngineTests() {
     assertEquals("field", cue.mode, "Anomaly trace cue should use the field visualization");
     assertEquals(2, cue.progress.done, "Anomaly trace cue should count star-map plus Frontier echo prerequisites");
     assertEquals("hidden-force-trace", cue.progress.nextId, "Anomaly trace cue should point at the hidden-force proof");
+    assertEquals("TRACE BRIEF", cue.scene && cue.scene.label, "Anomaly trace cue should use a trace briefing scene");
+    assertEquals(true, /touch event/.test(cue.scene.lesson), "Anomaly trace cue should connect event code to hidden-force evidence");
 
     g.discoveryPassCounts = {
       "anomaly-trace-proof:4:trace-hidden-force:test": 1,
@@ -2952,6 +2957,8 @@ function runEngineTests() {
     assertEquals(4, cue.progress.done, "Quantum branch cue should show the four banked future proofs");
     assertEquals("quantum-branch", cue.progress.nextId, "Quantum branch cue should point at the branch seed");
     assertEquals(true, /Branch Lab card/.test(cue.progress.nextReward), "Quantum branch cue should preview the formula-card payoff");
+    assertEquals("Quantum Gate wakes", cue.scene && cue.scene.title, "Quantum branch cue should carry the gate-wakes scene");
+    assertEquals(true, /condition/.test(cue.scene.lesson), "Quantum branch cue should include the conditional coding payoff");
 
     g.discoveryPassCounts = {
       ...g.discoveryPassCounts,
@@ -2964,6 +2971,8 @@ function runEngineTests() {
     assertEquals(true, /measured pattern/.test(cue.formula), "Quantum chance cue should connect chance to evidence");
     assertEquals(5, cue.progress.done, "Quantum chance cue should show that only probability remains");
     assertEquals("quantum-chance", cue.progress.nextId, "Quantum chance cue should point at the probability seed");
+    assertEquals("HOPPER-ZERO", cue.scene && cue.scene.speaker, "Quantum chance cue should carry the Hopper-Zero scene");
+    assertEquals(true, /probability|chance/.test(cue.scene.lesson), "Quantum chance cue should include the probability takeaway");
 
     g.state = 'start';
     assertEquals(null, g.getFutureLabRunCue(), "Future-lab cue should stay out of the start screen");

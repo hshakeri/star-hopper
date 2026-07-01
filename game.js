@@ -7212,6 +7212,55 @@ class StarHopperGame {
     };
   }
 
+  getFutureLabRunScene(sceneKey = null) {
+    const key = sceneKey ? String(sceneKey) : "";
+    if (key === "anomaly-trace") {
+      return {
+        label: "TRACE BRIEF",
+        speaker: "VECTOR",
+        title: "Field prototype",
+        lesson: "Coding payoff: one touch event can reveal an invisible force."
+      };
+    }
+    if (typeof getSignalSourceScene === 'function') {
+      let scene = null;
+      try {
+        scene = getSignalSourceScene(this);
+      } catch (err) {
+        scene = null;
+      }
+      if (scene) {
+        return {
+          label: scene.label || "SOURCE SCENE",
+          speaker: scene.speaker || "VECTOR",
+          title: scene.title || "Future lab source",
+          lesson: scene.lesson || scene.body || "Science payoff: connect code evidence to the next source."
+        };
+      }
+    }
+    const fallback = {
+      "dark-matter-evidence": {
+        label: "CASE FILE",
+        speaker: "VECTOR",
+        title: "Hidden-force case file",
+        lesson: "Science payoff: infer an unseen force from visible motion."
+      },
+      "quantum-branch": {
+        label: "GATE SCENE",
+        speaker: "VECTOR",
+        title: "Quantum Gate wakes",
+        lesson: "Coding payoff: one condition can change the route."
+      },
+      "quantum-chance": {
+        label: "SOURCE SCENE",
+        speaker: "HOPPER-ZERO",
+        title: "Two paths detected",
+        lesson: "Coding payoff: chance measures how often a branch wins."
+      }
+    };
+    return fallback[key] || null;
+  }
+
   getFutureLabRunCue() {
     if (this.state !== 'playing') return null;
     const staged = this.lastStagedExperiment || null;
@@ -7224,7 +7273,8 @@ class StarHopperGame {
         formula: "motion clue -> hidden force",
         color: "#818cf8",
         mode: "curve",
-        progress: this.getFutureLabRunProgress("dark-matter-evidence")
+        progress: this.getFutureLabRunProgress("dark-matter-evidence"),
+        scene: this.getFutureLabRunScene("dark-matter-evidence")
       };
     }
     if (source === "start-anomaly-trace") {
@@ -7235,7 +7285,8 @@ class StarHopperGame {
         formula: "event -> field response",
         color: "#a78bfa",
         mode: "field",
-        progress: this.getFutureLabRunProgress("hidden-force-trace")
+        progress: this.getFutureLabRunProgress("hidden-force-trace"),
+        scene: this.getFutureLabRunScene("anomaly-trace")
       };
     }
     if (source === "start-quantum-branch") {
@@ -7246,7 +7297,8 @@ class StarHopperGame {
         formula: "if state -> path A/B",
         color: "#22d3ee",
         mode: "branch",
-        progress: this.getFutureLabRunProgress("quantum-branch")
+        progress: this.getFutureLabRunProgress("quantum-branch"),
+        scene: this.getFutureLabRunScene("quantum-branch")
       };
     }
     if (source === "start-quantum-chance") {
@@ -7257,7 +7309,8 @@ class StarHopperGame {
         formula: "chance p -> measured pattern",
         color: "#38bdf8",
         mode: "chance",
-        progress: this.getFutureLabRunProgress("quantum-chance")
+        progress: this.getFutureLabRunProgress("quantum-chance"),
+        scene: this.getFutureLabRunScene("quantum-chance")
       };
     }
     return null;
@@ -7269,9 +7322,9 @@ class StarHopperGame {
     const W = this.canvas.width || 720;
     const H = this.canvas.height || 448;
     const x = Math.max(14, W - 238);
-    const y = Math.max(124, H - 128);
+    const y = Math.max(124, H - 148);
     const w = 218;
-    const h = 102;
+    const h = 122;
     const t = this.reducedMotion ? 0 : Date.now() / 700;
     const pulse = this.reducedMotion ? 0.5 : 0.5 + 0.5 * Math.sin(t);
     const color = cue.color || "#67e8f9";
@@ -7306,11 +7359,21 @@ class StarHopperGame {
     ctx.fillStyle = "#bef264";
     ctx.fillText(this.fitCardText(ctx, cue.formula, w - 20), x + 10, y + 61);
 
+    if (cue.scene) {
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = "#fde68a";
+      ctx.font = "bold 7px 'Share Tech Mono', monospace";
+      const sceneLine = `${cue.scene.speaker || "VECTOR"}: ${cue.scene.title || cue.scene.label || "Source scene"}`;
+      ctx.fillText(this.fitCardText(ctx, sceneLine, w - 20), x + 10, y + 76);
+      ctx.fillStyle = "#c4b5fd";
+      ctx.fillText(this.fitCardText(ctx, cue.scene.lesson || "", w - 20), x + 10, y + 90);
+    }
+
     if (cue.progress) {
       ctx.globalAlpha = 0.92;
       ctx.fillStyle = "#e0f2fe";
       ctx.font = "bold 7px 'Share Tech Mono', monospace";
-      ctx.fillText(this.fitCardText(ctx, cue.progress.progressLine, w - 20), x + 10, y + 76);
+      ctx.fillText(this.fitCardText(ctx, cue.progress.progressLine, w - 20), x + 10, y + 104);
       const pips = Array.isArray(cue.progress.statuses) ? cue.progress.statuses : [];
       const pipY = y + h - 13;
       for (let i = 0; i < pips.length; i++) {
