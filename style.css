@@ -5786,6 +5786,69 @@ html {
   overflow-y: auto;
 }
 
+.mission-list.simple-lab-quest {
+  max-height: 176px;
+}
+
+.mission-list.simple-lab-quest > :not(.vector-link-card):not(.mission-item) {
+  display: none !important;
+}
+
+.vector-link-card {
+  border: 1px solid rgba(34, 197, 94, 0.45);
+  border-radius: 5px;
+  background:
+    linear-gradient(180deg, rgba(20, 83, 45, 0.58), rgba(2, 6, 23, 0.74)),
+    repeating-linear-gradient(0deg, rgba(187, 247, 208, 0.055) 0 1px, transparent 1px 4px);
+  box-shadow: inset 0 0 14px rgba(34, 197, 94, 0.12);
+  display: grid;
+  gap: 4px;
+  padding: 7px 8px;
+}
+
+.vector-link-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  color: rgba(187, 247, 208, 0.82);
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  line-height: 1.2;
+}
+
+.vector-link-head span {
+  color: #22c55e;
+  font-weight: 800;
+}
+
+.vector-link-head strong {
+  color: #fef08a;
+  font-weight: 800;
+  text-align: right;
+}
+
+.vector-link-title {
+  color: #ecfccb;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  line-height: 1.25;
+}
+
+.vector-link-card p {
+  margin: 0;
+  color: #bbf7d0;
+  font-size: 0.58rem;
+  line-height: 1.35;
+}
+
+.mission-bubble #discovery-pulse,
+.mission-bubble #formula-target,
+.mission-bubble #mission-briefing,
+.mission-bubble .mode-save-row {
+  display: none !important;
+}
+
 .run-objective-queue-card {
   border: 1px solid rgba(45, 212, 191, 0.36);
   border-radius: 6px;
@@ -8620,6 +8683,32 @@ html {
 .coach-bubble-title { letter-spacing: 0.3px; }
 .coach-chevron { color: var(--neon-cyan); transition: transform 0.2s ease; }
 .coach-bubble.collapsed .coach-chevron { transform: rotate(-90deg); }
+.coach-drone-help {
+  position: absolute;
+  top: 6px;
+  right: 38px;
+  width: 26px;
+  height: 26px;
+  border: 2px solid rgba(103, 232, 249, 0.85);
+  border-radius: 50%;
+  background: rgba(8, 47, 73, 0.92);
+  color: #ecfeff;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 10px rgba(103, 232, 249, 0.28), inset 0 0 8px rgba(103, 232, 249, 0.2);
+  z-index: 2;
+}
+.coach-drone-help:hover,
+.coach-drone-help:focus-visible {
+  background: rgba(14, 116, 144, 0.95);
+  color: #ffffff;
+}
 .coach-bubble-body {
   padding: 10px 12px 12px;
   overflow-y: auto;

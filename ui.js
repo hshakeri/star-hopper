@@ -417,6 +417,8 @@ function updateMissionList(game) {
   }
 
   listContainer.innerHTML = "";
+  listContainer.classList.add("simple-lab-quest");
+  appendVectorLinkCard(listContainer, game);
   appendRunObjectiveQueueCard(listContainer, game);
   appendLessonLensCard(listContainer, game);
   appendMissionLabQuestionCard(listContainer, game);
@@ -506,6 +508,39 @@ function appendHTML(parent, html) {
   } else {
     parent.innerHTML = `${parent.innerHTML || ""}${html}`;
   }
+}
+
+function appendVectorLinkCard(listContainer, game) {
+  if (!listContainer || !game) return;
+  const activeMission = typeof getActivePlatformerMission === "function" ? getActivePlatformerMission(game) : null;
+  const fullMission = activeMission && activeMission.fullMission ? activeMission.fullMission : null;
+  const status = typeof game.getLevelObjectiveStatus === "function" ? game.getLevelObjectiveStatus() : null;
+  let title = "Find the next requirement";
+  let body = "Tap the drone for a nudge. Change one value, run it, then watch what moved.";
+  if (fullMission) {
+    title = fullMission.title || activeMission.id || title;
+    body = typeof getCoachFocusText === "function"
+      ? getCoachFocusText(game, activeMission)
+      : (fullMission.scaffold && fullMission.scaffold.codeIdea ? fullMission.scaffold.codeIdea : body);
+  } else if (status && !status.allCollectiblesCollected) {
+    const left = Math.max(0, status.collectiblesTotal - status.collectiblesCollected);
+    body = `Collect ${left} mission gem${left === 1 ? "" : "s"}, then check the portal.`;
+  }
+  const progress = status
+    ? `${status.missionsComplete}/${status.missionsTotal} tasks · ${status.collectiblesCollected}/${status.collectiblesTotal} gems`
+    : "active run";
+
+  const card = document.createElement("div");
+  card.className = "vector-link-card";
+  card.innerHTML = `
+    <div class="vector-link-head">
+      <span>VECTOR LINK</span>
+      <strong>${escapeHTML(progress)}</strong>
+    </div>
+    <div class="vector-link-title">${escapeHTML(title)}</div>
+    <p>${escapeHTML(body)}</p>
+  `;
+  listContainer.appendChild(card);
 }
 
 function addRunObjectiveQueueItem(queue, seen, item) {
@@ -1642,7 +1677,6 @@ function getVillageStateCrtPreview(game) {
   if (!villagers.length) return null;
 
   let danger = 0;
-  let night = 0;
   let hidden = 0;
   let rescueWait = 0;
   villagers.forEach(npc => {
@@ -1652,10 +1686,8 @@ function getVillageStateCrtPreview(game) {
       ? game.getVillagerShelterSignal(npc)
       : null;
     const liveThreat = !!(signal && signal.threat);
-    const nightShelter = !!((signal && signal.reason === "night") || npc.shelterReason === "night");
-    const staleDanger = (npc.shelterReason === "nearby mob" || npc.shelterReason === "mob attack") && !nightShelter;
+    const staleDanger = npc.shelterReason === "nearby mob" || npc.shelterReason === "mob attack";
     if (liveThreat || staleDanger) danger++;
-    else if (nightShelter) night++;
   });
 
   const petGuards = Array.isArray(game.mobs)
@@ -1674,17 +1706,6 @@ function getVillageStateCrtPreview(game) {
       body: petGuards > 0
         ? "A pet can intercept the hostile mob; once danger clears, villagers return to trading."
         : "Clear mobs, tame a pet guard, or end Survival so villagers can safely return.",
-      countLine
-    };
-  }
-  if (night > 0) {
-    return {
-      stateClass: "night",
-      label: "NIGHT",
-      title: `${night}/${villagers.length} night shelter${night === 1 ? "" : "s"}`,
-      transition: "night -> cave",
-      formula: "state + event -> next state",
-      body: "Earth villagers wait in caves during night, then switch back to trading at daylight.",
       countLine
     };
   }
@@ -3865,7 +3886,6 @@ function getStartVillageStateSignal(game = window.Game) {
   if (!hasPlanetVillage && liveVillagers.length === 0) return null;
 
   let danger = false;
-  let night = false;
   let hidden = 0;
   for (const npc of liveVillagers) {
     if (npc.hiddenInCave || npc.shelterReason) hidden++;
@@ -3873,14 +3893,11 @@ function getStartVillageStateSignal(game = window.Game) {
       ? game.getVillagerShelterSignal(npc)
       : null;
     const liveThreat = !!(signal && signal.threat);
-    const nightShelter = !!((signal && signal.reason === "night") || npc.shelterReason === "night");
-    const staleDanger = (npc.shelterReason === "nearby mob" || npc.shelterReason === "mob attack") && !nightShelter;
+    const staleDanger = npc.shelterReason === "nearby mob" || npc.shelterReason === "mob attack";
     if (liveThreat || staleDanger) danger = true;
-    if (nightShelter) night = true;
   }
 
   if (!liveVillagers.length) {
-    night = typeof game.shouldVillagersShelterForNight === "function" && game.shouldVillagersShelterForNight();
     danger = Array.isArray(game.mobs) && game.mobs.some(mob => mob && !mob.pet);
   }
 
@@ -3889,13 +3906,6 @@ function getStartVillageStateSignal(game = window.Game) {
       stateClass: "danger",
       label: "DANGER",
       body: "DANGER -> cave; clear mobs -> trade. AI state machines keep villagers safe."
-    };
-  }
-  if (night) {
-    return {
-      stateClass: "night",
-      label: "NIGHT",
-      body: "NIGHT -> cave; daylight -> trade. Earth time changes village behavior."
     };
   }
   if (hidden > 0) {
@@ -4229,7 +4239,7 @@ const DISCOVERY_RULES = [
     title: "AI State Lab",
     formula: "state + event -> next state",
     insight: "Game characters can switch behavior when an event happens: wild, scared, pet, shelter, trade, or guard.",
-    cue: "Watch a mob, pet, or villager change state after danger, night, trade, or a touch event.",
+    cue: "Watch a mob, pet, or villager change state after danger, trade, or a touch event.",
     axis: "Events change behavior state",
     move: "Trigger one AI event",
     payoff: "Grow Village Trust",
@@ -7621,6 +7631,37 @@ function getCoachStepParts(step, index = 0) {
   };
 }
 
+function getCoachDronePepText(game) {
+  game = game || (typeof window !== "undefined" ? window.Game : null);
+  const activeMission = typeof getActivePlatformerMission === "function" ? getActivePlatformerMission(game) : null;
+  if (activeMission && activeMission.fullMission) {
+    const fullMission = activeMission.fullMission;
+    const selectedPrediction = game && game.coachPredictions ? game.coachPredictions[activeMission.id] : null;
+    if (fullMission.prediction && !selectedPrediction) return "Guess first!";
+    if (!game.currentMissionSteps || !game.currentMissionSteps.code) return "One tweak!";
+    const resultState = game.coachLastResults ? game.coachLastResults[activeMission.id] : null;
+    if (resultState && !resultState.allPassed) return "Watch the trace!";
+    if (game.completedMissions && game.completedMissions.has(activeMission.id)) return "Proof banked!";
+  }
+  return (typeof SPEECH !== "undefined" && SPEECH.pick) ? SPEECH.pick("coachPep") : "Try one value!";
+}
+
+function showCoachDronePep(game) {
+  game = game || (typeof window !== "undefined" ? window.Game : null);
+  const line = getCoachDronePepText(game);
+  const canvas = (game && game.canvas) || (typeof document !== "undefined" ? document.getElementById("game-canvas") : null);
+  const width = canvas && Number.isFinite(canvas.width) ? canvas.width : 720;
+  const cameraX = game && Number.isFinite(game.cameraX) ? game.cameraX : 0;
+  const x = cameraX + width - 86;
+  const y = 72;
+  if (typeof ComicBubbles !== "undefined" && ComicBubbles.spawn) {
+    ComicBubbles.spawn(x, y, line, "rounded", "#67e8f9", -0.25, { maxLife: 84, scale: 0.82 });
+  } else if (game && game.player && typeof game.player.say === "function") {
+    game.player.say(line);
+  }
+  return line;
+}
+
 function getCoachProofHook(game, activeMission) {
   if (!game || !activeMission || !activeMission.fullMission) return null;
   const fullMission = activeMission.fullMission;
@@ -9112,6 +9153,14 @@ function setupUIBindings(game) {
       });
     }
   });
+  const droneHelp = document.getElementById("coach-drone-help");
+  if (droneHelp) {
+    droneHelp.addEventListener("click", (event) => {
+      if (event && typeof event.stopPropagation === "function") event.stopPropagation();
+      showCoachDronePep(game);
+      if (typeof SFX !== "undefined" && SFX.playType) SFX.playType();
+    });
+  }
   
   // 4. Mute toggle
   const muteBtn = document.getElementById("mute-btn");

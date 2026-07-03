@@ -262,26 +262,22 @@ class StarHopperGame {
   }
 
   getEarthDayNightPhase(nowMs) {
-    const now = Number.isFinite(nowMs) ? nowMs : Date.now();
-    const cycle = 64000;
-    const t = ((now % cycle) / cycle);
-    const daylight = 0.5 + 0.5 * Math.sin(t * Math.PI * 2 - Math.PI / 2);
     return {
-      t,
-      daylight,
-      isDay: daylight >= 0.45,
-      sunX: 0.1 + t * 0.8,
-      sunY: 0.18 + Math.sin(t * Math.PI) * 0.16
+      t: 0.5,
+      daylight: 1,
+      isDay: true,
+      sunX: 0.5,
+      sunY: 0.34
     };
   }
 
   shouldVillagersShelterForNight(nowMs) {
-    return this.currentPlanetIndex === 0 && !this.getEarthDayNightPhase(nowMs).isDay;
+    return false;
   }
 
   getVillagerThreatRadius(options = {}) {
-    const baseRadius = this.survivalMode ? 192 : 152;
-    return baseRadius + (options && options.waiting ? 32 : 0);
+    const baseRadius = this.survivalMode ? 92 : 78;
+    return baseRadius + (options && options.waiting ? 16 : 0);
   }
 
   getVillageNPCs(extraNpc = null) {
@@ -306,14 +302,15 @@ class StarHopperGame {
         return { active: true, reason: "nearby mob", threat, villagers: villagers.length };
       }
     }
-    if (this.shouldVillagersShelterForNight(options.nowMs)) {
-      return { active: true, reason: "night", threat: null, villagers: villagers.length };
-    }
     return { active: false, reason: null, threat: null, villagers: villagers.length };
   }
 
   getVillagerShelterSignal(npc, options = {}) {
-    return this.getVillageShelterSignal({ ...options, npc });
+    if (!npc) return this.getVillageShelterSignal(options);
+    const villagers = this.getVillageNPCs(npc);
+    const radius = Number.isFinite(options.radius) ? options.radius : this.getVillagerThreatRadius(options);
+    const threat = this.findThreateningMobForNPC(npc, radius);
+    return { active: !!threat, reason: threat ? "nearby mob" : null, threat, villagers: villagers.length };
   }
 
   shouldNPCWaitInCave(npc, signal = null) {
@@ -337,14 +334,8 @@ class StarHopperGame {
     if (shelter && shelter.threat) {
       return { label: "DANGER", reason: "nearby mob", color: "#facc15", fill: "rgba(250, 204, 21, 0.32)" };
     }
-    if (shelter && shelter.reason === "night") {
-      return { label: "NIGHT", reason: "night", color: "#93c5fd", fill: "rgba(147, 197, 253, 0.28)" };
-    }
     if (npc && npc.rescuePending) {
       return { label: "WAIT", reason: npc.shelterReason || "danger", color: "#facc15", fill: "rgba(250, 204, 21, 0.26)" };
-    }
-    if (npc && npc.shelterReason === "night") {
-      return { label: "NIGHT", reason: "night", color: "#93c5fd", fill: "rgba(147, 197, 253, 0.24)" };
     }
     return { label: "SAFE", reason: "clear", color: "#a7f3d0", fill: "rgba(167, 243, 208, 0.22)" };
   }
@@ -1312,32 +1303,27 @@ class StarHopperGame {
   releaseVillagersFromCaves(options = {}) {
     const keepSheltered = Object.prototype.hasOwnProperty.call(options, "keepSheltered")
       ? !!options.keepSheltered
-      : this.shouldVillagersShelterForNight();
-    const villageSignal = typeof this.getVillageShelterSignal === 'function'
-      ? this.getVillageShelterSignal()
-      : null;
+      : false;
     let villagers = 0;
     let released = 0;
     let sheltered = 0;
     let dangerSheltered = 0;
-    let nightSheltered = 0;
     for (const obj of this.interactiveObjects || []) {
       if (!(typeof NPC !== 'undefined' && obj instanceof NPC)) continue;
       villagers++;
       const hadShelterState = !!(obj.hiddenInCave || obj.returningFromCave || obj.rescuePending || obj.shelterReason || (obj.panicTimer || 0) > 0);
-      const shelter = villageSignal || (typeof this.getVillagerShelterSignal === 'function'
+      const shelter = typeof this.getVillagerShelterSignal === 'function'
         ? this.getVillagerShelterSignal(obj)
-        : { active: keepSheltered, reason: keepSheltered ? "night" : null });
+        : { active: keepSheltered, reason: keepSheltered ? "nearby mob" : null };
       const keepNpcSheltered = keepSheltered || !!(shelter && shelter.active);
       obj.panicTimer = 0;
       obj.caveCooldown = 0;
       if (keepNpcSheltered) {
         sheltered++;
-        const reason = shelter && shelter.reason ? shelter.reason : "night";
-        if (reason === "night") nightSheltered++;
-        else dangerSheltered++;
+        const reason = shelter && shelter.reason ? shelter.reason : "nearby mob";
+        dangerSheltered++;
         if (obj.rescuePending && !obj.rescueReason) {
-          obj.rescueReason = obj.shelterReason && obj.shelterReason !== "night" ? obj.shelterReason : "danger";
+          obj.rescueReason = obj.shelterReason || "danger";
         }
         obj.shelterReason = reason;
         this.parkNPCInCave(obj, reason);
@@ -1362,18 +1348,16 @@ class StarHopperGame {
     this.syncTradeTouchControls();
     const caveState = dangerSheltered > 0
       ? "danger"
-      : ((keepSheltered || nightSheltered > 0) ? "night" : "clear");
-    const message = caveState === "night"
-      ? "VILLAGE NIGHT: traders wait in caves"
-      : (caveState === "danger"
-        ? "VILLAGE WAIT: danger still near caves"
-        : "VILLAGE CLEAR: traders back outside");
+      : "clear";
+    const message = caveState === "danger"
+      ? "VILLAGE WAIT: danger still near caves"
+      : "VILLAGE CLEAR: traders back outside";
     if (villagers > 0 && typeof this.showMissionBalloon === 'function') {
       this.showMissionBalloon(
         message,
         {
           title: "MISSION CRT",
-          color: caveState === "danger" ? "#facc15" : (caveState === "night" ? "#fde68a" : "#a7f3d0"),
+          color: caveState === "danger" ? "#facc15" : "#a7f3d0",
           timer: 220
         }
       );
@@ -1389,6 +1373,7 @@ class StarHopperGame {
 
   parkNPCInCave(npc, reason = "shelter") {
     if (!npc) return;
+    const shelterReason = reason === "night" ? "nearby mob" : reason;
     if (typeof this.ensureNPCSafeCave === 'function') this.ensureNPCSafeCave(npc);
     npc.hiddenInCave = true;
     if (Number.isFinite(npc.caveX)) npc.x = npc.caveX + 10;
@@ -1396,8 +1381,7 @@ class StarHopperGame {
     npc.returningFromCave = false;
     npc.returningFromCaveTimer = 0;
     npc.caveExitTimer = 0;
-    if (reason === "night") npc.shelterReason = "night";
-    else if (!npc.shelterReason || npc.shelterReason === "night") npc.shelterReason = reason;
+    if (!npc.shelterReason || npc.shelterReason === "night") npc.shelterReason = shelterReason;
     npc.proximity = false;
     if (this.activeNPC === npc) this.activeNPC = null;
   }
@@ -1406,7 +1390,7 @@ class StarHopperGame {
     if (!npc) return;
     const wasHidden = !!npc.hiddenInCave;
     const rescuePending = !!npc.rescuePending;
-    const rescueReason = npc.rescueReason || (npc.shelterReason && npc.shelterReason !== "night" ? npc.shelterReason : null) || "danger";
+    const rescueReason = npc.rescueReason || npc.shelterReason || "danger";
     const exitAtCave = !!(options.exitAtCave && wasHidden && Number.isFinite(npc.caveX));
     const walkHome = !!options.returnHome && !options.snapHome;
     npc.hiddenInCave = false;
@@ -1439,7 +1423,7 @@ class StarHopperGame {
     npc.panicTimer = Math.max(npc.panicTimer || 0, options.panicTimer || 120);
     npc.rescuePending = true;
     npc.rescueReason = reason;
-    if (!npc.shelterReason || npc.shelterReason === "nearby mob" || npc.shelterReason === "night") npc.shelterReason = reason;
+    if (!npc.shelterReason || npc.shelterReason === "nearby mob" || npc.shelterReason === "night") npc.shelterReason = reason === "night" ? "nearby mob" : reason;
     if (!npc.hiddenInCave && options.bubble && typeof ComicBubbles !== 'undefined' && (npc.caveCooldown || 0) <= 0) {
       ComicBubbles.spawn(npc.x + npc.w / 2, npc.y - 8, "CAVE!", "jagged", "#facc15", -0.35, { maxLife: 60, scale: 0.8 });
     }
@@ -1475,22 +1459,13 @@ class StarHopperGame {
   updateVillagerShelterStates() {
     if (!(this.interactiveObjects && typeof NPC !== 'undefined')) return;
     let touchNeedsSync = false;
-    const villageSignal = typeof this.getVillageShelterSignal === 'function'
-      ? this.getVillageShelterSignal()
-      : null;
     for (const obj of this.interactiveObjects) {
       if (!(obj instanceof NPC)) continue;
-      const shelter = villageSignal || this.getVillagerShelterSignal(obj);
+      const shelter = this.getVillagerShelterSignal(obj);
       const threat = shelter.threat;
       if (threat) {
         if (this.markNPCShelterThreat(obj, "nearby mob", { bubble: true, panicTimer: 150 })) touchNeedsSync = true;
         if (this.routeNPCToCave(obj, "nearby mob", 2.8)) touchNeedsSync = true;
-        continue;
-      }
-      if (shelter.reason === "night") {
-        if (!obj.rescuePending) obj.shelterReason = "night";
-        if (this.activeNPC === obj) touchNeedsSync = true;
-        if (this.routeNPCToCave(obj, "night", 2.4)) touchNeedsSync = true;
         continue;
       }
       if (this.shouldNPCWaitInCave(obj, shelter)) {
@@ -4303,11 +4278,10 @@ class StarHopperGame {
     // Spawn planet villages. NPCs snap onto the nearest surface so config can focus on
     // the stage layout instead of pixel-perfect y positions.
     if (this.currentPlanet.npcs) {
-      for (const npcConf of this.currentPlanet.npcs) {
+      for (const npcConf of this.currentPlanet.npcs.slice(0, 2)) {
         if (typeof NPC !== 'undefined') {
           const placed = this.placeNpcAwayFromCollectibles(npcConf);
           const npc = new NPC(placed);
-          if (this.shouldVillagersShelterForNight()) this.parkNPCInCave(npc, "night");
           this.interactiveObjects.push(npc);
         }
       }
@@ -6647,6 +6621,7 @@ class StarHopperGame {
     // 12e. Mobs (survival spawns + block-woken) move and fight here.
     this.updateMobs();
     if (this.state === 'gameover') return;
+    this.maybeVillagersCheerCombat();
     this.updateVillagerShelterStates();
 
     // 13. Redraw HUD sidebar charts & variables
@@ -7120,6 +7095,42 @@ class StarHopperGame {
     }
   }
 
+  maybeVillagersCheerCombat() {
+    if ((this.villagerCheerCooldown || 0) > 0) {
+      this.villagerCheerCooldown--;
+      return false;
+    }
+    if (!this.player || !Array.isArray(this.mobs) || !this.mobs.length || !Array.isArray(this.interactiveObjects)) return false;
+    const px = this.player.x + this.player.w / 2;
+    const py = this.player.y + this.player.h / 2;
+    const fighting = this.mobs.some(mob => {
+      if (!mob || mob.pet) return false;
+      const mx = mob.x + mob.w / 2;
+      const my = mob.y + mob.h / 2;
+      return Math.hypot(mx - px, my - py) <= 156;
+    });
+    if (!fighting) return false;
+
+    let bestNpc = null;
+    let bestDist = Infinity;
+    for (const obj of this.interactiveObjects) {
+      if (!(typeof NPC !== 'undefined' && obj instanceof NPC)) continue;
+      if (obj.hiddenInCave || obj.rescuePending || obj.shelterReason) continue;
+      const nx = obj.x + obj.w / 2;
+      const ny = obj.y + obj.h / 2;
+      const dist = Math.hypot(nx - px, ny - py);
+      if (dist < 300 && dist < bestDist) {
+        bestNpc = obj;
+        bestDist = dist;
+      }
+    }
+    if (!bestNpc || typeof ComicBubbles === 'undefined' || !ComicBubbles.spawn) return false;
+    const line = (typeof SPEECH !== 'undefined' && SPEECH.pick) ? SPEECH.pick("villagerCheer") : "GO CADET!";
+    ComicBubbles.spawn(bestNpc.x + bestNpc.w / 2, bestNpc.y - 8, line, "rounded", bestNpc.color || "#a7f3d0", -0.25, { maxLife: 78, scale: 0.76 });
+    this.villagerCheerCooldown = 150;
+    return true;
+  }
+
   damageMobFromHazards(index) {
     const m = this.mobs && this.mobs[index];
     if (!m || (m.hazardCooldown || 0) > 0) return false;
@@ -7211,23 +7222,16 @@ class StarHopperGame {
       const x = Number.isFinite(villager.x) ? villager.x : 0;
       const y = Number.isFinite(villager.y) ? villager.y : 0;
       addAnchor(x + w / 2, y + h / 2);
-      const homeX = Number.isFinite(villager.homeX) ? villager.homeX : x;
-      const homeY = Number.isFinite(villager.homeY) ? villager.homeY : y;
-      const homeCenterX = homeX + w / 2;
-      const homeCenterY = homeY + h / 2;
-      const caveX = Number.isFinite(villager.caveX) ? villager.caveX : homeX - 38;
-      const caveY = Number.isFinite(villager.caveY) ? villager.caveY : homeY;
-      const caveCenterX = caveX + 16;
-      const caveCenterY = caveY + 18;
-      addAnchor(homeCenterX, homeCenterY);
-      addAnchor(caveCenterX, caveCenterY);
-      addAnchor((homeCenterX + caveCenterX) / 2, (homeCenterY + caveCenterY) / 2);
+      if (villager.hiddenInCave || villager.returningFromCave || villager.rescuePending || villager.shelterReason) {
+        const homeX = Number.isFinite(villager.homeX) ? villager.homeX : x;
+        const homeY = Number.isFinite(villager.homeY) ? villager.homeY : y;
+        addAnchor(homeX + w / 2, homeY + h / 2);
+        const caveX = Number.isFinite(villager.caveX) ? villager.caveX : homeX - 38;
+        const caveY = Number.isFinite(villager.caveY) ? villager.caveY : homeY;
+        addAnchor(caveX + 16, caveY + 18);
+      }
     };
     addNpcAnchors(npc);
-    for (const obj of this.interactiveObjects || []) {
-      if (obj === npc || !(typeof NPC !== 'undefined' && obj instanceof NPC)) continue;
-      addNpcAnchors(obj);
-    }
     for (const m of this.mobs) {
       if (!m || m.pet) continue;
       const mx = m.x + m.w / 2;

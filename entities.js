@@ -108,21 +108,24 @@ const SPEECH_POOLS = {
     "BOING!", "HUP!", "WHEE!", "BOUNCE!", "SPRONG!", "UP UP!", "HOPPA!", "BWOMP!",
     "SKY BOOP!", "LEG DAY!", "TOES AWAY!", "ANTI-GRAV!", "MOON KNEES!", "HOPSCOTCH!",
     "FLY-ish!", "UPSY-DAISY!", "GRAVITY WHO?", "JUMP.exe!", "BOOTS GO BRR!", "LAUNCH LEGS!",
-    "YOINK UP!", "KNEE BLAST!", "AIR TIME!", "I BELIEVE!", "SPROING-O!", "CLOUD TICKLE!"
+    "YOINK UP!", "KNEE BLAST!", "AIR TIME!", "I BELIEVE!", "SPROING-O!", "CLOUD TICKLE!",
+    "UP BUTTON!", "KNEE CODE!", "SKY TAP!", "BOOT ROCKET!"
   ],
 
   stomp: [
     "STOMP!", "SPLAT!", "BONK!", "POW!", "SQUISH!", "GOTCHA!", "BAM!", "YEET!",
     "BOOT TAX!", "DOWN YOU GO!", "FEET JUSTICE!", "SNEAKER SMASH!", "OOPS, BOOT!",
     "GRAVITY HELPED!", "PANCaked!", "TINY THUNDER!", "SOLE POWER!", "TOE-TALED!",
-    "STOMP-O-MATIC!", "BUG REPORT!", "BONK RECEIPT!", "SURPRISE FLOOR!", "NOPE!", "SQUISHY MATH!"
+    "STOMP-O-MATIC!", "BUG REPORT!", "BONK RECEIPT!", "SURPRISE FLOOR!", "NOPE!", "SQUISHY MATH!",
+    "BOOT DEBUG!", "GROUND TRUTH!", "TOE VERDICT!", "FLAT FACTS!"
   ],
 
   get: [
     "GET!", "NICE!", "SHINY!", "GRAB!", "YOINK!", "OOH!", "SWEET!", "GEM-TASTIC!", "MINE!",
     "SPACE LOOT!", "POCKETED!", "CHA-CHING!", "COSMIC COIN!", "GIMME!", "SPARKLE TAX!",
     "STAR SNACK!", "LOOT SCOOT!", "COLLECTED!", "TREASURE BOOP!", "OINK? COIN!", "SHINY ACQUIRED!",
-    "RICH-ish!", "GALAXY TIP!", "THANKS, SPACE!", "FINDERS KEEPERS!", "SPARKLE GET!"
+    "RICH-ish!", "GALAXY TIP!", "THANKS, SPACE!", "FINDERS KEEPERS!", "SPARKLE GET!",
+    "POCKET SCIENCE!", "GEM RECEIPT!", "TINY TREASURE!", "SHINE FILED!"
   ],
 
   powerup: [
@@ -254,7 +257,8 @@ const SPEECH_POOLS = {
   mobChatter: [
     "GRRR!", "ROAR!", "SNARL!", "BLORP!", "BEEP BEEP!", "RAWR!", "HISS!", "SKREE!", "ZZT!", "MUNCH?",
     "HOWL!", "CHOMP!", "GROWL!", "SQUEAK!", "GNAR!", "BORK!", "HONK!", "SCREECH!", "feed me!", "intruder!",
-    "snack o'clock!", "you look tasty!", "rawr means hi!", "my planet!", "boop you!", "grr-eetings!"
+    "snack o'clock!", "you look tasty!", "rawr means hi!", "my planet!", "boop you!", "grr-eetings!",
+    "tax time!", "helmet soup!", "tiny menace!", "not sorry!", "floor boss!", "zoom crime!"
   ],
   mobDeath: [
     "OOF!", "SPLAT!", "BYE!", "DEFEATED!", "K.O.!", "POP!", "NOOO!", "*poof*", "X_X", "GG!",
@@ -265,6 +269,14 @@ const SPEECH_POOLS = {
   ],
   mobPet: [
     "FRIEND!", "I HELP!", "PROTECT!", "WITH YOU!", "GOOD CADET!", "PET MODE!", "I GOT THIS!", "stay back!"
+  ],
+  villagerCheer: [
+    "GO CADET!", "BONK 'EM!", "SAVE THE SHOP!", "BOOT POWER!", "YES YES!", "HERO FEET!",
+    "PEW PEW!", "NICE DODGE!", "BIG SCIENCE!", "HIT THE BAD GUY!", "TEAM CADET!", "NO FEAR!"
+  ],
+  coachPep: [
+    "One tweak!", "Guess first!", "Run it!", "Tiny change!", "Watch motion!", "Try mass!",
+    "Try bounce!", "Trace it!", "Data time!", "Small code!", "Big jump!", "Test now!"
   ]
 };
 
@@ -2505,11 +2517,9 @@ class NPC extends InteractiveObject {
       ? game.getVillagerShelterSignal(this)
       : {
           threat: (typeof game.findThreateningMobForNPC === 'function') ? game.findThreateningMobForNPC(this) : null,
-          reason: (typeof game.shouldVillagersShelterForNight === 'function' && game.shouldVillagersShelterForNight()) ? "night" : null
+          reason: null
         };
     const threat = shelter.threat;
-    const nightShelter = shelter.reason === "night";
-    if (nightShelter && !this.rescuePending) this.shelterReason = "night";
     if (threat) {
       if (typeof game.markNPCShelterThreat === 'function') {
         game.markNPCShelterThreat(this, "nearby mob", { bubble: true, panicTimer: 150 });
@@ -2533,7 +2543,7 @@ class NPC extends InteractiveObject {
 
     const waitInCave = (typeof game.shouldNPCWaitInCave === 'function')
       ? game.shouldNPCWaitInCave(this, shelter)
-      : (nightShelter || !!threat);
+      : !!threat;
     if (!waitInCave && this.panicTimer > 0) this.panicTimer = 0;
 
     const goingHome = waitInCave || this.panicTimer > 0;
@@ -2541,7 +2551,7 @@ class NPC extends InteractiveObject {
     if (goingHome && typeof game.ensureNPCSafeCave === 'function') game.ensureNPCSafeCave(this);
     if (goingHome && !this.hiddenInCave) {
       if (typeof game.routeNPCToCave === 'function') {
-        game.routeNPCToCave(this, nightShelter ? "night" : (this.shelterReason || "nearby mob"), 2.2);
+        game.routeNPCToCave(this, this.shelterReason === "night" ? "nearby mob" : (this.shelterReason || "nearby mob"), 2.2);
       } else {
         this.stepTowardCave(2.2);
       }
@@ -2806,9 +2816,9 @@ class NPC extends InteractiveObject {
     const caveStatus = (game && typeof game.getVillagerCaveStatus === 'function')
       ? game.getVillagerCaveStatus(this)
       : {
-          label: this.shelterReason === 'night' ? 'NIGHT' : (this.rescuePending ? 'WAIT' : 'SAFE'),
-          color: this.shelterReason === 'night' ? '#93c5fd' : '#a7f3d0',
-          fill: this.shelterReason === 'night' ? 'rgba(147, 197, 253, 0.24)' : 'rgba(167, 243, 208, 0.22)'
+          label: this.rescuePending ? 'WAIT' : 'SAFE',
+          color: '#a7f3d0',
+          fill: 'rgba(167, 243, 208, 0.22)'
         };
 
     ctx.save();

@@ -5618,8 +5618,8 @@ function runEngineTests() {
     assertEquals(true, startVillagePreviewCard.classList.contains("village-signal-safe"), "Start radar should color the village preview as safe by default");
     game.getEarthDayNightPhase = () => ({ t: 0, daylight: 0.1, isDay: false, sunX: 0.1, sunY: 0.2 });
     updateStartMissionRadar(game);
-    assertEquals(true, /Village State: NIGHT -> cave; daylight -> trade/.test(els["start-village-preview-body"].textContent), "Start radar should explain night cave shelter before play starts");
-    assertEquals(true, startVillagePreviewCard.classList.contains("village-signal-night"), "Start radar should color the village preview for night shelter");
+    assertEquals(true, /Village State: SAFE -> trade/.test(els["start-village-preview-body"].textContent), "Start radar should stay daylight-only even if a stale night phase is supplied");
+    assertEquals(true, startVillagePreviewCard.classList.contains("village-signal-safe"), "Start radar should keep the village preview safe in daylight-only play");
     game.getEarthDayNightPhase = () => ({ t: 0.5, daylight: 1, isDay: true, sunX: 0.5, sunY: 0.34 });
     game.interactiveObjects = [new NPC({ id: "radar-guard", name: "Radar Guard", profession: "Guard", type: "npc", x: 120, y: 60, color: "#a7f3d0", caveX: 72, caveY: 60 })];
     game.mobs = [new Mob(126, 60, "hog", "#9a6b4f", 1)];
@@ -7247,12 +7247,11 @@ function runEngineTests() {
     villageNpc22h.shelterReason = "nearby mob";
     game.getEarthDayNightPhase = () => ({ t: 0, daylight: 0.1, isDay: false, sunX: 0.1, sunY: 0.2 });
     updateMissionList(game);
-    const nightVillageState = findByClass(list, "village-state-crt-card");
-    const nightVillageStateText = flattenText(nightVillageState || list);
-    assertEquals(true, /NIGHT/.test(nightVillageStateText), "Village state card should let current night shelter override stale rescue danger");
-    assertEquals(false, /DANGER/.test(nightVillageStateText), "Village state card should not show cleared mob danger during night shelter");
-    assertEquals(true, /night -&gt; cave/.test(nightVillageStateText), "Village state card should name the night-to-cave transition");
-    assertEquals(true, /daylight/.test(nightVillageStateText), "Night state should explain when villagers return");
+    const hiddenVillageState = findByClass(list, "village-state-crt-card");
+    const hiddenVillageStateText = flattenText(hiddenVillageState || list);
+    assertEquals(true, /DANGER/.test(hiddenVillageStateText), "Village state card should keep stale rescue danger visible until the villager returns");
+    assertEquals(false, /NIGHT/.test(hiddenVillageStateText), "Village state card should not reintroduce night shelter");
+    assertEquals(true, /mob\.close -&gt; cave/.test(hiddenVillageStateText), "Village state card should keep the mob-to-cave transition");
     game.getEarthDayNightPhase = () => ({ t: 0.5, daylight: 1, isDay: true, sunX: 0.5, sunY: 0.34 });
 
     villageNpc22h.trades = [
@@ -8728,17 +8727,17 @@ function runCombatTests() {
     renderTestResult(SUITE, "Agility: uses commanded design gravity (stable when out of fuel)", false, err.message);
   }
 
-  // C5c: Earth cycles between night and day values for the sky overlay.
+  // C5c: Earth stays daylight-only for a smoother, simpler stage.
   try {
     const g = new StarHopperGame();
-    const night = g.getEarthDayNightPhase(0);
-    const day = g.getEarthDayNightPhase(32000);
-    assertEquals(true, day.daylight > night.daylight, "Halfway through the cycle is brighter than midnight");
-    assertEquals(false, night.isDay, "Cycle start is night");
-    assertEquals(true, day.isDay, "Cycle midpoint is day");
-    renderTestResult(SUITE, "Earth: day/night sky phase cycles", true);
+    const a = g.getEarthDayNightPhase(0);
+    const b = g.getEarthDayNightPhase(32000);
+    assertEquals(1, a.daylight, "Earth phase is full daylight at cycle start");
+    assertEquals(1, b.daylight, "Earth phase stays full daylight later in the cycle");
+    assertEquals(true, a.isDay && b.isDay, "Earth is always day");
+    renderTestResult(SUITE, "Earth: daylight-only sky phase", true);
   } catch (err) {
-    renderTestResult(SUITE, "Earth: day/night sky phase cycles", false, err.message);
+    renderTestResult(SUITE, "Earth: daylight-only sky phase", false, err.message);
   }
 
   // C6: bumping a breakable block (tile 10) carves it out of the world
@@ -9251,25 +9250,25 @@ function runCombatTests() {
     const farOwnDistance = Math.hypot((alarmMob.x + alarmMob.w / 2) - (farTrader.x + farTrader.w / 2), (alarmMob.y + alarmMob.h / 2) - (farTrader.y + farTrader.h / 2));
     assertEquals(true, farOwnDistance > villageAlarm.getVillagerThreatRadius(), "Far villager fixture starts outside its own personal mob radius");
     const sharedAlarmSignal = villageAlarm.getVillageShelterSignal();
-    assertEquals("nearby mob", sharedAlarmSignal && sharedAlarmSignal.reason, "Shared village shelter signal treats one close hostile mob as a village alarm");
-    assertEquals(2, sharedAlarmSignal && sharedAlarmSignal.villagers, "Shared village shelter signal sees the whole village roster");
-    assertEquals(true, !!villageAlarm.getVillagerShelterSignal(farTrader).threat, "Village-wide alarm sends every villager to caves when one mob reaches the village");
+    assertEquals("nearby mob", sharedAlarmSignal && sharedAlarmSignal.reason, "Village shelter summary reports the close villager's mob danger");
+    assertEquals(2, sharedAlarmSignal && sharedAlarmSignal.villagers, "Village shelter summary sees the two-villager roster");
+    assertEquals(false, !!villageAlarm.getVillagerShelterSignal(farTrader).threat, "Far villagers do not inherit another villager's danger state");
     const beforeFarAlarmX = farTrader.x;
     villageAlarm.updateVillagerShelterStates();
-    assertEquals(true, nearTrader.x < 96, "Near villager starts retreating from the alarm mob");
-    assertEquals(true, farTrader.x < beforeFarAlarmX, "Far villager also starts retreating because the village alarm is active");
-    assertEquals("nearby mob", nearTrader.shelterReason, "Village-wide alarm marks the near villager as sheltering from a mob");
-    assertEquals("nearby mob", farTrader.shelterReason, "Village-wide alarm marks the far villager as sheltering from the same mob");
-    for (let i = 0; i < 40 && !(nearTrader.hiddenInCave && farTrader.hiddenInCave); i++) villageAlarm.updateVillagerShelterStates();
-    assertEquals(true, nearTrader.hiddenInCave, "Near villager reaches the cave during village alarm");
-    assertEquals(true, farTrader.hiddenInCave, "Far villager reaches the cave during village alarm");
+    assertEquals(true, nearTrader.x < 96, "Near villager starts retreating from the close mob");
+    assertEquals(beforeFarAlarmX, farTrader.x, "Far villager stays put while danger is far away");
+    assertEquals("nearby mob", nearTrader.shelterReason, "Close mob marks the near villager as sheltering");
+    assertEquals(null, farTrader.shelterReason, "Far villager remains available while danger is far away");
+    for (let i = 0; i < 40 && !nearTrader.hiddenInCave; i++) villageAlarm.updateVillagerShelterStates();
+    assertEquals(true, nearTrader.hiddenInCave, "Near villager reaches the cave during close danger");
+    assertEquals(false, farTrader.hiddenInCave, "Far villager does not retreat for another villager's close danger");
     villageAlarm.mobs = [];
-    assertEquals(false, villageAlarm.getVillageShelterSignal().active, "Shared village shelter signal clears after the hostile mob leaves");
+    assertEquals(false, villageAlarm.getVillageShelterSignal().active, "Village shelter summary clears after the hostile mob leaves");
     nearTrader.panicTimer = 0;
     farTrader.panicTimer = 0;
     villageAlarm.updateVillagerShelterStates();
-    assertEquals(false, nearTrader.hiddenInCave, "Near villager comes back out when the village alarm clears");
-    assertEquals(false, farTrader.hiddenInCave, "Far villager comes back out when the village alarm clears");
+    assertEquals(false, nearTrader.hiddenInCave, "Near villager comes back out when close danger clears");
+    assertEquals(false, farTrader.hiddenInCave, "Far villager remains outside after close danger clears");
 
     const homeGuard = new NPC({ id: 'home-guard', name: 'Home Guard', profession: 'Guard', type: 'npc', x: 250, y: 60, color: '#cbd5e1', homeX: 250, homeY: 60, caveX: 24, caveY: 60, hiddenInCave: true });
     homeGuard.x = homeGuard.caveX + 10;
@@ -9317,15 +9316,15 @@ function runCombatTests() {
     g.mobs = [outsideOldRadiusMob];
     g.survivalMode = true;
     assertEquals(null, g.findThreateningMobForNPC(earlyWarning, 128), "Survival warning fixture starts outside the old villager danger radius");
-    assertEquals(true, !!g.getVillagerShelterSignal(earlyWarning).threat, "Survival uses the wider shared warning radius before mob contact");
+    assertEquals(false, !!g.getVillagerShelterSignal(earlyWarning).threat, "Survival waits until mobs are very close to the villager");
     const beforeEarlyWarningX = earlyWarning.x;
     g.updateVillagerShelterStates();
-    assertEquals(true, earlyWarning.x < beforeEarlyWarningX, "Wider Survival warning starts the cave retreat before the mob reaches the villager");
+    assertEquals(beforeEarlyWarningX, earlyWarning.x, "Survival no longer starts an early cave retreat for a far mob");
     for (let i = 0; i < 40 && !earlyWarning.hiddenInCave; i++) g.updateVillagerShelterStates();
-    assertEquals(true, earlyWarning.hiddenInCave, "Wider Survival warning still routes the villager fully into the cave");
+    assertEquals(false, earlyWarning.hiddenInCave, "Far Survival mobs do not route the villager into the cave");
     g.toggleSurvival();
     assertEquals(false, g.survivalMode, "Turning Survival off clears the wider warning state");
-    assertEquals(false, earlyWarning.hiddenInCave, "Survival-off brings the early-warning villager back out");
+    assertEquals(false, earlyWarning.hiddenInCave, "Survival-off leaves the early-warning villager outside");
 
     const cavePathGame = new StarHopperGame();
     cavePathGame.state = 'playing'; cavePathGame.currentPlanetIndex = 1; cavePathGame.currentPlanet = PLANETS[1];
@@ -9344,10 +9343,10 @@ function runCombatTests() {
     caveMouthMob.speed = 0; caveMouthMob.behaviorTimer = 999;
     cavePathGame.interactiveObjects = [pathNpc];
     cavePathGame.mobs = [caveMouthMob];
-    assertEquals(true, !!cavePathGame.getVillagerShelterSignal(pathNpc).threat, "A mob by the cave route counts as nearby village danger");
+    assertEquals(false, !!cavePathGame.getVillagerShelterSignal(pathNpc).threat, "A mob by a far cave does not scare a visible villager across the stage");
     const beforePathRetreatX = pathNpc.x;
     cavePathGame.updateVillagerShelterStates();
-    assertEquals(true, pathNpc.x < beforePathRetreatX, "Villager starts toward the cave when a mob blocks the cave route");
+    assertEquals(beforePathRetreatX, pathNpc.x, "Villager stays at the village spot until the mob is close to them");
     cavePathGame.mobs = [];
     pathNpc.panicTimer = 0;
     cavePathGame.updateVillagerShelterStates();
@@ -9376,12 +9375,12 @@ function runCombatTests() {
     assertEquals(true, cycleGame.canNPCTrade(cycleNpc), "Returned villager becomes tradeable after the danger cycle");
     cycleGame.getEarthDayNightPhase = () => ({ t: 0, daylight: 0.1, isDay: false, sunX: 0.1, sunY: 0.2 });
     cycleGame.updateVillagerShelterStates();
-    assertEquals("night", cycleNpc.shelterReason, "Earth night takes over after a cleared mob cycle");
+    assertEquals(null, cycleNpc.shelterReason, "Stale night phases do not take over after a cleared mob cycle");
     for (let i = 0; i < 40 && !cycleNpc.hiddenInCave; i++) cycleGame.updateVillagerShelterStates();
-    assertEquals(true, cycleNpc.hiddenInCave, "Night sends the returned villager back into the cave");
+    assertEquals(false, cycleNpc.hiddenInCave, "Daylight-only Earth keeps the returned villager outside");
     cycleGame.getEarthDayNightPhase = () => ({ t: 0.5, daylight: 1, isDay: true, sunX: 0.5, sunY: 0.34 });
     cycleGame.updateVillagerShelterStates();
-    assertEquals(false, cycleNpc.hiddenInCave, "Daylight after night brings the villager out again");
+    assertEquals(false, cycleNpc.hiddenInCave, "Villager remains outside after stale night is ignored");
 
     const npc = new NPC({ id: 'caver', name: 'Caver', profession: 'Miner', type: 'npc', x: 100, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60 });
     const mob = new Mob(102, 60, 'hog', '#9a6b4f', 1);
@@ -9454,7 +9453,33 @@ function runCombatTests() {
     renderTestResult(SUITE, "Villagers: trained pets protect the village", false, err.message);
   }
 
-  // C19e: turning survival off clears panic hiding unless the stage itself is night.
+  // C19d3: visible villagers cheer briefly when the cadet is fighting nearby mobs.
+  try {
+    const g = new StarHopperGame();
+    g.state = 'playing'; g.currentPlanetIndex = 0; g.currentPlanet = PLANETS[0];
+    g.player = new Player(100, 64);
+    const villager = new NPC({ id: 'cheer-villager', name: 'Cheer Villager', profession: 'Miner', type: 'npc', x: 160, y: 60, color: '#a7f3d0', caveX: 72, caveY: 60 });
+    const mob = new Mob(124, 64, 'hog', '#9a6b4f', 1);
+    mob.speed = 0;
+    mob.behaviorTimer = 999;
+    g.interactiveObjects = [villager];
+    g.mobs = [mob];
+    const oldSpawn = ComicBubbles.spawn;
+    const lines = [];
+    ComicBubbles.spawn = (x, y, text) => { lines.push(text); };
+    try {
+      assertEquals(true, g.maybeVillagersCheerCombat(), "Nearby visible villager should cheer during combat");
+      assertEquals(true, lines.some(line => SPEECH_POOLS.villagerCheer.includes(line)), "Cheer line should come from the villager cheer speech pool");
+      assertEquals(false, g.maybeVillagersCheerCombat(), "Cheer cooldown should prevent bubble spam");
+    } finally {
+      ComicBubbles.spawn = oldSpawn;
+    }
+    renderTestResult(SUITE, "Villagers: cheer during nearby combat", true);
+  } catch (err) {
+    renderTestResult(SUITE, "Villagers: cheer during nearby combat", false, err.message);
+  }
+
+  // C19e: turning survival off clears panic hiding and returns villagers to trade routes.
   try {
     const walkReturningVillagerHome = (game, villager, limit = 220) => {
       for (let i = 0; i < limit && villager && villager.returningFromCave; i++) {
@@ -9654,33 +9679,31 @@ function runCombatTests() {
     assertEquals(2, rosterRelease.interactiveObjects.filter(obj => obj instanceof NPC).length, "Next full frame still keeps every released villager in the scene");
     assertEquals(true, releasedRoster.every(npc => !npc.hiddenInCave), "Next full frame does not hide released villagers again when danger is gone");
 
-    const rosterNight = new StarHopperGame();
-    rosterNight.state = 'playing'; rosterNight.currentPlanetIndex = 0; rosterNight.currentPlanet = PLANETS[0];
-    rosterNight.player = new Player(0, 0);
-    rosterNight.getEarthDayNightPhase = () => ({ t: 0, daylight: 0.1, isDay: false, sunX: 0.1, sunY: 0.2 });
-    rosterNight.researchXP = 0;
-    rosterNight.masteryMeters = {};
-    const nightRosterNpcA = new NPC({ id: 'night-roster-a', name: 'Night Roster A', profession: 'Miner', type: 'npc', x: 120, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60 });
-    const nightRosterNpcB = new NPC({ id: 'night-roster-b', name: 'Night Roster B', profession: 'Guard', type: 'npc', x: 170, y: 60, color: '#a7f3d0', caveX: 122, caveY: 60 });
-    [nightRosterNpcA, nightRosterNpcB].forEach(npc => {
+    const staleNightRosterGame = new StarHopperGame();
+    staleNightRosterGame.state = 'playing'; staleNightRosterGame.currentPlanetIndex = 0; staleNightRosterGame.currentPlanet = PLANETS[0];
+    staleNightRosterGame.player = new Player(0, 0);
+    staleNightRosterGame.getEarthDayNightPhase = () => ({ t: 0, daylight: 0.1, isDay: false, sunX: 0.1, sunY: 0.2 });
+    staleNightRosterGame.researchXP = 0;
+    staleNightRosterGame.masteryMeters = {};
+    const staleRosterNpcA = new NPC({ id: 'stale-roster-a', name: 'Stale Roster A', profession: 'Miner', type: 'npc', x: 120, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60, hiddenInCave: true });
+    const staleRosterNpcB = new NPC({ id: 'stale-roster-b', name: 'Stale Roster B', profession: 'Guard', type: 'npc', x: 170, y: 60, color: '#a7f3d0', caveX: 122, caveY: 60, hiddenInCave: true });
+    [staleRosterNpcA, staleRosterNpcB].forEach(npc => {
       npc.rescuePending = true;
       npc.shelterReason = "nearby mob";
     });
-    rosterNight.interactiveObjects = [nightRosterNpcA, nightRosterNpcB];
-    rosterNight.survivalMode = true;
-    rosterNight.mobs = [new Mob(90, 60, 'hog', '#9a6b4f', 1)];
-    const nightRosterSummary = rosterNight.toggleSurvival();
-    const nightRoster = rosterNight.interactiveObjects.filter(obj => obj instanceof NPC);
-    assertEquals("night", rosterNight.getVillageShelterSignal().reason, "Shared village shelter signal switches to night after Survival mobs clear on Earth");
-    assertEquals(2, nightRoster.length, "Survival-off night keeps every villager object in the village roster");
-    assertEquals(0, nightRosterSummary && nightRosterSummary.released, "Survival-off night reports no daylight villager release");
-    assertEquals(2, nightRosterSummary && nightRosterSummary.sheltered, "Survival-off night keeps every villager sheltered");
-    assertEquals("night", rosterNight.lastVillageShelterSync && rosterNight.lastVillageShelterSync.caveState, "Survival-off night records a night cave sync instead of a disappearance");
-    assertEquals("night", nightRosterSummary && nightRosterSummary.caveState, "Survival-off night reports the night cave state");
-    assertEquals(false, nightRosterSummary && nightRosterSummary.allClear, "Survival-off night does not claim all caves are clear");
-    assertEquals(true, nightRoster.every(npc => npc.hiddenInCave), "Earth night sends all villagers into caves after Survival danger ends");
-    assertEquals(true, nightRoster.every(npc => npc.shelterReason === "night"), "Earth night owns the visible cave state after mobs clear");
-    assertEquals(true, nightRoster.every(npc => npc.rescueReason === "nearby mob"), "Earth night preserves each mob-rescue cause for daylight return");
+    staleNightRosterGame.interactiveObjects = [staleRosterNpcA, staleRosterNpcB];
+    staleNightRosterGame.survivalMode = true;
+    staleNightRosterGame.mobs = [new Mob(90, 60, 'hog', '#9a6b4f', 1)];
+    const staleRosterSummary = staleNightRosterGame.toggleSurvival();
+    const staleNightRoster = staleNightRosterGame.interactiveObjects.filter(obj => obj instanceof NPC);
+    assertEquals(null, staleNightRosterGame.getVillageShelterSignal().reason, "Stale Earth night phase is ignored after Survival mobs clear");
+    assertEquals(2, staleNightRoster.length, "Survival-off keeps every villager object in the village roster");
+    assertEquals(2, staleRosterSummary && staleRosterSummary.released, "Survival-off releases every hidden villager even if a stale night phase exists");
+    assertEquals(0, staleRosterSummary && staleRosterSummary.sheltered, "Survival-off does not keep night shelter active");
+    assertEquals("clear", staleNightRosterGame.lastVillageShelterSync && staleNightRosterGame.lastVillageShelterSync.caveState, "Survival-off records a clear cave sync");
+    assertEquals(true, staleRosterSummary && staleRosterSummary.allClear, "Survival-off stale-night release reports all caves clear");
+    assertEquals(true, staleNightRoster.every(npc => !npc.hiddenInCave), "Daylight-only Earth brings all mob-hidden villagers outside");
+    assertEquals(true, staleNightRoster.every(npc => npc.shelterReason === null), "Daylight-only Earth clears shelter reasons on release");
 
     const fullFrameRelease = new StarHopperGame();
     fullFrameRelease.state = 'playing'; fullFrameRelease.currentPlanetIndex = 1; fullFrameRelease.currentPlanet = PLANETS[1];
@@ -9804,62 +9827,43 @@ function runCombatTests() {
     walkReturningVillagerHome(directTurnBack, directTurnNpc);
     assertEquals(150, directTurnNpc.x, "NPC update mid-retreat return ends at the village home");
 
-    const nightGame = new StarHopperGame();
-    nightGame.state = 'playing'; nightGame.currentPlanetIndex = 0; nightGame.currentPlanet = PLANETS[0];
-    nightGame.player = new Player(0, 0);
-    nightGame.researchXP = 0;
-    nightGame.masteryMeters = {};
-    nightGame.getEarthDayNightPhase = () => ({ t: 0, daylight: 0.1, isDay: false, sunX: 0.1, sunY: 0.2 });
-    const nightNpc = new NPC({ id: 'night-release', name: 'Night Release', profession: 'Miner', type: 'npc', x: 120, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60, hiddenInCave: false });
-    nightNpc.panicTimer = 80;
-    nightNpc.rescuePending = true;
-    nightNpc.shelterReason = "nearby mob";
-    nightGame.interactiveObjects = [nightNpc];
-    nightGame.survivalMode = true;
-    nightGame.mobs = [new Mob(90, 60, 'hog', '#9a6b4f', 1)];
-    const nightSummary = nightGame.toggleSurvival();
-    assertEquals("night", nightGame.getVillageShelterSignal().reason, "Earth night remains the active village shelter signal after Survival ends");
-    assertEquals(true, nightNpc.hiddenInCave, "Earth night keeps villagers sheltered after survival danger ends");
-    assertEquals(0, nightNpc.caveExitTimer || 0, "Earth night does not show a false cave-exit cue while the villager stays hidden");
-    assertEquals(0, nightSummary && nightSummary.released, "Survival-off night release reports no daylight villagers");
-    assertEquals(1, nightSummary && nightSummary.sheltered, "Survival-off night release reports one villager kept in a cave");
-    assertEquals(82, nightNpc.x, "Earth night parks the villager at the cave mouth");
-    assertEquals("night", nightNpc.shelterReason, "Earth night becomes the active visible cave state");
-    assertEquals("nearby mob", nightNpc.rescueReason, "Earth night preserves the mob-rescue cause for daylight");
-    assertEquals("NIGHT", nightGame.getVillagerCaveStatus(nightNpc).label, "Survival-off night cave marker explains the villager did not disappear");
-    const nightCrtPreview = getVillageStateCrtPreview(nightGame);
-    assertEquals("NIGHT", nightCrtPreview && nightCrtPreview.label, "Mission CRT should show night shelter after Survival-off clears mobs");
-    assertEquals("night -> cave", nightCrtPreview && nightCrtPreview.transition, "Mission CRT should keep the visible night-to-cave transition");
-    const nightStartSignal = getStartVillageStateSignal(nightGame);
-    assertEquals("NIGHT", nightStartSignal && nightStartSignal.label, "Start village signal should show night, not stale danger, after Survival-off");
-    assertEquals("VILLAGE NIGHT: traders wait in caves", nightGame.missionBalloon && nightGame.missionBalloon.text, "Survival-off night release explains villagers stayed in caves");
-    assertEquals(0, nightNpc.panicTimer, "Night shelter clears mob panic without forcing villagers outside");
-    assertEquals(0, nightGame.researchXP, "Night shelter waits to reward until the villager can actually return");
-    nightNpc.proximity = true;
-    nightGame.activeNPC = nightNpc;
-    nightNpc.update(nightGame);
-    assertEquals(false, nightNpc.proximity, "Night-cave villager cannot become a trade target at the cave mouth");
-    assertEquals(null, nightGame.activeNPC, "Night-cave villager clears stale trade focus");
-    nightGame.getEarthDayNightPhase = () => ({ t: 0.5, daylight: 1, isDay: true, sunX: 0.5, sunY: 0.34 });
-    nightGame.updateVillagerShelterStates();
-    assertEquals(false, nightGame.getVillageShelterSignal().active, "Daylight clears the shared night shelter signal");
-    assertEquals(false, nightNpc.hiddenInCave, "Daylight after survival-off brings the villager back out");
-    assertEquals(82, nightNpc.x, "Daylight after survival-off shows the villager at the cave mouth first");
-    assertEquals(true, (nightNpc.caveExitTimer || 0) > 0, "Daylight release after night shows a cave-exit cue");
-    assertEquals(null, nightNpc.shelterReason, "Daylight after survival-off clears the cave reason");
-    assertEquals(null, nightNpc.rescueReason, "Daylight after survival-off clears the preserved rescue cause");
-    assertEquals(7, nightGame.researchXP, "The rescue reward waits until the villager actually returns");
-    assertEquals(true, /nearby mob/.test(nightGame.discoveryPulse && nightGame.discoveryPulse.insight), "Delayed daylight rescue still explains the original mob danger");
-    assertEquals(false, nightGame.canNPCTrade(nightNpc), "Daylight-returned villager waits to trade until it reaches home");
-    walkReturningVillagerHome(nightGame, nightNpc);
-    assertEquals(120, nightNpc.x, "Daylight after survival-off walks the villager to the village home");
-    assertEquals(true, nightGame.canNPCTrade(nightNpc), "Daylight-returned villager can trade again at home");
+    const staleNightGame = new StarHopperGame();
+    staleNightGame.state = 'playing'; staleNightGame.currentPlanetIndex = 0; staleNightGame.currentPlanet = PLANETS[0];
+    staleNightGame.player = new Player(0, 0);
+    staleNightGame.researchXP = 0;
+    staleNightGame.masteryMeters = {};
+    staleNightGame.getEarthDayNightPhase = () => ({ t: 0, daylight: 0.1, isDay: false, sunX: 0.1, sunY: 0.2 });
+    const staleNightNpc = new NPC({ id: 'stale-night-release', name: 'Stale Night Release', profession: 'Miner', type: 'npc', x: 120, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60, hiddenInCave: true });
+    staleNightNpc.panicTimer = 80;
+    staleNightNpc.rescuePending = true;
+    staleNightNpc.shelterReason = "nearby mob";
+    staleNightGame.interactiveObjects = [staleNightNpc];
+    staleNightGame.survivalMode = true;
+    staleNightGame.mobs = [new Mob(90, 60, 'hog', '#9a6b4f', 1)];
+    const staleNightSummary = staleNightGame.toggleSurvival();
+    assertEquals(null, staleNightGame.getVillageShelterSignal().reason, "Stale night phase is not an active village shelter signal after Survival ends");
+    assertEquals(false, staleNightNpc.hiddenInCave, "Daylight-only Earth releases villagers after survival danger ends");
+    assertEquals(1, staleNightSummary && staleNightSummary.released, "Survival-off stale-night release reports the visible villager");
+    assertEquals(0, staleNightSummary && staleNightSummary.sheltered, "Survival-off stale-night release keeps no villagers sheltered");
+    assertEquals("clear", staleNightSummary && staleNightSummary.caveState, "Survival-off stale-night release reports a clear cave state");
+    assertEquals(null, staleNightNpc.shelterReason, "Stale night release clears the cave reason");
+    assertEquals(null, staleNightNpc.rescueReason, "Stale night release clears the preserved rescue cause");
+    assertEquals("SAFE", staleNightGame.getVillagerCaveStatus(staleNightNpc).label, "Cave marker stays safe after stale night is ignored");
+    const staleNightCrtPreview = getVillageStateCrtPreview(staleNightGame);
+    assertEquals("SAFE", staleNightCrtPreview && staleNightCrtPreview.label, "Mission CRT shows a safe village, not night shelter");
+    const staleNightStartSignal = getStartVillageStateSignal(staleNightGame);
+    assertEquals("SAFE", staleNightStartSignal && staleNightStartSignal.label, "Start village signal shows safe village, not night shelter");
+    assertEquals("VILLAGE CLEAR: traders back outside", staleNightGame.missionBalloon && staleNightGame.missionBalloon.text, "Survival-off stale-night release explains villagers came outside");
+    assertEquals(7, staleNightGame.researchXP, "Rescue reward is granted when the villager visibly returns");
+    walkReturningVillagerHome(staleNightGame, staleNightNpc);
+    assertEquals(120, staleNightNpc.x, "Stale night release walks the villager to the village home");
+    assertEquals(true, staleNightGame.canNPCTrade(staleNightNpc), "Stale-night-returned villager can trade again at home");
     renderTestResult(SUITE, "Villagers: survival off releases cave hiding", true);
   } catch (err) {
     renderTestResult(SUITE, "Villagers: survival off releases cave hiding", false, err.message);
   }
 
-  // C19f: Earth night sends villagers into caves, and daylight brings them back out.
+  // C19f: Earth ignores stale night phases; close mobs still trigger cave shelter.
   try {
     const walkReturningVillagerHome = (game, villager, limit = 220) => {
       for (let i = 0; i < limit && villager && villager.returningFromCave; i++) {
@@ -9871,36 +9875,19 @@ function runCombatTests() {
     g.player = new Player(220, 64);
     g.mobs = [];
     g.getEarthDayNightPhase = () => ({ t: 0, daylight: 0.1, isDay: false, sunX: 0.1, sunY: 0.2 });
-    const npc = new NPC({ id: 'nightwatch', name: 'Nightwatch', profession: 'Miner', type: 'npc', x: 100, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60 });
+    const npc = new NPC({ id: 'daylight-watch', name: 'Daylight Watch', profession: 'Miner', type: 'npc', x: 100, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60 });
     g.interactiveObjects = [npc];
-    assertEquals("night", g.getVillageShelterSignal().reason, "Earth night shared shelter signal sends the village to caves");
-    assertEquals("night", g.getVillagerShelterSignal(npc).reason, "Earth night shelter signal points villagers to caves");
+    assertEquals(null, g.getVillageShelterSignal().reason, "Stale Earth night does not create a village shelter signal");
+    assertEquals(null, g.getVillagerShelterSignal(npc).reason, "Stale Earth night does not send a villager to caves");
     const beforeNightX = npc.x;
     g.updateVillagerShelterStates();
-    assertEquals(true, npc.x < beforeNightX, "Game loop night pass starts the cave retreat immediately");
+    assertEquals(beforeNightX, npc.x, "Game loop stale-night pass leaves the villager in place");
     for (let i = 0; i < 40 && !npc.hiddenInCave; i++) g.updateVillagerShelterStates();
-    assertEquals(true, npc.hiddenInCave, "Villager shelters in a cave at night");
-    assertEquals("night", npc.shelterReason, "Night cave shelter is labeled separately from mob rescue");
-    assertEquals(false, g.canNPCTrade(npc), "Night-sheltered villagers cannot trade from caves");
-    npc.x = 300;
-    npc.proximity = true;
-    g.activeNPC = npc;
-    g.updateVillagerShelterStates();
-    assertEquals(82, npc.x, "Night shelter keeps hidden villagers parked at the cave mouth");
-    assertEquals(false, npc.proximity, "Night-sheltered villagers cannot open trades");
-    assertEquals(null, g.activeNPC, "Night shelter clears active trade target");
+    assertEquals(false, npc.hiddenInCave, "Villager does not shelter for stale night");
+    assertEquals(null, npc.shelterReason, "No night cave reason is assigned");
+    assertEquals(true, g.canNPCTrade(npc), "Daylight-only villagers can trade when no mob is close");
     g.getEarthDayNightPhase = () => ({ t: 0.5, daylight: 1, isDay: true, sunX: 0.5, sunY: 0.34 });
     assertEquals(false, g.getVillageShelterSignal().active, "Earth daylight clears the shared night shelter signal");
-    g.updateVillagerShelterStates();
-    assertEquals(false, npc.hiddenInCave, "Villager comes out in daylight");
-    assertEquals(82, npc.x, "Daylight shows the villager exiting at the cave mouth");
-    assertEquals(true, !!npc.returningFromCave, "Daylight release starts the villager's walk home");
-    assertEquals(null, npc.shelterReason, "Daylight clears the night shelter reason");
-    assertEquals(0, g.researchXP || 0, "Daylight release from night shelter does not award rescue XP");
-    assertEquals(false, g.canNPCTrade(npc), "Daylight cave-exit walk keeps trade closed until the villager gets home");
-    walkReturningVillagerHome(g, npc);
-    assertEquals(100, npc.x, "Daylight walks the villager back to the village home");
-    assertEquals(true, g.canNPCTrade(npc), "Daylight-restored villager can trade after reaching home");
     const partialNightNpc = new NPC({ id: 'partial-night', name: 'Partial Night', profession: 'Miner', type: 'npc', x: 140, y: 60, color: '#cbd5e1', caveX: 72, caveY: 60 });
     partialNightNpc.shelterReason = "night";
     g.interactiveObjects = [partialNightNpc];
@@ -9912,19 +9899,19 @@ function runCombatTests() {
     g.updateVillagerShelterStates();
     assertEquals("nearby mob", partialNightNpc.shelterReason, "Mob danger overrides stale night shelter state");
 
-    const nightTurnBack = new NPC({ id: 'night-turn-back', name: 'Night Turn Back', profession: 'Miner', type: 'npc', x: 112, y: 60, color: '#cbd5e1', homeX: 150, homeY: 60, caveX: 72, caveY: 60 });
-    nightTurnBack.returningFromCave = true;
-    nightTurnBack.returningFromCaveTimer = 120;
-    g.interactiveObjects = [nightTurnBack];
+    const staleTurnBack = new NPC({ id: 'stale-turn-back', name: 'Stale Turn Back', profession: 'Miner', type: 'npc', x: 112, y: 60, color: '#cbd5e1', homeX: 150, homeY: 60, caveX: 72, caveY: 60 });
+    staleTurnBack.returningFromCave = true;
+    staleTurnBack.returningFromCaveTimer = 120;
+    g.interactiveObjects = [staleTurnBack];
     g.mobs = [];
     g.getEarthDayNightPhase = () => ({ t: 0, daylight: 0.1, isDay: false, sunX: 0.1, sunY: 0.2 });
-    const beforeNightTurnBackX = nightTurnBack.x;
+    const beforeNightTurnBackX = staleTurnBack.x;
     g.updateVillagerShelterStates();
-    assertEquals(false, !!nightTurnBack.returningFromCave, "Night shelter cancels the cave-exit walk before routing back in");
-    assertEquals("night", nightTurnBack.shelterReason, "Night owns the shelter state when a returning villager turns back");
-    assertEquals(true, nightTurnBack.x < beforeNightTurnBackX, "Night turn-back starts moving the villager toward the cave");
-    for (let i = 0; i < 40 && !nightTurnBack.hiddenInCave; i++) g.updateVillagerShelterStates();
-    assertEquals(true, nightTurnBack.hiddenInCave, "Night turn-back parks the villager back in the cave");
+    assertEquals(true, !!staleTurnBack.returningFromCave, "Stale night does not cancel a cave-exit walk");
+    assertEquals(null, staleTurnBack.shelterReason, "Stale night does not own the shelter state");
+    assertEquals(true, staleTurnBack.x >= beforeNightTurnBackX, "Stale night lets the villager keep walking home");
+    walkReturningVillagerHome(g, staleTurnBack);
+    assertEquals(150, staleTurnBack.x, "Stale night turn-back finishes at the village home");
 
     const loadGame = new StarHopperGame();
     loadGame.state = 'playing';
@@ -9932,23 +9919,15 @@ function runCombatTests() {
     loadGame.masteryMeters = {};
     loadGame.getEarthDayNightPhase = () => ({ t: 0, daylight: 0.1, isDay: false, sunX: 0.1, sunY: 0.2 });
     loadGame.loadPlanet(0);
-    const loadedNpc = loadGame.interactiveObjects.find(obj => obj instanceof NPC);
-    assertEquals(true, !!loadedNpc, "Earth loads a village NPC");
-    assertEquals(true, loadedNpc.hiddenInCave, "Night-loaded Earth villagers start in caves");
-    assertEquals(loadedNpc.caveX + 10, loadedNpc.x, "Night-loaded villager is parked at the cave mouth");
-    assertEquals(false, !!loadedNpc.rescuePending, "Night shelter does not count as a mob rescue");
-    assertEquals("night", loadedNpc.shelterReason, "Night-loaded cave state is marked as night shelter");
-    assertEquals("NIGHT", loadGame.getVillagerCaveStatus(loadedNpc).label, "Night-loaded cave marker labels the occupied cave");
-    loadGame.getEarthDayNightPhase = () => ({ t: 0.5, daylight: 1, isDay: true, sunX: 0.5, sunY: 0.34 });
-    loadedNpc.update(loadGame);
-    assertEquals(false, loadedNpc.hiddenInCave, "Night-loaded villager comes out at daylight");
-    assertEquals(loadedNpc.caveX + 10, loadedNpc.x, "Night-loaded villager becomes visible at the cave mouth before walking home");
-    assertEquals(0, loadGame.researchXP, "Daylight release from night shelter does not award rescue XP");
-    walkReturningVillagerHome(loadGame, loadedNpc);
-    assertEquals(loadedNpc.homeX, loadedNpc.x, "Night-loaded villager walks to its village home at daylight");
-    renderTestResult(SUITE, "Villagers: Earth night and day controls caves", true);
+    const loadedNpcs = loadGame.interactiveObjects.filter(obj => obj instanceof NPC);
+    assertEquals(true, loadedNpcs.length > 0, "Earth loads village NPCs");
+    assertEquals(true, loadedNpcs.length <= 2, "Planet load caps villages to two villagers");
+    assertEquals(true, loadedNpcs.every(villager => !villager.hiddenInCave), "Stale night-loaded Earth villagers start outside");
+    assertEquals(true, loadedNpcs.every(villager => !villager.shelterReason), "Stale night-loaded villagers do not get night shelter reasons");
+    assertEquals("SAFE", loadGame.getVillagerCaveStatus(loadedNpcs[0]).label, "Stale night-loaded cave marker stays safe");
+    renderTestResult(SUITE, "Villagers: daylight-only Earth ignores night phases", true);
   } catch (err) {
-    renderTestResult(SUITE, "Villagers: Earth night and day controls caves", false, err.message);
+    renderTestResult(SUITE, "Villagers: daylight-only Earth ignores night phases", false, err.message);
   }
 
   // C20: a meteor smashing a block drops gem/rubble but NEVER conjures a mob (survival-off fix) —
