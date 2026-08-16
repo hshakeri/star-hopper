@@ -374,7 +374,7 @@ class ComicBubble {
     }
     if (s <= 0) s = 0.01;
 
-    ctx.translate(this.x - cameraX, this.y);
+    ctx.translate(Math.round(this.x - cameraX), Math.round(this.y));
     ctx.scale(s * this.scaleMul, s * this.scaleMul);
     ctx.rotate(this.angle);
 
@@ -1524,9 +1524,8 @@ class Player {
   draw(ctx, cameraX, game) {
     const isActive = (game && game.player === this);
     const reducedMotion = !!(game && game.reducedMotion);
-    const cx = this.x + this.w / 2 - cameraX;
-    const footY = this.y + this.h;
-    const bob = reducedMotion ? 0 : Math.sin(Date.now() / 170 + this.x * 0.03) * (this.onGround ? 0.7 : 0.25);
+    const cx = Math.round(this.x + this.w / 2 - cameraX);
+    const footY = Math.round(this.y + this.h);
 
     ctx.save();
 
@@ -1564,10 +1563,10 @@ class Player {
       visorColor = `hsl(${(hue + 180) % 360}, 90%, 60%)`;
     }
 
-    const x = this.x - cameraX;
-    const y = this.y + bob;
+    const x = Math.round(this.x - cameraX);
+    const y = Math.round(this.y);
     const s = this.scale;
-    const midX = x + this.w / 2;
+    const midX = Math.round(x + this.w / 2);
 
     ctx.shadowBlur = 9;
     ctx.shadowColor = primaryColor;
@@ -2029,8 +2028,8 @@ class InteractiveObject {
     ctx.shadowBlur = 6;
 
     if (this.type === 'coin') {
-      const cx = this.x + this.w / 2 - cameraX;
-      const cy = this.y + this.h / 2;
+      const cx = Math.round(this.x + this.w / 2 - cameraX);
+      const cy = Math.round(this.y + this.h / 2);
       const pulse = 1 + Math.sin(this.angle * 2) * 0.08;
       const gem = this.gem || (game && typeof game.getGemConfig === 'function' ? game.getGemConfig() : null);
       const color = gem ? gem.color : (this.requiredCollectible ? '#facc15' : '#fde68a');

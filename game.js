@@ -6491,13 +6491,10 @@ class StarHopperGame {
       this.strandedTimer = 0;
     }
 
-    // 8. Update camera positioning (lerp horizontal viewport centering)
-    // Look-ahead: bias the view toward where the cadet faces/moves, so the camera feels
-    // alive and you can see what's coming.
-    const lookAhead = (this.player.facing || 1) * 50 + this.player.vx * 6;
-    const targetCamX = this.player.x - this.canvas.width / 2 + lookAhead;
-    const maxCamX = (this.getActiveMap()[0].length * TILE_SIZE) - this.canvas.width;
-    this.cameraX += (targetCamX - this.cameraX) * 0.1;
+    // 8. Update camera positioning (smooth horizontal viewport centering)
+    const targetCamX = this.player.x + this.player.w / 2 - this.canvas.width / 2;
+    const maxCamX = Math.max(0, (this.getActiveMap()[0].length * TILE_SIZE) - this.canvas.width);
+    this.cameraX += (targetCamX - this.cameraX) * 0.12;
     this.cameraX = Math.max(0, Math.min(maxCamX, this.cameraX));
 
     // 9. Update active level entities
@@ -10788,6 +10785,8 @@ class StarHopperGame {
       }
     }
 
+    const camX = Math.round(this.cameraX);
+
     // 1. Draw Parallax Space Background
     this.drawSpaceBackground();
 
@@ -10797,28 +10796,28 @@ class StarHopperGame {
     // 3. Draw the next collectible mission sample beacon, then objects
     this.drawMissionSampleBeacon(this.ctx);
     for (const obj of this.interactiveObjects) {
-      obj.draw(this.ctx, this.cameraX, this);
+      obj.draw(this.ctx, camX, this);
     }
     for (const box of this.spawnedBoxes) {
-      box.draw(this.ctx, this.cameraX, this);
+      box.draw(this.ctx, camX, this);
     }
 
     // 4. Draw enemies
     for (const enemy of this.enemies) {
-      enemy.draw(this.ctx, this.cameraX);
+      enemy.draw(this.ctx, camX);
     }
 
     // 4b. Draw drifting space debris ("wonder pieces")
-    if (this.debris) for (const d of this.debris) d.draw(this.ctx, this.cameraX);
+    if (this.debris) for (const d of this.debris) d.draw(this.ctx, camX);
 
     // 4c. Draw falling meteors
-    if (this.meteors) for (const m of this.meteors) m.draw(this.ctx, this.cameraX);
+    if (this.meteors) for (const m of this.meteors) m.draw(this.ctx, camX);
 
     // 4d. Draw player projectiles (works in normal play once armed)
-    if (this.projectiles) for (const p of this.projectiles) p.draw(this.ctx, this.cameraX);
+    if (this.projectiles) for (const p of this.projectiles) p.draw(this.ctx, camX);
 
     // 4e. Draw mobs (survival + block-woken)
-    if (this.mobs) for (const m of this.mobs) m.draw(this.ctx, this.cameraX);
+    if (this.mobs) for (const m of this.mobs) m.draw(this.ctx, camX);
 
     // 5. Draw Player Character — with foot-anchored squash & stretch for game-feel:
     // stretch tall when rising/falling fast, squash flat on a hard landing.
@@ -10827,10 +10826,10 @@ class StarHopperGame {
       let syS = 1, sxS = 1;
       if (!p.onGround) { const s = Math.max(-0.16, Math.min(0.22, -p.vy * 0.012)); syS = 1 + s; sxS = 1 - s * 0.7; }
       if (p.landSquash > 0) { const k = p.landSquash; syS = 1 - 0.28 * k; sxS = 1 + 0.30 * k; }
-      const fx = p.x + p.w / 2 - this.cameraX, fy = p.y + p.h;
+      const fx = Math.round(p.x + p.w / 2 - camX), fy = Math.round(p.y + p.h);
       this.ctx.save();
       this.ctx.translate(fx, fy); this.ctx.scale(sxS, syS); this.ctx.translate(-fx, -fy);
-      p.draw(this.ctx, this.cameraX, this);
+      p.draw(this.ctx, camX, this);
       this.ctx.restore();
     }
 
@@ -10841,16 +10840,16 @@ class StarHopperGame {
     this.drawTrajectory();
 
     // 8. Draw live Force Vectors directly on top of active character
-    Physics.drawForceVectors(this.ctx, this.player, this.currentPlanet, this.cameraX);
+    Physics.drawForceVectors(this.ctx, this.player, this.currentPlanet, camX);
 
     // 9. Draw Particle systems
-    Particles.draw(this.ctx, this.cameraX);
+    Particles.draw(this.ctx, camX);
 
     // 9b. Mob Survival: mobs, projectiles, and the score readout
     this.drawSurvival(this.ctx);
 
     if (typeof ComicBubbles !== 'undefined') {
-      ComicBubbles.draw(this.ctx, this.cameraX);
+      ComicBubbles.draw(this.ctx, camX);
     }
 
     // End screen shake before the screen-space overlays so they don't jitter.
