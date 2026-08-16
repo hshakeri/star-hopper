@@ -9051,6 +9051,19 @@ function setupUIBindings(game) {
             recordScienceDelta(game, scienceBefore, captureScienceDeltaSnapshot(game), val);
             ui_log_output(res.msg, "success");
             SFX.playSuccess();
+            // Trigger in-world character speech bubble reaction for code execution
+            if (game && game.player && typeof ComicBubbles !== 'undefined') {
+              const lowerVal = val.toLowerCase();
+              let popCategory = "codeRun";
+              if (lowerVal.includes("antigravity")) popCategory = "physicsAntigrav";
+              else if (lowerVal.includes("mass")) popCategory = "physicsMass";
+              else if (lowerVal.includes("friction") || lowerVal.includes("spikes")) popCategory = "physicsFriction";
+              else if (lowerVal.includes("rocket")) popCategory = "physicsRocket";
+              else if (lowerVal.includes("repeat") || lowerVal.includes("for ")) popCategory = "codeLoop";
+              else if (lowerVal.includes("when ")) popCategory = "codeEvent";
+              const shout = (typeof SPEECH !== 'undefined') ? SPEECH.pick(popCategory) : "CODE ACTIVE!";
+              ComicBubbles.spawn(game.player.x + game.player.w / 2, game.player.y - 12, shout, "rounded", "#38bdf8", -0.55, { maxLife: 90, scale: 1.1 });
+            }
             // Record the change on this attempt's experiment-log row.
             if (typeof attemptLogCode === 'function') attemptLogCode(game, val);
             if (typeof handleGuidedCodeHook === 'function') {
@@ -9063,6 +9076,9 @@ function setupUIBindings(game) {
           } else {
             ui_log_output(res.msg, "error");
             SFX.playError();
+            if (game && game.player && typeof ComicBubbles !== 'undefined') {
+              ComicBubbles.spawn(game.player.x + game.player.w / 2, game.player.y - 12, "SYNTAX CHECK?", "rounded", "#f87171", -0.4, { maxLife: 75, scale: 0.95 });
+            }
           }
           input.value = "";
           autoGrowConsoleInput(input);

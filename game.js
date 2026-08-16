@@ -1578,19 +1578,63 @@ class StarHopperGame {
   }
 
   getSuitArrivalQuip(index = this.currentPlanetIndex, charType = this.player && this.player.charType) {
-    const planetName = (typeof PLANETS !== 'undefined' && PLANETS[index]) ? PLANETS[index].name.split(" ")[0] : "world";
-    const starLines = [
-      `Star Rover: light feet ready on ${planetName}.`,
-      "Star Rover: glide path checked.",
-      "Star Rover: I can feel the arc."
-    ];
-    const hopperLines = [
-      `Hopper: heavy suit online for ${planetName}.`,
-      "Hopper: rockets warm, boots planted.",
-      "Hopper: mass, force, and nerve."
-    ];
-    const lines = charType === 'hopper' ? hopperLines : starLines;
-    return lines[Math.abs(Number(index) || 0) % lines.length];
+    const isHopper = charType === 'hopper';
+    const starQuips = {
+      0: [
+        "Star Rover: Standard gravity (9.8 m/s²)! Let's collect 3 emeralds and tune our engine speed!",
+        "Star Rover: Systems online! Observe the trajectory curve and explore base camp!",
+        "Star Rover: Glide path checked. F = m·a in action!"
+      ],
+      1: [
+        "Star Rover: Moon Canyons! Springs store potential energy — let's bounce to the high crates!",
+        "Star Rover: Low gravity detected! Glide and leap across the craters!"
+      ],
+      2: [
+        "Star Rover: Jupiter Trench! Heavy gravity pulls hard — set rocket_power to escape!",
+        "Star Rover: High-G environment! Watch the energy gauges!"
+      ],
+      3: [
+        "Star Rover: Glacies Ice! Zero friction surface — slide across gaps and tune friction to brake!",
+        "Star Rover: Gliding on ice! Low friction keeps momentum going — perfect for slide physics!"
+      ],
+      4: [
+        "Star Rover: Mag-Net core! Magnetic polarity active — north and south nodes pull and repel!",
+        "Star Rover: Magnetic forces at work! Inverse square pull accelerates us across the void!"
+      ],
+      5: [
+        "Star Rover: Deep space forge! Conserve momentum and bank rare forge crystals!",
+        "Star Rover: Microgravity sector! Momentum transfers active!"
+      ]
+    };
+    const hopperQuips = {
+      0: [
+        "Hopper: Earth Base Camp! Balance jump power with mass (F = m·a) to clear the ledges!",
+        "Hopper: Rockets warm, boots planted! Let's test the engine force!",
+        "Hopper: Heavy suit ready! Tuning parameters in the sandbox!"
+      ],
+      1: [
+        "Hopper: Low gravity (1.6 m/s²)! One small hop, huge hang time! Chain springs with loops!",
+        "Hopper: Spring loops ready! repeat 3: spawn_spring() to launch into orbit!"
+      ],
+      2: [
+        "Hopper: Crushing gravity (24.8 m/s²)! Regular jumps won't cut it — fire rocket thrust!",
+        "Hopper: Rocket engines hot! High force overcomes crushing gravitational pull!"
+      ],
+      3: [
+        "Hopper: Slick ice sheet! Deploy hopper.spikes = 1 or set friction = 8.0 for traction!",
+        "Hopper: Traction mode online! Grip and brake on slippery slopes!"
+      ],
+      4: [
+        "Hopper: Electromagnetic field! Switch suit polarity with hopper.pole to attract flux!",
+        "Hopper: Magnetic boots charged! Opposites attract, cadet!"
+      ],
+      5: [
+        "Hopper: Asteroid Forge! Microgravity collisions — test elastic momentum transfers!",
+        "Hopper: Impact physics active! Bouncing off asteroids with momentum conservation!"
+      ]
+    };
+    const pool = isHopper ? (hopperQuips[index] || ["Hopper: Boots ready!"]) : (starQuips[index] || ["Star Rover: Light feet ready!"]);
+    return pool[Math.floor(Math.random() * pool.length)];
   }
 
   getStarMapFinaleCopy({ frontier = null, payoff = "" } = {}) {
@@ -10745,9 +10789,6 @@ class StarHopperGame {
     // 1. Draw Parallax Space Background
     this.drawSpaceBackground();
 
-    // 1b. Draw Spacetime Warping Mesh
-    this.drawSpacetimeMesh();
-
     // 2. Draw active platform level tilemap
     this.drawTilemap();
 
@@ -10809,8 +10850,6 @@ class StarHopperGame {
     if (typeof ComicBubbles !== 'undefined') {
       ComicBubbles.draw(this.ctx, this.cameraX);
     }
-    this.drawFormulaCardEffects(this.ctx);
-    this.drawScienceBreadcrumbEffects(this.ctx);
 
     // End screen shake before the screen-space overlays so they don't jitter.
     if (_shaking) { this.ctx.restore(); _shaking = false; }
@@ -10835,18 +10874,9 @@ class StarHopperGame {
     this.drawFuelHUD(this.ctx);
     this.drawWeaponHUD(this.ctx);
     this.drawDrillHUD(this.ctx);
-    this.drawLabChainRunCue(this.ctx);
-    this.drawRunObjectiveCompass(this.ctx);
-    this.drawScienceDeltaRunCue(this.ctx);
 
     // 9f. Meteor-shower "take shelter" warning banner (screen-space).
     this.drawMeteorBanner(this.ctx);
-
-    // 9g. Future-lab prep cue: keep Dark Matter / Quantum teaser science visible in-run.
-    this.drawFutureLabRunCue(this.ctx);
-
-    // 10. Mission/objective speech balloon (screen-space, top-center)
-    this.drawMissionBalloon(this.ctx);
   }
 
   drawHealthHUD(ctx) {

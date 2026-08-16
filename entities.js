@@ -277,6 +277,42 @@ const SPEECH_POOLS = {
   coachPep: [
     "One tweak!", "Guess first!", "Run it!", "Tiny change!", "Watch motion!", "Try mass!",
     "Try bounce!", "Trace it!", "Data time!", "Small code!", "Big jump!", "Test now!"
+  ],
+  codeRun: [
+    "CODE RUN!", "SYNTAX VALID!", "RULES REWRITTEN!", "EXECUTING!", "PHYSICS UPDATED!",
+    "NEW CONSTANTS!", "RUN.EXE!", "PROGRAM LOADED!", "LOGIC ONLINE!", "PATCH APPLIED!"
+  ],
+  codeLoop: [
+    "LOOP POWER!", "REPEAT ACTIVE!", "ITERATING!", "LOOP MAGIC!", "LOOP GO BRRR!",
+    "COUNTED STEPS!", "AUTOMATION!", "MULTI-SPAWN!", "LOOP MASTER!"
+  ],
+  codeEvent: [
+    "HOOK ARMED!", "WHEN TRIGGER SET!", "LISTENER READY!", "REACTIVE CODE!",
+    "EDGE TRIGGERED!", "EVENT DETECTED!", "SIGNAL WATCHING!"
+  ],
+  physicsAntigrav: [
+    "ANTI-GRAV ON!", "FLOATING HIGH!", "HANG TIME!", "DEFYING GRAVITY!", "UPWARD LIFT!",
+    "NEWTON WHO?", "GLIDE BOOST!", "COILS CHARGED!", "WEIGHTLESS!"
+  ],
+  physicsMass: [
+    "F = m·a!", "MASS TUNED!", "INERTIA SHED!", "LIGHTER = FASTER!", "ACCEL BOOST!",
+    "LESS WEIGHT!", "MORE PUNCH!", "MASS RATIO GO!"
+  ],
+  physicsFriction: [
+    "GRIP LOCKED!", "ZERO SLIP!", "TRACTION MAX!", "ICE TAMED!", "NO DRIFT!",
+    "STICKY SOLES!", "TIRES BITE!"
+  ],
+  physicsRocket: [
+    "ROCKET THRUST!", "MAX BURN!", "ESCAPE VELOCITY!", "FULL THROTTLE!", "THRUST BOOST!",
+    "FUEL SPRAY!", "JUPITER BYE!"
+  ],
+  npcGreeting: [
+    "HEY CADET!", "NEED UPGRADES?", "WELCOME TO BASE!", "FORGE READY!", "LOGIC CHECK!",
+    "STAR MAPPER HERE!", "TRADE WITH ME!", "HELLO ASTRONAUT!"
+  ],
+  sampleGet: [
+    "SAMPLE BANKED!", "SCIENCE DATA!", "EMERALD GET!", "QUARTZ FOUND!", "AMBER SHARD!",
+    "FLUX CAPTURED!", "PROOF COLLECTED!"
   ]
 };
 
@@ -284,7 +320,7 @@ const SPEECH = {
   _last: {},
   // "Slow" moments (standing idle, watching the navigator) can read longer, funnier
   // lines; everything else is fast platformer action that wants a snappy short word.
-  _slow: new Set(["idle", "navAim", "navThrust", "navWait", "navCruise", "navLanding", "navLightspeed", "navDeepSpace"]),
+  _slow: new Set(["idle", "navAim", "navThrust", "navWait", "navCruise", "navLanding", "navLightspeed", "navDeepSpace", "npcGreeting"]),
   pick(pool) {
     const arr = SPEECH_POOLS[pool];
     if (!arr || !arr.length) return pool;
@@ -1035,16 +1071,20 @@ class Player {
     this.weapon = null;
   }
 
-  // Retro 80s-style speech balloon. opts: { emoji, shout, timer, dialogue }
+  // Character speech balloon — delegates to clean floating ComicBubbles
   say(text, opts) {
     opts = opts || {};
     this.sayText = text;
     this.sayEmoji = opts.emoji || "";
-    this.sayShout = !!opts.shout;       // big pixel-font arcade shout (e.g. "GET!")
-    this.sayDialogue = !!opts.dialogue; // multi-line instruction bubble (wraps, lingers)
-    this.sayTimer = opts.timer || (opts.dialogue ? 320 : 150);
-    this.sayReveal = 0;                 // chars revealed so far (typewriter effect)
+    this.sayShout = !!opts.shout;
+    this.sayDialogue = !!opts.dialogue;
+    this.sayTimer = opts.timer || (opts.dialogue ? 200 : 120);
+    this.sayReveal = 0;
     this.sayPrevLen = 0;
+    if (text && typeof ComicBubbles !== 'undefined' && !this.shouldSuppressSpeech()) {
+      const accent = (this.charType === 'star') ? '#38bdf8' : '#f97316';
+      ComicBubbles.spawn(this.x + this.w / 2, this.y - 12, text, "rounded", accent, -0.4, { maxLife: opts.dialogue ? 140 : 95, scale: 1.05 });
+    }
   }
 
   clearSpeech() {
@@ -1694,93 +1734,7 @@ class Player {
 
     ctx.restore();
 
-    // Draw retro 80s-arcade speech balloon (cream "message window" with a thick
-    // character-colored frame, blocky pointer, and a typewriter character reveal).
-    if (this.sayTimer > 0 && this.sayText && !this.shouldSuppressSpeech()) {
-      const shownCount = Math.ceil(this.sayReveal);
-
-      const accent = this.sayDialogue ? '#38bdf8' : ((this.charType === 'star') ? '#38bdf8' : '#f97316');
-      const shout = this.sayShout;
-      const dialogue = this.sayDialogue;
-      const prefix = this.sayEmoji ? this.sayEmoji + ' ' : '';
-      const full = prefix + this.sayText;
-      const shown = prefix + this.sayText.slice(0, shownCount);
-
-      ctx.save();
-      ctx.font = shout ? "13px 'Press Start 2P', monospace" : (dialogue ? "600 11px 'Baloo 2', 'Outfit', sans-serif" : "bold 12px 'Outfit', sans-serif");
-      // Word-wrap (single line for short shouts; multiple for dialogue).
-      const maxW = dialogue ? 250 : 232;
-      const padX = shout ? 12 : 10;
-      const lines = [];
-      let line = '';
-      full.split(' ').forEach((w) => {
-        const t = line ? line + ' ' + w : w;
-        if (ctx.measureText(t).width > maxW - padX * 2 && line) { lines.push(line); line = w; }
-        else line = t;
-      });
-      if (line) lines.push(line);
-      const lineH = shout ? 17 : (dialogue ? 15 : 14);
-      const bubbleW = Math.min(maxW, Math.max(...lines.map((l) => ctx.measureText(l).width)) + padX * 2);
-      const bubbleH = lines.length * lineH + (shout ? 11 : 9);
-      const cx = this.x + this.w / 2 - cameraX;
-      const canvasW = (game && game.canvas) ? game.canvas.width : 720;
-      // Vertical placement first, so we can test whether the balloon overlaps the panel.
-      let by = this.y - bubbleH - 16;
-      let below = false;
-      if (by < 4) { by = this.y + this.h + 12; below = true; } // flip under the cadet near the top edge
-      // Keep the whole balloon on-screen AND clear of the top-left 🎯 Mission overlay.
-      // The cadet spawns at the very-left edge, right under that panel, so a player-centred
-      // box would both clip the margin and hide behind the panel. Push it right of the panel
-      // (only while they actually overlap); the full text always lives in the Mission box,
-      // and the tail still leans back toward the cadet.
-      let leftBound = 6;
-      try {
-        const panel = (typeof document !== 'undefined') && document.getElementById('mission-bubble');
-        const cv = game && game.canvas;
-        if (panel && cv) {
-          const pr = panel.getBoundingClientRect();
-          const cr = cv.getBoundingClientRect();
-          if (pr.width && cr.width) {
-            const sx = cv.width / cr.width;          // canvas px per screen px
-            const sy = cv.height / cr.height;
-            const panelRight = (pr.right - cr.left) * sx;
-            const panelTop = (pr.top - cr.top) * sy;
-            const panelBottom = (pr.bottom - cr.top) * sy;
-            const overlapsV = (by + bubbleH) > panelTop && by < panelBottom;
-            if (overlapsV && panelRight > leftBound) leftBound = Math.min(panelRight + 10, canvasW - bubbleW - 6);
-          }
-        }
-      } catch (e) { /* draw must never throw */ }
-      const bx = Math.max(leftBound, Math.min(canvasW - bubbleW - 6, cx - bubbleW / 2));
-      const centerX = bx + bubbleW / 2;
-      const tailX = Math.max(bx + 12, Math.min(bx + bubbleW - 12, cx));
-
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = accent;
-      ctx.beginPath(); ctx.roundRect(bx - 3, by - 3, bubbleW + 6, bubbleH + 6, 6); ctx.fill();
-      ctx.fillStyle = 'rgba(11, 16, 34, 0.58)';
-      ctx.beginPath(); ctx.roundRect(bx - 1.5, by - 1.5, bubbleW + 3, bubbleH + 3, 5); ctx.fill();
-      ctx.fillStyle = 'rgba(251, 243, 218, 0.72)';
-      ctx.beginPath(); ctx.roundRect(bx, by, bubbleW, bubbleH, 4); ctx.fill();
-
-      // Blocky stepped pointer tail (points down to the cadet, or up if flipped below).
-      ctx.fillStyle = accent;
-      if (below) { ctx.fillRect(tailX - 6, by - 3, 12, 4); ctx.fillStyle = 'rgba(251, 243, 218, 0.72)'; ctx.fillRect(tailX - 4, by - 1, 8, 3); ctx.fillRect(tailX - 2, by - 4, 4, 3); }
-      else { ctx.fillRect(tailX - 6, by + bubbleH - 1, 12, 4); ctx.fillStyle = 'rgba(251, 243, 218, 0.72)'; ctx.fillRect(tailX - 4, by + bubbleH - 1, 8, 3); ctx.fillRect(tailX - 2, by + bubbleH + 2, 4, 3); }
-
-      // Text (dark navy ink on cream), revealed across the wrapped lines.
-      ctx.fillStyle = '#15233e';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      let used = 0;
-      for (let i = 0; i < lines.length; i++) {
-        const fl = lines[i];
-        const remain = Math.max(0, shown.length - used);
-        ctx.fillText(fl.slice(0, remain), centerX, by + (shout ? 6 : 5) + i * lineH + lineH / 2 - 2);
-        used += fl.length + 1;
-      }
-      ctx.restore();
-    }
+    // Speech is handled cleanly via floating ComicBubbles (no overlapping boxes)
   }
 }
 
@@ -2621,9 +2575,15 @@ class NPC extends InteractiveObject {
     if (this.hitFlash > 0) this.hitFlash--;
 
     if (this.proximity && !wasProx) {
-      // Just walked up: spawn a greeting balloon
+      // Just walked up: spawn a rich character greeting balloon
+      let greeting = `${this.name || this.profession}: Welcome!`;
+      if (this.id === 'geary') greeting = "Geary: Emeralds craft heavy engines!";
+      else if (this.id === 'bitbyte') greeting = "Bit-Byte: Moon quartz tunes loop logic!";
+      else if (this.id === 'horizon') greeting = "Horizon: Amber reveals star maps!";
+      else if (this.id === 'tesla') greeting = "Tesla: Flux charges magnetic coils!";
+      else if (this.dialogue && this.dialogue.length > 0) greeting = `${this.name}: ${this.dialogue[0].slice(0, 38)}...`;
       if (typeof ComicBubbles !== 'undefined') {
-        ComicBubbles.spawn(this.x + this.w / 2, this.y - 6, `${this.profession} trades open.`, "rounded", this.color, -0.4, { maxLife: 100 });
+        ComicBubbles.spawn(this.x + this.w / 2, this.y - 8, greeting, "rounded", this.color, -0.35, { maxLife: 120 });
       }
     }
   }
