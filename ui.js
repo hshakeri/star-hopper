@@ -3034,6 +3034,10 @@ const SIGNAL_STORY_CHAPTERS = [
   {
     id: "earth-signal",
     title: "Emerald Wall Signal",
+    planetIndex: 0,
+    icon: "🌍",
+    speaker: "VECTOR AI",
+    characterQuote: "Signal locked on Earth Base Camp! Tune gravity and mass variables to breach the Emerald Wall.",
     concept: "Variables change motion",
     unlock: (game) => hasClearedStoryPlanet(game, 0),
     body: "The first shard proves that changing mass, thrust, and gravity can turn a blocked path into a solvable experiment."
@@ -3041,6 +3045,10 @@ const SIGNAL_STORY_CHAPTERS = [
   {
     id: "moon-loop",
     title: "Moon Loop Echo",
+    planetIndex: 1,
+    icon: "🌕",
+    speaker: "STAR ROVER",
+    characterQuote: "Lunar gravity is light and floaty! Repeat a spring loop to build a bounce bridge across the canyon.",
     concept: "Loops build repeatable patterns",
     unlock: (game) => hasClearedStoryPlanet(game, 1),
     body: "The signal repeats across the canyon. A loop lets one idea become a bridge without rewriting the same command."
@@ -3048,6 +3056,10 @@ const SIGNAL_STORY_CHAPTERS = [
   {
     id: "jupiter-thrust",
     title: "Amber Gravity Well",
+    planetIndex: 2,
+    icon: "🪐",
+    speaker: "HOPPER PROBE",
+    characterQuote: "Jupiter's crushing gravity demands high rocket thrust! Net force (F_thrust - m·g) must stay positive to climb.",
     concept: "Thrust must beat gravity",
     unlock: (game) => hasClearedStoryPlanet(game, 2),
     body: "Jupiter's shard teaches that rockets, mass, and fuel form one system: every climb has a cost."
@@ -3055,6 +3067,10 @@ const SIGNAL_STORY_CHAPTERS = [
   {
     id: "glacies-grip",
     title: "Violet Grip Code",
+    planetIndex: 3,
+    icon: "❄️",
+    speaker: "STAR ROVER",
+    characterQuote: "Zero friction ice plains ahead! Tune surface friction or deploy spike treads to brake safely.",
     concept: "Friction changes control",
     unlock: (game) => hasClearedStoryPlanet(game, 3),
     body: "The frozen signal shows how one surface variable can change the whole feel of movement."
@@ -3062,6 +3078,10 @@ const SIGNAL_STORY_CHAPTERS = [
   {
     id: "magnet-field",
     title: "Mag-Net Pulse",
+    planetIndex: 4,
+    icon: "🧲",
+    speaker: "HOPPER PROBE",
+    characterQuote: "Electromagnetic nebula detected! Touch events trigger instant north/south polarity flips in mid-air.",
     concept: "Events react to contact",
     unlock: (game) => hasClearedStoryPlanet(game, 4),
     body: "The magnetic shard turns code into a field rule: touch, compare, flip, and watch the force change."
@@ -3069,6 +3089,10 @@ const SIGNAL_STORY_CHAPTERS = [
   {
     id: "forge-collision",
     title: "Forge Collision Map",
+    planetIndex: 5,
+    icon: "☄️",
+    speaker: "STAR ROVER",
+    characterQuote: "Asteroid Forge kinetic collision: heavier mass strikes first to conserve momentum and clear the blast door!",
     concept: "Mass comes before bounce",
     unlock: (game) => hasClearedStoryPlanet(game, 5),
     body: "The Forge shard makes the lesson explicit: first make the boulder move, then tune how much energy the collision keeps."
@@ -3076,6 +3100,9 @@ const SIGNAL_STORY_CHAPTERS = [
   {
     id: "star-map-finale",
     title: "Star-Map Restored",
+    icon: "✨",
+    speaker: "VECTOR AI",
+    characterQuote: "Star-Map fully restored! All six fundamental laws of physics are unified across the cosmos.",
     concept: "Six ideas form one model",
     unlock: (game) => hasClearedFullStarMap(game),
     body: (game) => {
@@ -3086,6 +3113,9 @@ const SIGNAL_STORY_CHAPTERS = [
   {
     id: "anomaly-echo",
     title: "Dark Matter Echo",
+    icon: "🌌",
+    speaker: "HOPPER-ZERO",
+    characterQuote: "Frontier anomaly detected. Reading invisible dark matter forces from orbital curvature.",
     concept: "Infer hidden forces from motion",
     unlock: (game) => hasClearedFullStarMap(game) && hasFrontierStoryCredit(game),
     body: "A Frontier record bends the restored map toward Dark Matter Lab and Quantum Gate. The next science is reading an invisible force from the way a path curves."
@@ -3093,6 +3123,9 @@ const SIGNAL_STORY_CHAPTERS = [
   {
     id: "anomaly-trace",
     title: "Hidden Force Trace",
+    icon: "⚡",
+    speaker: "VECTOR AI",
+    characterQuote: "Prototype field rules: testing invisible force responses before gate calibration.",
     concept: "Prototype invisible-force rules",
     unlock: (game) => hasClearedFullStarMap(game) && hasFrontierStoryCredit(game) && hasAnomalyTraceStoryCredit(game),
     body: "The Mag-Net prototype proves the cadet can test an invisible field with one focused event rule before Dark Matter Lab opens."
@@ -3100,6 +3133,9 @@ const SIGNAL_STORY_CHAPTERS = [
   {
     id: "mastery-remix",
     title: "Remix Key",
+    icon: "🎲",
+    speaker: "STAR ROVER",
+    characterQuote: "Mastery proof: true physics knowledge works even when the planet layout shifts!",
     concept: "Evidence survives a new layout",
     unlock: (game) => !!(game && game.masteryCleared && Object.values(game.masteryCleared).some(Boolean)),
     body: "A 3-star mastery means the idea was not luck. The same concept works again when the world changes shape."
@@ -3107,6 +3143,9 @@ const SIGNAL_STORY_CHAPTERS = [
   {
     id: "daily-beacon",
     title: "Daily Beacon",
+    icon: "📡",
+    speaker: "VECTOR AI",
+    characterQuote: "Daily science dish broadcasting fresh seeded remixes every 24 hours!",
     concept: "One fresh experiment per day",
     unlock: (game) => !!(game && (game.dailySignalClears || 0) > 0),
     body: "The signal keeps broadcasting new remixes. Returning to test one variable each day builds a real lab habit."
@@ -3114,6 +3153,9 @@ const SIGNAL_STORY_CHAPTERS = [
   {
     id: "village-pact",
     title: "Village Pact",
+    icon: "🛡️",
+    speaker: "VILLAGE ELDER",
+    characterQuote: "Thank you Cadet! Our outpost AI now maintains safety and trade equilibrium!",
     concept: "Game AI uses states",
     unlock: (game) => hasVillageRescueStoryCredit(game),
     body: "The villagers now trust the cadet because danger became a readable state: patrol, shelter, then return to trade when the threat clears."
@@ -3963,13 +4005,20 @@ function updateSignalStoryPanel(game = window.Game) {
   const next = story.nextChapter;
   const contract = getSignalStoryContract(game, story);
   const sourceScene = getSignalSourceScene(game, contract);
+  const unlockedCount = story.unlocked.length;
+  const totalCount = story.total;
+  const progressPct = Math.round((unlockedCount / totalCount) * 100);
+
   panel.innerHTML = `
     <div class="signal-story-head">
       <div>
         <span>STAR-MAP CHAPTERS</span>
-        <strong>${story.unlocked.length}/${story.total} decoded</strong>
+        <strong>${unlockedCount}/${totalCount} decoded</strong>
       </div>
       <em>${next ? `Next: ${escapeHTML(next.title)}` : "Signal complete"}</em>
+    </div>
+    <div class="signal-story-progress-bar" style="height: 6px; background: rgba(30,41,59,0.8); border-radius: 4px; overflow: hidden; margin: 8px 0;">
+      <div style="width: ${progressPct}%; height: 100%; background: linear-gradient(90deg, #38bdf8, #a855f7); border-radius: 4px; transition: width 0.3s ease;"></div>
     </div>
     <div class="signal-story-contract">
       <span>${escapeHTML(contract.kicker)}</span>
@@ -3988,11 +4037,23 @@ function updateSignalStoryPanel(game = window.Game) {
     <div class="signal-story-track">
       ${story.chapters.map(chapter => `
       <div class="signal-chapter ${chapter.unlocked ? "unlocked" : "locked"}">
-        <span class="signal-chapter-index">${chapter.unlocked ? String(chapter.index).padStart(2, "0") : "--"}</span>
-        <div>
-          <strong>${escapeHTML(chapter.unlocked ? chapter.title : "Locked transmission")}</strong>
-          <code>${escapeHTML(chapter.concept)}</code>
+        <span class="signal-chapter-index">${chapter.icon || (chapter.unlocked ? String(chapter.index).padStart(2, "0") : "--")}</span>
+        <div class="signal-chapter-content">
+          <div class="signal-chapter-header">
+            <strong>${escapeHTML(chapter.unlocked ? chapter.title : "Locked transmission")}</strong>
+            <code>${escapeHTML(chapter.concept)}</code>
+          </div>
+          ${chapter.unlocked && chapter.characterQuote ? `
+          <div class="signal-chapter-quote">
+            <span class="quote-speaker">${escapeHTML(chapter.speaker || "VOICE")}:</span> "${escapeHTML(chapter.characterQuote.replace(/^[^:]+:\s*['"]?/, "").replace(/['"]?$/, ""))}"
+          </div>
+          ` : ""}
           <p>${escapeHTML(chapter.unlocked ? chapter.bodyText : `Decode ${chapter.title} by pushing the mission path farther.`)}</p>
+          ${chapter.unlocked && Number.isFinite(chapter.planetIndex) ? `
+          <div class="signal-chapter-actions" style="margin-top: 6px;">
+            <button type="button" class="signal-launch-btn" onclick="Game.startLevel(${chapter.planetIndex}); if (typeof switchMainMode === 'function') switchMainMode('game');">▶ LAUNCH WORLD</button>
+          </div>
+          ` : ""}
         </div>
       </div>
       `).join("")}
@@ -9063,6 +9124,9 @@ function setupUIBindings(game) {
               else if (lowerVal.includes("when ")) popCategory = "codeEvent";
               const shout = (typeof SPEECH !== 'undefined') ? SPEECH.pick(popCategory) : "CODE ACTIVE!";
               ComicBubbles.spawn(game.player.x + game.player.w / 2, game.player.y - 12, shout, "rounded", "#38bdf8", -0.55, { maxLife: 90, scale: 1.1 });
+              if (typeof Particles !== 'undefined') {
+                Particles.spawnBurst(game.player.x + game.player.w / 2, game.player.y + game.player.h / 2, '#38bdf8', 16, 2.8, 3.2, 'glow');
+              }
             }
             // Record the change on this attempt's experiment-log row.
             if (typeof attemptLogCode === 'function') attemptLogCode(game, val);

@@ -3,13 +3,13 @@
 //   • Navigations (index.html): NETWORK-FIRST, so an online player always gets the
 //     latest page (which then pulls fresh ?v=-stamped assets); falls back to cache offline.
 //   • Versioned assets (JS/CSS/icons): CACHE-FIRST (they're immutable per ?v=), filled on miss.
-// Bump the version below in lockstep with index.html's ?v=clean-v500 on every release.
-const CACHE = 'star-hopper-clean-v500';
+// Bump the version below in lockstep with index.html's ?v=fun-v501 on every release.
+const CACHE = 'star-hopper-fun-v501';
 const CORE = [
   './',
   './index.html',
-  './style.css?v=clean-v500',
-  './manifest.json?v=clean-v500',
+  './style.css?v=fun-v501',
+  './manifest.json?v=fun-v501',
   './icons/icon-180.png',
   './icons/icon-192.png',
   './icons/icon-512.png'

@@ -6575,13 +6575,12 @@ class StarHopperGame {
           const gem = obj.gem || this.getGemConfig();
           const collectedAllSamples = obj.requiredCollectible && this.requiredCollectiblesTotal > 0 &&
             this.requiredCollectiblesCollected >= this.requiredCollectiblesTotal;
+          Particles.spawnBurst(obj.x + 8, obj.y + 8, gem.color || '#facc15', 14, 2.8, 3.2, 'glow');
           if (obj.requiredCollectible) {
             this.spawnMissionSampleCollectedEffect(obj, gem, collectedAllSamples);
           } else {
-            Particles.spawnBurst(obj.x + 8, obj.y + 8, gem.color, 10, 2, 2.5, 'glow');
             if (typeof ComicBubbles !== 'undefined') {
-              // Bonus gems are frequent — keep them as the lighter small balloon.
-              ComicBubbles.spawn(obj.x + 8, obj.y, SPEECH.pick("get"), "rounded", "#facc15");
+              ComicBubbles.pop(obj.x + 8, obj.y - 8, "+50 XP", gem.color || "#facc15", 1.15);
             }
           }
           if (obj.requiredCollectible) {
@@ -6628,7 +6627,10 @@ class StarHopperGame {
             this.player.vy = -this.currentPlanet.physics.bounceForce * 1.4;
             this.player.onGround = false;
             SFX.playJump();
-            Particles.spawnBurst(obj.x + 16, obj.y, '#f87171', 8, 2, 2);
+            Particles.spawnBurst(obj.x + 16, obj.y, '#f87171', 14, 2.8, 3.2, 'glow');
+            if (typeof ComicBubbles !== 'undefined') {
+              ComicBubbles.pop(obj.x + 16, obj.y - 12, "BOING!", "#f87171", 1.25);
+            }
           }
         } else if (obj.type === 'portal') {
           this.attemptPortalClear();
