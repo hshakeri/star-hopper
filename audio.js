@@ -98,23 +98,125 @@ class SoundEngine {
     this.resume();
     if (this.isMuted || !this.ctx) return;
 
+    const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
-    
     osc.connect(gain);
     this.connectOutput(gain);
-
     osc.type = 'triangle';
-    const now = this.ctx.currentTime;
-    
-    osc.frequency.setValueAtTime(150, now);
-    osc.frequency.exponentialRampToValueAtTime(650, now + 0.15);
-    
-    gain.gain.setValueAtTime(0.15, now);
-    gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
-
+    osc.frequency.setValueAtTime(160, now);
+    osc.frequency.exponentialRampToValueAtTime(680, now + 0.14);
+    gain.gain.setValueAtTime(0.16, now);
+    gain.gain.linearRampToValueAtTime(0.005, now + 0.14);
     osc.start(now);
-    osc.stop(now + 0.16);
+    osc.stop(now + 0.15);
+
+    const osc2 = this.ctx.createOscillator();
+    const gain2 = this.ctx.createGain();
+    osc2.connect(gain2);
+    this.connectOutput(gain2);
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(320, now);
+    osc2.frequency.exponentialRampToValueAtTime(1360, now + 0.12);
+    gain2.gain.setValueAtTime(0.05, now);
+    gain2.gain.linearRampToValueAtTime(0.001, now + 0.12);
+    osc2.start(now);
+    osc2.stop(now + 0.13);
+  }
+
+  playSpring() {
+    this.resume();
+    if (this.isMuted || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.connect(gain);
+    this.connectOutput(gain);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(220, now);
+    osc.frequency.exponentialRampToValueAtTime(880, now + 0.18);
+    osc.frequency.linearRampToValueAtTime(740, now + 0.24);
+    gain.gain.setValueAtTime(0.18, now);
+    gain.gain.linearRampToValueAtTime(0.001, now + 0.26);
+    osc.start(now);
+    osc.stop(now + 0.27);
+  }
+
+  playBlaster() {
+    this.resume();
+    if (this.isMuted || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.connect(gain);
+    this.connectOutput(gain);
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(1100, now);
+    osc.frequency.exponentialRampToValueAtTime(110, now + 0.11);
+    gain.gain.setValueAtTime(0.12, now);
+    gain.gain.linearRampToValueAtTime(0.001, now + 0.12);
+    osc.start(now);
+    osc.stop(now + 0.13);
+  }
+
+  playTrade() {
+    this.resume();
+    if (this.isMuted || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const playTone = (freq, start, dur, type, vol) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.connect(gain);
+      this.connectOutput(gain);
+      osc.type = type || 'triangle';
+      osc.frequency.setValueAtTime(freq, start);
+      gain.gain.setValueAtTime(vol || 0.1, start);
+      gain.gain.linearRampToValueAtTime(0.001, start + dur);
+      osc.start(start);
+      osc.stop(start + dur);
+    };
+    playTone(587.33, now, 0.08, 'triangle', 0.09);
+    playTone(880.00, now + 0.07, 0.12, 'triangle', 0.11);
+    playTone(1174.66, now + 0.14, 0.22, 'sine', 0.14);
+  }
+
+  playHurt() {
+    this.resume();
+    if (this.isMuted || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.connect(gain);
+    this.connectOutput(gain);
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(260, now);
+    osc.frequency.exponentialRampToValueAtTime(60, now + 0.2);
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.linearRampToValueAtTime(0.001, now + 0.22);
+    osc.start(now);
+    osc.stop(now + 0.23);
+  }
+
+  playCodeRun() {
+    this.resume();
+    if (this.isMuted || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const playTone = (freq, start, dur) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.connect(gain);
+      this.connectOutput(gain);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, start);
+      gain.gain.setValueAtTime(0.07, start);
+      gain.gain.linearRampToValueAtTime(0.001, start + dur);
+      osc.start(start);
+      osc.stop(start + dur);
+    };
+    playTone(440.00, now, 0.06);
+    playTone(554.37, now + 0.05, 0.06);
+    playTone(659.25, now + 0.10, 0.06);
+    playTone(880.00, now + 0.15, 0.16);
   }
 
   playStomp() {
@@ -130,10 +232,10 @@ class SoundEngine {
     osc.type = 'sawtooth';
     const now = this.ctx.currentTime;
     
-    osc.frequency.setValueAtTime(120, now);
-    osc.frequency.linearRampToValueAtTime(40, now + 0.2);
+    osc.frequency.setValueAtTime(140, now);
+    osc.frequency.linearRampToValueAtTime(35, now + 0.2);
     
-    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.setValueAtTime(0.32, now);
     gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
 
     osc.start(now);
@@ -145,21 +247,22 @@ class SoundEngine {
     if (this.isMuted || !this.ctx) return;
 
     const now = this.ctx.currentTime;
-    const playTone = (freq, start, duration) => {
+    const playTone = (freq, start, duration, vol = 0.09) => {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.connect(gain);
       this.connectOutput(gain);
       osc.type = 'sine';
       osc.frequency.setValueAtTime(freq, start);
-      gain.gain.setValueAtTime(0.08, start);
+      gain.gain.setValueAtTime(vol, start);
       gain.gain.linearRampToValueAtTime(0.001, start + duration);
       osc.start(start);
       osc.stop(start + duration);
     };
 
-    playTone(987.77, now, 0.08); // B5
-    playTone(1318.51, now + 0.08, 0.2); // E6
+    playTone(987.77, now, 0.07, 0.08);       // B5
+    playTone(1318.51, now + 0.06, 0.12, 0.1); // E6
+    playTone(1975.53, now + 0.12, 0.22, 0.07); // B6 shimmer
   }
 
   playType() {
@@ -186,24 +289,25 @@ class SoundEngine {
     if (this.isMuted || !this.ctx) return;
 
     const now = this.ctx.currentTime;
-    const playTone = (freq, start, duration) => {
+    const playTone = (freq, start, duration, vol = 0.1, type = 'triangle') => {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.connect(gain);
       this.connectOutput(gain);
-      osc.type = 'triangle';
+      osc.type = type;
       osc.frequency.setValueAtTime(freq, start);
-      gain.gain.setValueAtTime(0.1, start);
+      gain.gain.setValueAtTime(vol, start);
       gain.gain.linearRampToValueAtTime(0.001, start + duration);
       osc.start(start);
       osc.stop(start + duration);
     };
 
-    // Major Triad Arpeggio (C Major)
-    playTone(261.63, now, 0.1);       // C4
-    playTone(329.63, now + 0.1, 0.1); // E4
-    playTone(392.00, now + 0.2, 0.1); // G4
-    playTone(523.25, now + 0.3, 0.3); // C5
+    // Major Triad Arpeggio (C Major) with golden shine
+    playTone(261.63, now, 0.09, 0.1);        // C4
+    playTone(329.63, now + 0.08, 0.09, 0.1); // E4
+    playTone(392.00, now + 0.16, 0.09, 0.1); // G4
+    playTone(523.25, now + 0.24, 0.28, 0.14); // C5
+    playTone(659.25, now + 0.28, 0.32, 0.08, 'sine'); // E5 shimmer
   }
 
   playError() {
@@ -309,25 +413,26 @@ class SoundEngine {
     if (this.isMuted || !this.ctx) return;
 
     const now = this.ctx.currentTime;
-    const playTone = (freq, start, duration, type) => {
+    const playTone = (freq, start, duration, type, vol = 0.12) => {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       osc.connect(gain);
       this.connectOutput(gain);
       osc.type = type || 'triangle';
       osc.frequency.setValueAtTime(freq, start);
-      gain.gain.setValueAtTime(0.12, start);
+      gain.gain.setValueAtTime(vol, start);
       gain.gain.linearRampToValueAtTime(0.001, start + duration);
       osc.start(start);
       osc.stop(start + duration);
     };
 
     // Rising C-major climb, then a shimmering high octave on top.
-    playTone(523.25, now, 0.12);                 // C5
-    playTone(659.25, now + 0.1, 0.12);           // E5
-    playTone(783.99, now + 0.2, 0.12);           // G5
-    playTone(1046.50, now + 0.3, 0.35);          // C6
-    playTone(1567.98, now + 0.34, 0.4, 'sine');  // G6 shimmer
+    playTone(523.25, now, 0.12, 'triangle', 0.12);                 // C5
+    playTone(659.25, now + 0.1, 0.12, 'triangle', 0.12);           // E5
+    playTone(783.99, now + 0.2, 0.12, 'triangle', 0.13);           // G5
+    playTone(1046.50, now + 0.3, 0.35, 'triangle', 0.16);          // C6
+    playTone(1318.51, now + 0.32, 0.38, 'sine', 0.1);              // E6 shimmer
+    playTone(1567.98, now + 0.34, 0.42, 'sine', 0.12);             // G6 shimmer
   }
 
   // Loopable Background Chiptune Tracks
@@ -357,36 +462,60 @@ class SoundEngine {
       return {
         melody: ["C4", "E4", "G4", "C5", "G4", "E4", "F4", "A4", "C5", "F4", "G4", "B4", "D5", "G4", "C4", "C4"],
         bass: ["C3", "C3", "C3", "C3", "F3", "F3", "F3", "F3", "G3", "G3", "G3", "G3", "C3", "C3", "C3", "C3"],
-        tempo: 180
+        tempo: 160,
+        melodyWave: 'triangle',
+        bassWave: 'triangle',
+        melodyGain: 0.022,
+        bassGain: 0.04,
+        drums: true
       };
     }
-    if (trackId === 1) { // Moon: Floatier, slower pace
+    if (trackId === 1) { // Moon: Floatier, dreamy space groove
       return {
         melody: ["E4", "G4", "B4", "E5", "D5", "B4", "A4", "G4", "A4", "C5", "E5", "A4", "B4", "G4", "E4", "E4"],
-        bass: ["E3", "E3", "E3", "E3", "G3", "G3", "G3", "G3", "A3", "A3", "A3", "A3", "E3", "E3", "E3", "E3"],
-        tempo: 240
+        bass: ["E3", " ", "E3", "G3", "G3", " ", "G3", "B3", "A3", " ", "A3", "C4", "E3", " ", "E3", "E3"],
+        tempo: 190,
+        melodyWave: 'sine',
+        bassWave: 'triangle',
+        melodyGain: 0.02,
+        bassGain: 0.038,
+        drums: true
       };
     }
     if (trackId === 2) { // Jupiter: Heavy, minor, energetic
       return {
-        melody: ["A4", "C5", "E5", "A4", "D5", "F5", "D5", "A4", "E5", "G5", "E5", "A4", "A4", "A4", "A4", "A4"],
-        bass: ["A3", "A3", "A3", "A3", "D3", "D3", "D3", "D3", "E3", "E3", "E3", "E3", "A3", "A3", "A3", "A3"],
-        tempo: 140
+        melody: ["A4", "C5", "E5", "A4", "D5", "F5", "D5", "A4", "E5", "G5", "E5", "A4", "A4", "C5", "E5", "A4"],
+        bass: ["A2", "A2", "A2", "A2", "D2", "D2", "D2", "D2", "E2", "E2", "E2", "E2", "A2", "A2", "A2", "A2"],
+        tempo: 135,
+        melodyWave: 'sawtooth',
+        bassWave: 'sawtooth',
+        melodyGain: 0.016,
+        bassGain: 0.048,
+        drums: true
       };
     }
     if (trackId === 3) { // Glacies: Crystal chimes, high frequencies
       return {
         melody: ["C5", "G5", "E5", "C5", "A5", "E5", "C5", "A4", "G4", "D5", "B4", "G4", "C5", "E5", "G5", "C5"],
         bass: ["C3", "C3", "G3", "G3", "A3", "A3", "F3", "F3", "G3", "G3", "D3", "D3", "C3", "C3", "C3", "C3"],
-        tempo: 200,
-        melodyWave: 'sine'
+        tempo: 180,
+        melodyWave: 'sine',
+        bassWave: 'triangle',
+        melodyGain: 0.024,
+        bassGain: 0.035,
+        drums: true
       };
     }
     if (trackId === 4) { // Mag-Net: Sci-fi, chromatic, eerie
       return {
-        melody: ["C4", "F#4", "G4", "C#5", "D5", "G#4", "A4", "D#4", "E4", "A4", "B4", "E5", "C4", "C4", "C4", "C4"],
+        melody: ["C4", "F#4", "G4", "C#5", "D5", "G#4", "A4", "D#4", "E4", "A4", "B4", "E5", "C4", "G4", "E4", "C4"],
         bass: ["C3", "C3", "F#3", "F#3", "D3", "D3", "G#3", "G#3", "A3", "A3", "A3", "A3", "C3", "C3", "C3", "C3"],
-        tempo: 160
+        tempo: 150,
+        melodyWave: 'square',
+        bassWave: 'sawtooth',
+        melodyGain: 0.018,
+        bassGain: 0.042,
+        drums: true
       };
     }
     if (trackId === 6) { // Budget Master: original crunchy, under-mastered arcade pop.
@@ -428,7 +557,11 @@ class SoundEngine {
         "D2",  " ", "D3",  " ", "D2",  " ", "D3",  " ",
         "C#2", " ", "C#3", " ", "C#2", " ", "C#3", " "
       ],
-      tempo: 400
+      tempo: 380,
+      melodyWave: 'sine',
+      bassWave: 'triangle',
+      melodyGain: 0.022,
+      bassGain: 0.035
     };
   }
 

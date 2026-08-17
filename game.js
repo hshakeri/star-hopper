@@ -6664,7 +6664,8 @@ class StarHopperGame {
             obj.bounceTimer = 10;
             this.player.vy = -this.currentPlanet.physics.bounceForce * 1.4;
             this.player.onGround = false;
-            SFX.playJump();
+            if (typeof SFX !== 'undefined' && SFX.playSpring) SFX.playSpring();
+            else if (typeof SFX !== 'undefined' && SFX.playJump) SFX.playJump();
             Particles.spawnBurst(obj.x + 16, obj.y, '#f87171', 14, 2.8, 3.2, 'glow');
             if (typeof ComicBubbles !== 'undefined') {
               ComicBubbles.pop(obj.x + 16, obj.y - 12, "BOING!", "#f87171", 1.25);
@@ -7606,6 +7607,8 @@ class StarHopperGame {
       ComicBubbles.pop(px, baseY - 28, label, color, 1.05);
       ComicBubbles.pop(px, baseY - 10, String(detail).toUpperCase(), "#a7f3d0", 0.78);
     }
+    if (typeof SFX !== 'undefined' && SFX.playTrade) SFX.playTrade();
+    else if (typeof SFX !== 'undefined' && SFX.playSuccess) SFX.playSuccess();
     if (typeof Particles !== 'undefined' && Particles.spawnBurst) {
       Particles.spawnBurst(px, py, color, 14, 2.5, 2.4, 'glow');
       Particles.spawnBurst(px, py, '#a7f3d0', 8, 1.8, 1.8, 'glow');
@@ -7774,7 +7777,8 @@ class StarHopperGame {
       const px = this.player.x + this.player.w / 2, py = this.player.y + this.player.h / 2;
       this.projectiles.push(new Projectile(px, py, dir * 7));
       if (lvl >= 3) this.projectiles.push(new Projectile(px, py - 9, dir * 7));
-      if (typeof SFX !== 'undefined' && SFX.playType) SFX.playType();
+      if (typeof SFX !== 'undefined' && SFX.playBlaster) SFX.playBlaster();
+      else if (typeof SFX !== 'undefined' && SFX.playType) SFX.playType();
       if (typeof ComicBubbles !== 'undefined' && Math.random() < 0.25) ComicBubbles.spawn(px + dir * 16, py - 6, "PEW!", "jagged", "#facc15", -0.2, { maxLife: 22, scale: 0.7 });
     }
 
@@ -8041,7 +8045,8 @@ class StarHopperGame {
     this.player.vy = (-5 - (kb - 1) * 2.2) * gf;             // harder hits pop you up more
     this.hurtFlashTimer = 12;
     if (!this.reducedMotion) { this.shakeMax = 14; this.shakeFrames = 14; this.shakeMag = 7; }
-    if (typeof SFX !== 'undefined' && SFX.playError) SFX.playError();
+    if (typeof SFX !== 'undefined' && SFX.playHurt) SFX.playHurt();
+    else if (typeof SFX !== 'undefined' && SFX.playError) SFX.playError();
     if (typeof ComicBubbles !== 'undefined') {
       ComicBubbles.spawn(this.player.x + this.player.w / 2, this.player.y, SPEECH.pick("bonk"), "jagged", "#ef4444", -0.3, { maxLife: 36 });
     }

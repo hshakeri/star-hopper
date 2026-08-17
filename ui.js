@@ -9120,7 +9120,8 @@ function setupUIBindings(game) {
           if (res.success) {
             recordScienceDelta(game, scienceBefore, captureScienceDeltaSnapshot(game), val);
             ui_log_output(res.msg, "success");
-            SFX.playSuccess();
+            if (typeof SFX !== 'undefined' && SFX.playCodeRun) SFX.playCodeRun();
+            else if (typeof SFX !== 'undefined' && SFX.playSuccess) SFX.playSuccess();
             // Trigger in-world character speech bubble reaction for code execution
             if (game && game.player && typeof ComicBubbles !== 'undefined') {
               const lowerVal = val.toLowerCase();

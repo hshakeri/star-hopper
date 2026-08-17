@@ -112,7 +112,9 @@ const SPEECH_POOLS = {
     "SKY BOOP!", "LEG DAY!", "TOES AWAY!", "ANTI-GRAV!", "MOON KNEES!", "HOPSCOTCH!",
     "FLY-ish!", "UPSY-DAISY!", "GRAVITY WHO?", "JUMP.exe!", "BOOTS GO BRR!", "LAUNCH LEGS!",
     "YOINK UP!", "KNEE BLAST!", "AIR TIME!", "I BELIEVE!", "SPROING-O!", "CLOUD TICKLE!",
-    "UP BUTTON!", "KNEE CODE!", "SKY TAP!", "BOOT ROCKET!"
+    "UP BUTTON!", "KNEE CODE!", "SKY TAP!", "BOOT ROCKET!", "APOLLO HOPS!", "KICK OFF!",
+    "ELEVATION NATION!", "AIRBORNE BEAN!", "SPRINGBOARDED!", "GRAVITY: DENIED!", "HIGH HOPES!",
+    "TO INFINITY!", "ORBIT LAUNCH!", "BOUNCE PROTOCOL!", "KNEE ENERGY!", "PUPPY HOP!"
   ],
 
   stomp: [
@@ -120,7 +122,9 @@ const SPEECH_POOLS = {
     "BOOT TAX!", "DOWN YOU GO!", "FEET JUSTICE!", "SNEAKER SMASH!", "OOPS, BOOT!",
     "GRAVITY HELPED!", "PANCaked!", "TINY THUNDER!", "SOLE POWER!", "TOE-TALED!",
     "STOMP-O-MATIC!", "BUG REPORT!", "BONK RECEIPT!", "SURPRISE FLOOR!", "NOPE!", "SQUISHY MATH!",
-    "BOOT DEBUG!", "GROUND TRUTH!", "TOE VERDICT!", "FLAT FACTS!"
+    "BOOT DEBUG!", "GROUND TRUTH!", "TOE VERDICT!", "FLAT FACTS!", "SQUISH REPORT!", "FLATTENED!",
+    "GRAVITY SMACK!", "SHOE BONK!", "BUG SQUASHED!", "SURPRISE GRAVITY!", "FOOTNOTE!", "SMUSH!",
+    "PENCIL CRUNCH!", "TOE IMPACT!", "HEEL CRUSH!", "DOWNWARD DOGE!"
   ],
 
   get: [
@@ -128,70 +132,90 @@ const SPEECH_POOLS = {
     "SPACE LOOT!", "POCKETED!", "CHA-CHING!", "COSMIC COIN!", "GIMME!", "SPARKLE TAX!",
     "STAR SNACK!", "LOOT SCOOT!", "COLLECTED!", "TREASURE BOOP!", "OINK? COIN!", "SHINY ACQUIRED!",
     "RICH-ish!", "GALAXY TIP!", "THANKS, SPACE!", "FINDERS KEEPERS!", "SPARKLE GET!",
-    "POCKET SCIENCE!", "GEM RECEIPT!", "TINY TREASURE!", "SHINE FILED!"
+    "POCKET SCIENCE!", "GEM RECEIPT!", "TINY TREASURE!", "SHINE FILED!", "CRUNCHY GEM!",
+    "SHINY CANDY!", "SPACE JUICE!", "POCKET ROCKET!", "GEMSTONED!", "GLITTER GET!", "DATA CRUMB!",
+    "CRYSTAL POP!", "ORBIT JEWEL!", "JACKPOT BOOP!", "STASH EXPANDED!", "COSMIC LOOT!"
   ],
 
   powerup: [
     "POWER UP!", "LEVEL UP!", "BOOSTED!", "SUPERCHARGED!", "KA-CHING!", "MAX POWER!", "UPGRADE!",
     "JUICE MODE!", "BUFFED!", "BIG HOP ENERGY!", "SCIENCE!", "LIMIT BROKEN!", "HYPER HOP!",
     "ROCKET SOCKS!", "POWER SNACK!", "STATS GO UP!", "PATCHED!", "UNFAIR!", "TURBO BEANS!",
-    "GLITCH? NAH!", "HOPPER 2.0!", "COSMIC SAUCE!", "FULL BATTERY!", "SPICY PHYSICS!", "CHARGED!"
+    "GLITCH? NAH!", "HOPPER 2.0!", "COSMIC SAUCE!", "FULL BATTERY!", "SPICY PHYSICS!", "CHARGED!",
+    "MAX OVERCLOCK!", "SCIENCE OVERDRIVE!", "BOOST JUICE!", "QUANTUM LEAP!", "TURBO ACTIVATED!",
+    "1000% SPEED!", "HOPPER UNCHAINED!", "PHYSICS CHEAT CODE!", "GALAXY BRAIN!", "LEVEL: MAXIMUM!"
   ],
 
   zap: [
     "ZAP!", "BZZT!", "CLING!", "MAGNET-O!", "SNAP!", "KRZZT!", "STICKY!",
     "SPARK SNACK!", "STATIC HUG!", "MAG-NICE!", "POLARITY PARTY!", "CURRENT MOOD!",
     "FIELD TRIP!", "BZZZAP!", "ION KNOW!", "SHOCKING!", "ELECTRO-BOOP!", "CLINGY!",
-    "SCIENCE ZOT!", "WATT?!", "OHM MY!", "ATTRACTED!", "MAGNET HUG!", "BEEP-ZAP!", "ZORT!"
+    "SCIENCE ZOT!", "WATT?!", "OHM MY!", "ATTRACTED!", "MAGNET HUG!", "BEEP-ZAP!", "ZORT!",
+    "TESLA TICKLE!", "VOLT VOLLEY!", "STATIC SHOCK!", "MAGNET PARTY!", "ION BLAST!",
+    "CURRENT MOOD: ELECTRIC!", "MAGNETIC ZOOM!", "POLARITY FLIP!", "ATTRACTIVE BEAST!", "NORTH POLE POWER!"
   ],
 
   whoosh: [
     "WHOOSH!", "VROOM!", "BLAST!", "FWOOSH!", "ZOOM!", "BRRRAP!", "TO THE MOON!",
     "NYOOM!", "FAST FEET!", "SPEEDY BEAN!", "COMET MODE!", "BYE FLOOR!", "AIR MAIL!",
     "WARP-ish!", "ZOOMIES!", "TURBO TUSH!", "DUST WHO?", "SPEED TAX!", "METEOR MOOD!",
-    "FLOOR CANCELLED!", "ORBITS FEAR ME!", "GAS GAS!", "SPACE WIND!", "WHIZZ!", "FWOOM!"
+    "FLOOR CANCELLED!", "ORBITS FEAR ME!", "GAS GAS!", "SPACE WIND!", "WHIZZ!", "FWOOM!",
+    "BREAKING SOUND BARRIER!", "TURBO THRUST!", "SPACE DRIFT!", "SPEED RACER!", "AFTERBURNER ON!",
+    "WARP FACTOR 9!", "SONIC SPROING!", "ZOOMING INTENSIFIES!", "FASTER THAN LIGHT-ish!"
   ],
 
   grip: [
     "GRIP!", "CLANK!", "DIG IN!", "HOLD ON!", "CRUNCH!", "TRACTION!", "BITE!",
     "STICKY BOOTS!", "NO SLIP!", "ICE WHO?", "CLING MODE!", "BOOT BRAKES!", "FRICTION FRIEND!",
     "ANCHOR FEET!", "GRABBY SOLES!", "LOCKED!", "SURFACE HUG!", "SKID DENIED!", "TREAD LIGHTLY!",
-    "GRIPTASTIC!", "CLAW BOOTS!", "STAY PUT!", "NOPE, SLIDE!", "FLOOR FRIEND!", "BOOT GLUE!"
+    "GRIPTASTIC!", "CLAW BOOTS!", "STAY PUT!", "NOPE, SLIDE!", "FLOOR FRIEND!", "BOOT GLUE!",
+    "TIRE TREADS!", "STICKY PADS!", "VELCRO BOOTS!", "FRICTION KING!", "GLUE MODE!",
+    "TRACTION ACTION!", "SLIP: CANCELLED!", "NO DRIFT ZONE!", "BOOT ANCHOR!", "FROST BRAKES!"
   ],
 
   bonk: [
     "BONK!", "OOF!", "OW!", "THWAP!", "DOINK!", "OUCH!", "WALL!",
     "HELMET TEST!", "FACE MEET WALL!", "NOTED!", "DATA POINT!", "SCIENCE HURTS!",
     "BOOPED TOO HARD!", "WALL SAYS HI!", "HEAD FIRST!", "MY BAD!", "THAT'S SOLID!",
-    "CRANI-YUM!", "BRAIN BOUNCE!", "NO ENTRY!", "OOPSIE!", "STRUCTURAL YES!", "PAIN PING!"
+    "CRANI-YUM!", "BRAIN BOUNCE!", "NO ENTRY!", "OOPSIE!", "STRUCTURAL YES!", "PAIN PING!",
+    "THINK TANK IMPACT!", "HELMET DURABILITY: 100%!", "WALL WON THAT ROUND!", "RECALCULATING GEOMETRY!",
+    "HEADSTRONG!", "BONK 3000!", "HARDWARE TEST!", "PHYSICAL CONTACT!"
   ],
 
   bump: [
     "BUMP!", "TONK!", "CLONK!", "DUNK!", "HEAD!", "CEILING!",
     "UPPER BONK!", "SKY SAID NO!", "CEILING TAX!", "LOW BRIDGE!", "HELMET BONK!",
     "TOPSIDE OOF!", "HEIGHT CHECK!", "NO FLY ZONE!", "DOME DOINK!", "ROOF BOOP!",
-    "UPPERCUT WALL!", "BONK ABOVE!", "TOO TALL!", "SKULL TAP!", "CEILING HUG!", "AIRBRAKE!"
+    "UPPERCUT WALL!", "BONK ABOVE!", "TOO TALL!", "SKULL TAP!", "CEILING HUG!", "AIRBRAKE!",
+    "CEILING TAP!", "LOW ROOF ALERT!", "SKY CEILING!", "HEAD BOOP!", "ATTIC CHECK!",
+    "BOUNCED OFF CLOUD!", "LOW ORBIT CEILING!", "BOOP FROM ABOVE!"
   ],
 
   land: [
     "TMP!", "THUD!", "TAP!", "THWMP!", "*dust*", "STICK!",
     "LANDED!", "FLOOR TIME!", "BOOT PRINT!", "NICE TOUCHDOWN!", "GRAVITY WON!", "SOFT-ish!",
     "DUST PUFF!", "FEET ONLINE!", "HELLO GROUND!", "SAFE-ish!", "TINY QUAKE!", "KNEES OK!",
-    "STOMP-LITE!", "TOUCHDOWN!", "FLOOR HUG!", "PLANTED!", "BOOTS DOWN!", "SURFACE GET!"
+    "STOMP-LITE!", "TOUCHDOWN!", "FLOOR HUG!", "PLANTED!", "BOOTS DOWN!", "SURFACE GET!",
+    "PERFECT 10!", "THREE-POINT LANDING!", "DUST SETTLED!", "STUCK THE LANDING!", "EARTHBOUND!",
+    "GROUND CONTACT!", "FEET FIRST!", "TOUCHDOWN HERO!"
   ],
 
   kaboom: [
     "KABOOM!", "BOOM!", "CRASH!", "SMASH!", "WIPEOUT!", "SPLAT!", "OW-CH!",
     "MISSION OOPS!", "BIG OOF!", "PHYSICS WON!", "SEND HELP!", "RESPAWN TIME!", "CHAOS!",
     "NOT IDEAL!", "RIP BOOTS!", "HOUSTON, OW!", "ERROR: OUCH!", "MY TRAJECTORY!", "CRATER MODE!",
-    "SPICY LANDING!", "CALCULATED? NO!", "BOOM WITH FEELING!", "DUST NAP!", "BONKAGEDDON!", "RESET ME!"
+    "SPICY LANDING!", "CALCULATED? NO!", "BOOM WITH FEELING!", "DUST NAP!", "BONKAGEDDON!", "RESET ME!",
+    "UNSCHEDULED RAPID DISASSEMBLY!", "PHYSICS WAS ANGRY!", "REBOOT INCOMING!", "SPACE CRATER!",
+    "BACK TO START!", "CHAOS ENGINE!", "EXPLOSIVE LESSON!", "RETRY TIME!"
   ],
 
   arrive: [
     "HERE WE GO!", "LET'S HOP!", "GAME ON!", "LIFTOFF!", "READY!", "ADVENTURE TIME!", "BOUNCE PARTY!",
     "STAR TIME!", "MISSION START!", "BOOTS READY!", "SPACE FACE ON!", "HOP TO IT!", "CADET MODE!",
     "FUEL? MAYBE!", "HELLO, COSMOS!", "GRAVITY LOADED!", "VECTOR CHECK!", "SCIENCE HAT ON!",
-    "LET'S YEET!", "PLANET, PLEASE!", "ORBITS AHOY!", "START THE SPROING!", "BOOT SEQUENCE!", "GO TIME!"
+    "LET'S YEET!", "PLANET, PLEASE!", "ORBITS AHOY!", "START THE SPROING!", "BOOT SEQUENCE!", "GO TIME!",
+    "TOUCHDOWN CADET!", "MISSION COMMENCING!", "BOOTS TO DIRT!", "ORBIT CRACKED!", "NEW WORLD UNLOCKED!",
+    "READY TO EXPERIMENT!", "PHYSICS TIME!", "STAR HOPPER IN THE HOUSE!"
   ],
 
   idle: [
@@ -203,7 +227,11 @@ const SPEECH_POOLS = {
     "Space smells purple.", "Blink blink.", "Comet or crumb?", "Thinking noises.", "Boop pending.",
     "Standing by-ish.", "Orbitally awkward.", "My socks echo.", "No thoughts, just stars.",
     "Can I eat moon?", "Astro-napping.", "Void check.", "Still cute.", "Tiny space pause.",
-    "404: snacks not found.", "Did I save?", "Gravity is clingy.", "Friction gossip.", "Starstruck."
+    "404: snacks not found.", "Did I save?", "Gravity is clingy.", "Friction gossip.", "Starstruck.",
+    "Is Pluto a planet today?", "Do aliens eat pizza?", "My space suit has pockets.", "Calculating Pi in my head...",
+    "I should write a space poem.", "Just admiring the nebula.", "Tick tick tick goes the cosmic clock.",
+    "Wonder what Hopper-Zero is doing.", "If I drop a pen in zero-g, does it fall?", "Space is 99% void and 1% snack breaks.",
+    "Vector, tell me a joke.", "Gravity: 10/10 would jump again.", "Look ma, no friction!", "My boots are quantum entangled."
   ],
 
   // Navigator — astronaut lingo
@@ -261,21 +289,26 @@ const SPEECH_POOLS = {
     "GRRR!", "ROAR!", "SNARL!", "BLORP!", "BEEP BEEP!", "RAWR!", "HISS!", "SKREE!", "ZZT!", "MUNCH?",
     "HOWL!", "CHOMP!", "GROWL!", "SQUEAK!", "GNAR!", "BORK!", "HONK!", "SCREECH!", "feed me!", "intruder!",
     "snack o'clock!", "you look tasty!", "rawr means hi!", "my planet!", "boop you!", "grr-eetings!",
-    "tax time!", "helmet soup!", "tiny menace!", "not sorry!", "floor boss!", "zoom crime!"
+    "tax time!", "helmet soup!", "tiny menace!", "not sorry!", "floor boss!", "zoom crime!",
+    "WHO INVITED YOU?", "THIS IS MY CRATER!", "GIVE BACK MY GEMS!", "ROAR NOISES!", "BEWARE THE BOOT!",
+    "SNACK ALERT!", "INTRUDER DETECTED!"
   ],
   mobDeath: [
     "OOF!", "SPLAT!", "BYE!", "DEFEATED!", "K.O.!", "POP!", "NOOO!", "*poof*", "X_X", "GG!",
-    "OW-CH!", "ZONK!", "DOWN I GO!", "YEET'D!", "RIP me!", "well, rude!", "see ya!", "blub…", "*sparkles*", "respawn?"
+    "OW-CH!", "ZONK!", "DOWN I GO!", "YEET'D!", "RIP me!", "well, rude!", "see ya!", "blub…", "*sparkles*", "respawn?",
+    "I WAS JUST NAPPING!", "DEFEATED BY CODING?!", "NOOO MY ROCK!", "BACK TO THE VOID!", "TOO BRIGHT!", "SYSTEM CRASH!"
   ],
   mobRave: [
-    "AAH, DISCO!", "TOO SHINY!", "RETREAT!", "NOPE NOPE!", "MY EYES!", "FLEE!", "rave bad!", "spooky lights!", "abort!", "run away!"
+    "AAH, DISCO!", "TOO SHINY!", "RETREAT!", "NOPE NOPE!", "MY EYES!", "FLEE!", "rave bad!", "spooky lights!", "abort!", "run away!", "DISCO FEVER!"
   ],
   mobPet: [
-    "FRIEND!", "I HELP!", "PROTECT!", "WITH YOU!", "GOOD CADET!", "PET MODE!", "I GOT THIS!", "stay back!"
+    "FRIEND!", "I HELP!", "PROTECT!", "WITH YOU!", "GOOD CADET!", "PET MODE!", "I GOT THIS!", "stay back!", "TEAM CADET!", "GUARD PUPPY!"
   ],
   villagerCheer: [
     "GO CADET!", "BONK 'EM!", "SAVE THE SHOP!", "BOOT POWER!", "YES YES!", "HERO FEET!",
-    "PEW PEW!", "NICE DODGE!", "BIG SCIENCE!", "HIT THE BAD GUY!", "TEAM CADET!", "NO FEAR!"
+    "PEW PEW!", "NICE DODGE!", "BIG SCIENCE!", "HIT THE BAD GUY!", "TEAM CADET!", "NO FEAR!",
+    "THAT WAS AWESOME!", "GO STAR HOPPER!", "CLEAN MOVE!", "INCREDIBLE PHYSICS!", "GIVE 'EM THE BOOT!",
+    "SCIENCE WINS AGAIN!", "BEST CADET EVER!"
   ],
   coachPep: [
     "One tweak!", "Guess first!", "Run it!", "Tiny change!", "Watch motion!", "Try mass!",
@@ -283,15 +316,21 @@ const SPEECH_POOLS = {
   ],
   codeRun: [
     "CODE RUN!", "SYNTAX VALID!", "RULES REWRITTEN!", "EXECUTING!", "PHYSICS UPDATED!",
-    "NEW CONSTANTS!", "RUN.EXE!", "PROGRAM LOADED!", "LOGIC ONLINE!", "PATCH APPLIED!"
+    "NEW CONSTANTS!", "RUN.EXE!", "PROGRAM LOADED!", "LOGIC ONLINE!", "PATCH APPLIED!",
+    "COMPILING MAGIC!", "BYTECODE STREAM!", "PHYSICS PATCH LOADED!", "LOGIC APPLIED!",
+    "EXECUTION SUCCESS!", "ENGINE REWIRED!", "TERMINAL COMMAND SENT!", "VARIABLES INJECTED!"
   ],
   codeLoop: [
     "LOOP POWER!", "REPEAT ACTIVE!", "ITERATING!", "LOOP MAGIC!", "LOOP GO BRRR!",
-    "COUNTED STEPS!", "AUTOMATION!", "MULTI-SPAWN!", "LOOP MASTER!"
+    "COUNTED STEPS!", "AUTOMATION!", "MULTI-SPAWN!", "LOOP MASTER!",
+    "WHILE TRUE BOUNCE!", "FOR I IN RANGE(INFINITY)!", "LOOP IT GOOD!", "REPETITION REVOLUTION!",
+    "AUTOMATED BOUNCE!", "RECURSION TIME!", "CYCLE COMPLETE!"
   ],
   codeEvent: [
     "HOOK ARMED!", "WHEN TRIGGER SET!", "LISTENER READY!", "REACTIVE CODE!",
-    "EDGE TRIGGERED!", "EVENT DETECTED!", "SIGNAL WATCHING!"
+    "EDGE TRIGGERED!", "EVENT DETECTED!", "SIGNAL WATCHING!",
+    "EVENT HOOK FIRED!", "SIGNAL CAUGHT!", "INTERRUPT HANDLER!", "CALLBACK ACTIVATED!",
+    "TRIGGER PULLED!", "CONDITION MET!", "LISTENER AWAKE!"
   ],
   physicsAntigrav: [
     "ANTI-GRAV ON!", "FLOATING HIGH!", "HANG TIME!", "DEFYING GRAVITY!", "UPWARD LIFT!",
