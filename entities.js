@@ -63,6 +63,9 @@ class ParticleEngine {
   }
 
   spawn(x, y, color, size, vx, vy, maxLife, type = 'pixel') {
+    if (this.particles.length > 200) {
+      this.particles.shift();
+    }
     this.particles.push(new Particle(x, y, color, size, vx, vy, maxLife, type));
   }
 

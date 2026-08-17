@@ -330,9 +330,13 @@ function updateHUD(game) {
   const pBar = document.getElementById("bar-potential");
   const tBar = document.getElementById("bar-total");
 
-  if (kBar) kBar.style.width = `${kePercent}%`;
-  if (pBar) pBar.style.width = `${pePercent}%`;
-  if (tBar) tBar.style.width = `${tePercent}%`;
+  const kw = `${Math.round(kePercent)}%`;
+  const pw = `${Math.round(pePercent)}%`;
+  const tw = `${Math.round(tePercent)}%`;
+
+  if (kBar && kBar.style.width !== kw) kBar.style.width = kw;
+  if (pBar && pBar.style.width !== pw) pBar.style.width = pw;
+  if (tBar && tBar.style.width !== tw) tBar.style.width = tw;
 
   // Health (hearts) and Fuel (tank) are drawn on the canvas HUD now — see Game.drawHealthHUD
   // and Game.drawFuelHUD. They were removed from this DOM telemetry panel so it no longer
@@ -340,28 +344,35 @@ function updateHUD(game) {
 
   const energySummary = document.getElementById("hud-energy-summary");
   if (energySummary) {
-    energySummary.textContent = `K ${Math.round(ke)} | P ${Math.round(pe)}`;
+    const newEnergy = `K ${Math.round(ke)} | P ${Math.round(pe)}`;
+    if (energySummary.textContent !== newEnergy) energySummary.textContent = newEnergy;
   }
 
   const objectiveSummary = document.getElementById("hud-objectives");
   if (objectiveSummary && typeof game.getLevelObjectiveStatus === 'function') {
     const status = game.getLevelObjectiveStatus();
-    objectiveSummary.textContent = `✓ ${status.missionsComplete}/${status.missionsTotal} | ◆ ${status.collectiblesCollected}/${status.collectiblesTotal}`;
-    objectiveSummary.style.color = status.readyForPortal ? "var(--neon-green)" : "var(--neon-yellow)";
+    const newObj = `✓ ${status.missionsComplete}/${status.missionsTotal} | ◆ ${status.collectiblesCollected}/${status.collectiblesTotal}`;
+    if (objectiveSummary.textContent !== newObj) objectiveSummary.textContent = newObj;
+    const newColor = status.readyForPortal ? "var(--neon-green)" : "var(--neon-yellow)";
+    if (objectiveSummary.style.color !== newColor) objectiveSummary.style.color = newColor;
   }
 
   const gemBar = document.getElementById("hud-gem-bar");
   if (gemBar && typeof game.getLevelObjectiveStatus === 'function') {
     const status = game.getLevelObjectiveStatus();
     const gem = typeof game.getGemConfig === 'function' ? game.getGemConfig() : { color: "var(--neon-yellow)", glow: "rgba(250, 204, 21, 0.65)" };
-    gemBar.innerHTML = "";
-    for (let i = 0; i < status.collectiblesTotal; i++) {
-      const slot = document.createElement("span");
-      slot.className = `gem-slot ${i < status.collectiblesCollected ? "filled" : ""}`;
-      slot.style.setProperty("--gem-color", gem.color);
-      slot.style.setProperty("--gem-glow", gem.glow);
-      slot.title = `${gem.name || "Mission gem"} ${i + 1}`;
-      gemBar.appendChild(slot);
+    const cacheKey = `${status.collectiblesTotal}_${status.collectiblesCollected}_${gem.color}`;
+    if (gemBar._lastCacheKey !== cacheKey) {
+      gemBar._lastCacheKey = cacheKey;
+      gemBar.innerHTML = "";
+      for (let i = 0; i < status.collectiblesTotal; i++) {
+        const slot = document.createElement("span");
+        slot.className = `gem-slot ${i < status.collectiblesCollected ? "filled" : ""}`;
+        slot.style.setProperty("--gem-color", gem.color);
+        slot.style.setProperty("--gem-glow", gem.glow);
+        slot.title = `${gem.name || "Mission gem"} ${i + 1}`;
+        gemBar.appendChild(slot);
+      }
     }
   }
 
@@ -369,21 +380,19 @@ function updateHUD(game) {
   if (musicTrack) {
     const trackName = SFX.getTrackName ? SFX.getTrackName(SFX.currentBgm) : "No Music";
     const volume = SFX.getMasterVolumePercent ? SFX.getMasterVolumePercent() : 100;
-    musicTrack.textContent = SFX.isMuted ? "Muted" : `${trackName} ${volume}%`;
+    const newMusic = SFX.isMuted ? "Muted" : `${trackName} ${volume}%`;
+    if (musicTrack.textContent !== newMusic) musicTrack.textContent = newMusic;
   }
-  syncMasterVolumeControl();
 
   // 5. Active Character Indicators
   const starCard = document.getElementById("char-card-star");
   const hopperCard = document.getElementById("char-card-hopper");
   
   if (starCard && hopperCard) {
-    if (player.charType === 'star') {
-      starCard.classList.add("active");
-      hopperCard.classList.remove("active");
-    } else {
-      starCard.classList.remove("active");
-      hopperCard.classList.add("active");
+    const isStar = player.charType === 'star';
+    if (starCard.classList.contains("active") !== isStar) {
+      starCard.classList.toggle("active", isStar);
+      hopperCard.classList.toggle("active", !isStar);
     }
   }
 }
