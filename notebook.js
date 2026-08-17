@@ -74,6 +74,8 @@ const AI_STATE_DECK_CARDS = [
 // Updates the Science Notebook UI with telemetry from the active game
 function updateNotebook(game) {
   if (!game) return;
+  const nb = document.getElementById("main-content-notebook");
+  if (!nb || !nb.classList.contains("active")) return;
 
   const player = game.player;
   const planet = game.currentPlanet;
@@ -130,11 +132,6 @@ function updateNotebook(game) {
   if (researchEl) {
     researchEl.textContent = `${Math.round(game.researchXP || 0)} XP`;
   }
-  updateResearchProgress(game);
-  updateFutureLabRoadmap(game);
-  updateSciencePassport(game);
-  updateVillageAlmanac(game);
-  updateAIStateDeck(game);
 
   // Render Mini Energy Bars
   const maxKE = 100;
@@ -164,13 +161,6 @@ function updateNotebook(game) {
     const miniTeVal = document.getElementById("mini-te-val");
     if (miniTeVal) miniTeVal.textContent = `${Math.round(te)}J`;
   }
-
-  updateCertificateState();
-  updateLearningConceptProgress(game);
-  updateBadgeShelf(game);
-
-  // Periodically refresh current question based on active mission
-  updateActiveQuestion(game);
 }
 
 // Reset stats when changing planet

@@ -1237,7 +1237,7 @@ class Player {
     // Top speed and jump launch are DERIVED from force / mass (F = m·a): a stronger
     // engine OR a lighter rover both go faster and jump higher.
     const engineForce = Compiler.env.engine ?? currentPlanet.physics.speed;
-    const speedMultiplier = engineForce / this.mass;
+    const speedMultiplier = Math.max(3.2, engineForce / this.mass);
     const jumpMultiplier = this.jumpPower / this.mass;
 
     // Apply scale changes dynamically
@@ -1292,7 +1292,7 @@ class Player {
     this.isBraking = false;
 
     // 3. Horizontal movement inputs (Active character only)
-    const walkAcceleration = 0.5;
+    const walkAcceleration = 0.9;
     // Snappier turns: brake harder when input opposes motion (a quick skid) so direction
     // changes feel crisp — without changing top speed. Skid dust sells the stop.
     const reversing = (leftPressed && this.vx > 0.4) || (rightPressed && this.vx < -0.4);
