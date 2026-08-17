@@ -18,10 +18,10 @@ const PLANETS = [
     },
 
     npcs: [
-      { id: "geary", name: "Machinist Geary", profession: "Machinist", x: 390, type: "npc", color: "#4ade80", roleMark: "E" },
-      { id: "bitbyte", name: "Logician Bit-Byte", profession: "Logician", x: 448, type: "npc", color: "#38bdf8", roleMark: "J" },
-      { id: "horizon", name: "Cartographer Horizon", profession: "Cartographer", x: 506, type: "npc", color: "#f97316", roleMark: "M" },
-      { id: "tesla", name: "Magnetist Tesla", profession: "Magnetist", x: 564, type: "npc", color: "#ec4899", roleMark: "A" }
+      { id: "geary", name: "Machinist Geary", profession: "Machinist", x: 224, type: "npc", color: "#4ade80", roleMark: "E" },
+      { id: "bitbyte", name: "Logician Bit-Byte", profession: "Logician", x: 1080, type: "npc", color: "#38bdf8", roleMark: "J" },
+      { id: "horizon", name: "Cartographer Horizon", profession: "Cartographer", x: 736, type: "npc", color: "#f97316", roleMark: "M" },
+      { id: "tesla", name: "Magnetist Tesla", profession: "Magnetist", x: 1536, type: "npc", color: "#ec4899", roleMark: "A" }
     ],
 
     physics: {

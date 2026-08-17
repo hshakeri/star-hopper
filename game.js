@@ -4461,7 +4461,27 @@ class StarHopperGame {
 
   npcCaveHasUnsafePlacement(caveX, caveY) {
     if (!Number.isFinite(caveX) || !Number.isFinite(caveY)) return true;
-    return this.npcHasUnsafePlacement(caveX + 10, caveY);
+    const rect = { x: caveX - 10, y: caveY, w: 52, h: 40 };
+    if (this.npcOverlapsRequiredGem(caveX + 16, caveY + 20)) return true;
+    if (this.entityTouchesHazard(rect)) return true;
+    if (this.entityOverlapsSpawnedBox(rect)) return true;
+    return false;
+  }
+
+  isGroundSolidUnderCave(caveX, caveY) {
+    const map = this.getActiveMap();
+    if (!map || !map.length || !map[0]) return true;
+    const leftCol = Math.floor((caveX - 8) / TILE_SIZE);
+    const rightCol = Math.floor((caveX + 40) / TILE_SIZE);
+    const footY = caveY + 36;
+    const rowUnder = Math.floor((footY + 4) / TILE_SIZE);
+    if (rowUnder < 0 || rowUnder >= map.length) return false;
+    if (leftCol < 0 || rightCol >= map[0].length) return false;
+    for (let c = leftCol; c <= rightCol; c++) {
+      const cell = map[rowUnder] && map[rowUnder][c];
+      if (cell !== 1 && cell !== 10) return false;
+    }
+    return true;
   }
 
   findSafeNpcCavePosition(homeX, homeY, options = {}) {
@@ -4471,6 +4491,17 @@ class StarHopperGame {
     const baseY = Number.isFinite(homeY) ? homeY : 320;
     const offsets = [-32, 48, -64, 80, -96, 112, -128, 144, -160, 176, 0, 208, -208];
 
+    // 1. First priority: find a spot entirely on solid blocks
+    for (const dx of offsets) {
+      const bodyX = Math.max(48, Math.min(mapW - 96, baseX + dx));
+      const bodyY = options.snapToGround === false ? baseY : this.findSurfaceYForNpc(bodyX, baseY);
+      const caveX = Math.max(20, bodyX - 10);
+      if (!this.npcCaveHasUnsafePlacement(caveX, bodyY) && this.isGroundSolidUnderCave(caveX, bodyY)) {
+        return { caveX, caveY: bodyY };
+      }
+    }
+
+    // 2. Fallback: find any safe surface
     for (const dx of offsets) {
       const bodyX = Math.max(48, Math.min(mapW - 96, baseX + dx));
       const bodyY = options.snapToGround === false ? baseY : this.findSurfaceYForNpc(bodyX, baseY);
@@ -4484,10 +4515,10 @@ class StarHopperGame {
 
   ensureNPCSafeCave(npc) {
     if (!npc) return false;
-    if (!this.npcCaveHasUnsafePlacement(npc.caveX, npc.caveY)) return true;
+    if (Number.isFinite(npc.caveX) && Number.isFinite(npc.caveY) && !this.npcCaveHasUnsafePlacement(npc.caveX, npc.caveY)) return true;
     const homeX = Number.isFinite(npc.homeX) ? npc.homeX : npc.x;
     const homeY = Number.isFinite(npc.homeY) ? npc.homeY : npc.y;
-    const cave = this.findSafeNpcCavePosition(homeX, homeY);
+    const cave = this.findSafeNpcCavePosition(homeX, homeY, { snapToGround: npc.snapToGround });
     if (!cave) return false;
     npc.caveX = cave.caveX;
     npc.caveY = cave.caveY;
@@ -4499,7 +4530,7 @@ class StarHopperGame {
     const map = this.getActiveMap();
     const mapW = map && map[0] ? map[0].length * TILE_SIZE : 1920;
     const baseX = Number.isFinite(placed.x) ? placed.x : 160;
-    const offsets = [0, 96, 128, 160, 64, 192, -64, -96, 224, -128, 256, -160, 320];
+    const offsets = [0, 64, -64, 96, -96, 128, -128, 160, -160, 192, -192, 224, -224, 256];
 
     for (const dx of offsets) {
       const candidateX = Math.max(48, Math.min(mapW - 96, baseX + dx));
@@ -4519,13 +4550,23 @@ class StarHopperGame {
       }
     }
 
-    placed.x = Math.max(48, Math.min(mapW - 96, baseX + 360));
-    if (placed.snapToGround !== false) placed.y = this.findSurfaceYForNpc(placed.x, placed.y);
-    placed.homeX = placed.x;
-    placed.homeY = placed.y;
-    const cave = this.findSafeNpcCavePosition(placed.x, placed.y, { snapToGround: placed.snapToGround });
-    placed.caveX = cave ? cave.caveX : Math.max(20, placed.x - 42);
-    placed.caveY = cave ? cave.caveY : placed.y;
+    // Full map fallback scan
+    for (let c = 3; c < map[0].length - 3; c++) {
+      const candidateX = c * TILE_SIZE;
+      const candidateY = this.findSurfaceYForNpc(candidateX, 320);
+      if (!this.npcHasUnsafePlacement(candidateX, candidateY)) {
+        const cave = this.findSafeNpcCavePosition(candidateX, candidateY, { snapToGround: placed.snapToGround });
+        if (cave) {
+          placed.x = candidateX;
+          placed.y = candidateY;
+          placed.homeX = candidateX;
+          placed.homeY = candidateY;
+          placed.caveX = cave.caveX;
+          placed.caveY = cave.caveY;
+          return placed;
+        }
+      }
+    }
     return placed;
   }
 
